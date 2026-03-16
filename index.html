@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Players Tracker">
+<meta name="theme-color" content="#0a1628">
+<title>Players Tracker ⛳</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+/* ── Reset & Root ─────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --navy:#0a1628;--mid:#111e35;--card:#16273d;--border:#1e3358;
+  --gold:#c9a84c;--gold2:#e8c96a;--pale:#f5e6b8;
+  --cream:#f0e8d0;--dim:#8899bb;--dimmer:#4a5a7a;
+  --birdie:#3498db;--par:#2ecc71;--bogey:#e67e22;--double:#e74c3c;--eagle:#f1c40f;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--navy);
+  color:var(--cream);
+  display:flex;flex-direction:column;
+}
+
+/* ── Scrollable pages ─────────────────────────────────────────── */
+.app{
+  flex:1;overflow-y:auto;overflow-x:hidden;
+  padding-bottom:calc(68px + var(--safe-bot));
+  -webkit-overflow-scrolling:touch;
+}
+
+/* ── Header ───────────────────────────────────────────────────── */
+.hdr{
+  background:var(--mid);
+  border-bottom:1px solid rgba(201,168,76,.2);
+  padding:calc(14px + var(--safe-top)) 20px 14px;
+  text-align:center;
+  flex-shrink:0;
+  position:relative;
+}
+.hdr-eyebrow{
+  font-family:'DM Sans',sans-serif;
+  font-size:9px;letter-spacing:4px;color:var(--gold);
+  text-transform:uppercase;margin-bottom:3px;
+}
+.hdr-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:24px;font-weight:700;color:var(--cream);
+  letter-spacing:.5px;line-height:1;
+}
+.hdr-sub{font-size:11px;color:var(--dim);margin-top:3px}
+.sync-pill{
+  display:inline-flex;align-items:center;gap:5px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+  border-radius:20px;padding:3px 10px;font-size:10px;color:var(--dim);
+  margin-top:6px;
+}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--par);flex-shrink:0}
+.sdot.syncing{background:var(--gold);animation:pulse 1s infinite}
+.sdot.err{background:var(--double)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* ── Nav ──────────────────────────────────────────────────────── */
+.nav{
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--mid);
+  border-top:1px solid rgba(201,168,76,.15);
+  display:flex;
+  padding-bottom:var(--safe-bot);
+  z-index:200;
+}
+.nb{
+  flex:1;padding:10px 4px 8px;text-align:center;
+  font-size:9px;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--dimmer);border:none;background:transparent;
+  cursor:pointer;font-family:'DM Sans',sans-serif;
+  transition:color .2s;
+}
+.nb.active{color:var(--gold)}
+.ni{font-size:20px;display:block;margin-bottom:2px}
+
+/* ── Section / Card ───────────────────────────────────────────── */
+.sec{padding:16px}
+.card{
+  background:var(--card);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:14px;padding:16px;margin-bottom:13px;
+  position:relative;overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(201,168,76,.25),transparent);
+}
+.ct{
+  font-family:'DM Sans',sans-serif;
+  font-size:9px;letter-spacing:2.5px;color:var(--gold);
+  text-transform:uppercase;margin-bottom:12px;
+}
+
+/* ── Inputs ───────────────────────────────────────────────────── */
+label{font-size:12px;color:var(--dim);display:block;margin-bottom:4px}
+input[type=text],input[type=number],input[type=password],select,textarea{
+  width:100%;background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:9px;color:var(--cream);font-size:14px;
+  padding:10px 12px;font-family:'DM Sans',sans-serif;
+  outline:none;transition:border-color .2s;
+  -webkit-appearance:none;appearance:none;
+}
+input:focus,select:focus{border-color:rgba(201,168,76,.6)}
+select option{background:var(--mid)}
+input[type=checkbox]{width:auto;accent-color:var(--gold)}
+
+/* ── Buttons ──────────────────────────────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  background:var(--gold);color:var(--navy);
+  font-size:13px;font-weight:500;letter-spacing:.3px;
+  padding:12px 18px;border:none;border-radius:10px;
+  cursor:pointer;width:100%;font-family:'DM Sans',sans-serif;
+  transition:background .15s,transform .1s;
+}
+.btn:hover{background:var(--gold2)}
+.btn:active{transform:scale(.98)}
+.btn-o{background:transparent;border:1px solid rgba(201,168,76,.5);color:var(--gold)}
+.btn-o:hover{background:rgba(201,168,76,.08)}
+.btn-ghost{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--dim)}
+.btn-ghost:hover{border-color:rgba(255,255,255,.2)}
+.divider{display:flex;align-items:center;gap:10px;margin:14px 0}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.07)}
+.divider span{font-size:10px;color:var(--dimmer);letter-spacing:1px;text-transform:uppercase}
+
+/* ── Onboard ──────────────────────────────────────────────────── */
+#pg-onboard .app-inner{
+  min-height:100%;display:flex;flex-direction:column;
+  justify-content:center;padding:24px 20px 40px;
+}
+.onb-hero{text-align:center;margin-bottom:32px}
+.onb-flag{font-size:56px;margin-bottom:10px}
+.onb-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:36px;font-weight:700;color:var(--cream);
+  line-height:1;margin-bottom:6px;
+}
+.onb-sub{font-size:13px;color:var(--dim);line-height:1.5}
+
+/* ── Player cards ─────────────────────────────────────────────── */
+.player-card{
+  display:flex;align-items:center;gap:12px;
+  padding:12px;background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:11px;margin-bottom:8px;cursor:pointer;
+  transition:border-color .2s,background .2s;
+}
+.player-card:hover{border-color:rgba(201,168,76,.4);background:rgba(201,168,76,.05)}
+.player-card.me{border-color:rgba(201,168,76,.5);background:rgba(201,168,76,.07)}
+.avatar{
+  width:42px;height:42px;border-radius:50%;
+  background:var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Cormorant Garamond',serif;
+  font-size:16px;font-weight:700;color:var(--gold);flex-shrink:0;
+}
+.pname{font-size:14px;font-weight:500;color:var(--cream)}
+.pmeta{font-size:11px;color:var(--dim);margin-top:2px}
+
+/* ── KPI pills ────────────────────────────────────────────────── */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:13px}
+.kpi{
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
+  border-radius:11px;padding:12px 8px;text-align:center;
+}
+.kv{
+  font-family:'Cormorant Garamond',serif;
+  font-size:26px;font-weight:700;color:var(--gold);
+  display:block;line-height:1;
+}
+.kl{font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px;margin-top:4px;display:block}
+.ks{font-size:10px;color:var(--dimmer);margin-top:2px}
+
+/* ── Tee selector ─────────────────────────────────────────────── */
+.tee-row{display:flex;gap:7px;margin-top:10px}
+.tee-btn{
+  flex:1;padding:9px 4px;border-radius:8px;
+  font-size:11px;font-weight:500;cursor:pointer;
+  border:1.5px solid transparent;font-family:'DM Sans',sans-serif;
+  text-align:center;transition:all .15s;
+}
+.tee-btn.blue{background:rgba(52,152,219,.1);border-color:rgba(52,152,219,.3);color:#5dade2}
+.tee-btn.yellow{background:rgba(241,196,15,.1);border-color:rgba(241,196,15,.3);color:#f4d03f}
+.tee-btn.white{background:rgba(240,232,208,.06);border-color:rgba(240,232,208,.25);color:#f0e8d0}
+.tee-btn.red{background:rgba(231,76,60,.1);border-color:rgba(231,76,60,.3);color:#e74c3c}
+.tee-btn.active.blue{background:rgba(52,152,219,.25);border-color:#5dade2}
+.tee-btn.active.yellow{background:rgba(241,196,15,.25);border-color:#f4d03f}
+.tee-btn.active.white{background:rgba(240,232,208,.18);border-color:#f0e8d0}
+.tee-btn.active.red{background:rgba(231,76,60,.25);border-color:#e74c3c}
+.tee-info{font-size:10px;color:var(--dim);margin-top:5px}
+
+/* ── Scorecard table ──────────────────────────────────────────── */
+.sc-wrap{overflow-x:auto;margin-top:8px}
+.sg{width:100%;border-collapse:collapse;font-size:12px}
+.sg th{
+  background:rgba(30,51,88,.8);color:var(--gold);
+  font-size:8px;letter-spacing:1.5px;text-transform:uppercase;
+  padding:7px 4px;text-align:center;
+  font-family:'DM Sans',sans-serif;font-weight:500;
+}
+.sg td{padding:4px 3px;text-align:center;border-bottom:1px solid rgba(255,255,255,.04)}
+.sg .alt td{background:rgba(255,255,255,.015)}
+.sg .sub td{
+  background:rgba(20,40,70,.7);color:var(--pale);
+  font-size:10px;font-weight:500;padding:5px 3px;
+}
+.sg .tot-row td{
+  background:var(--gold);color:var(--navy);
+  font-weight:700;font-size:12px;padding:7px 3px;
+}
+.sg input[type=number]{
+  width:36px;text-align:center;padding:4px 2px;
+  font-size:12px;border-radius:5px;
+}
+.sg select{font-size:10px;padding:3px 2px;border-radius:5px}
+.hn{color:var(--dimmer);font-size:11px}
+.pc{color:var(--pale);font-weight:500;font-size:12px}
+
+/* Score badges */
+.s-eagle{background:var(--eagle);color:#000;border-radius:50%;display:inline-flex;width:24px;height:24px;align-items:center;justify-content:center;font-weight:700;font-size:11px}
+.s-birdie{border:2px solid var(--birdie);color:var(--birdie);border-radius:50%;display:inline-flex;width:24px;height:24px;align-items:center;justify-content:center;font-weight:700;font-size:11px}
+.s-par{color:var(--dim);font-size:12px}
+.s-bogey{border:2px solid var(--bogey);color:var(--bogey);display:inline-flex;width:24px;height:24px;align-items:center;justify-content:center;font-weight:700;font-size:11px}
+.s-double{background:rgba(231,76,60,.15);border:2px solid var(--double);color:var(--double);display:inline-flex;width:24px;height:24px;align-items:center;justify-content:center;font-weight:700;font-size:11px}
+.s-triple{background:var(--double);color:#fff;display:inline-flex;width:24px;height:24px;align-items:center;justify-content:center;font-weight:700;font-size:11px;border-radius:3px}
+
+/* ── Totals bar ───────────────────────────────────────────────── */
+.tot-bar{
+  background:rgba(30,51,88,.5);border-radius:9px;
+  padding:11px 14px;display:flex;justify-content:space-between;
+  align-items:center;margin-top:10px;
+  border:1px solid rgba(255,255,255,.06);
+}
+.tv{
+  font-family:'Cormorant Garamond',serif;
+  font-size:28px;font-weight:700;color:var(--gold);
+}
+.tl{font-size:10px;color:var(--dim);margin-bottom:2px}
+
+/* ── Score breakdown pills ────────────────────────────────────── */
+.bd-row{display:flex;gap:7px;margin-bottom:13px}
+.bd{
+  flex:1;text-align:center;
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:10px;padding:10px 5px;
+}
+.bv{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;display:block;line-height:1}
+.bl{font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+.ec{color:var(--eagle)}.bc{color:var(--birdie)}.prc{color:var(--par)}.bgc{color:var(--bogey)}.dc{color:var(--double)}
+
+/* ── History items ────────────────────────────────────────────── */
+.hi{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:11px 0;border-bottom:1px solid rgba(255,255,255,.05);
+}
+.hi:last-child{border-bottom:none}
+.hc{font-size:13px;font-weight:500;color:var(--cream)}
+.hm{font-size:10px;color:var(--dim);margin-top:2px}
+.hs{
+  font-family:'Cormorant Garamond',serif;
+  font-size:24px;font-weight:700;color:var(--gold);
+}
+.hd{font-size:10px;color:var(--dim);text-align:right;margin-top:2px}
+.tdot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:3px;vertical-align:middle}
+
+/* ── Tab bar (round entry) ────────────────────────────────────── */
+.tab-bar{
+  display:flex;background:var(--mid);
+  border-bottom:1px solid rgba(255,255,255,.07);padding:0 16px;
+}
+.tab{
+  flex:1;padding:12px 6px;text-align:center;
+  font-size:10px;letter-spacing:1px;text-transform:uppercase;
+  color:var(--dimmer);cursor:pointer;
+  border-bottom:2px solid transparent;
+  transition:color .2s,border-color .2s;
+  font-family:'DM Sans',sans-serif;
+}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+
+/* ── Photo drop ───────────────────────────────────────────────── */
+.pdrop{
+  border:1.5px dashed rgba(201,168,76,.35);border-radius:10px;
+  padding:24px;text-align:center;cursor:pointer;margin-bottom:11px;
+  transition:border-color .2s,background .2s;
+}
+.pdrop:hover{border-color:var(--gold);background:rgba(201,168,76,.04)}
+
+/* ── Alerts ───────────────────────────────────────────────────── */
+.alert{
+  background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.3);
+  border-radius:8px;padding:10px 13px;font-size:12px;color:var(--pale);
+  margin-bottom:11px;
+}
+.alert-err{background:rgba(231,76,60,.1);border-color:rgba(231,76,60,.4);color:#f1948a}
+.alert-ok{background:rgba(46,204,113,.08);border-color:rgba(46,204,113,.35);color:#82e0aa}
+
+/* ── Spinner ──────────────────────────────────────────────────── */
+.spin{
+  width:16px;height:16px;
+  border:2px solid rgba(201,168,76,.25);border-top-color:var(--gold);
+  border-radius:50%;animation:spin .7s linear infinite;
+  display:inline-block;vertical-align:middle;margin-right:6px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Charts ───────────────────────────────────────────────────── */
+.chart-wrap{position:relative;width:100%;margin-top:8px}
+
+/* ── Details/summary ──────────────────────────────────────────── */
+details summary{
+  cursor:pointer;color:var(--gold);font-size:10px;
+  letter-spacing:1.5px;text-transform:uppercase;
+  padding:8px 0;list-style:none;font-family:'DM Sans',sans-serif;
+}
+details summary::after{content:' ▸'}
+details[open] summary::after{content:' ▾'}
+.fr{display:flex;gap:8px;margin-bottom:8px}
+.fr>div{flex:1}
+.fr label{font-size:11px}
+
+/* ── Leaderboard ──────────────────────────────────────────────── */
+.lb-row{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);
+}
+.lb-row:last-child{border-bottom:none}
+.lb-pos{
+  font-family:'Cormorant Garamond',serif;
+  font-size:22px;font-weight:700;color:var(--dimmer);
+  width:28px;text-align:center;flex-shrink:0;
+}
+.lb-pos.gold{color:var(--gold)}
+.lb-pos.silver{color:#aab4c8}
+.lb-pos.bronze{color:#cd7f32}
+.lb-name{font-size:13px;font-weight:500;color:var(--cream);flex:1}
+.lb-meta{font-size:10px;color:var(--dim);margin-top:1px}
+.lb-score{
+  font-family:'Cormorant Garamond',serif;
+  font-size:22px;font-weight:700;
+}
+
+/* ── Settings ─────────────────────────────────────────────────── */
+.setting-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:11px 0;border-bottom:1px solid rgba(255,255,255,.05);
+}
+.setting-row:last-child{border-bottom:none}
+.setting-label{font-size:13px;color:var(--cream)}
+.setting-sub{font-size:10px;color:var(--dim);margin-top:2px}
+
+/* ── Misc ─────────────────────────────────────────────────────── */
+.empty{text-align:center;padding:36px 20px;color:var(--dimmer);font-size:13px}
+.empty-icon{font-size:40px;margin-bottom:10px}
+.mb8{margin-bottom:8px}
+.mb12{margin-bottom:12px}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ ONBOARD ══════════════ -->
+<div id="pg-onboard" style="height:100%;overflow-y:auto">
+<div class="app-inner">
+  <div class="onb-hero">
+    <div class="onb-flag">⛳</div>
+    <div class="onb-title">Players<br>Tracker</div>
+    <div class="onb-sub" style="margin-top:8px">Players Championship edition<br>Live sync · Multi-player · Full stats</div>
+  </div>
+
+  <div class="card mb12">
+    <div class="ct">Who are you?</div>
+    <div id="onb-player-list"><div class="empty"><div class="empty-icon">🔄</div>Loading players...</div></div>
+    <div class="divider"><span>first time?</span></div>
+    <input type="text" id="new-name" placeholder="Enter your full name" class="mb8">
+    <button class="btn" onclick="addAndEnter()">➕ Join &amp; Start Playing</button>
+    <div style="margin-top:10px;font-size:11px;color:var(--dimmer);text-align:center;line-height:1.6">
+      No account needed — just enter your name.<br>Your scores sync automatically with the group.
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-bottom:16px">
+    <span style="font-size:11px;color:var(--dimmer);cursor:pointer;border-bottom:1px dotted var(--dimmer);padding-bottom:1px"
+      onclick="document.getElementById('owner-cfg').style.display=document.getElementById('owner-cfg').style.display==='none'?'block':'none'">
+      ⚙️ App owner settings (Murray only)
+    </span>
+  </div>
+  <div id="owner-cfg" style="display:none">
+    <div class="card">
+      <div class="ct">Owner Config</div>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:12px;line-height:1.6">
+        Only Murray needs to do this once on his own device. Friends just tap their name above — no token, no GitHub account needed.
+      </div>
+      <label>GitHub Personal Access Token</label>
+      <div style="font-size:10px;color:var(--dimmer);margin-bottom:6px">Stored in your browser only — never in the code</div>
+      <input type="password" id="cfg-token" placeholder="ghp_..." class="mb8">
+      <label>Gist ID (only if changed)</label>
+      <input type="text" id="cfg-gist" placeholder="089c0ed..." class="mb8">
+      <button class="btn btn-o" onclick="saveConfig()">💾 Save & Connect</button>
+      <div id="cfg-msg" style="margin-top:8px;font-size:11px;color:var(--dim)"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════ MAIN APP ══════════════ -->
+<div id="pg-main" style="display:none;height:100%;display:none;flex-direction:column">
+  <!-- Header -->
+  <div class="hdr">
+    <div class="hdr-eyebrow">⛳ The Players Tracker</div>
+    <div class="hdr-title" id="hdr-title">Golf Tracker</div>
+    <div class="hdr-sub" id="hdr-sub">Ready</div>
+    <div class="sync-pill">
+      <div class="sdot" id="sdot"></div>
+      <span id="stext">Connecting...</span>
+    </div>
+  </div>
+
+  <!-- Scrollable content -->
+  <div class="app" id="app-scroll">
+
+    <!-- HOME -->
+    <div id="pg-home" class="sec">
+      <div class="kpi-row" id="home-kpis">
+        <div class="kpi"><span class="kv" id="h-rounds">0</span><span class="kl">Rounds</span></div>
+        <div class="kpi"><span class="kv" id="h-avg">—</span><span class="kl">Avg</span></div>
+        <div class="kpi"><span class="kv" id="h-best">—</span><span class="kl">Best</span></div>
+        <div class="kpi"><span class="kv" id="h-birdies" style="color:var(--birdie)">0</span><span class="kl">Birdies</span></div>
+      </div>
+      <div class="card">
+        <div class="ct">Quick Actions</div>
+        <button class="btn mb8" onclick="goTo('round')">⛳ New Round</button>
+        <button class="btn btn-o mb8" onclick="goTo('stats')">📊 View My Stats</button>
+        <button class="btn btn-o mb8" onclick="goTo('leaderboard')">🏆 Leaderboard</button>
+        <button class="btn btn-o" onclick="exportXlsx()" style="border-color:rgba(46,204,113,.5);color:#82e0aa;margin-bottom:5px">📥 Export My Spreadsheet</button>
+        <div style="font-size:10px;color:var(--dimmer);text-align:center">Downloads your rounds as an Excel file (.xlsx)</div>
+      </div>
+      <div class="card">
+        <div class="ct">Recent Rounds</div>
+        <div id="home-recent"></div>
+      </div>
+    </div>
+
+    <!-- ROUND ENTRY -->
+    <div id="pg-round" style="display:none">
+      <div class="tab-bar">
+        <div class="tab active" id="tab-m" onclick="switchEntry('manual')">Manual</div>
+        <div class="tab" id="tab-p" onclick="switchEntry('photo')">📷 Photo</div>
+      </div>
+      <div class="sec">
+        <div class="card">
+          <div class="ct">Round Details</div>
+          <label>Course</label>
+          <select id="course-sel" onchange="onCourseChange()" class="mb8"><option value="">— Select Course —</option></select>
+          <div id="tee-wrap" style="display:none">
+            <label>Tee Colour</label>
+            <div class="tee-row" id="tee-btns"></div>
+            <div class="tee-info" id="tee-info"></div>
+          </div>
+          <div style="margin-top:10px">
+            <label>Date</label>
+            <input type="text" id="r-date" placeholder="DD/MM/YYYY" class="mb8">
+          </div>
+          <label>Notes / Weather</label>
+          <input type="text" id="r-notes" placeholder="e.g. Calm, firm greens">
+        </div>
+
+        <div id="entry-manual">
+          <div class="card">
+            <div class="ct">Scorecard</div>
+            <div class="sc-wrap">
+              <table class="sg">
+                <thead><tr><th>#</th><th>Par</th><th>Score</th><th>Putts</th><th>FIR</th><th>GIR</th></tr></thead>
+                <tbody id="sc-body"></tbody>
+              </table>
+            </div>
+            <div class="tot-bar" id="tot-bar" style="display:none">
+              <div><div class="tl">Score</div><div class="tv" id="tot-s">—</div></div>
+              <div style="text-align:center"><div class="tl">OUT</div><div style="font-size:16px;font-weight:500;color:var(--cream)" id="tot-out">—</div></div>
+              <div style="text-align:center"><div class="tl">IN</div><div style="font-size:16px;font-weight:500;color:var(--cream)" id="tot-in">—</div></div>
+              <div style="text-align:right"><div class="tl">vs Par</div><div style="font-size:14px;font-weight:500" id="tot-vp">—</div></div>
+            </div>
+          </div>
+          <details class="card" style="padding:12px 16px">
+            <summary>Extra Stats</summary>
+            <div style="padding-top:10px">
+              <div class="fr">
+                <div><label>Penalties</label><input type="number" id="r-pen" min="0" value="0"></div>
+                <div><label>Bunkers</label><input type="number" id="r-bun" min="0" value="0"></div>
+                <div><label>Chips</label><input type="number" id="r-chip" min="0" value="0"></div>
+              </div>
+            </div>
+          </details>
+          <button class="btn mb8" onclick="saveRound()">💾 Save & Sync Round</button>
+        </div>
+
+        <div id="entry-photo" style="display:none">
+          <div class="card">
+            <div class="ct">Upload Scorecard Photo</div>
+            <div class="pdrop" onclick="document.getElementById('photo-inp').click()">
+              <div style="font-size:32px;margin-bottom:8px">📷</div>
+              <div style="font-size:13px;color:var(--dim)">Tap to take or upload a photo</div>
+              <div style="font-size:11px;color:var(--dimmer);margin-top:4px">AI will read your scores automatically</div>
+            </div>
+            <input type="file" id="photo-inp" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(this)">
+            <img id="photo-prev" style="display:none;width:100%;border-radius:9px;margin-bottom:10px;border:1px solid rgba(255,255,255,.08)">
+            <div id="photo-msg"></div>
+            <button class="btn" id="parse-btn" style="display:none" onclick="parsePhoto()">🔍 Read Scorecard with AI</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div id="pg-stats" style="display:none" class="sec">
+      <div class="kpi-row">
+        <div class="kpi"><span class="kv" id="st-rounds">0</span><span class="kl">Rounds</span></div>
+        <div class="kpi"><span class="kv" id="st-avg">—</span><span class="kl">Avg</span></div>
+        <div class="kpi"><span class="kv" id="st-best">—</span><span class="kl">Best</span></div>
+        <div class="kpi"><span class="kv" id="st-gir">—</span><span class="kl">GIR%</span></div>
+      </div>
+      <div class="card" id="c-bd" style="display:none">
+        <div class="ct">Score Breakdown</div>
+        <div class="bd-row" id="bd-pills"></div>
+        <div class="chart-wrap" style="height:180px"><canvas id="ch-donut"></canvas></div>
+      </div>
+      <div class="card" id="c-trend" style="display:none">
+        <div class="ct">Score Trend</div>
+        <div class="chart-wrap" style="height:180px"><canvas id="ch-trend"></canvas></div>
+      </div>
+      <div class="card" id="c-holes" style="display:none">
+        <div class="ct">Score vs Par — by Hole</div>
+        <div class="chart-wrap" style="height:190px"><canvas id="ch-holes"></canvas></div>
+      </div>
+      <div class="card" id="c-putts" style="display:none">
+        <div class="ct">Avg Putts — by Hole</div>
+        <div class="chart-wrap" style="height:175px"><canvas id="ch-putts"></canvas></div>
+      </div>
+      <div class="card" id="c-fg" style="display:none">
+        <div class="ct">FIR &amp; GIR — by Hole</div>
+        <div class="chart-wrap" style="height:175px"><canvas id="ch-fg"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="ct">All Rounds</div>
+        <div id="st-hist"></div>
+      </div>
+    </div>
+
+    <!-- LEADERBOARD -->
+    <div id="pg-leaderboard" style="display:none" class="sec">
+      <div class="card">
+        <div class="ct">🏆 Season Leaderboard</div>
+        <div id="lb-list"></div>
+      </div>
+      <div class="card">
+        <div class="ct">Most Birdies</div>
+        <div id="lb-birdies"></div>
+      </div>
+    </div>
+
+    <!-- PLAYERS / SETTINGS -->
+    <div id="pg-players" style="display:none" class="sec">
+      <div class="card">
+        <div class="ct">All Players</div>
+        <div id="all-players"></div>
+      </div>
+      <div class="card">
+        <div class="ct">Add New Player</div>
+        <input type="text" id="add-name" placeholder="Full name" class="mb8">
+        <button class="btn" onclick="addPlayer()">➕ Add Player</button>
+        <div id="add-msg" style="margin-top:7px;font-size:11px;color:var(--dim)"></div>
+      </div>
+      <div class="card">
+        <div class="ct">🔑 Update GitHub Token</div>
+        <div style="font-size:12px;color:var(--dim);margin-bottom:10px;line-height:1.5">If your token has expired, generate a new one at github.com → Settings → Developer settings → Personal access tokens (classic) → tick only <strong style="color:var(--gold)">gist</strong></div>
+        <input type="password" id="new-token" placeholder="ghp_..." class="mb8">
+        <button class="btn btn-o" onclick="updateToken()">Update Token</button>
+        <div id="tok-msg" style="margin-top:7px;font-size:11px;color:var(--dim)"></div>
+      </div>
+      <div class="card">
+        <div class="ct">⚙️ Gist Settings</div>
+        <div class="setting-row">
+          <div><div class="setting-label">Gist ID</div><div class="setting-sub" id="s-gistid" style="font-family:monospace;font-size:10px;color:var(--gold)"></div></div>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Data URL</div><div class="setting-sub">Share with friends so they can join</div></div>
+          <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px" onclick="copyGistUrl()">Copy</button>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Sign Out</div><div class="setting-sub">Switch to a different player</div></div>
+          <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px" onclick="signOut()">Sign Out</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end .app -->
+
+  <!-- Bottom nav -->
+  <div class="nav">
+    <button class="nb active" id="nb-home" onclick="goTo('home')"><span class="ni">🏠</span>Home</button>
+    <button class="nb" id="nb-round" onclick="goTo('round')"><span class="ni">⛳</span>Round</button>
+    <button class="nb" id="nb-stats" onclick="goTo('stats')"><span class="ni">📊</span>Stats</button>
+    <button class="nb" id="nb-leaderboard" onclick="goTo('leaderboard')"><span class="ni">🏆</span>Board</button>
+    <button class="nb" id="nb-players" onclick="goTo('players')"><span class="ni">👥</span>Players</button>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────
+// CONFIG
+// ─────────────────────────────────────────────────────────────────
+// GIST_ID is public and safe to store here — it's just an identifier, not a secret
+const DEFAULT_GIST = '089c0ed169b5c67dbd8846002b3def45';
+// TOKEN is never stored in this file — it lives only in the owner's browser localStorage
+// Friends do not need a token — reads are public, writes use the owner token silently
+const DEFAULT_TOKEN = '';
+
+function getCfg(){return{gist:localStorage.getItem('gt_gist')||DEFAULT_GIST,token:localStorage.getItem('gt_token')||DEFAULT_TOKEN};}
+function isOwner(){return !!localStorage.getItem('gt_token');}
+function saveConfig(){
+  const g=document.getElementById('cfg-gist').value.trim();
+  const t=document.getElementById('cfg-token').value.trim();
+  if(g)localStorage.setItem('gt_gist',g);
+  if(t)localStorage.setItem('gt_token',t);
+  document.getElementById('cfg-msg').textContent='✅ Saved — reconnecting...';
+  loadGist();
+}
+function updateToken(){
+  const t=document.getElementById('new-token').value.trim();
+  if(!t){document.getElementById('tok-msg').textContent='Please enter a token.';return;}
+  localStorage.setItem('gt_token',t);
+  document.getElementById('tok-msg').textContent='✅ Token updated!';
+  document.getElementById('new-token').value='';
+}
+
+// ─────────────────────────────────────────────────────────────────
+// COURSES
+// ─────────────────────────────────────────────────────────────────
+const COURSES=[
+  {name:'Croham Hurst Golf Club',loc:'Croydon, Surrey',def:'blue',tees:{
+    blue:  {par:[4,4,4,4,3,5,3,5,4,4,3,4,3,4,4,3,4,4],r:67.5,s:114,y:5770,tp:69},
+    yellow:{par:[4,4,4,4,3,5,3,5,4,5,3,4,3,4,4,3,4,4],r:69.2,s:118,y:6094,tp:70},
+    white: {par:[4,4,4,4,3,5,3,5,4,5,3,4,3,4,4,3,4,4],r:70.2,s:121,y:6370,tp:70},
+    red:   {par:[4,4,4,4,3,5,3,5,4,5,3,4,3,4,4,3,4,4],r:67.4,s:114,y:5641,tp:70}
+  }},
+  {name:'St Andrews - Old Course',loc:'Fife, Scotland',def:'white',tees:{
+    white: {par:[4,4,4,4,5,4,4,3,4,4,3,4,4,5,5,4,4,4],r:73.1,s:132,y:6721,tp:72},
+    yellow:{par:[4,4,4,4,5,4,4,3,4,4,3,4,4,5,5,4,4,4],r:71.5,s:127,y:6566,tp:72}
+  }},
+  {name:'Wentworth - West Course',loc:'Surrey, England',def:'yellow',tees:{
+    white: {par:[4,4,3,4,4,4,4,3,5,4,4,5,3,4,5,4,4,4],r:74.7,s:141,y:6957,tp:73},
+    yellow:{par:[4,4,3,4,4,4,4,3,5,4,4,5,3,4,5,4,4,4],r:72.5,s:135,y:6644,tp:73}
+  }},
+  {name:'Sunningdale - Old Course',loc:'Berkshire, England',def:'yellow',tees:{
+    white: {par:[4,4,3,4,4,4,4,4,4,4,4,3,4,4,5,4,4,5],r:72.5,s:130,y:6568,tp:70},
+    yellow:{par:[4,4,3,4,4,4,4,4,4,4,4,3,4,4,5,4,4,5],r:70.5,s:126,y:6341,tp:70}
+  }},
+  {name:'Royal Birkdale',loc:'Southport, England',def:'white',tees:{
+    white: {par:[4,4,4,3,4,5,3,4,4,4,4,3,4,3,5,4,5,4],r:75.4,s:140,y:7156,tp:70},
+    yellow:{par:[4,4,4,3,4,5,3,4,4,4,4,3,4,3,5,4,5,4],r:73.0,s:135,y:6848,tp:70}
+  }},
+  {name:'Royal Portrush',loc:'Antrim, N. Ireland',def:'white',tees:{
+    white: {par:[4,5,4,4,4,3,5,3,5,4,4,3,5,4,3,4,4,4],r:76.3,s:145,y:7317,tp:71},
+    yellow:{par:[4,5,4,4,4,3,5,3,5,4,4,3,5,4,3,4,4,4],r:73.5,s:138,y:7012,tp:71}
+  }},
+  {name:'Royal County Down',loc:'Down, N. Ireland',def:'white',tees:{
+    white: {par:[4,4,4,4,4,3,5,4,3,4,4,4,4,5,3,4,4,4],r:74.0,s:134,y:7186,tp:71},
+    yellow:{par:[4,4,4,4,4,3,5,4,3,4,4,4,4,5,3,4,4,4],r:71.5,s:128,y:6870,tp:71}
+  }},
+  {name:'Gleneagles - King\'s Course',loc:'Perthshire, Scotland',def:'yellow',tees:{
+    white: {par:[4,4,4,3,4,4,4,3,4,4,3,4,4,4,3,4,4,4],r:71.3,s:130,y:6790,tp:70},
+    yellow:{par:[4,4,4,3,4,4,4,3,4,4,3,4,4,4,3,4,4,4],r:69.5,s:124,y:6471,tp:70}
+  }},
+  {name:'Augusta National',loc:'Georgia, USA',def:'white',tees:{
+    white:{par:[4,5,4,3,4,3,4,5,4,4,4,3,5,4,4,3,4,4],r:76.2,s:148,y:7510,tp:72}
+  }},
+  {name:'TPC Sawgrass',loc:'Florida, USA',def:'blue',tees:{
+    blue: {par:[4,5,3,4,4,4,4,3,5,4,4,4,3,5,4,5,3,4],r:74.9,s:144,y:7215,tp:72},
+    white:{par:[4,5,3,4,4,4,4,3,5,4,4,4,3,5,4,5,3,4],r:72.4,s:138,y:6781,tp:72}
+  }},
+  {name:'Pebble Beach',loc:'California, USA',def:'white',tees:{
+    white:{par:[4,5,4,4,3,5,3,4,4,4,4,3,4,5,4,4,3,5],r:75.5,s:145,y:6828,tp:72}
+  }},
+  {name:'Carnoustie Golf Links',loc:'Angus, Scotland',def:'white',tees:{
+    white: {par:[4,4,4,3,4,5,4,3,4,4,4,4,4,5,4,3,4,4],r:75.4,s:145,y:7411,tp:72},
+    yellow:{par:[4,4,4,3,4,5,4,3,4,4,4,4,4,5,4,3,4,4],r:73.0,s:138,y:7080,tp:72}
+  }},
+  {name:'Custom / Other',loc:'Enter your course',def:'white',tees:{
+    white:{par:Array(18).fill(4),r:72,s:113,y:6200,tp:72}
+  }}
+];
+const TC={blue:{l:'Blue',d:'#5dade2'},yellow:{l:'Yellow',d:'#f4d03f'},white:{l:'White',d:'#f0e8d0'},red:{l:'Red',d:'#e74c3c'}};
+
+// ─────────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────────
+let gd={players:{}};
+let me='';
+let cpars=Array(18).fill(4);
+let stee='';
+let photoFile=null;
+let CH={};
+
+// ─────────────────────────────────────────────────────────────────
+// GIST
+// ─────────────────────────────────────────────────────────────────
+function ss(state,msg){
+  const d=document.getElementById('sdot'),t=document.getElementById('stext');
+  if(!d)return;
+  d.className='sdot'+(state==='syncing'?' syncing':state==='err'?' err':'');
+  if(t)t.textContent=msg;
+}
+
+async function loadGist(){
+  const {gist,token}=getCfg();
+  ss('syncing','Loading...');
+  try{
+    // Reads work without a token on secret gists — only owner needs token for writes
+    const headers={'Accept':'application/vnd.github.v3+json'};
+    if(token) headers['Authorization']=`token ${token}`;
+    const r=await fetch(`https://api.github.com/gists/${gist}`,{headers});
+    if(!r.ok)throw new Error(r.status);
+    const j=await r.json();
+    const raw=j.files['golf_data.json']?.content||'{}';
+    gd=JSON.parse(raw);
+    if(!gd.players)gd.players={};
+    seedMurray();
+    ss('ok','Loaded ✓');
+  }catch(e){
+    ss('err','Could not load — check connection');
+    seedMurray();
+  }
+  renderOnboard();
+}
+
+function seedMurray(){
+  if(!gd.players['Murray Sirel']){
+    gd.players['Murray Sirel']={handicap:9.8,rounds:[{
+      id:1,player:'Murray Sirel',course:'Croham Hurst Golf Club',loc:'Croydon, Surrey',
+      tee:'blue',date:'14/03/2026',totalScore:74,totalPar:69,diff:5,
+      birdies:2,parsCount:6,bogeys:6,doubles:3,eagles:1,
+      pars:[4,4,4,4,3,5,3,5,4,4,3,4,3,4,4,3,4,4],
+      scores:[7,5,2,4,3,6,2,6,4,5,3,4,2,4,4,4,4,5],
+      putts:[3,2,0,2,2,2,1,3,2,2,1,1,1,2,1,2,2,2],
+      fir:['No','Yes','No','Yes','N/A','Yes','N/A','No','Yes','No','N/A','No','N/A','Yes','Yes','Yes','Yes','No'],
+      gir:['No','No','Yes','Yes','Yes','No','Yes','No','Yes','No','No','No','Yes','Yes','No','No','Yes','No'],
+      notes:'',penalties:0,bunkers:0,chips:0,rating:67.5,slope:114
+    }]};
+  }
+}
+
+async function pushGist(){
+  const {gist,token}=getCfg();
+  if(!token){
+    // No token — save locally and show a friendly nudge
+    ss('err','No token — round saved locally only');
+    // Still save to localStorage as backup
+    localStorage.setItem('gt_localdata',JSON.stringify(gd));
+    return false;
+  }
+  ss('syncing','Saving...');
+  try{
+    const r=await fetch(`https://api.github.com/gists/${gist}`,{
+      method:'PATCH',
+      headers:{'Authorization':`token ${token}`,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'},
+      body:JSON.stringify({files:{'golf_data.json':{content:JSON.stringify(gd)}}})
+    });
+    if(!r.ok)throw new Error(r.status);
+    ss('ok','Saved ✓ '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}));
+    return true;
+  }catch(e){
+    ss('err','Save failed — token may have expired');
+    localStorage.setItem('gt_localdata',JSON.stringify(gd));
+    return false;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// ONBOARD
+// ─────────────────────────────────────────────────────────────────
+function initials(n){return n.split(' ').map(p=>p[0]||'').join('').toUpperCase().slice(0,2);}
+
+function renderOnboard(){
+  const list=document.getElementById('onb-player-list');
+  const names=Object.keys(gd.players);
+  if(!names.length){list.innerHTML='<div style="font-size:12px;color:var(--dim);padding:8px 0;text-align:center">No players yet — add yourself below</div>';return;}
+  list.innerHTML='';
+  names.forEach(n=>{
+    const p=gd.players[n];const rs=p.rounds||[];
+    const sc=rs.map(r=>r.totalScore).filter(Boolean);
+    const div=document.createElement('div');div.className='player-card';
+    div.innerHTML=`<div class="avatar">${initials(n)}</div><div><div class="pname">${n}</div><div class="pmeta">${rs.length} round${rs.length!==1?'s':''} · Best: ${sc.length?Math.min(...sc):'—'}</div></div>`;
+    div.onclick=()=>enterAs(n);
+    list.appendChild(div);
+  });
+}
+
+function enterAs(n){
+  me=n;
+  if(!gd.players[n])gd.players[n]={handicap:0,rounds:[]};
+  document.getElementById('pg-onboard').style.display='none';
+  const pm=document.getElementById('pg-main');pm.style.display='flex';
+  document.getElementById('hdr-title').textContent=n;
+  document.getElementById('hdr-sub').textContent='Season 2026';
+  document.getElementById('s-gistid').textContent=getCfg().gist;
+  populateCourses();
+  renderHomeStats();
+  goTo('home');
+  document.getElementById('r-date').value=new Date().toLocaleDateString('en-GB');
+}
+
+function addAndEnter(){
+  const n=document.getElementById('new-name').value.trim();
+  if(!n){alert('Please enter your name.');return;}
+  if(!gd.players[n])gd.players[n]={handicap:0,rounds:[]};
+  pushGist();
+  enterAs(n);
+}
+
+function signOut(){
+  me='';
+  document.getElementById('pg-main').style.display='none';
+  document.getElementById('pg-onboard').style.display='block';
+  renderOnboard();
+}
+
+// ─────────────────────────────────────────────────────────────────
+// NAVIGATION
+// ─────────────────────────────────────────────────────────────────
+const PAGES=['home','round','stats','leaderboard','players'];
+function goTo(p){
+  PAGES.forEach(pg=>{const el=document.getElementById('pg-'+pg);if(el)el.style.display=pg===p?'block':'none';});
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  const nb=document.getElementById('nb-'+p);if(nb)nb.classList.add('active');
+  document.getElementById('app-scroll').scrollTop=0;
+  if(p==='stats')renderStats();
+  if(p==='leaderboard')renderLeaderboard();
+  if(p==='players'){renderAllPlayers();}
+  if(p==='home')renderHomeStats();
+}
+
+function switchEntry(t){
+  document.getElementById('entry-manual').style.display=t==='manual'?'block':'none';
+  document.getElementById('entry-photo').style.display=t==='photo'?'block':'none';
+  document.getElementById('tab-m').classList.toggle('active',t==='manual');
+  document.getElementById('tab-p').classList.toggle('active',t==='photo');
+}
+
+// ─────────────────────────────────────────────────────────────────
+// COURSES
+// ─────────────────────────────────────────────────────────────────
+function populateCourses(){
+  const sel=document.getElementById('course-sel');
+  sel.innerHTML='<option value="">— Select Course —</option>';
+  COURSES.forEach((c,i)=>{const o=document.createElement('option');o.value=i;o.textContent=c.name;sel.appendChild(o);});
+}
+function onCourseChange(){
+  const i=document.getElementById('course-sel').value;
+  const w=document.getElementById('tee-wrap');
+  if(i===''){w.style.display='none';return;}
+  const c=COURSES[i];w.style.display='block';
+  const bc=document.getElementById('tee-btns');bc.innerHTML='';
+  Object.keys(c.tees).forEach(tee=>{
+    const b=document.createElement('button');b.className=`tee-btn ${tee}`;
+    b.innerHTML=`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${TC[tee]?.d||'#fff'};margin-right:4px;vertical-align:middle"></span>${TC[tee]?.l||tee}`;
+    b.onclick=()=>selTee(i,tee);bc.appendChild(b);
+  });
+  selTee(i,c.def);
+}
+function selTee(ci,tee){
+  const c=COURSES[ci];if(!c.tees[tee])return;
+  stee=tee;cpars=[...c.tees[tee].par];
+  document.querySelectorAll('.tee-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll(`.tee-btn.${tee}`).forEach(b=>b.classList.add('active'));
+  const t=c.tees[tee];
+  document.getElementById('tee-info').textContent=`Par ${t.tp} · ${t.y}yds · Rating ${t.r} · Slope ${t.s} · ${c.loc}`;
+  buildSC();
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SCORECARD
+// ─────────────────────────────────────────────────────────────────
+function scoreClass(d){
+  if(d<=-2)return's-eagle';if(d===-1)return's-birdie';
+  if(d===0)return's-par';if(d===1)return's-bogey';
+  if(d===2)return's-double';return's-triple';
+}
+function scoreCol(d){
+  if(d<=-2)return'var(--eagle)';if(d===-1)return'var(--birdie)';
+  if(d===0)return'var(--par)';if(d===1)return'var(--bogey)';return'var(--double)';
+}
+
+function buildSC(pf,pp){
+  const tb=document.getElementById('sc-body');tb.innerHTML='';
+  let op=0,ip=0;
+  for(let h=0;h<18;h++){
+    if(h===9){
+      const s=document.createElement('tr');s.className='sub';
+      s.innerHTML=`<td colspan="2" style="text-align:left;padding-left:7px;font-size:10px;letter-spacing:1px">OUT</td><td id="out-s" style="color:var(--gold)">—</td><td colspan="3">${op}</td>`;
+      tb.appendChild(s);
+    }
+    const r=document.createElement('tr');if(h%2===1)r.className='alt';
+    const sv=pf?(pf[h]!=null?pf[h]:''):'';
+    const pv=pp?(pp[h]!=null?pp[h]:''):'';
+    const isP3=cpars[h]===3;
+    const firOpts=isP3?'<option value="N/A">N/A</option>':'<option value="">—</option><option value="Yes">Yes</option><option value="No">No</option>';
+    r.innerHTML=`<td class="hn">${h+1}</td><td class="pc">${cpars[h]}</td><td><input type="number" id="h${h}" min="1" max="15" value="${sv}" placeholder="—" oninput="recalc()" style="width:36px"></td><td><input type="number" id="p${h}" min="0" max="6" value="${pv}" placeholder="—" style="width:36px"></td><td><select id="fir${h}" style="font-size:10px;padding:3px 1px;min-width:42px">${firOpts}</select></td><td><select id="gir${h}" style="font-size:10px;padding:3px 1px;min-width:42px"><option value="">—</option><option value="Yes">Yes</option><option value="No">No</option></select></td>`;
+    tb.appendChild(r);
+    if(h<9)op+=cpars[h]; else ip+=cpars[h];
+  }
+  const is=document.createElement('tr');is.className='sub';
+  is.innerHTML=`<td colspan="2" style="text-align:left;padding-left:7px;font-size:10px;letter-spacing:1px">IN</td><td id="in-s" style="color:var(--gold)">—</td><td colspan="3">${ip}</td>`;
+  tb.appendChild(is);
+  document.getElementById('tot-bar').style.display='flex';recalc();
+}
+
+function recalc(){
+  let tot=0,out=0,inp=0,par=0,n=0;
+  for(let h=0;h<18;h++){
+    const v=parseInt(document.getElementById('h'+h)?.value);
+    par+=cpars[h];
+    if(!isNaN(v)){tot+=v;n++;if(h<9)out+=v;else inp+=v;}
+  }
+  const oe=document.getElementById('out-s'),ie=document.getElementById('in-s');
+  if(oe)oe.textContent=out||'—';if(ie)ie.textContent=inp||'—';
+  if(!n){document.getElementById('tot-s').textContent='—';document.getElementById('tot-vp').textContent='—';return;}
+  document.getElementById('tot-s').textContent=tot;
+  document.getElementById('tot-out').textContent=out||'—';
+  document.getElementById('tot-in').textContent=inp||'—';
+  const d=tot-par;const vp=d===0?'E':(d>0?'+'+d:''+d);
+  const el=document.getElementById('tot-vp');el.textContent=vp+' (Par '+par+')';
+  el.style.color=d<0?'var(--birdie)':d>0?'var(--bogey)':'var(--dim)';
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SAVE ROUND
+// ─────────────────────────────────────────────────────────────────
+async function saveRound(){
+  const ci=document.getElementById('course-sel').value;
+  if(!ci){alert('Please select a course.');return;}
+  if(!stee){alert('Please select a tee colour.');return;}
+  const c=COURSES[ci];const t=c.tees[stee];
+  const sc=[],pt=[],fi=[],gi=[];
+  for(let h=0;h<18;h++){
+    sc.push(parseInt(document.getElementById('h'+h)?.value)||null);
+    pt.push(parseInt(document.getElementById('p'+h)?.value)||null);
+    fi.push(document.getElementById('fir'+h)?.value||'');
+    gi.push(document.getElementById('gir'+h)?.value||'');
+  }
+  const vs=sc.filter(Boolean);
+  const ts=vs.reduce((a,b)=>a+b,0);
+  const tp=cpars.reduce((a,b)=>a+b,0);
+  const d=ts-tp;
+  const rnd={
+    id:Date.now(),player:me,course:c.name,loc:c.loc,tee:stee,
+    date:document.getElementById('r-date').value,
+    notes:document.getElementById('r-notes').value,
+    pars:[...cpars],scores:sc,putts:pt,fir:fi,gir:gi,
+    totalScore:ts,totalPar:tp,diff:d,
+    birdies:sc.filter((s,i)=>s&&s<cpars[i]).length,
+    parsCount:sc.filter((s,i)=>s&&s===cpars[i]).length,
+    bogeys:sc.filter((s,i)=>s&&s===cpars[i]+1).length,
+    doubles:sc.filter((s,i)=>s&&s>=cpars[i]+2).length,
+    eagles:sc.filter((s,i)=>s&&s<=cpars[i]-2).length,
+    penalties:parseInt(document.getElementById('r-pen')?.value)||0,
+    bunkers:parseInt(document.getElementById('r-bun')?.value)||0,
+    chips:parseInt(document.getElementById('r-chip')?.value)||0,
+    rating:t.r,slope:t.s
+  };
+  gd.players[me].rounds.push(rnd);
+  const ok=await pushGist();
+  const syncMsg=ok?'✅ Saved & synced to group Gist!':`⚠️ Saved locally — ask Murray to sync\n(or Murray: open the app and re-save this round)`;
+  alert(`${syncMsg}\n\n${c.name} · ${stee} tees\n${ts} (${d>=0?'+':''}${d} vs Par ${tp})`);
+  renderHomeStats();goTo('stats');
+}
+
+// ─────────────────────────────────────────────────────────────────
+// HOME
+// ─────────────────────────────────────────────────────────────────
+function renderHomeStats(){
+  const p=gd.players[me];if(!p)return;
+  const rs=p.rounds||[];const sc=rs.map(r=>r.totalScore).filter(Boolean);
+  document.getElementById('h-rounds').textContent=rs.length;
+  document.getElementById('h-avg').textContent=sc.length?Math.round(sc.reduce((a,b)=>a+b,0)/sc.length):'—';
+  document.getElementById('h-best').textContent=sc.length?Math.min(...sc):'—';
+  document.getElementById('h-birdies').textContent=rs.reduce((a,r)=>a+(r.birdies||0),0);
+  const recent=document.getElementById('home-recent');
+  if(!rs.length){recent.innerHTML='<div class="empty"><div class="empty-icon">⛳</div>No rounds yet — add your first!</div>';return;}
+  recent.innerHTML='';
+  [...rs].reverse().slice(0,3).forEach(r=>{
+    const dv=r.diff>=0?'+'+r.diff:''+r.diff;
+    const dot=TC[r.tee]?.d||'#888';
+    const d=document.createElement('div');d.className='hi';
+    d.innerHTML=`<div><div class="hc">${r.course}</div><div class="hm"><span class="tdot" style="background:${dot}"></span>${(r.tee||'').charAt(0).toUpperCase()+(r.tee||'').slice(1)} · ${r.date}</div></div><div style="text-align:right"><div class="hs">${r.totalScore}</div><div class="hd">${dv} (Par ${r.totalPar})</div></div>`;
+    recent.appendChild(d);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// STATS + CHARTS
+// ─────────────────────────────────────────────────────────────────
+function dc(k){if(CH[k]){CH[k].destroy();delete CH[k];}}
+const CO={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+  scales:{x:{ticks:{color:'#8899bb',font:{size:9,family:"'DM Sans',sans-serif"}},grid:{color:'rgba(255,255,255,.04)'}},
+          y:{ticks:{color:'#8899bb',font:{size:9,family:"'DM Sans',sans-serif"}},grid:{color:'rgba(255,255,255,.04)'}}}};
+
+function renderStats(){
+  const p=gd.players[me];if(!p)return;
+  const rs=p.rounds||[];const sc=rs.map(r=>r.totalScore).filter(Boolean);
+  document.getElementById('st-rounds').textContent=rs.length;
+  document.getElementById('st-avg').textContent=sc.length?Math.round(sc.reduce((a,b)=>a+b,0)/sc.length):'—';
+  document.getElementById('st-best').textContent=sc.length?Math.min(...sc):'—';
+  // GIR%
+  const fullR=rs.filter(r=>(r.scores||[]).filter(Boolean).length===18);
+  const girTot=fullR.reduce((a,r)=>a+(r.gir||[]).filter(v=>v==='Yes').length,0);
+  const girPoss=fullR.length*18;
+  document.getElementById('st-gir').textContent=girPoss?Math.round(girTot/girPoss*100)+'%':'—';
+
+  const has=rs.length>0;
+  document.getElementById('c-bd').style.display=has?'block':'none';
+  document.getElementById('c-trend').style.display=rs.length>1?'block':'none';
+  document.getElementById('c-holes').style.display=fullR.length>0?'block':'none';
+  document.getElementById('c-putts').style.display=fullR.length>0?'block':'none';
+  document.getElementById('c-fg').style.display=fullR.length>0?'block':'none';
+
+  if(has){
+    const tE=rs.reduce((a,r)=>a+(r.eagles||0),0);
+    const tB=rs.reduce((a,r)=>a+(r.birdies||0),0);
+    const tP=rs.reduce((a,r)=>a+(r.parsCount||0),0);
+    const tBo=rs.reduce((a,r)=>a+(r.bogeys||0),0);
+    const tD=rs.reduce((a,r)=>a+(r.doubles||0),0);
+    document.getElementById('bd-pills').innerHTML=`
+      <div class="bd"><span class="bv ec">${tE}</span><span class="bl">Eagle</span></div>
+      <div class="bd"><span class="bv bc">${tB}</span><span class="bl">Birdie</span></div>
+      <div class="bd"><span class="bv prc">${tP}</span><span class="bl">Par</span></div>
+      <div class="bd"><span class="bv bgc">${tBo}</span><span class="bl">Bogey</span></div>
+      <div class="bd"><span class="bv dc">${tD}</span><span class="bl">Dbl+</span></div>`;
+    dc('donut');
+    CH.donut=new Chart(document.getElementById('ch-donut'),{type:'doughnut',
+      data:{labels:['Eagle','Birdie','Par','Bogey','Double+'],
+        datasets:[{data:[tE,tB,tP,tBo,tD],backgroundColor:['#f1c40f','#3498db','#2ecc71','#e67e22','#e74c3c'],borderWidth:0}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#8899bb',font:{size:10},boxWidth:11,padding:10}}}}});
+  }
+  if(rs.length>1){
+    dc('trend');
+    CH.trend=new Chart(document.getElementById('ch-trend'),{type:'line',
+      data:{labels:rs.map(r=>r.date.slice(0,5)),
+        datasets:[{data:rs.map(r=>r.diff),borderColor:'#c9a84c',backgroundColor:'rgba(201,168,76,.08)',
+          tension:.35,pointBackgroundColor:rs.map(r=>r.diff<0?'#3498db':r.diff===0?'#2ecc71':'#e67e22'),
+          pointRadius:5,pointBorderWidth:0,fill:true}]},
+      options:{...CO,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw>=0?'+':''}${c.raw} vs par`}}},
+        scales:{x:{ticks:{color:'#8899bb',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}},
+                y:{ticks:{color:'#8899bb',font:{size:9},callback:v=>v>=0?'+'+v:v},grid:{color:'rgba(255,255,255,.04)'}}}}});
+  }
+  if(fullR.length){
+    const hA=Array.from({length:18},(_,h)=>{const vs=fullR.map(r=>r.scores[h]-r.pars[h]);return+(vs.reduce((a,b)=>a+b,0)/vs.length).toFixed(2);});
+    dc('holes');
+    CH.holes=new Chart(document.getElementById('ch-holes'),{type:'bar',
+      data:{labels:Array.from({length:18},(_,i)=>i+1),
+        datasets:[{data:hA,backgroundColor:hA.map(v=>v<=-2?'#f1c40f':v<0?'#3498db':v===0?'#2ecc71':v<=1?'#e67e22':'#e74c3c'),borderRadius:3}]},
+      options:{...CO,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw>=0?'+':''}${c.raw} avg`}}},
+        scales:{x:{ticks:{color:'#8899bb',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}},
+                y:{ticks:{color:'#8899bb',font:{size:9},callback:v=>v>=0?'+'+v:v},grid:{color:'rgba(255,255,255,.04)'}}}}});
+    const pR=rs.filter(r=>(r.putts||[]).filter(Boolean).length>=9);
+    if(pR.length){
+      const pA=Array.from({length:18},(_,h)=>{const vs=pR.map(r=>r.putts[h]).filter(Boolean);return vs.length?+(vs.reduce((a,b)=>a+b,0)/vs.length).toFixed(2):null;});
+      dc('putts');
+      CH.putts=new Chart(document.getElementById('ch-putts'),{type:'bar',
+        data:{labels:Array.from({length:18},(_,i)=>i+1),datasets:[{data:pA,backgroundColor:'rgba(201,168,76,.6)',borderRadius:3}]},
+        options:{...CO,scales:{x:{ticks:{color:'#8899bb',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}},y:{min:0,ticks:{color:'#8899bb',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}}}}});
+    }
+    const firP=Array.from({length:18},(_,h)=>{
+      if(fullR[0]?.pars[h]===3)return null;
+      const y=fullR.filter(r=>r.fir&&r.fir[h]==='Yes').length;
+      return Math.round(y/fullR.length*100);
+    });
+    const girP=Array.from({length:18},(_,h)=>{
+      const y=fullR.filter(r=>r.gir&&r.gir[h]==='Yes').length;
+      return Math.round(y/fullR.length*100);
+    });
+    dc('fg');
+    CH.fg=new Chart(document.getElementById('ch-fg'),{type:'bar',
+      data:{labels:Array.from({length:18},(_,i)=>i+1),
+        datasets:[{label:'FIR%',data:firP,backgroundColor:'rgba(46,204,113,.6)',borderRadius:2},{label:'GIR%',data:girP,backgroundColor:'rgba(52,152,219,.6)',borderRadius:2}]},
+      options:{...CO,plugins:{legend:{display:true,position:'top',labels:{color:'#8899bb',font:{size:10},boxWidth:10,padding:8}}},
+        scales:{x:{ticks:{color:'#8899bb',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}},
+                y:{min:0,max:100,ticks:{color:'#8899bb',font:{size:9},callback:v=>v+'%'},grid:{color:'rgba(255,255,255,.04)'}}}}});
+  }
+  // History
+  const hist=document.getElementById('st-hist');
+  const myRounds=rs;
+  if(!myRounds.length){hist.innerHTML='<div class="empty">No rounds yet</div>';return;}
+  hist.innerHTML='';
+  [...myRounds].reverse().forEach(r=>{
+    const dv=r.diff>=0?'+'+r.diff:''+r.diff;
+    const dot=TC[r.tee]?.d||'#888';
+    const d=document.createElement('div');d.className='hi';
+    d.innerHTML=`<div><div class="hc">${r.course}</div><div class="hm"><span class="tdot" style="background:${dot}"></span>${(r.tee||'').charAt(0).toUpperCase()+(r.tee||'').slice(1)} · ${r.date} · ${r.parsCount||0}P · ${r.bogeys||0}Bog${r.birdies>0?` · 🐦${r.birdies}`:''}</div></div><div style="text-align:right"><div class="hs">${r.totalScore}</div><div class="hd">${dv} (Par ${r.totalPar})</div></div>`;
+    hist.appendChild(d);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// LEADERBOARD
+// ─────────────────────────────────────────────────────────────────
+function renderLeaderboard(){
+  const players=Object.entries(gd.players).map(([name,p])=>{
+    const rs=p.rounds||[];
+    const sc=rs.map(r=>r.totalScore).filter(Boolean);
+    const diffs=rs.map(r=>r.diff).filter(v=>v!=null);
+    return{name,rounds:rs.length,best:sc.length?Math.min(...sc):null,avg:sc.length?Math.round(sc.reduce((a,b)=>a+b,0)/sc.length):null,
+      avgDiff:diffs.length?+(diffs.reduce((a,b)=>a+b,0)/diffs.length).toFixed(1):null,
+      birdies:rs.reduce((a,r)=>a+(r.birdies||0),0),eagles:rs.reduce((a,r)=>a+(r.eagles||0),0)};
+  }).filter(p=>p.rounds>0).sort((a,b)=>(a.avgDiff??99)-(b.avgDiff??99));
+
+  const lb=document.getElementById('lb-list');
+  if(!players.length){lb.innerHTML='<div class="empty"><div class="empty-icon">🏆</div>No rounds played yet</div>';
+    document.getElementById('lb-birdies').innerHTML='';return;}
+  lb.innerHTML='';
+  const posClass=['gold','silver','bronze'];
+  players.forEach((p,i)=>{
+    const d=document.createElement('div');d.className='lb-row';
+    const diff=p.avgDiff!=null?(p.avgDiff>=0?'+'+p.avgDiff:p.avgDiff.toString()):'—';
+    const pc=posClass[i]||'';
+    const isMe=p.name===me;
+    d.innerHTML=`<div class="lb-pos ${pc}">${i+1}</div><div class="avatar" style="width:34px;height:34px;font-size:13px">${initials(p.name)}</div><div><div class="lb-name">${p.name}${isMe?' <span style="font-size:10px;color:var(--gold)">▶ you</span>':''}</div><div class="lb-meta">${p.rounds} round${p.rounds!==1?'s':''} · Best ${p.best??'—'} · Avg ${p.avg??'—'}</div></div><div style="text-align:right"><div class="lb-score" style="color:${p.avgDiff!=null&&p.avgDiff<0?'var(--birdie)':p.avgDiff===0?'var(--par)':'var(--bogey)'}">${diff}</div><div style="font-size:9px;color:var(--dimmer);margin-top:2px">avg vs par</div></div>`;
+    lb.appendChild(d);
+  });
+  // Birdies leaderboard
+  const byBirdies=[...players].sort((a,b)=>b.birdies-a.birdies);
+  const bl=document.getElementById('lb-birdies');bl.innerHTML='';
+  byBirdies.forEach((p,i)=>{
+    const d=document.createElement('div');d.className='lb-row';
+    const pc=posClass[i]||'';
+    d.innerHTML=`<div class="lb-pos ${pc}">${i+1}</div><div class="avatar" style="width:34px;height:34px;font-size:13px">${initials(p.name)}</div><div><div class="lb-name">${p.name}</div><div class="lb-meta">${p.eagles} eagle${p.eagles!==1?'s':''} · ${p.birdies} birdie${p.birdies!==1?'s':''}</div></div><div style="text-align:right"><div class="lb-score" style="color:var(--birdie)">${p.birdies}</div><div style="font-size:9px;color:var(--dimmer);margin-top:2px">birdies</div></div>`;
+    bl.appendChild(d);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// PLAYERS PAGE
+// ─────────────────────────────────────────────────────────────────
+function renderAllPlayers(){
+  const list=document.getElementById('all-players');list.innerHTML='';
+  Object.keys(gd.players).forEach(n=>{
+    const p=gd.players[n];const rs=p.rounds||[];
+    const sc=rs.map(r=>r.totalScore).filter(Boolean);
+    const div=document.createElement('div');div.className='player-card'+(n===me?' me':'');
+    div.innerHTML=`<div class="avatar">${initials(n)}</div><div style="flex:1"><div class="pname">${n}${n===me?' <span style="font-size:10px;color:var(--gold)">▶ you</span>':''}</div><div class="pmeta">${rs.length} round${rs.length!==1?'s':''} · Best: ${sc.length?Math.min(...sc):'—'}</div></div>`;
+    if(n!==me){div.onclick=()=>{enterAs(n);goTo('home');};}
+    list.appendChild(div);
+  });
+}
+
+function addPlayer(){
+  const n=document.getElementById('add-name').value.trim();
+  if(!n){document.getElementById('add-msg').textContent='Please enter a name.';return;}
+  if(gd.players[n]){document.getElementById('add-msg').textContent='Already exists!';return;}
+  gd.players[n]={handicap:0,rounds:[]};
+  pushGist();
+  document.getElementById('add-msg').textContent='✅ '+n+' added! They can now select themselves on the home screen.';
+  document.getElementById('add-name').value='';
+  renderAllPlayers();
+}
+
+// ─────────────────────────────────────────────────────────────────
+// PHOTO
+// ─────────────────────────────────────────────────────────────────
+function handlePhoto(input){
+  const f=input.files[0];if(!f)return;photoFile=f;
+  const pv=document.getElementById('photo-prev');
+  pv.src=URL.createObjectURL(f);pv.style.display='block';
+  document.getElementById('parse-btn').style.display='block';
+  document.getElementById('photo-msg').innerHTML='';
+}
+async function parsePhoto(){
+  if(!photoFile)return;
+  const ci=document.getElementById('course-sel').value;
+  const pi=ci!==''?`Course: ${COURSES[ci].name}, tee: ${stee}, pars: ${cpars.join(',')}`:'Unknown course';
+  document.getElementById('photo-msg').innerHTML='<div class="alert"><span class="spin"></span>Reading scorecard with AI...</div>';
+  document.getElementById('parse-btn').disabled=true;
+  try{
+    const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(photoFile);});
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:[
+        {type:'image',source:{type:'base64',media_type:photoFile.type||'image/jpeg',data:b64}},
+        {type:'text',text:`Golf scorecard image. ${pi}. Extract 18 hole gross scores for the player. Return ONLY valid JSON: {"scores":[4,5,...],"putts":[2,1,...]} — exactly 18 values each, use null if unreadable. No other text.`}
+      ]}]})});
+    const data=await resp.json();
+    const text=data.content?.find(b=>b.type==='text')?.text||'';
+    const parsed=JSON.parse(text.replace(/```json|```/g,'').trim());
+    if(parsed.scores?.length){
+      buildSC(parsed.scores,parsed.putts);
+      switchEntry('manual');
+      document.getElementById('photo-msg').innerHTML='<div class="alert alert-ok">✅ Scores loaded! Check and edit below, then save.</div>';
+    }else throw new Error();
+  }catch(e){
+    document.getElementById('photo-msg').innerHTML='<div class="alert alert-err">⚠️ Couldn\'t read all scores — please check and enter manually.</div>';
+    if(document.getElementById('course-sel').value!=='')buildSC();
+  }
+  document.getElementById('parse-btn').disabled=false;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// EXPORT
+// ─────────────────────────────────────────────────────────────────
+function exportXlsx(){
+  const p=gd.players[me];if(!p||!p.rounds.length){alert('No rounds to export yet!');return;}
+  const rs=p.rounds;const wb=XLSX.utils.book_new();
+  const sum=[['Player','Course','Tee','Date','Score','vs Par','Birdies','Pars','Bogeys','Dbl+','Eagles','Putts','FIR%','GIR%','Penalties','Notes']];
+  rs.forEach(r=>{
+    const tp=(r.putts||[]).filter(Boolean).reduce((a,b)=>a+b,0);
+    const fh=r.pars.filter(p=>p!==3).length;
+    const fy=r.fir.filter(v=>v==='Yes').length;
+    const gy=r.gir.filter(v=>v==='Yes').length;
+    sum.push([r.player,r.course,r.tee||'',r.date,r.totalScore,r.diff>=0?'+'+r.diff:''+r.diff,
+      r.birdies,r.parsCount,r.bogeys,r.doubles,r.eagles||0,tp||'',
+      fh?Math.round(fy/fh*100)+'%':'N/A',Math.round(gy/18*100)+'%',r.penalties||0,r.notes||'']);
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sum),'All Rounds');
+  const holes=[['Round','Date','Course','Tee','Hole','Par','Score','vs Par','Putts','FIR','GIR']];
+  rs.forEach((r,ri)=>{
+    (r.scores||[]).forEach((s,h)=>{
+      const dv=s!=null?s-r.pars[h]:'';
+      holes.push([ri+1,r.date,r.course,r.tee||'',h+1,r.pars[h],s||'',
+        dv===''?'':dv>=0?'+'+dv:''+dv,(r.putts||[])[h]||'',(r.fir||[])[h]||'',(r.gir||[])[h]||'']);
+    });
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(holes),'Hole Data');
+  XLSX.writeFile(wb,me.replace(/\s+/g,'_')+'_golf_'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
+// ─────────────────────────────────────────────────────────────────
+// UTILS
+// ─────────────────────────────────────────────────────────────────
+function copyGistUrl(){
+  const url=`https://gist.github.com/murraysirel/${getCfg().gist}`;
+  navigator.clipboard?.writeText(url).then(()=>alert('Gist URL copied!\n\nShare this with friends so they know which Gist to connect to:\n'+url)).catch(()=>alert('Gist URL:\n'+url));
+}
+
+// ─────────────────────────────────────────────────────────────────
+// BOOT
+// ─────────────────────────────────────────────────────────────────
+document.getElementById('cfg-gist').value=getCfg().gist;
+loadGist();
+</script>
+</body>
+</html>
