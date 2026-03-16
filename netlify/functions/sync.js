@@ -1,4 +1,3 @@
-Try AI directly in your favorite apps … Use Gemini to generate drafts and refine content, plus get Gemini Pro with access to Google's next-gen AI for £18.99 £0 for 1 month
 // netlify/functions/sync.js
 // Secure proxy between the app and GitHub Gist.
 // The GITHUB_TOKEN environment variable lives on Netlify's servers only —
