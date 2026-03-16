@@ -44,6 +44,40 @@ exports.handler = async (event) => {
     return { statusCode: 200, headers: CORS_HEADERS, body: '' };
   }
 
+  // ── GET: diagnostic — test the API key directly ──────────────────
+  // Visit /.netlify/functions/ai in browser to see exactly what's happening
+  if (event.httpMethod === 'GET') {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      return {
+        statusCode: 200, headers: CORS_HEADERS,
+        body: JSON.stringify({ status: 'FAIL', reason: 'ANTHROPIC_API_KEY environment variable is not set in Netlify' })
+      };
+    }
+    // Send a minimal test request to Anthropic
+    let result;
+    try {
+      result = await httpsPost(
+        'api.anthropic.com', '/v1/messages',
+        { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+        JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 10, messages: [{ role: 'user', content: 'Hi' }] })
+      );
+    } catch (e) {
+      return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify({ status: 'FAIL', reason: 'Network error', detail: e.message }) };
+    }
+    let data;
+    try { data = JSON.parse(result.body); } catch(e) { data = result.body; }
+    return {
+      statusCode: 200, headers: CORS_HEADERS,
+      body: JSON.stringify({
+        status: result.status === 200 ? 'OK — API key works!' : 'FAIL',
+        httpStatus: result.status,
+        keyFirstChars: apiKey.slice(0, 12) + '...',
+        anthropicResponse: data
+      })
+    };
+  }
+
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
