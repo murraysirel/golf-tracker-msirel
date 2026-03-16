@@ -188,6 +188,19 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
 .kl{font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px;margin-top:4px;display:block}
 .ks{font-size:10px;color:var(--dimmer);margin-top:2px}
 
+/* ── Filter pills ─────────────────────────────────────────────── */
+.fpill{
+  padding:5px 12px;border-radius:20px;font-size:11px;font-weight:500;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  color:var(--dim);cursor:pointer;font-family:'DM Sans',sans-serif;
+  transition:all .15s;white-space:nowrap;
+}
+.fpill.active,.fpill:active{
+  background:rgba(201,168,76,.18);border-color:var(--gold);color:var(--gold);
+}
+/* hcp edit row flex */
+#hcp-edit-row{display:flex;}
+
 /* ── Tee selector ─────────────────────────────────────────────── */
 .tee-row{display:flex;gap:7px;margin-top:10px}
 .tee-btn{
@@ -559,12 +572,49 @@ details[open] summary::after{content:' ▾'}
 
     <!-- STATS -->
     <div id="pg-stats" style="display:none" class="sec">
+
+      <!-- Handicap + filter bar -->
+      <div class="card" style="padding:14px 16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div>
+            <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:4px">WHS Handicap Index</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span id="st-hcp-display" style="font-family:'Cormorant Garamond',serif;font-size:32px;color:var(--gold);line-height:1">—</span>
+              <button class="btn btn-ghost" id="hcp-edit-btn" onclick="toggleHcpEdit()" style="width:auto;padding:4px 10px;font-size:11px">Edit</button>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:4px">Rounds</div>
+            <div style="font-family:'Cormorant Garamond',serif;font-size:32px;color:var(--cream);line-height:1" id="st-rounds">0</div>
+          </div>
+        </div>
+        <div id="hcp-edit-row" style="display:none;gap:8px;align-items:center;margin-bottom:12px">
+          <input type="number" id="hcp-input" step="0.1" min="0" max="54" placeholder="e.g. 9.8" style="flex:1;max-width:120px">
+          <button class="btn" onclick="saveHandicap()" style="width:auto;padding:6px 14px">Save</button>
+          <div style="font-size:11px;color:var(--dim);flex:1">Enter your WHS Handicap Index from My England Golf or your home club</div>
+        </div>
+        <!-- Filter pills -->
+        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px">Showing stats for</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap" id="filter-pills">
+          <button class="fpill active" data-f="5" onclick="setFilter('5')">Last 5</button>
+          <button class="fpill" data-f="10" onclick="setFilter('10')">Last 10</button>
+          <button class="fpill" data-f="month" onclick="setFilter('month')">This month</button>
+          <button class="fpill" data-f="course" onclick="setFilter('course')">By course</button>
+          <button class="fpill" data-f="all" onclick="setFilter('all')">All time</button>
+        </div>
+        <div id="filter-course-row" style="display:none;margin-top:10px">
+          <select id="filter-course-sel" onchange="renderStats()" style="width:100%"></select>
+        </div>
+      </div>
+
+      <!-- KPI row -->
       <div class="kpi-row">
-        <div class="kpi"><span class="kv" id="st-rounds">0</span><span class="kl">Rounds</span></div>
-        <div class="kpi"><span class="kv" id="st-avg">—</span><span class="kl">Avg</span></div>
+        <div class="kpi"><span class="kv" id="st-avg">—</span><span class="kl">Avg score</span></div>
+        <div class="kpi"><span class="kv" id="st-avg-diff">—</span><span class="kl">Avg vs par</span></div>
         <div class="kpi"><span class="kv" id="st-best">—</span><span class="kl">Best</span></div>
         <div class="kpi"><span class="kv" id="st-gir">—</span><span class="kl">GIR%</span></div>
       </div>
+
       <div class="card" id="c-bd" style="display:none">
         <div class="ct">Score Breakdown</div>
         <div class="bd-row" id="bd-pills"></div>
@@ -1156,13 +1206,109 @@ const CO={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:fal
   scales:{x:{ticks:{color:'#8899bb',font:{size:9,family:"'DM Sans',sans-serif"}},grid:{color:'rgba(255,255,255,.04)'}},
           y:{ticks:{color:'#8899bb',font:{size:9,family:"'DM Sans',sans-serif"}},grid:{color:'rgba(255,255,255,.04)'}}}};
 
+// ─────────────────────────────────────────────────────────────────
+// STATS FILTER STATE
+// ─────────────────────────────────────────────────────────────────
+let statsFilter='5'; // default: last 5 rounds
+
+function setFilter(f){
+  statsFilter=f;
+  document.querySelectorAll('.fpill').forEach(b=>b.classList.toggle('active',b.dataset.f===f));
+  const courseRow=document.getElementById('filter-course-row');
+  if(courseRow) courseRow.style.display=f==='course'?'block':'none';
+  renderStats();
+}
+
+function parseDateGB(d){
+  // DD/MM/YYYY → comparable integer YYYYMMDD
+  if(!d)return 0;
+  const p=d.split('/');
+  if(p.length!==3)return 0;
+  return parseInt(p[2]+p[1].padStart(2,'0')+p[0].padStart(2,'0'));
+}
+
+function getFilteredRounds(allRounds){
+  // Always sort by date first (oldest → newest)
+  const sorted=[...allRounds].sort((a,b)=>parseDateGB(a.date)-parseDateGB(b.date));
+  if(statsFilter==='5') return sorted.slice(-5);
+  if(statsFilter==='10') return sorted.slice(-10);
+  if(statsFilter==='all') return sorted;
+  if(statsFilter==='month'){
+    const now=new Date();
+    const mm=String(now.getMonth()+1).padStart(2,'0');
+    const yy=String(now.getFullYear());
+    return sorted.filter(r=>{
+      const p=r.date?.split('/');
+      return p&&p[1]===mm&&p[2]===yy;
+    });
+  }
+  if(statsFilter==='course'){
+    const sel=document.getElementById('filter-course-sel');
+    const chosen=sel?.value||'';
+    return chosen?sorted.filter(r=>r.course===chosen):sorted;
+  }
+  return sorted;
+}
+
+function populateCourseFilter(allRounds){
+  const sel=document.getElementById('filter-course-sel');
+  if(!sel)return;
+  const courses=[...new Set(allRounds.map(r=>r.course).filter(Boolean))].sort();
+  const cur=sel.value;
+  sel.innerHTML=courses.map(c=>`<option value="${c}"${c===cur?' selected':''}>${c}</option>`).join('');
+}
+
+function toggleHcpEdit(){
+  const row=document.getElementById('hcp-edit-row');
+  const showing=row.style.display!=='none'&&row.style.display!=='';
+  row.style.display=showing?'none':'flex';
+  if(!showing){
+    const inp=document.getElementById('hcp-input');
+    const cur=gd.players[me]?.handicap;
+    if(cur) inp.value=cur;
+    inp.focus();
+  }
+}
+
+function saveHandicap(){
+  const v=parseFloat(document.getElementById('hcp-input').value);
+  if(isNaN(v)||v<0||v>54){alert('Please enter a valid handicap between 0 and 54.');return;}
+  if(!gd.players[me])gd.players[me]={handicap:v,rounds:[]};
+  else gd.players[me].handicap=v;
+  pushGist();
+  document.getElementById('hcp-edit-row').style.display='none';
+  renderStats();
+}
+
 function renderStats(){
   const p=gd.players[me];if(!p)return;
-  const rs=p.rounds||[];const sc=rs.map(r=>r.totalScore).filter(Boolean);
-  document.getElementById('st-rounds').textContent=rs.length;
+  const allRounds=p.rounds||[];
+
+  // Show handicap
+  const hcp=p.handicap;
+  const hcpEl=document.getElementById('st-hcp-display');
+  if(hcpEl) hcpEl.textContent=hcp!=null&&hcp>0?hcp:'—';
+
+  // Populate course filter dropdown
+  populateCourseFilter(allRounds);
+
+  // Get filtered + date-sorted rounds
+  const rs=getFilteredRounds(allRounds);
+  const allSorted=[...allRounds].sort((a,b)=>parseDateGB(a.date)-parseDateGB(b.date));
+
+  const sc=rs.map(r=>r.totalScore).filter(Boolean);
+  const diffs=rs.map(r=>r.diff).filter(v=>v!=null);
+
+  document.getElementById('st-rounds').textContent=allRounds.length; // always total
   document.getElementById('st-avg').textContent=sc.length?Math.round(sc.reduce((a,b)=>a+b,0)/sc.length):'—';
+  const avgDiff=diffs.length?+(diffs.reduce((a,b)=>a+b,0)/diffs.length).toFixed(1):null;
+  const avgDiffEl=document.getElementById('st-avg-diff');
+  if(avgDiffEl){
+    avgDiffEl.textContent=avgDiff!=null?(avgDiff>=0?'+'+avgDiff:avgDiff.toString()):'—';
+    if(avgDiffEl) avgDiffEl.style.color=avgDiff<0?'var(--birdie)':avgDiff>0?'var(--bogey)':'var(--cream)';
+  }
   document.getElementById('st-best').textContent=sc.length?Math.min(...sc):'—';
-  // GIR%
+
   const fullR=rs.filter(r=>(r.scores||[]).filter(Boolean).length===18);
   const girTot=fullR.reduce((a,r)=>a+(r.gir||[]).filter(v=>v==='Yes').length,0);
   const girPoss=fullR.length*18;
@@ -1172,10 +1318,9 @@ function renderStats(){
   document.getElementById('c-bd').style.display=has?'block':'none';
   document.getElementById('c-trend').style.display=rs.length>1?'block':'none';
   document.getElementById('c-holes').style.display=fullR.length>0?'block':'none';
-  // Show AI review card when there are rounds
   const aiCard=document.getElementById('c-ai-review');
-  if(aiCard){aiCard.style.display=has?'block':'none';}
-  if(has) populateRoundSelector();
+  if(aiCard){aiCard.style.display=allRounds.length>0?'block':'none';}
+  if(allRounds.length>0) populateRoundSelector();
   document.getElementById('c-putts').style.display=fullR.length>0?'block':'none';
   document.getElementById('c-fg').style.display=fullR.length>0?'block':'none';
 
@@ -1197,8 +1342,10 @@ function renderStats(){
         datasets:[{data:[tE,tB,tP,tBo,tD],backgroundColor:['#f1c40f','#3498db','#2ecc71','#e67e22','#e74c3c'],borderWidth:0}]},
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#8899bb',font:{size:10},boxWidth:11,padding:10}}}}});
   }
+
   if(rs.length>1){
     dc('trend');
+    // rs is already date-sorted — labels and data are chronological
     CH.trend=new Chart(document.getElementById('ch-trend'),{type:'line',
       data:{labels:rs.map(r=>r.date.slice(0,5)),
         datasets:[{data:rs.map(r=>r.diff),borderColor:'#c9a84c',backgroundColor:'rgba(201,168,76,.08)',
@@ -1208,6 +1355,7 @@ function renderStats(){
         scales:{x:{ticks:{color:'#8899bb',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}},
                 y:{ticks:{color:'#8899bb',font:{size:9},callback:v=>v>=0?'+'+v:v},grid:{color:'rgba(255,255,255,.04)'}}}}});
   }
+
   if(fullR.length){
     const hA=Array.from({length:18},(_,h)=>{const vs=fullR.map(r=>r.scores[h]-r.pars[h]);return+(vs.reduce((a,b)=>a+b,0)/vs.length).toFixed(2);});
     dc('holes');
@@ -1217,7 +1365,7 @@ function renderStats(){
       options:{...CO,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw>=0?'+':''}${c.raw} avg`}}},
         scales:{x:{ticks:{color:'#8899bb',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}},
                 y:{ticks:{color:'#8899bb',font:{size:9},callback:v=>v>=0?'+'+v:v},grid:{color:'rgba(255,255,255,.04)'}}}}});
-    const pR=rs.filter(r=>(r.putts||[]).filter(Boolean).length>=9);
+    const pR=fullR.filter(r=>(r.putts||[]).filter(Boolean).length>=9);
     if(pR.length){
       const pA=Array.from({length:18},(_,h)=>{const vs=pR.map(r=>r.putts[h]).filter(Boolean);return vs.length?+(vs.reduce((a,b)=>a+b,0)/vs.length).toFixed(2):null;});
       dc('putts');
@@ -1242,12 +1390,12 @@ function renderStats(){
         scales:{x:{ticks:{color:'#8899bb',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}},
                 y:{min:0,max:100,ticks:{color:'#8899bb',font:{size:9},callback:v=>v+'%'},grid:{color:'rgba(255,255,255,.04)'}}}}});
   }
-  // History
+
+  // History — always show all rounds sorted newest first
   const hist=document.getElementById('st-hist');
-  const myRounds=rs;
-  if(!myRounds.length){hist.innerHTML='<div class="empty">No rounds yet</div>';return;}
+  if(!allSorted.length){hist.innerHTML='<div class="empty">No rounds yet</div>';return;}
   hist.innerHTML='';
-  [...myRounds].reverse().forEach(r=>{
+  [...allSorted].reverse().forEach(r=>{
     const dv=r.diff>=0?'+'+r.diff:''+r.diff;
     const dot=TC[r.tee]?.d||'#888';
     const d=document.createElement('div');d.className='hi';
