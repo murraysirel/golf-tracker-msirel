@@ -60,7 +60,7 @@ exports.handler = async (event) => {
       result = await httpsPost(
         'api.anthropic.com', '/v1/messages',
         { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-        JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 10, messages: [{ role: 'user', content: 'Hi' }] })
+        JSON.stringify({ model: 'claude-3-haiku-20240307', max_tokens: 10, messages: [{ role: 'user', content: 'Hi' }] })
       );
     } catch (e) {
       return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify({ status: 'FAIL', reason: 'Network error', detail: e.message }) };
@@ -73,6 +73,8 @@ exports.handler = async (event) => {
         status: result.status === 200 ? 'OK — API key works!' : 'FAIL',
         httpStatus: result.status,
         keyFirstChars: apiKey.slice(0, 12) + '...',
+        keyLength: apiKey.length,
+        rawResponse: result.body,
         anthropicResponse: data
       })
     };
