@@ -1,3 +1,4 @@
+Try AI directly in your favorite apps … Use Gemini to generate drafts and refine content, plus get Gemini Pro with access to Google's next-gen AI for £18.99 £0 for 1 month
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -395,28 +396,6 @@ details[open] summary::after{content:' ▾'}
       No account needed — just enter your name.<br>Your scores sync automatically with the group.
     </div>
   </div>
-
-  <div style="text-align:center;margin-bottom:16px">
-    <span style="font-size:11px;color:var(--dimmer);cursor:pointer;border-bottom:1px dotted var(--dimmer);padding-bottom:1px"
-      onclick="document.getElementById('owner-cfg').style.display=document.getElementById('owner-cfg').style.display==='none'?'block':'none'">
-      ⚙️ App owner settings (Murray only)
-    </span>
-  </div>
-  <div id="owner-cfg" style="display:none">
-    <div class="card">
-      <div class="ct">Owner Config</div>
-      <div style="font-size:11px;color:var(--dim);margin-bottom:12px;line-height:1.6">
-        Only Murray needs to do this once on his own device. Friends just tap their name above — no token, no GitHub account needed.
-      </div>
-      <label>GitHub Personal Access Token</label>
-      <div style="font-size:10px;color:var(--dimmer);margin-bottom:6px">Stored in your browser only — never in the code</div>
-      <input type="password" id="cfg-token" placeholder="ghp_..." class="mb8">
-      <label>Gist ID (only if changed)</label>
-      <input type="text" id="cfg-gist" placeholder="089c0ed..." class="mb8">
-      <button class="btn btn-o" onclick="saveConfig()">💾 Save & Connect</button>
-      <div id="cfg-msg" style="margin-top:8px;font-size:11px;color:var(--dim)"></div>
-    </div>
-  </div>
 </div>
 </div>
 
@@ -637,20 +616,20 @@ details[open] summary::after{content:' ▾'}
         <div id="add-msg" style="margin-top:7px;font-size:11px;color:var(--dim)"></div>
       </div>
       <div class="card">
-        <div class="ct">🔑 Update GitHub Token</div>
-        <div style="font-size:12px;color:var(--dim);margin-bottom:10px;line-height:1.5">If your token has expired, generate a new one at github.com → Settings → Developer settings → Personal access tokens (classic) → tick only <strong style="color:var(--gold)">gist</strong></div>
-        <input type="password" id="new-token" placeholder="ghp_..." class="mb8">
-        <button class="btn btn-o" onclick="updateToken()">Update Token</button>
-        <div id="tok-msg" style="margin-top:7px;font-size:11px;color:var(--dim)"></div>
+        <div class="ct">☁️ Sync Status</div>
+        <div style="font-size:12px;color:var(--dim);line-height:1.6;margin-bottom:12px">
+          All data syncs automatically for everyone via a secure server function. No tokens or accounts needed. If sync ever fails, data is saved locally on your device and will retry next time.
+        </div>
+        <button class="btn btn-o" onclick="loadGist().then(renderHomeStats)">🔄 Force Reload Data</button>
       </div>
       <div class="card">
-        <div class="ct">⚙️ Gist Settings</div>
+        <div class="ct">⚙️ App Settings</div>
         <div class="setting-row">
-          <div><div class="setting-label">Gist ID</div><div class="setting-sub" id="s-gistid" style="font-family:monospace;font-size:10px;color:var(--gold)"></div></div>
+          <div><div class="setting-label">App URL</div><div class="setting-sub">Share this with friends to join</div></div>
+          <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px" onclick="copyAppUrl()">Copy</button>
         </div>
         <div class="setting-row">
-          <div><div class="setting-label">Data URL</div><div class="setting-sub">Share with friends so they can join</div></div>
-          <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px" onclick="copyGistUrl()">Copy</button>
+          <div><div class="setting-label">Data store</div><div class="setting-sub" id="s-gistid" style="font-family:monospace;font-size:9px;color:var(--gold)"></div></div>
         </div>
         <div class="setting-row">
           <div><div class="setting-label">Sign Out</div><div class="setting-sub">Switch to a different player</div></div>
@@ -687,29 +666,9 @@ details[open] summary::after{content:' ▾'}
 // ─────────────────────────────────────────────────────────────────
 // CONFIG
 // ─────────────────────────────────────────────────────────────────
-// GIST_ID is public and safe to store here — it's just an identifier, not a secret
+// GIST_ID is baked into the server function (netlify/functions/sync.js)
+// No token or config needed in the browser — all writes go through /api/sync
 const DEFAULT_GIST = '089c0ed169b5c67dbd8846002b3def45';
-// TOKEN is never stored in this file — it lives only in the owner's browser localStorage
-// Friends do not need a token — reads are public, writes use the owner token silently
-const DEFAULT_TOKEN = '';
-
-function getCfg(){return{gist:localStorage.getItem('gt_gist')||DEFAULT_GIST,token:localStorage.getItem('gt_token')||DEFAULT_TOKEN};}
-function isOwner(){return !!localStorage.getItem('gt_token');}
-function saveConfig(){
-  const g=document.getElementById('cfg-gist').value.trim();
-  const t=document.getElementById('cfg-token').value.trim();
-  if(g)localStorage.setItem('gt_gist',g);
-  if(t)localStorage.setItem('gt_token',t);
-  document.getElementById('cfg-msg').textContent='✅ Saved — reconnecting...';
-  loadGist();
-}
-function updateToken(){
-  const t=document.getElementById('new-token').value.trim();
-  if(!t){document.getElementById('tok-msg').textContent='Please enter a token.';return;}
-  localStorage.setItem('gt_token',t);
-  document.getElementById('tok-msg').textContent='✅ Token updated!';
-  document.getElementById('new-token').value='';
-}
 
 // ─────────────────────────────────────────────────────────────────
 // COURSES
@@ -789,24 +748,27 @@ function ss(state,msg){
   if(t)t.textContent=msg;
 }
 
+// All reads and writes now go through /api/sync — a Netlify serverless function
+// that holds the GitHub token securely on the server. No token needed in the browser.
+// Works identically for Murray and all friends.
+const API = '/api/sync';
+
 async function loadGist(){
-  const {gist,token}=getCfg();
   ss('syncing','Loading...');
   try{
-    // Reads work without a token on secret gists — only owner needs token for writes
-    const headers={'Accept':'application/vnd.github.v3+json'};
-    if(token) headers['Authorization']=`token ${token}`;
-    const r=await fetch(`https://api.github.com/gists/${gist}`,{headers});
-    if(!r.ok)throw new Error(r.status);
-    const j=await r.json();
-    const raw=j.files['golf_data.json']?.content||'{}';
-    gd=JSON.parse(raw);
-    if(!gd.players)gd.players={};
+    const r = await fetch(API);
+    if(!r.ok) throw new Error(r.status);
+    const raw = await r.text();
+    gd = JSON.parse(raw);
+    if(!gd.players) gd.players={};
     seedMurray();
-    ss('ok','Loaded ✓');
+    ss('ok','Synced ✓');
   }catch(e){
     ss('err','Could not load — check connection');
-    seedMurray();
+    // Fall back to any locally cached data so app still works offline
+    const cached = localStorage.getItem('gt_localdata');
+    if(cached){ try{ gd=JSON.parse(cached); if(!gd.players)gd.players={}; seedMurray(); }catch(_){} }
+    else seedMurray();
   }
   renderOnboard();
 }
@@ -828,27 +790,20 @@ function seedMurray(){
 }
 
 async function pushGist(){
-  const {gist,token}=getCfg();
-  if(!token){
-    // No token — save locally and show a friendly nudge
-    ss('err','No token — round saved locally only');
-    // Still save to localStorage as backup
-    localStorage.setItem('gt_localdata',JSON.stringify(gd));
-    return false;
-  }
   ss('syncing','Saving...');
+  // Always cache locally first as backup
+  localStorage.setItem('gt_localdata', JSON.stringify(gd));
   try{
-    const r=await fetch(`https://api.github.com/gists/${gist}`,{
-      method:'PATCH',
-      headers:{'Authorization':`token ${token}`,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'},
-      body:JSON.stringify({files:{'golf_data.json':{content:JSON.stringify(gd)}}})
+    const r = await fetch(API, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({data: gd})
     });
-    if(!r.ok)throw new Error(r.status);
+    if(!r.ok) throw new Error(r.status);
     ss('ok','Saved ✓ '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}));
     return true;
   }catch(e){
-    ss('err','Save failed — token may have expired');
-    localStorage.setItem('gt_localdata',JSON.stringify(gd));
+    ss('err','Sync failed — saved locally, will retry');
     return false;
   }
 }
@@ -880,7 +835,7 @@ function enterAs(n){
   const pm=document.getElementById('pg-main');pm.style.display='flex';
   document.getElementById('hdr-title').textContent=n;
   document.getElementById('hdr-sub').textContent='Season 2026';
-  document.getElementById('s-gistid').textContent=getCfg().gist;
+  document.getElementById('s-gistid').textContent='gist.github.com/murraysirel/'+DEFAULT_GIST;
   populateCourses();
   renderHomeStats();
   goTo('home');
@@ -1336,9 +1291,11 @@ function exportXlsx(){
 // ─────────────────────────────────────────────────────────────────
 // UTILS
 // ─────────────────────────────────────────────────────────────────
-function copyGistUrl(){
-  const url=`https://gist.github.com/murraysirel/${getCfg().gist}`;
-  navigator.clipboard?.writeText(url).then(()=>alert('Gist URL copied!\n\nShare this with friends so they know which Gist to connect to:\n'+url)).catch(()=>alert('Gist URL:\n'+url));
+function copyAppUrl(){
+  const url = window.location.origin + window.location.pathname;
+  navigator.clipboard?.writeText(url)
+    .then(()=>alert('App URL copied!\n\nSend this to friends:\n'+url))
+    .catch(()=>alert('App URL:\n'+url));
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -1542,7 +1499,6 @@ function cancelCourseScan(){
 // ─────────────────────────────────────────────────────────────────
 // BOOT
 // ─────────────────────────────────────────────────────────────────
-document.getElementById('cfg-gist').value=getCfg().gist;
 loadGist();
 </script>
 </body>
