@@ -80,14 +80,14 @@ body{
   z-index:200;
 }
 .nb{
-  flex:1;padding:10px 4px 8px;text-align:center;
-  font-size:9px;letter-spacing:1.5px;text-transform:uppercase;
+  flex:1;padding:8px 2px 6px;text-align:center;
+  font-size:8px;letter-spacing:1px;text-transform:uppercase;
   color:var(--dimmer);border:none;background:transparent;
   cursor:pointer;font-family:'Cormorant Garamond',serif;
   transition:color .2s;
 }
 .nb.active{color:var(--gold)}
-.ni{font-size:20px;display:block;margin-bottom:2px}
+.ni{font-size:18px;display:block;margin-bottom:1px}
 
 /* ── Section / Card ───────────────────────────────────────────── */
 .sec{padding:16px}
@@ -188,7 +188,17 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
 .kl{font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px;margin-top:4px;display:block}
 .ks{font-size:10px;color:var(--dimmer);margin-top:2px}
 
-/* ── Filter pills ─────────────────────────────────────────────── */
+/* ── Practice area buttons ────────────────────────────────────── */
+.parea-btn{
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;padding:14px 8px;text-align:center;cursor:pointer;
+  color:var(--cream);transition:all .2s;font-family:'DM Sans',sans-serif;
+  width:100%;
+}
+.parea-btn:active,.parea-btn.selected{
+  background:rgba(201,168,76,.12);border-color:var(--gold);
+}
+/* Filter pills — already defined above */
 .fpill{
   padding:5px 12px;border-radius:20px;font-size:11px;font-weight:500;
   background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
@@ -668,6 +678,108 @@ details[open] summary::after{content:' ▾'}
       </div>
     </div>
 
+    <!-- PRACTICE -->
+    <div id="pg-practice" style="display:none" class="sec">
+
+      <!-- Previous AI recommendations -->
+      <div class="card" id="c-practice-recs" style="display:none">
+        <div class="ct">💡 Your Latest AI Recommendations</div>
+        <div style="font-size:11px;color:var(--dim);margin-bottom:10px;line-height:1.5">From your most recent round review</div>
+        <div id="practice-recs-content"></div>
+      </div>
+
+      <!-- Area selector -->
+      <div class="card">
+        <div class="ct">🎯 Build a Practice Session</div>
+        <div style="font-size:12px;color:var(--dim);margin-bottom:14px;line-height:1.6">
+          Choose an area to work on. You'll get a structured 50-shot session with specific drills — designed to build real skill, not just hit balls.
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px" id="practice-area-grid">
+          <button class="parea-btn" data-area="putting" onclick="selectPracticeArea('putting')">
+            <span style="font-size:22px">🏌️</span>
+            <div style="font-size:12px;font-weight:600;margin-top:4px">Putting</div>
+            <div style="font-size:10px;color:var(--dim)">Distance control, short putts</div>
+          </button>
+          <button class="parea-btn" data-area="chipping" onclick="selectPracticeArea('chipping')">
+            <span style="font-size:22px">🍃</span>
+            <div style="font-size:12px;font-weight:600;margin-top:4px">Chipping</div>
+            <div style="font-size:10px;color:var(--dim)">Up &amp; downs, bump and run</div>
+          </button>
+          <button class="parea-btn" data-area="pitching" onclick="selectPracticeArea('pitching')">
+            <span style="font-size:22px">📐</span>
+            <div style="font-size:12px;font-weight:600;margin-top:4px">Pitching</div>
+            <div style="font-size:10px;color:var(--dim)">50–100 yard accuracy</div>
+          </button>
+          <button class="parea-btn" data-area="irons" onclick="selectPracticeArea('irons')">
+            <span style="font-size:22px">🔧</span>
+            <div style="font-size:12px;font-weight:600;margin-top:4px">Iron Play</div>
+            <div style="font-size:10px;color:var(--dim)">Flush contact, GIR</div>
+          </button>
+          <button class="parea-btn" data-area="driving" onclick="selectPracticeArea('driving')">
+            <span style="font-size:22px">💥</span>
+            <div style="font-size:12px;font-weight:600;margin-top:4px">Driving</div>
+            <div style="font-size:10px;color:var(--dim)">Fairways, distance</div>
+          </button>
+          <button class="parea-btn" data-area="course_management" onclick="selectPracticeArea('course_management')">
+            <span style="font-size:22px">🧠</span>
+            <div style="font-size:12px;font-weight:600;margin-top:4px">Course Mgmt</div>
+            <div style="font-size:10px;color:var(--dim)">Decision-making, strategy</div>
+          </button>
+          <button class="parea-btn" data-area="bunker" onclick="selectPracticeArea('bunker')">
+            <span style="font-size:22px">🏖️</span>
+            <div style="font-size:12px;font-weight:600;margin-top:4px">Bunker Play</div>
+            <div style="font-size:10px;color:var(--dim)">Sand escapes, technique</div>
+          </button>
+          <button class="parea-btn" data-area="ai_recommended" onclick="selectPracticeArea('ai_recommended')">
+            <span style="font-size:22px">🤖</span>
+            <div style="font-size:12px;font-weight:600;margin-top:4px">AI Picks</div>
+            <div style="font-size:10px;color:var(--dim)">Based on your data</div>
+          </button>
+        </div>
+        <div id="practice-gen-msg"></div>
+      </div>
+
+      <!-- Generated session plan -->
+      <div class="card" id="c-practice-plan" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div class="ct" style="margin:0" id="practice-plan-title">Practice Session</div>
+          <div style="font-size:10px;color:var(--dim)" id="practice-plan-shots"></div>
+        </div>
+        <div id="practice-plan-content"></div>
+        <div style="margin-top:16px;display:flex;gap:8px">
+          <button class="btn" onclick="startPracticeSession()" id="practice-start-btn">▶ Start Session</button>
+          <button class="btn btn-ghost" onclick="regeneratePlan()" style="width:auto;padding:8px 14px">↺ Regenerate</button>
+        </div>
+      </div>
+
+      <!-- Active session tracker -->
+      <div class="card" id="c-practice-active" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <div class="ct" style="margin:0">Session in Progress</div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--gold)" id="practice-shot-count">0 / 50</div>
+        </div>
+        <div style="background:rgba(255,255,255,.05);border-radius:6px;height:6px;margin-bottom:14px;overflow:hidden">
+          <div id="practice-progress-bar" style="height:100%;background:var(--gold);border-radius:6px;width:0%;transition:width .3s"></div>
+        </div>
+        <div id="practice-active-drill" style="font-size:13px;color:var(--cream);line-height:1.6;margin-bottom:14px;padding:12px;background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.2);border-radius:10px"></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn" onclick="logPracticeShots(5)" style="flex:1">+5 shots</button>
+          <button class="btn btn-o" onclick="logPracticeShots(10)" style="flex:1">+10 shots</button>
+          <button class="btn btn-ghost" onclick="completePracticeSession()" style="width:auto;padding:8px 12px;font-size:11px;color:#e74c3c;border-color:rgba(231,76,60,.3)">End</button>
+        </div>
+        <div style="margin-top:10px">
+          <input type="text" id="practice-session-note" placeholder="Session notes (optional)..." style="width:100%">
+        </div>
+      </div>
+
+      <!-- Past sessions -->
+      <div class="card" id="c-practice-history" style="display:none">
+        <div class="ct">Past Sessions</div>
+        <div id="practice-history-list"></div>
+      </div>
+
+    </div>
+
     <!-- LEADERBOARD -->
     <div id="pg-leaderboard" style="display:none" class="sec">
       <div class="card">
@@ -746,6 +858,7 @@ details[open] summary::after{content:' ▾'}
     <button class="nb" id="nb-round" onclick="goTo('round')"><span class="ni">⛳</span>Round</button>
     <button class="nb" id="nb-stats" onclick="goTo('stats')"><span class="ni">📊</span>Stats</button>
     <button class="nb" id="nb-leaderboard" onclick="goTo('leaderboard')"><span class="ni">🏆</span>Board</button>
+    <button class="nb" id="nb-practice" onclick="goTo('practice')"><span class="ni">🎯</span>Practice</button>
     <button class="nb" id="nb-players" onclick="goTo('players')"><span class="ni">👥</span>Players</button>
   </div>
 </div>
@@ -987,7 +1100,7 @@ function signOut(){
 // ─────────────────────────────────────────────────────────────────
 // NAVIGATION
 // ─────────────────────────────────────────────────────────────────
-const PAGES=['home','round','stats','leaderboard','players'];
+const PAGES=['home','round','stats','leaderboard','practice','players'];
 function goTo(p){
   PAGES.forEach(pg=>{const el=document.getElementById('pg-'+pg);if(el)el.style.display=pg===p?'block':'none';});
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
@@ -997,6 +1110,7 @@ function goTo(p){
   if(p==='leaderboard')renderLeaderboard();
   if(p==='players'){renderAllPlayers();}
   if(p==='home')renderHomeStats();
+  if(p==='practice')renderPracticePage();
 }
 
 function switchEntry(t){
@@ -1552,7 +1666,7 @@ Use null for any value you cannot read with confidence. Putts array should be nu
     const resp=await fetch('/api/ai',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',max_tokens:800,
+        model:'claude-sonnet-4-6',max_tokens:800,
         messages:[{role:'user',content:[
           {type:'image',source:{type:'base64',media_type:photoFile.type||'image/jpeg',data:b64}},
           {type:'text',text:prompt}
@@ -1677,7 +1791,7 @@ Only include teeRatings entries that are visible on the card. Use null for any v
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model:'claude-sonnet-4-20250514',
+        model:'claude-sonnet-4-6',
         max_tokens:2000,
         messages:[{role:'user',content:[
           {type:'image',source:{type:'base64',media_type:courseCardFile.type||'image/jpeg',data:b64}},
@@ -1944,7 +2058,7 @@ Respond ONLY with valid JSON in this exact format, no other text:
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
+        model:'claude-sonnet-4-6',
         max_tokens:600,
         messages:[{role:'user',content:prompt}]
       })
@@ -1961,6 +2075,8 @@ Respond ONLY with valid JSON in this exact format, no other text:
     document.getElementById('ai-drill').textContent=parsed.drill||'';
     document.getElementById('ai-review-output').style.display='block';
     document.getElementById('ai-review-msg').innerHTML='';
+    // Persist review to the round so Practice page can show recommendations
+    storeAIReviewInRound(idx, parsed);
   }catch(e){
     console.error('AI review error:',e);
     document.getElementById('ai-review-msg').innerHTML=`<div class="alert alert-err">⚠️ Could not generate review — ${e.message||'please try again'}.</div>`;
@@ -1969,8 +2085,327 @@ Respond ONLY with valid JSON in this exact format, no other text:
 }
 
 // ─────────────────────────────────────────────────────────────────
-// BOOT
+// PRACTICE SESSION
 // ─────────────────────────────────────────────────────────────────
+let practiceState = {
+  area: null,
+  plan: null,
+  currentDrillIndex: 0,
+  shotsLogged: 0,
+  sessionId: null
+};
+
+const AREA_LABELS = {
+  putting: 'Putting', chipping: 'Chipping', pitching: 'Pitching',
+  irons: 'Iron Play', driving: 'Driving',
+  course_management: 'Course Management', bunker: 'Bunker Play',
+  ai_recommended: 'AI Recommended'
+};
+
+function renderPracticePage(){
+  // Show previous AI recommendations from stored round reviews
+  renderPracticeRecs();
+  // Show past sessions
+  renderPracticeHistory();
+}
+
+function renderPracticeRecs(){
+  const p = gd.players[me];
+  if(!p) return;
+  // Look for stored AI review data in most recent rounds
+  const rs = [...(p.rounds||[])].reverse();
+  const withReview = rs.find(r => r.aiReview);
+  const card = document.getElementById('c-practice-recs');
+  const content = document.getElementById('practice-recs-content');
+  if(!withReview || !card || !content){ if(card) card.style.display='none'; return; }
+  card.style.display = 'block';
+  const rev = withReview.aiReview;
+  content.innerHTML = `
+    <div style="margin-bottom:10px;padding:10px;background:rgba(46,204,113,.06);border-radius:8px;border-left:3px solid #2ecc71">
+      <div style="font-size:9px;letter-spacing:1.5px;color:#2ecc71;text-transform:uppercase;margin-bottom:4px">✅ What you did well</div>
+      <div style="font-size:12px;color:var(--cream);line-height:1.5">${rev.positive||'—'}</div>
+    </div>
+    <div style="margin-bottom:10px;padding:10px;background:rgba(230,126,34,.06);border-radius:8px;border-left:3px solid #e67e22">
+      <div style="font-size:9px;letter-spacing:1.5px;color:#e67e22;text-transform:uppercase;margin-bottom:4px">📉 Focus area</div>
+      <div style="font-size:12px;color:var(--cream);line-height:1.5">${rev.negative||'—'}</div>
+    </div>
+    <div style="padding:10px;background:rgba(52,152,219,.06);border-radius:8px;border-left:3px solid #3498db">
+      <div style="font-size:9px;letter-spacing:1.5px;color:#3498db;text-transform:uppercase;margin-bottom:4px">🏋️ Recommended drill</div>
+      <div style="font-size:12px;color:var(--cream);line-height:1.5">${rev.drill||'—'}</div>
+    </div>
+    <div style="font-size:10px;color:var(--dimmer);margin-top:8px">From round: ${withReview.course} · ${withReview.date}</div>`;
+}
+
+function renderPracticeHistory(){
+  const p = gd.players[me];
+  const sessions = p?.practiceSessions || [];
+  const card = document.getElementById('c-practice-history');
+  const list = document.getElementById('practice-history-list');
+  if(!card || !list) return;
+  if(!sessions.length){ card.style.display='none'; return; }
+  card.style.display = 'block';
+  list.innerHTML = '';
+  [...sessions].reverse().slice(0, 10).forEach(s => {
+    const div = document.createElement('div');
+    div.style.cssText = 'border-bottom:1px solid rgba(255,255,255,.06);padding:10px 0';
+    div.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:13px;font-weight:500;color:var(--cream)">${AREA_LABELS[s.area]||s.area}</div>
+          <div style="font-size:10px;color:var(--dim);margin-top:2px">${s.date} · ${s.shotsLogged||0} shots${s.note?` · "${s.note}"`:''}</div>
+        </div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--gold)">${s.shotsLogged||0}</div>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+function selectPracticeArea(area){
+  practiceState.area = area;
+  document.querySelectorAll('.parea-btn').forEach(b =>
+    b.classList.toggle('selected', b.dataset.area === area));
+  generatePracticePlan(area);
+}
+
+async function generatePracticePlan(area){
+  const msg = document.getElementById('practice-gen-msg');
+  const planCard = document.getElementById('c-practice-plan');
+  msg.innerHTML = '<div class="alert"><span class="spin"></span> Building your session plan...</div>';
+  planCard.style.display = 'none';
+
+  const p = gd.players[me];
+  const rs = [...(p?.rounds||[])].sort((a,b) => parseDateGB(a.date)-parseDateGB(b.date));
+  const recent = rs.slice(-5);
+
+  // Build stats context
+  const avgPutts = recent.length
+    ? (recent.reduce((a,r) => a + (r.putts||[]).filter(Boolean).reduce((x,y)=>x+y,0), 0) / recent.length).toFixed(1)
+    : null;
+  const avgGIR = recent.length
+    ? Math.round(recent.reduce((a,r) => a + (r.gir||[]).filter(v=>v==='Yes').length, 0) / (recent.length * 18) * 100)
+    : null;
+  const avgDiff = recent.length
+    ? (recent.reduce((a,r) => a + (r.diff||0), 0) / recent.length).toFixed(1)
+    : null;
+  const avgDoubles = recent.length
+    ? (recent.reduce((a,r) => a + (r.doubles||0), 0) / recent.length).toFixed(1)
+    : null;
+
+  // Get last AI review drill recommendation if area is ai_recommended
+  const lastReview = [...rs].reverse().find(r => r.aiReview);
+  const reviewContext = lastReview?.aiReview
+    ? `The AI previously identified this weakness: "${lastReview.aiReview.negative}". The recommended drill was: "${lastReview.aiReview.drill}".`
+    : '';
+
+  const areaLabel = AREA_LABELS[area] || area;
+  const prompt = `You are an expert golf coach building a focused practice session for ${me}.
+
+Player stats (last ${recent.length} rounds):
+- Handicap: ${p?.handicap || 'not set'}
+- Average score vs par: ${avgDiff ? (avgDiff >= 0 ? '+' : '') + avgDiff : 'unknown'}
+- Average putts per round: ${avgPutts || 'unknown'}
+- GIR%: ${avgGIR != null ? avgGIR + '%' : 'unknown'}
+- Doubles+ per round: ${avgDoubles || 'unknown'}
+${reviewContext}
+
+Build a STRUCTURED 50-shot practice session focused on: ${areaLabel}
+
+IMPORTANT PRINCIPLES:
+- Quality over quantity — each drill has a clear purpose and success metric
+- No mindless ball-bashing — every shot has an intention and target
+- Progressive structure — warm up, build, challenge
+- Maximum 50 shots total across all drills
+- Be specific: exact distances, targets, club selections, techniques
+- Include a success metric for each drill so the player knows if they are improving
+
+Respond ONLY with valid JSON, no other text:
+{
+  "title": "Session title (e.g. 'Putting — Distance Control')",
+  "totalShots": 50,
+  "focus": "One sentence on what this session will improve",
+  "warmup": "2-sentence warmup instruction",
+  "drills": [
+    {
+      "name": "Drill name",
+      "shots": 10,
+      "instruction": "Specific instruction — what to do, how to stand, what to focus on (3-4 sentences)",
+      "target": "Specific measurable target (e.g. 'Land within 3 feet of the pin from 20 feet')",
+      "successMetric": "How to know if this drill is working (e.g. '7 out of 10 inside tap-in range')",
+      "tip": "One key coaching cue (1 sentence)"
+    }
+  ],
+  "cooldown": "1-sentence finish — what to note or reflect on",
+  "keyTakeaway": "The one thing to remember from this session"
+}`;
+
+  try{
+    const resp = await fetch('/api/ai', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1200,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    if(!resp.ok) throw new Error(`${resp.status}`);
+    const data = await resp.json();
+    const text = data.content?.find(b => b.type === 'text')?.text || '';
+    const plan = JSON.parse(text.replace(/```json|```/g,'').trim());
+    practiceState.plan = plan;
+    msg.innerHTML = '';
+    renderPracticePlan(plan);
+  }catch(e){
+    msg.innerHTML = `<div class="alert alert-err">⚠️ Could not generate plan — ${e.message}. Please try again.</div>`;
+  }
+}
+
+function renderPracticePlan(plan){
+  const card = document.getElementById('c-practice-plan');
+  const title = document.getElementById('practice-plan-title');
+  const shots = document.getElementById('practice-plan-shots');
+  const content = document.getElementById('practice-plan-content');
+  if(!card || !content) return;
+
+  title.textContent = plan.title || 'Practice Session';
+  shots.textContent = `${plan.totalShots || 50} shots`;
+
+  let html = `
+    <div style="font-size:13px;color:var(--gold);font-style:italic;margin-bottom:14px;line-height:1.5">"${plan.focus}"</div>
+    <div style="padding:10px;background:rgba(255,255,255,.04);border-radius:8px;margin-bottom:12px">
+      <div style="font-size:9px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;margin-bottom:4px">Warm Up</div>
+      <div style="font-size:12px;color:var(--cream);line-height:1.5">${plan.warmup||''}</div>
+    </div>`;
+
+  (plan.drills||[]).forEach((d, i) => {
+    html += `
+      <div style="border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:12px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:13px;font-weight:600;color:var(--cream)">Drill ${i+1}: ${d.name}</div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--gold)">${d.shots} shots</div>
+        </div>
+        <div style="font-size:12px;color:var(--cream);line-height:1.6;margin-bottom:8px">${d.instruction}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+          <div style="padding:7px;background:rgba(52,152,219,.08);border-radius:6px;border-left:2px solid #3498db">
+            <div style="font-size:9px;color:#3498db;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Target</div>
+            <div style="font-size:11px;color:var(--cream)">${d.target}</div>
+          </div>
+          <div style="padding:7px;background:rgba(46,204,113,.08);border-radius:6px;border-left:2px solid #2ecc71">
+            <div style="font-size:9px;color:#2ecc71;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Success = </div>
+            <div style="font-size:11px;color:var(--cream)">${d.successMetric}</div>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--gold);font-style:italic">💡 ${d.tip}</div>
+      </div>`;
+  });
+
+  html += `
+    <div style="padding:10px;background:rgba(201,168,76,.06);border-radius:8px;margin-bottom:10px">
+      <div style="font-size:9px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;margin-bottom:4px">Cool Down</div>
+      <div style="font-size:12px;color:var(--cream);line-height:1.5">${plan.cooldown||''}</div>
+    </div>
+    <div style="padding:10px;background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.2);border-radius:8px">
+      <div style="font-size:9px;letter-spacing:1.5px;color:var(--gold);text-transform:uppercase;margin-bottom:4px">Key takeaway</div>
+      <div style="font-size:12px;color:var(--cream);font-weight:500;line-height:1.5">${plan.keyTakeaway||''}</div>
+    </div>`;
+
+  content.innerHTML = html;
+  card.style.display = 'block';
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function regeneratePlan(){
+  if(practiceState.area) generatePracticePlan(practiceState.area);
+}
+
+function startPracticeSession(){
+  const plan = practiceState.plan;
+  if(!plan) return;
+  practiceState.shotsLogged = 0;
+  practiceState.currentDrillIndex = 0;
+  practiceState.sessionId = Date.now();
+
+  document.getElementById('c-practice-plan').style.display = 'none';
+  document.getElementById('c-practice-active').style.display = 'block';
+  document.getElementById('c-practice-active').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  updateActiveDrillDisplay();
+}
+
+function updateActiveDrillDisplay(){
+  const plan = practiceState.plan;
+  if(!plan) return;
+  const drills = plan.drills || [];
+  const shots = practiceState.shotsLogged;
+  const total = plan.totalShots || 50;
+
+  document.getElementById('practice-shot-count').textContent = `${shots} / ${total}`;
+  document.getElementById('practice-progress-bar').style.width = Math.min(shots/total*100, 100) + '%';
+
+  // Work out which drill we're in based on cumulative shots
+  let cumulative = 0;
+  let drillIdx = 0;
+  for(let i = 0; i < drills.length; i++){
+    cumulative += drills[i].shots || 0;
+    if(shots < cumulative){ drillIdx = i; break; }
+    if(i === drills.length - 1) drillIdx = i;
+  }
+  practiceState.currentDrillIndex = drillIdx;
+  const d = drills[drillIdx];
+
+  if(d){
+    document.getElementById('practice-active-drill').innerHTML = `
+      <div style="font-size:9px;letter-spacing:1.5px;color:var(--gold);text-transform:uppercase;margin-bottom:6px">Drill ${drillIdx+1} of ${drills.length}: ${d.name}</div>
+      <div style="font-size:13px;color:var(--cream);line-height:1.6;margin-bottom:8px">${d.instruction}</div>
+      <div style="font-size:11px;color:#3498db;margin-bottom:4px">🎯 ${d.target}</div>
+      <div style="font-size:11px;color:var(--gold);font-style:italic">💡 ${d.tip}</div>`;
+  }
+}
+
+function logPracticeShots(n){
+  const total = practiceState.plan?.totalShots || 50;
+  practiceState.shotsLogged = Math.min(practiceState.shotsLogged + n, total);
+  updateActiveDrillDisplay();
+  if(practiceState.shotsLogged >= total) completePracticeSession();
+}
+
+function completePracticeSession(){
+  const plan = practiceState.plan;
+  if(!plan) return;
+  const note = document.getElementById('practice-session-note')?.value?.trim() || '';
+  const session = {
+    id: practiceState.sessionId || Date.now(),
+    date: new Date().toLocaleDateString('en-GB'),
+    area: practiceState.area,
+    title: plan.title,
+    shotsLogged: practiceState.shotsLogged,
+    note,
+    completed: practiceState.shotsLogged >= (plan.totalShots || 50)
+  };
+
+  if(!gd.players[me].practiceSessions) gd.players[me].practiceSessions = [];
+  gd.players[me].practiceSessions.push(session);
+  pushGist();
+
+  // Reset UI
+  document.getElementById('c-practice-active').style.display = 'none';
+  document.getElementById('c-practice-plan').style.display = 'none';
+  document.querySelectorAll('.parea-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('practice-gen-msg').innerHTML =
+    `<div class="alert alert-ok">✅ Session saved — ${session.shotsLogged} shots logged${note ? ` · "${note}"` : ''}.</div>`;
+  practiceState = { area: null, plan: null, currentDrillIndex: 0, shotsLogged: 0, sessionId: null };
+  renderPracticeHistory();
+}
+
+// Store AI review results in round data so practice page can display them
+function storeAIReviewInRound(roundIndex, review){
+  const p = gd.players[me];
+  if(!p || !p.rounds[roundIndex]) return;
+  p.rounds[roundIndex].aiReview = review;
+  pushGist();
+}
+
+
 loadGist();
 </script>
 </body>
