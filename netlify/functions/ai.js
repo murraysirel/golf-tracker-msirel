@@ -118,7 +118,7 @@ exports.handler = async (event) => {
   // Build safe payload — only forward known fields
   const payload = {
     model: body.model || 'claude-sonnet-4-6',
-    max_tokens: Math.min(Number(body.max_tokens) || 1000, 2000),
+    max_tokens: Math.min(Number(body.max_tokens) || 1000, 4000),
     messages: body.messages,
   };
 
