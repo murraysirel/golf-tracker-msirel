@@ -1039,7 +1039,7 @@ function buildSC(pf,pp){
     const pv=pp?(pp[h]!=null?pp[h]:''):'';
     const isP3=cpars[h]===3;
     const firOpts=isP3?'<option value="N/A">N/A</option>':'<option value="">—</option><option value="Yes">Yes</option><option value="No">No</option>';
-    r.innerHTML=`<td class="hn">${h+1}</td><td class="pc">${cpars[h]}</td><td><input type="number" id="h${h}" min="1" max="15" value="${sv}" placeholder="—" oninput="recalc()" style="width:36px"></td><td><input type="number" id="p${h}" min="0" max="6" value="${pv}" placeholder="—" style="width:36px"></td><td><select id="fir${h}" style="font-size:10px;padding:3px 1px;min-width:42px">${firOpts}</select></td><td><select id="gir${h}" style="font-size:10px;padding:3px 1px;min-width:42px"><option value="">—</option><option value="Yes">Yes</option><option value="No">No</option></select></td>`;
+    r.innerHTML=`<td class="hn">${h+1}</td><td class="pc">${cpars[h]}</td><td><input type="number" id="h${h}" min="1" max="15" value="${sv}" placeholder="—" oninput="recalc();autoAdv(${h})" style="width:36px"></td><td><input type="number" id="p${h}" min="0" max="6" value="${pv}" placeholder="—" style="width:36px"></td><td><select id="fir${h}" style="font-size:10px;padding:3px 1px;min-width:42px">${firOpts}</select></td><td><select id="gir${h}" style="font-size:10px;padding:3px 1px;min-width:42px"><option value="">—</option><option value="Yes">Yes</option><option value="No">No</option></select></td>`;
     tb.appendChild(r);
     if(h<9)op+=cpars[h]; else ip+=cpars[h];
   }
@@ -1065,6 +1065,23 @@ function recalc(){
   const d=tot-par;const vp=d===0?'E':(d>0?'+'+d:''+d);
   const el=document.getElementById('tot-vp');el.textContent=vp+' (Par '+par+')';
   el.style.color=d<0?'var(--birdie)':d>0?'var(--bogey)':'var(--dim)';
+}
+
+function autoAdv(h){
+  // Move to next score box once a plausible score (1-12) is entered
+  const inp=document.getElementById('h'+h);
+  if(!inp)return;
+  const v=parseInt(inp.value);
+  if(isNaN(v)||v<1||v>12)return;
+  // Single digit always advances; two-digit only advances if value >= 10
+  const raw=inp.value;
+  if(raw.length>=2||(raw.length===1&&v>=1)){
+    // Brief delay so the digit renders before jumping
+    setTimeout(()=>{
+      const next=document.getElementById('h'+(h+1));
+      if(next){next.focus();next.select();}
+    },60);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -1385,7 +1402,11 @@ IMPORTANT RULES:
 Use null for any value you cannot read with confidence. Putts array should be null values if putts not shown.`;
 
     const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',headers:{'Content-Type':'application/json'},
+      method:'POST',headers:{
+        'Content-Type':'application/json',
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
       body:JSON.stringify({
         model:'claude-sonnet-4-20250514',max_tokens:800,
         messages:[{role:'user',content:[
@@ -1510,7 +1531,11 @@ Only include teeRatings entries that are visible on the card. Use null for any v
 
     const resp = await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{
+        'Content-Type':'application/json',
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
       body: JSON.stringify({
         model:'claude-sonnet-4-20250514',
         max_tokens:2000,
@@ -1777,13 +1802,21 @@ Respond ONLY with valid JSON in this exact format, no other text:
   try{
     const resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{
+        'Content-Type':'application/json',
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
       body:JSON.stringify({
         model:'claude-sonnet-4-20250514',
         max_tokens:600,
         messages:[{role:'user',content:prompt}]
       })
     });
+    if(!resp.ok){
+      const err=await resp.json().catch(()=>({}));
+      throw new Error(`API ${resp.status}: ${err?.error?.message||'unknown error'}`);
+    }
     const data=await resp.json();
     const text=data.content?.find(b=>b.type==='text')?.text||'';
     const parsed=JSON.parse(text.replace(/```json|```/g,'').trim());
@@ -1793,7 +1826,8 @@ Respond ONLY with valid JSON in this exact format, no other text:
     document.getElementById('ai-review-output').style.display='block';
     document.getElementById('ai-review-msg').innerHTML='';
   }catch(e){
-    document.getElementById('ai-review-msg').innerHTML='<div class="alert alert-err">⚠️ Could not generate review — please try again.</div>';
+    console.error('AI review error:',e);
+    document.getElementById('ai-review-msg').innerHTML=`<div class="alert alert-err">⚠️ Could not generate review — ${e.message||'please try again'}.</div>`;
   }
   btn.disabled=false; btn.textContent='✨ Generate Review';
 }
