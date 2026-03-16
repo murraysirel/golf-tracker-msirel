@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Rob Roy Golfers Tracker">
+<meta name="apple-mobile-web-app-title" content="Rob Roy Golfers">
 <meta name="theme-color" content="#0a1628">
 <title>Rob Roy Golfers Tracker ⛳</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -35,7 +35,7 @@ body{
 /* ── Scrollable pages ─────────────────────────────────────────── */
 .app{
   flex:1;overflow-y:auto;overflow-x:hidden;
-  padding-bottom:calc(68px + var(--safe-bot));
+  padding-bottom:calc(90px + var(--safe-bot));
   -webkit-overflow-scrolling:touch;
 }
 
@@ -54,9 +54,9 @@ body{
   text-transform:uppercase;margin-bottom:3px;
 }
 .hdr-title{
-  font-family:'Cormorant Garamond',serif;
-  font-size:24px;font-weight:700;color:var(--cream);
-  letter-spacing:.5px;line-height:1;
+  font-family:'DM Sans',sans-serif;
+  font-size:22px;font-weight:700;color:var(--cream);
+  letter-spacing:-.2px;line-height:1;
 }
 .hdr-sub{font-size:11px;color:var(--dim);margin-top:3px}
 .sync-pill{
@@ -83,7 +83,7 @@ body{
   flex:1;padding:10px 4px 8px;text-align:center;
   font-size:9px;letter-spacing:1.5px;text-transform:uppercase;
   color:var(--dimmer);border:none;background:transparent;
-  cursor:pointer;font-family:'DM Sans',sans-serif;
+  cursor:pointer;font-family:'Cormorant Garamond',serif;
   transition:color .2s;
 }
 .nb.active{color:var(--gold)}
@@ -148,9 +148,9 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
 .onb-hero{text-align:center;margin-bottom:32px}
 .onb-flag{font-size:56px;margin-bottom:10px}
 .onb-title{
-  font-family:'Cormorant Garamond',serif;
-  font-size:36px;font-weight:700;color:var(--cream);
-  line-height:1;margin-bottom:6px;
+  font-family:'DM Sans',sans-serif;
+  font-size:34px;font-weight:700;color:var(--cream);
+  line-height:1;margin-bottom:6px;letter-spacing:-.5px;
 }
 .onb-sub{font-size:13px;color:var(--dim);line-height:1.5}
 
@@ -168,8 +168,8 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
   width:42px;height:42px;border-radius:50%;
   background:var(--border);
   display:flex;align-items:center;justify-content:center;
-  font-family:'Cormorant Garamond',serif;
-  font-size:16px;font-weight:700;color:var(--gold);flex-shrink:0;
+  font-family:'DM Sans',sans-serif;
+  font-size:15px;font-weight:700;color:var(--gold);flex-shrink:0;
 }
 .pname{font-size:14px;font-weight:500;color:var(--cream)}
 .pmeta{font-size:11px;color:var(--dim);margin-top:2px}
@@ -344,8 +344,8 @@ details[open] summary::after{content:' ▾'}
 }
 .lb-row:last-child{border-bottom:none}
 .lb-pos{
-  font-family:'Cormorant Garamond',serif;
-  font-size:22px;font-weight:700;color:var(--dimmer);
+  font-family:'DM Sans',sans-serif;
+  font-size:20px;font-weight:700;color:var(--dimmer);
   width:28px;text-align:center;flex-shrink:0;
 }
 .lb-pos.gold{color:var(--gold)}
@@ -381,8 +381,8 @@ details[open] summary::after{content:' ▾'}
 <div class="app-inner">
   <div class="onb-hero">
     <div class="onb-flag">⛳</div>
-    <div class="onb-title">Rob Roy Golfers<br>Tracker</div>
-    <div class="onb-sub" style="margin-top:8px">Players Championship edition<br>Live sync · Multi-player · Full stats</div>
+    <div class="onb-title">Rob Roy<br>Golfers Tracker</div>
+    <div class="onb-sub" style="margin-top:8px">Est. 2026 · Live sync · Multi-player · Full stats</div>
   </div>
 
   <div class="card mb12">
@@ -424,7 +424,7 @@ details[open] summary::after{content:' ▾'}
 <div id="pg-main" style="display:none;height:100%;display:none;flex-direction:column">
   <!-- Header -->
   <div class="hdr">
-    <div class="hdr-eyebrow">⛳ The Rob Roy Golfers Tracker</div>
+    <div class="hdr-eyebrow">⛳ Rob Roy Golfers Tracker</div>
     <div class="hdr-title" id="hdr-title">Golf Tracker</div>
     <div class="hdr-sub" id="hdr-sub">Ready</div>
     <div class="sync-pill">
@@ -462,7 +462,8 @@ details[open] summary::after{content:' ▾'}
     <div id="pg-round" style="display:none">
       <div class="tab-bar">
         <div class="tab active" id="tab-m" onclick="switchEntry('manual')">Manual</div>
-        <div class="tab" id="tab-p" onclick="switchEntry('photo')">📷 Photo</div>
+        <div class="tab" id="tab-p" onclick="switchEntry('photo')">📷 Scores</div>
+        <div class="tab" id="tab-c" onclick="switchEntry('course')">🗺️ Add Course</div>
       </div>
       <div class="sec">
         <div class="card">
@@ -525,6 +526,54 @@ details[open] summary::after{content:' ▾'}
             <button class="btn" id="parse-btn" style="display:none" onclick="parsePhoto()">🔍 Read Scorecard with AI</button>
           </div>
         </div>
+
+        <div id="entry-course" style="display:none">
+          <div class="card">
+            <div class="ct">📸 Scan Course Scorecard</div>
+            <div style="font-size:12px;color:var(--dim);margin-bottom:12px;line-height:1.6">
+              Photograph the printed scorecard from any course. AI reads the course name, all 18 hole pars, distances and stroke indexes — then saves it permanently to your group's course list.
+            </div>
+            <div class="pdrop" onclick="document.getElementById('course-card-inp').click()">
+              <div style="font-size:32px;margin-bottom:8px">🗺️</div>
+              <div style="font-size:13px;color:var(--dim)">Tap to photograph the course card</div>
+              <div style="font-size:11px;color:var(--dimmer);margin-top:4px">Works with any printed scorecard</div>
+            </div>
+            <input type="file" id="course-card-inp" accept="image/*" capture="environment" style="display:none" onchange="handleCoursePhoto(this)">
+            <img id="course-card-prev" style="display:none;width:100%;border-radius:9px;margin-bottom:10px;border:1px solid rgba(255,255,255,.08)">
+            <div id="course-scan-msg"></div>
+            <button class="btn" id="course-scan-btn" style="display:none" onclick="scanCourseCard()">🔍 Read Course Card with AI</button>
+          </div>
+          <div id="course-review" style="display:none">
+            <div class="card">
+              <div class="ct">✏️ Review Scanned Course</div>
+              <div style="font-size:11px;color:var(--dim);margin-bottom:12px;line-height:1.5">Check and correct anything before saving. This course will be available to everyone in your group.</div>
+              <label>Course Name</label>
+              <input type="text" id="sc-name" placeholder="e.g. Croham Hurst Golf Club" class="mb8">
+              <label>Location</label>
+              <input type="text" id="sc-loc" placeholder="e.g. Croydon, Surrey" class="mb8">
+              <div style="display:flex;gap:8px;margin-bottom:10px">
+                <div style="flex:1"><label>Total Par</label><input type="number" id="sc-par" min="60" max="80" placeholder="72"></div>
+                <div style="flex:1"><label>Rating</label><input type="number" id="sc-rating" step="0.1" placeholder="70.2"></div>
+                <div style="flex:1"><label>Slope</label><input type="number" id="sc-slope" placeholder="121"></div>
+              </div>
+              <label style="margin-bottom:6px">Hole Pars — tap any to correct</label>
+              <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:5px;margin-bottom:4px" id="par-edit-grid"></div>
+              <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:5px;margin-bottom:4px" id="par-edit-grid-in"></div>
+              <div style="font-size:10px;color:var(--gold);margin-bottom:12px;text-align:right" id="par-total-disp"></div>
+              <label style="margin-bottom:8px">Tees available at this course</label>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+                <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#5dade2;margin-bottom:0"><input type="checkbox" id="tee-blue" checked style="width:auto;accent-color:#5dade2"> Blue</label>
+                <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#f4d03f;margin-bottom:0"><input type="checkbox" id="tee-yellow" checked style="width:auto;accent-color:#f4d03f"> Yellow</label>
+                <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#f0e8d0;margin-bottom:0"><input type="checkbox" id="tee-white" style="width:auto;accent-color:#f0e8d0"> White</label>
+                <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#e74c3c;margin-bottom:0"><input type="checkbox" id="tee-red" style="width:auto;accent-color:#e74c3c"> Red</label>
+              </div>
+              <button class="btn mb8" onclick="saveCourse()">💾 Save Course to Group List</button>
+              <button class="btn btn-ghost" onclick="cancelCourseScan()">✕ Cancel</button>
+              <div id="course-save-msg" style="margin-top:8px;font-size:11px;color:var(--dim)"></div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -613,6 +662,18 @@ details[open] summary::after{content:' ▾'}
   </div><!-- end .app -->
 
   <!-- Bottom nav -->
+  <div style="
+    position:fixed;bottom:calc(56px + var(--safe-bot));left:0;right:0;
+    text-align:center;
+    font-family:'Cormorant Garamond',serif;
+    font-size:9px;letter-spacing:2px;
+    color:var(--dimmer);
+    background:var(--navy);
+    border-top:1px solid rgba(255,255,255,.04);
+    padding:4px 12px;
+    z-index:199;
+    text-transform:uppercase;
+  ">Rob Roy Golfers Tracker ™ · Trademark Pending · Est. 2026</div>
   <div class="nav">
     <button class="nb active" id="nb-home" onclick="goTo('home')"><span class="ni">🏠</span>Home</button>
     <button class="nb" id="nb-round" onclick="goTo('round')"><span class="ni">⛳</span>Round</button>
@@ -859,38 +920,63 @@ function goTo(p){
 function switchEntry(t){
   document.getElementById('entry-manual').style.display=t==='manual'?'block':'none';
   document.getElementById('entry-photo').style.display=t==='photo'?'block':'none';
+  document.getElementById('entry-course').style.display=t==='course'?'block':'none';
   document.getElementById('tab-m').classList.toggle('active',t==='manual');
   document.getElementById('tab-p').classList.toggle('active',t==='photo');
+  document.getElementById('tab-c').classList.toggle('active',t==='course');
 }
 
 // ─────────────────────────────────────────────────────────────────
 // COURSES
 // ─────────────────────────────────────────────────────────────────
+function getCourseByRef(ref){
+  // ref is either a number index (built-in) or a string key (custom)
+  if(!isNaN(ref)) return COURSES[parseInt(ref)];
+  return gd.customCourses?.[ref]||null;
+}
 function populateCourses(){
   const sel=document.getElementById('course-sel');
   sel.innerHTML='<option value="">— Select Course —</option>';
-  COURSES.forEach((c,i)=>{const o=document.createElement('option');o.value=i;o.textContent=c.name;sel.appendChild(o);});
+  // Built-in courses
+  COURSES.forEach((c,i)=>{
+    const o=document.createElement('option');o.value=i;o.textContent=c.name;sel.appendChild(o);
+  });
+  // Custom scanned courses from Gist
+  if(gd.customCourses && Object.keys(gd.customCourses).length){
+    const grp=document.createElement('optgroup');grp.label='📸 Scanned Courses';
+    Object.keys(gd.customCourses).forEach(key=>{
+      const o=document.createElement('option');o.value=key;o.textContent=gd.customCourses[key].name+' ★';grp.appendChild(o);
+    });
+    sel.appendChild(grp);
+  }
 }
 function onCourseChange(){
   const i=document.getElementById('course-sel').value;
   const w=document.getElementById('tee-wrap');
   if(i===''){w.style.display='none';return;}
-  const c=COURSES[i];w.style.display='block';
+  const c=getCourseByRef(i);
+  if(!c){w.style.display='none';return;}
+  w.style.display='block';
   const bc=document.getElementById('tee-btns');bc.innerHTML='';
   Object.keys(c.tees).forEach(tee=>{
     const b=document.createElement('button');b.className=`tee-btn ${tee}`;
     b.innerHTML=`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${TC[tee]?.d||'#fff'};margin-right:4px;vertical-align:middle"></span>${TC[tee]?.l||tee}`;
     b.onclick=()=>selTee(i,tee);bc.appendChild(b);
   });
-  selTee(i,c.def);
+  const defTee=c.def||c.defaultTee||Object.keys(c.tees)[0];
+  selTee(i,defTee);
 }
 function selTee(ci,tee){
-  const c=COURSES[ci];if(!c.tees[tee])return;
+  const c=getCourseByRef(ci);if(!c||!c.tees[tee])return;
   stee=tee;cpars=[...c.tees[tee].par];
   document.querySelectorAll('.tee-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll(`.tee-btn.${tee}`).forEach(b=>b.classList.add('active'));
   const t=c.tees[tee];
-  document.getElementById('tee-info').textContent=`Par ${t.tp} · ${t.y}yds · Rating ${t.r} · Slope ${t.s} · ${c.loc}`;
+  const yds=t.y||t.yards||0;
+  const r=t.r||t.rating||'—';const s=t.s||t.slope||'—';
+  const tp=t.tp||t.totalPar||cpars.reduce((a,b)=>a+b,0);
+  const loc=c.loc||c.location||'';
+  document.getElementById('tee-info').textContent=`Par ${tp}${yds?' · '+yds+'yds':''} · Rating ${r} · Slope ${s}${loc?' · '+loc:''}`;
   buildSC();
 }
 
@@ -956,7 +1042,7 @@ async function saveRound(){
   const ci=document.getElementById('course-sel').value;
   if(!ci){alert('Please select a course.');return;}
   if(!stee){alert('Please select a tee colour.');return;}
-  const c=COURSES[ci];const t=c.tees[stee];
+  const c=getCourseByRef(ci);const t=c.tees[stee];
   const sc=[],pt=[],fi=[],gi=[];
   for(let h=0;h<18;h++){
     sc.push(parseInt(document.getElementById('h'+h)?.value)||null);
@@ -969,7 +1055,7 @@ async function saveRound(){
   const tp=cpars.reduce((a,b)=>a+b,0);
   const d=ts-tp;
   const rnd={
-    id:Date.now(),player:me,course:c.name,loc:c.loc,tee:stee,
+    id:Date.now(),player:me,course:c.name,loc:c.loc||c.location||'',tee:stee,
     date:document.getElementById('r-date').value,
     notes:document.getElementById('r-notes').value,
     pars:[...cpars],scores:sc,putts:pt,fir:fi,gir:gi,
@@ -1253,6 +1339,204 @@ function exportXlsx(){
 function copyGistUrl(){
   const url=`https://gist.github.com/murraysirel/${getCfg().gist}`;
   navigator.clipboard?.writeText(url).then(()=>alert('Gist URL copied!\n\nShare this with friends so they know which Gist to connect to:\n'+url)).catch(()=>alert('Gist URL:\n'+url));
+}
+
+// ─────────────────────────────────────────────────────────────────
+// COURSE CARD SCANNER
+// ─────────────────────────────────────────────────────────────────
+let courseCardFile = null;
+let scannedPars = Array(18).fill(4);
+
+function handleCoursePhoto(input){
+  const f = input.files[0]; if(!f) return;
+  courseCardFile = f;
+  const prev = document.getElementById('course-card-prev');
+  prev.src = URL.createObjectURL(f); prev.style.display = 'block';
+  document.getElementById('course-scan-btn').style.display = 'block';
+  document.getElementById('course-scan-msg').innerHTML = '';
+  document.getElementById('course-review').style.display = 'none';
+}
+
+async function scanCourseCard(){
+  if(!courseCardFile) return;
+  document.getElementById('course-scan-msg').innerHTML = '<div class="alert"><span class="spin"></span> Reading course card with AI — this may take a moment...</div>';
+  document.getElementById('course-scan-btn').disabled = true;
+
+  try{
+    const b64 = await new Promise((res,rej)=>{
+      const r = new FileReader();
+      r.onload = ()=>res(r.result.split(',')[1]);
+      r.onerror = rej;
+      r.readAsDataURL(courseCardFile);
+    });
+
+    const prompt = `This is a golf course scorecard. Extract the following and return ONLY valid JSON, no other text:
+{
+  "courseName": "Full course name",
+  "location": "Town/city, County/State, Country",
+  "holes": [
+    {"hole": 1, "par": 4, "yards_white": 380, "yards_yellow": 365, "yards_red": 340, "strokeIndex": 7},
+    ... all 18 holes
+  ],
+  "teeRatings": {
+    "white":  {"rating": 70.2, "slope": 121},
+    "yellow": {"rating": 69.2, "slope": 118},
+    "blue":   {"rating": 67.5, "slope": 114},
+    "red":    {"rating": 67.4, "slope": 114}
+  }
+}
+Only include teeRatings entries that are visible on the card. Use null for any value you cannot read clearly.`;
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:2000,
+        messages:[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:courseCardFile.type||'image/jpeg',data:b64}},
+          {type:'text',text:prompt}
+        ]}]
+      })
+    });
+
+    const data = await resp.json();
+    const text = data.content?.find(b=>b.type==='text')?.text||'';
+    const parsed = JSON.parse(text.replace(/```json|```/g,'').trim());
+
+    if(!parsed.holes || parsed.holes.length < 9) throw new Error('Not enough holes read');
+
+    // Store scanned pars
+    scannedPars = parsed.holes.map(h=>h.par||4);
+
+    // Populate review form
+    document.getElementById('sc-name').value = parsed.courseName||'';
+    document.getElementById('sc-loc').value = parsed.location||'';
+
+    const totalPar = scannedPars.reduce((a,b)=>a+b,0);
+    document.getElementById('sc-par').value = totalPar;
+
+    // Use first available rating/slope
+    const ratings = parsed.teeRatings||{};
+    const firstTee = Object.values(ratings).find(t=>t&&t.rating);
+    if(firstTee){
+      document.getElementById('sc-rating').value = firstTee.rating||'';
+      document.getElementById('sc-slope').value = firstTee.slope||'';
+    }
+
+    // Build par edit grid
+    buildParEditGrid(scannedPars);
+
+    // Pre-check tees found on card
+    ['blue','yellow','white','red'].forEach(tee=>{
+      const cb = document.getElementById('tee-'+tee);
+      if(cb) cb.checked = !!(ratings[tee] && ratings[tee].rating);
+    });
+
+    document.getElementById('course-review').style.display = 'block';
+    document.getElementById('course-scan-msg').innerHTML = '<div class="alert alert-ok">✅ Course read! Check details below and correct anything before saving.</div>';
+
+  }catch(e){
+    document.getElementById('course-scan-msg').innerHTML = '<div class="alert alert-err">⚠️ Couldn\'t fully read the card — fill in manually below or try a clearer photo.</div>';
+    // Show blank review form anyway so they can fill in manually
+    buildParEditGrid(Array(18).fill(4));
+    document.getElementById('course-review').style.display = 'block';
+  }
+  document.getElementById('course-scan-btn').disabled = false;
+}
+
+function buildParEditGrid(pars){
+  scannedPars = [...pars];
+  // Out (holes 1-9)
+  const gridOut = document.getElementById('par-edit-grid');
+  gridOut.innerHTML = '';
+  // In (holes 10-18)
+  const gridIn = document.getElementById('par-edit-grid-in');
+  gridIn.innerHTML = '';
+
+  for(let h=0; h<18; h++){
+    const cell = document.createElement('div');
+    cell.style.cssText = 'text-align:center';
+    const label = document.createElement('div');
+    label.style.cssText = 'font-size:9px;color:var(--dimmer);margin-bottom:2px';
+    label.textContent = h+1;
+    const inp = document.createElement('input');
+    inp.type = 'number'; inp.min = 3; inp.max = 6;
+    inp.value = pars[h]||4;
+    inp.id = 'sp'+h;
+    inp.style.cssText = 'width:100%;text-align:center;padding:5px 2px;font-size:13px;border-radius:6px;font-weight:600';
+    inp.oninput = updateParTotal;
+    cell.appendChild(label); cell.appendChild(inp);
+    if(h < 9) gridOut.appendChild(cell);
+    else gridIn.appendChild(cell);
+  }
+  updateParTotal();
+}
+
+function updateParTotal(){
+  let tot = 0;
+  for(let h=0;h<18;h++){
+    const v = parseInt(document.getElementById('sp'+h)?.value)||4;
+    scannedPars[h] = v;
+    tot += v;
+  }
+  const el = document.getElementById('par-total-disp');
+  if(el) el.textContent = `Total Par: ${tot} (Out: ${scannedPars.slice(0,9).reduce((a,b)=>a+b,0)} · In: ${scannedPars.slice(9).reduce((a,b)=>a+b,0)})`;
+}
+
+function saveCourse(){
+  const name = document.getElementById('sc-name').value.trim();
+  const loc  = document.getElementById('sc-loc').value.trim();
+  const par  = parseInt(document.getElementById('sc-par').value)||scannedPars.reduce((a,b)=>a+b,0);
+  const rating = parseFloat(document.getElementById('sc-rating').value)||72;
+  const slope  = parseInt(document.getElementById('sc-slope').value)||113;
+
+  if(!name){ document.getElementById('course-save-msg').textContent='Please enter a course name.'; return; }
+
+  // Read final pars from grid
+  for(let h=0;h<18;h++){
+    scannedPars[h] = parseInt(document.getElementById('sp'+h)?.value)||4;
+  }
+
+  // Build tees object — all selected tees share same pars, rating, slope for now
+  // (user can refine later via manual entry)
+  const tees = {};
+  ['blue','yellow','white','red'].forEach(tee=>{
+    if(document.getElementById('tee-'+tee)?.checked){
+      tees[tee] = { par:[...scannedPars], rating, slope, yards:0, totalPar:par };
+    }
+  });
+
+  if(!Object.keys(tees).length){
+    document.getElementById('course-save-msg').textContent='Please select at least one tee colour.';
+    return;
+  }
+
+  // Save to gistData custom courses
+  if(!gd.customCourses) gd.customCourses = {};
+  gd.customCourses[name] = { name, loc, tees, addedBy:me, addedDate:new Date().toLocaleDateString('en-GB') };
+
+  pushGist().then(ok=>{
+    const msg = ok ? '✅ Course saved to group list! It\'ll now appear in the course selector.' : '⚠️ Saved locally — will sync when token is available.';
+    document.getElementById('course-save-msg').textContent = msg;
+    // Refresh course dropdown to include new course
+    populateCourses();
+    // Switch back to manual entry after short delay
+    setTimeout(()=>{ cancelCourseScan(); switchEntry('manual'); }, 2000);
+  });
+}
+
+function cancelCourseScan(){
+  courseCardFile = null;
+  document.getElementById('course-card-prev').style.display = 'none';
+  document.getElementById('course-scan-btn').style.display = 'none';
+  document.getElementById('course-scan-msg').innerHTML = '';
+  document.getElementById('course-review').style.display = 'none';
+  document.getElementById('course-save-msg').textContent = '';
+  document.getElementById('sc-name').value = '';
+  document.getElementById('sc-loc').value = '';
+  const inp = document.getElementById('course-card-inp');
+  if(inp) inp.value = '';
 }
 
 // ─────────────────────────────────────────────────────────────────
