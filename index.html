@@ -868,7 +868,7 @@ details[open] summary::after{content:' ▾'}
 // CONFIG
 // ─────────────────────────────────────────────────────────────────
 // GIST_ID is baked into the server function (netlify/functions/sync.js)
-// No token or config needed in the browser — all writes go through /api/sync
+// No token or config needed in the browser — all writes go through /.netlify/functions/sync
 const DEFAULT_GIST = '089c0ed169b5c67dbd8846002b3def45';
 
 // ─────────────────────────────────────────────────────────────────
@@ -988,10 +988,10 @@ function ss(state,msg){
   if(t)t.textContent=msg;
 }
 
-// All reads and writes now go through /api/sync — a Netlify serverless function
+// All reads and writes go directly to /.netlify/functions/sync — a Netlify serverless function
 // that holds the GitHub token securely on the server. No token needed in the browser.
 // Works identically for Murray and all friends.
-const API = '/api/sync';
+const API = '/.netlify/functions/sync';
 
 async function loadGist(){
   ss('syncing','Loading...');
@@ -1663,7 +1663,7 @@ IMPORTANT RULES:
 
 Use null for any value you cannot read with confidence. Putts array should be null values if putts not shown.`;
 
-    const resp=await fetch('/api/ai',{
+    const resp=await fetch('/.netlify/functions/ai',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         model:'claude-sonnet-4-6',max_tokens:800,
@@ -1787,7 +1787,7 @@ async function scanCourseCard(){
 }
 Only include teeRatings entries that are visible on the card. Use null for any value you cannot read clearly.`;
 
-    const resp = await fetch('/api/ai',{
+    const resp = await fetch('/.netlify/functions/ai',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
@@ -2054,7 +2054,7 @@ Respond ONLY with valid JSON in this exact format, no other text:
 }`;
 
   try{
-    const resp=await fetch('/api/ai',{
+    const resp=await fetch('/.netlify/functions/ai',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
@@ -2239,7 +2239,7 @@ Respond ONLY with valid JSON, no other text:
 }`;
 
   try{
-    const resp = await fetch('/api/ai', {
+    const resp = await fetch('/.netlify/functions/ai', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
