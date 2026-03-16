@@ -234,6 +234,14 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
 /* hcp edit row flex */
 #hcp-edit-row{display:flex;}
 
+/* ── Stats sticky header ──────────────────────────────────────── */
+#stats-sticky{
+  position:sticky;top:0;z-index:20;
+  background:var(--mid);
+  margin:-16px -16px 0;
+  padding:16px 16px 0;
+}
+
 /* ── Tee selector ─────────────────────────────────────────────── */
 .tee-row{display:flex;gap:7px;margin-top:10px}
 .tee-btn{
@@ -653,9 +661,9 @@ details[open] summary::after{content:' ▾'}
 
     <!-- STATS -->
     <div id="pg-stats" style="display:none" class="sec">
-
-      <!-- Handicap + filter bar -->
-      <div class="card" style="padding:14px 16px">
+      <!-- Sticky header: handicap + filters + KPIs -->
+      <div id="stats-sticky" style="flex-shrink:0;padding:0">
+      <div class="card" style="padding:14px 16px;margin-bottom:8px;border-radius:0 0 14px 14px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <div>
             <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:4px">WHS Handicap Index</div>
@@ -695,6 +703,7 @@ details[open] summary::after{content:' ▾'}
         <div class="kpi"><span class="kv" id="st-best">—</span><span class="kl">Best</span></div>
         <div class="kpi"><span class="kv" id="st-gir">—</span><span class="kl">GIR%</span></div>
       </div>
+      </div><!-- /stats-sticky -->
 
       <div class="card" id="c-bd" style="display:none">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><div style="width:28px;height:28px;border-radius:8px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></div><span style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase">Score Breakdown</span></div>
@@ -727,6 +736,43 @@ details[open] summary::after{content:' ▾'}
         </div>
         <div id="ai-review-msg"></div>
       </div>
+
+      <!-- AI Stats Analysis — last 5 rounds -->
+      <div class="card" id="c-ai-stats" style="display:none">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <div style="width:28px;height:28px;border-radius:8px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+          <span style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase">AI Stats Analysis</span>
+          <span style="margin-left:auto;font-size:9px;color:var(--dimmer);background:rgba(255,255,255,.05);border-radius:10px;padding:2px 8px" id="ai-stats-label">Last 5 rounds</span>
+        </div>
+        <div style="font-size:11px;color:var(--dim);margin-bottom:12px;line-height:1.5">Pattern-based analysis across your last 5 rounds — trends, strengths and a targeted improvement plan.</div>
+        <button class="btn btn-o mb8" onclick="generateStatsAnalysis()" id="ai-stats-btn"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3z"/></svg> Analyse My Last 5 Rounds</button>
+        <div id="ai-stats-output" style="display:none">
+          <div style="background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.2);border-radius:10px;padding:14px;margin-top:4px">
+            <div style="margin-bottom:12px">
+              <div style="display:flex;align-items:center;gap:5px;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:5px"><span style="color:var(--gold)"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Pattern strength</div>
+              <div id="ai-stats-positive" style="font-size:13px;color:var(--cream);line-height:1.6"></div>
+            </div>
+            <div style="border-top:1px solid rgba(255,255,255,.07);padding-top:12px;margin-bottom:12px">
+              <div style="display:flex;align-items:center;gap:5px;font-size:9px;letter-spacing:2px;color:#e67e22;text-transform:uppercase;margin-bottom:5px"><span style="color:#e67e22"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg></span>Recurring weakness</div>
+              <div id="ai-stats-negative" style="font-size:13px;color:var(--cream);line-height:1.6"></div>
+            </div>
+            <div style="border-top:1px solid rgba(255,255,255,.07);padding-top:12px;margin-bottom:12px">
+              <div style="display:flex;align-items:center;gap:5px;font-size:9px;letter-spacing:2px;color:var(--birdie);text-transform:uppercase;margin-bottom:5px"><span style="color:var(--birdie)"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.4 14.4 9.6 9.6"/><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z"/></svg></span>Priority drill</div>
+              <div id="ai-stats-drill" style="font-size:13px;color:var(--cream);line-height:1.6"></div>
+            </div>
+            <div style="border-top:1px solid rgba(255,255,255,.07);padding-top:12px">
+              <div style="display:flex;align-items:center;gap:5px;font-size:9px;letter-spacing:2px;color:#5dade2;text-transform:uppercase;margin-bottom:5px">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/></svg>
+                Handicap trajectory
+              </div>
+              <div id="ai-stats-handicap" style="font-size:13px;color:var(--cream);line-height:1.6"></div>
+            </div>
+          </div>
+          <button class="btn btn-ghost" onclick="clearStatsAnalysis()" style="margin-top:10px;font-size:12px">Clear analysis</button>
+        </div>
+        <div id="ai-stats-msg"></div>
+      </div>
+
       <div class="card" id="c-trend" style="display:none">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><div style="width:28px;height:28px;border-radius:8px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div><span style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase">Score Trend</span></div>
         <div class="chart-wrap" style="height:180px"><canvas id="ch-trend"></canvas></div>
@@ -792,12 +838,12 @@ details[open] summary::after{content:' ▾'}
             <span class="parea-sub">Fairways, distance</span>
           </button>
           <button class="parea-btn" data-area="course_management" onclick="selectPracticeArea('course_management')">
-            <div class="parea-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.05 11.5 7.35 11.76a1 1 0 0 0 1.3 0C13 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg></div>
+            <div class="parea-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M19.938 10.5a4 4 0 0 1 .585.396"/><path d="M6 18a4 4 0 0 1-1.967-.516"/><path d="M19.967 17.484A4 4 0 0 1 18 18"/></svg></div>
             <span class="parea-label">Course Mgmt</span>
             <span class="parea-sub">Decisions, strategy</span>
           </button>
           <button class="parea-btn" data-area="bunker" onclick="selectPracticeArea('bunker')">
-            <div class="parea-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M2 17c2-2.5 4-4 6-4s4 1.5 6 4 4 4 6 4"/><path d="M2 7c2-2.5 4-4 6-4s4 1.5 6 4 4 4 6 4"/></svg></div>
+            <div class="parea-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 17 4-8 4 8"/><path d="M5 13h4"/><path d="M17 3c-2.5 0-4 2-4 4v5l3 5h2l3-5V7c0-2-1.5-4-4-4z"/></svg></div>
             <span class="parea-label">Bunker Play</span>
             <span class="parea-sub">Sand escapes</span>
           </button>
@@ -1151,8 +1197,6 @@ function enterAs(n){
   if(!gd.players[n])gd.players[n]={handicap:0,rounds:[]};
   document.getElementById('pg-onboard').style.display='none';
   const pm=document.getElementById('pg-main');pm.style.display='flex';
-  document.getElementById('hdr-title').textContent=n;
-  document.getElementById('hdr-sub').textContent='Season 2026';
   document.getElementById('s-gistid').textContent='gist.github.com/murraysirel/'+DEFAULT_GIST;
   populateCourses();
   renderHomeStats();
@@ -1544,6 +1588,27 @@ function renderStats(){
   const aiCard=document.getElementById('c-ai-review');
   if(aiCard){aiCard.style.display=allRounds.length>0?'block':'none';}
   if(allRounds.length>0) populateRoundSelector();
+
+  // AI Stats Analysis card — show when ≥5 rounds, restore persisted result
+  const statsCard=document.getElementById('c-ai-stats');
+  if(statsCard){
+    const totalRounds=(gd.players[me]?.rounds||[]).length;
+    statsCard.style.display=totalRounds>=5?'block':'none';
+    if(totalRounds>=5){
+      const label=document.getElementById('ai-stats-label');
+      if(label) label.textContent=`Based on last 5 of ${totalRounds} rounds`;
+      const saved=gd.players[me]?.statsAnalysis;
+      if(saved){
+        document.getElementById('ai-stats-positive').textContent=saved.positive||'';
+        document.getElementById('ai-stats-negative').textContent=saved.negative||'';
+        document.getElementById('ai-stats-drill').textContent=saved.drill||'';
+        document.getElementById('ai-stats-handicap').textContent=saved.handicap||'';
+        document.getElementById('ai-stats-output').style.display='block';
+        const date=gd.players[me]?.statsAnalysisDate;
+        if(date) document.getElementById('ai-stats-msg').innerHTML=`<div style="font-size:10px;color:var(--dimmer);margin-top:6px">Last analysed ${date}</div>`;
+      }
+    }
+  }
   document.getElementById('c-putts').style.display=fullR.length>0?'block':'none';
   document.getElementById('c-fg').style.display=fullR.length>0?'block':'none';
 
@@ -1773,7 +1838,7 @@ Use null for any value you cannot read with confidence. Putts array should be nu
     const resp=await fetch('/.netlify/functions/ai',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        model:'claude-sonnet-4-6',max_tokens:800,
+        model:'claude-haiku-4-5-20251001',max_tokens:600,
         messages:[{role:'user',content:[
           {type:'image',source:{type:'base64',media_type:photoFile.type||'image/jpeg',data:b64}},
           {type:'text',text:prompt}
@@ -1898,8 +1963,8 @@ Only include teeRatings entries that are visible on the card. Use null for any v
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model:'claude-sonnet-4-6',
-        max_tokens:2000,
+        model:'claude-haiku-4-5-20251001',
+        max_tokens:1000,
         messages:[{role:'user',content:[
           {type:'image',source:{type:'base64',media_type:courseCardFile.type||'image/jpeg',data:b64}},
           {type:'text',text:prompt}
@@ -2142,22 +2207,17 @@ async function generateAIReview(){
   const firCount=r.fir?r.fir.filter((v,i)=>v==='Yes'&&r.pars[i]!==3).length:null;
   const firHoles=r.pars?r.pars.filter(p=>p!==3).length:11;
 
-  const prompt=`You are a golf coach reviewing a round for ${r.player}. Be concise, warm, specific and data-driven.
+  const prompt=`Golf coach reviewing a round for ${r.player}. Be specific and concise.
 
-Round: ${r.course} (${r.tee} tees, par ${r.totalPar}) on ${r.date}
-Score: ${r.totalScore} (${r.diff>=0?'+':''}${r.diff} vs par)
-Hole-by-hole: ${holeSummary}
-Birdies: ${r.birdies||0}, Eagles: ${r.eagles||0}, Pars: ${r.parsCount||0}, Bogeys: ${r.bogeys||0}, Doubles+: ${r.doubles||0}
-${totalPutts?`Total putts: ${totalPutts} (${(totalPutts/18).toFixed(1)} avg)`:''}
-${girPct!=null?`GIR: ${girPct}%`:''}
-${firCount!=null?`FIR: ${firCount}/${firHoles}`:''}
-${r.notes?`Player's notes: "${r.notes}"`:''}
+${r.course} (${r.tee}, par ${r.totalPar}) ${r.date} — Score: ${r.totalScore} (${r.diff>=0?'+':''}${r.diff})
+${holeSummary}
+Eagles:${r.eagles||0} Birdies:${r.birdies||0} Pars:${r.parsCount||0} Bogeys:${r.bogeys||0} Doubles+:${r.doubles||0}${totalPutts?` Putts:${totalPutts}(${(totalPutts/18).toFixed(1)}/hole)`:''}${girPct!=null?` GIR:${girPct}%`:''}${firCount!=null?` FIR:${firCount}/${firHoles}`:''}${r.notes?` Notes:"${r.notes}"`:''}
 
-Respond ONLY with valid JSON in this exact format, no other text:
+Respond ONLY with valid JSON:
 {
-  "positive": "One specific thing they did well (2-3 sentences, reference actual holes/stats)",
-  "negative": "One specific area that cost them shots (2-3 sentences, reference actual holes/stats)",
-  "drill": "One concrete practice drill to improve the weakness (2-3 sentences, be specific about the drill)"
+  "positive": "One specific strength (2 sentences, cite actual holes/numbers)",
+  "negative": "One specific weakness that cost shots (2 sentences, cite actual holes/numbers)",
+  "drill": "One concrete drill to fix the weakness (2 sentences, specific reps and targets)"
 }`;
 
   try{
@@ -2165,8 +2225,8 @@ Respond ONLY with valid JSON in this exact format, no other text:
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        model:'claude-sonnet-4-6',
-        max_tokens:1200,
+        model:'claude-haiku-4-5-20251001',
+        max_tokens:700,
         messages:[{role:'user',content:prompt}]
       })
     });
@@ -2193,7 +2253,83 @@ Respond ONLY with valid JSON in this exact format, no other text:
 }
 
 // ─────────────────────────────────────────────────────────────────
-// PRACTICE SESSION
+// AI STATS ANALYSIS — last 5 rounds
+// ─────────────────────────────────────────────────────────────────
+async function generateStatsAnalysis(){
+  const rs=(gd.players[me]?.rounds||[]);
+  const sorted=[...rs].sort((a,b)=>parseDateGB(b.date)-parseDateGB(a.date));
+  if(sorted.length<5){
+    document.getElementById('ai-stats-msg').innerHTML='<div class="alert alert-err">You need at least 5 rounds submitted to use this feature.</div>';
+    return;
+  }
+  const last5=sorted.slice(0,5);
+  const btn=document.getElementById('ai-stats-btn');
+  btn.disabled=true;btn.textContent='Analysing...';
+  document.getElementById('ai-stats-output').style.display='none';
+  document.getElementById('ai-stats-msg').innerHTML='<div class="alert"><span class="spin"></span> Analysing your last 5 rounds...</div>';
+
+  const roundsSummary=last5.map((r,i)=>{
+    const totalPutts=(r.putts||[]).filter(Boolean).reduce((a,b)=>a+b,0);
+    const girPct=r.gir?Math.round(r.gir.filter(v=>v==='Yes').length/18*100):null;
+    const firCount=r.fir?r.fir.filter((v,j)=>v==='Yes'&&(r.pars||[])[j]!==3).length:null;
+    const firHoles=(r.pars||[]).filter(p=>p!==3).length||14;
+    return `Round ${i+1}: ${r.course} (${r.tee}, par ${r.totalPar}) on ${r.date}
+  Score: ${r.totalScore} (${r.diff>=0?'+':''}${r.diff}) | Eagles:${r.eagles||0} Birdies:${r.birdies||0} Pars:${r.parsCount||0} Bogeys:${r.bogeys||0} Doubles+:${r.doubles||0}
+  ${totalPutts?`Putts: ${totalPutts} (${(totalPutts/18).toFixed(1)}/hole)  `:''}${girPct!=null?`GIR: ${girPct}%  `:''}${firCount!=null?`FIR: ${firCount}/${firHoles}`:''}`;
+  }).join('\n\n');
+
+  const avgScore=Math.round(last5.reduce((a,r)=>a+(r.totalScore||0),0)/5);
+  const avgDiff=+(last5.reduce((a,r)=>a+(r.diff||0),0)/5).toFixed(1);
+  const handicap=gd.players[me]?.handicap||'unknown';
+
+  const prompt=`Golf coach analysing patterns across ${me}'s last 5 rounds. Handicap: ${handicap}. Avg: ${avgScore} (${avgDiff>=0?'+':''}${avgDiff}).
+
+${roundsSummary}
+
+Find genuine multi-round patterns, not single-round noise. Respond ONLY with valid JSON:
+{
+  "positive": "Strongest consistent pattern (2 sentences, cite numbers)",
+  "negative": "Most persistent weakness across rounds (2 sentences, cite stats)",
+  "drill": "One high-priority drill with exact reps and measurable target (2 sentences)",
+  "handicap": "Handicap trajectory — up, down or stable? Why? (1 sentence)"
+}`;
+
+  const sparkSVG='<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3z"/></svg>';
+  try{
+    const resp=await fetch('/.netlify/functions/ai',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:800,messages:[{role:'user',content:prompt}]})});
+    if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(`API ${resp.status}: ${e?.error||JSON.stringify(e)}`);}
+    const data=await resp.json();
+    const text=data.content?.find(b=>b.type==='text')?.text||'';
+    const parsed=JSON.parse(text.replace(/```json|```/g,'').trim());
+    document.getElementById('ai-stats-positive').textContent=parsed.positive||'';
+    document.getElementById('ai-stats-negative').textContent=parsed.negative||'';
+    document.getElementById('ai-stats-drill').textContent=parsed.drill||'';
+    document.getElementById('ai-stats-handicap').textContent=parsed.handicap||'';
+    document.getElementById('ai-stats-output').style.display='block';
+    document.getElementById('ai-stats-msg').innerHTML='';
+    // Persist
+    gd.players[me].statsAnalysis=parsed;
+    gd.players[me].statsAnalysisDate=new Date().toLocaleDateString('en-GB');
+    pushGist();
+  }catch(e){
+    console.error('Stats analysis error:',e);
+    document.getElementById('ai-stats-msg').innerHTML=`<div class="alert alert-err">Could not generate analysis — ${e.message||'please try again'}.</div>`;
+  }
+  btn.disabled=false;
+  btn.innerHTML=sparkSVG+' Analyse My Last 5 Rounds';
+}
+
+function clearStatsAnalysis(){
+  if(!gd.players[me])return;
+  delete gd.players[me].statsAnalysis;
+  delete gd.players[me].statsAnalysisDate;
+  document.getElementById('ai-stats-output').style.display='none';
+  document.getElementById('ai-stats-msg').innerHTML='';
+  pushGist();
+}
+
+
 // ─────────────────────────────────────────────────────────────────
 let practiceState = {
   area: null,
@@ -2306,44 +2442,28 @@ async function generatePracticePlan(area){
     : '';
 
   const areaLabel = AREA_LABELS[area] || area;
-  const prompt = `You are an expert golf coach building a focused practice session for ${me}.
-
-Player stats (last ${recent.length} rounds):
-- Handicap: ${p?.handicap || 'not set'}
-- Average score vs par: ${avgDiff ? (avgDiff >= 0 ? '+' : '') + avgDiff : 'unknown'}
-- Average putts per round: ${avgPutts || 'unknown'}
-- GIR%: ${avgGIR != null ? avgGIR + '%' : 'unknown'}
-- Doubles+ per round: ${avgDoubles || 'unknown'}
+  const prompt = `You are an expert golf coach. Build a focused practice session for ${me} (handicap: ${p?.handicap||'?'}, avg vs par: ${avgDiff?(avgDiff>=0?'+':'')+avgDiff:'?'}, GIR: ${avgGIR!=null?avgGIR+'%':'?'}, putts/round: ${avgPutts||'?'}).
 ${reviewContext}
+Focus: ${areaLabel}. Total shots: 50. Be specific and concise — no filler sentences.
 
-Build a STRUCTURED 50-shot practice session focused on: ${areaLabel}
-
-IMPORTANT PRINCIPLES:
-- Quality over quantity — each drill has a clear purpose and success metric
-- No mindless ball-bashing — every shot has an intention and target
-- Progressive structure — warm up, build, challenge
-- Maximum 50 shots total across all drills
-- Be specific: exact distances, targets, club selections, techniques
-- Include a success metric for each drill so the player knows if they are improving
-
-Respond ONLY with valid JSON, no other text:
+Respond ONLY with valid JSON:
 {
-  "title": "Session title (e.g. 'Putting — Distance Control')",
+  "title": "Short session title",
   "totalShots": 50,
-  "focus": "One sentence on what this session will improve",
-  "warmup": "2-sentence warmup instruction",
+  "focus": "One sentence on the key improvement goal",
+  "warmup": "One sentence warmup",
   "drills": [
     {
       "name": "Drill name",
       "shots": 10,
-      "instruction": "Specific instruction — what to do, how to stand, what to focus on (3-4 sentences)",
-      "target": "Specific measurable target (e.g. 'Land within 3 feet of the pin from 20 feet')",
-      "successMetric": "How to know if this drill is working (e.g. '7 out of 10 inside tap-in range')",
-      "tip": "One key coaching cue (1 sentence)"
+      "instruction": "What to do and how (2 sentences max)",
+      "target": "Specific measurable target",
+      "successMetric": "Pass/fail criterion",
+      "tip": "One coaching cue"
     }
   ],
-  "cooldown": "1-sentence finish — what to note or reflect on",
-  "keyTakeaway": "The one thing to remember from this session"
+  "cooldown": "One sentence reflection",
+  "keyTakeaway": "One sentence takeaway"
 }`;
 
   try{
@@ -2351,8 +2471,8 @@ Respond ONLY with valid JSON, no other text:
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 3000,
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1800,
         messages: [{ role: 'user', content: prompt }]
       })
     });
