@@ -1549,12 +1549,8 @@ IMPORTANT RULES:
 
 Use null for any value you cannot read with confidence. Putts array should be null values if putts not shown.`;
 
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',headers:{
-        'Content-Type':'application/json',
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true'
-      },
+    const resp=await fetch('/api/ai',{
+      method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         model:'claude-sonnet-4-20250514',max_tokens:800,
         messages:[{role:'user',content:[
@@ -1677,13 +1673,9 @@ async function scanCourseCard(){
 }
 Only include teeRatings entries that are visible on the card. Use null for any value you cannot read clearly.`;
 
-    const resp = await fetch('https://api.anthropic.com/v1/messages',{
+    const resp = await fetch('/api/ai',{
       method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true'
-      },
+      headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
         model:'claude-sonnet-4-20250514',
         max_tokens:2000,
@@ -1948,13 +1940,9 @@ Respond ONLY with valid JSON in this exact format, no other text:
 }`;
 
   try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+    const resp=await fetch('/api/ai',{
       method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true'
-      },
+      headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         model:'claude-sonnet-4-20250514',
         max_tokens:600,
