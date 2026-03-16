@@ -1,96 +1,140 @@
 // netlify/functions/ai.js
 // Secure proxy for all Anthropic API calls.
-// The ANTHROPIC_API_KEY environment variable lives on Netlify's servers only —
-// it is never exposed to the browser or stored in the codebase.
+// Uses Node's built-in https module — works on all Node versions, no fetch required.
+// ANTHROPIC_API_KEY lives in Netlify environment variables only — never in code or browser.
 
-const ANTHROPIC_API = 'https://api.anthropic.com/v1/messages';
+const https = require('https');
+
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Content-Type': 'application/json',
+};
+
+// Promisified https POST
+function httpsPost(hostname, path, headers, body) {
+  return new Promise((resolve, reject) => {
+    const postData = typeof body === 'string' ? body : JSON.stringify(body);
+    const req = https.request(
+      {
+        hostname,
+        path,
+        method: 'POST',
+        headers: {
+          ...headers,
+          'Content-Length': Buffer.byteLength(postData),
+        },
+      },
+      (res) => {
+        let raw = '';
+        res.on('data', (chunk) => { raw += chunk; });
+        res.on('end', () => resolve({ status: res.statusCode, body: raw }));
+      }
+    );
+    req.on('error', reject);
+    req.write(postData);
+    req.end();
+  });
+}
 
 exports.handler = async (event) => {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Content-Type': 'application/json',
-  };
-
+  // CORS preflight
   if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
+    return { statusCode: 200, headers: CORS_HEADERS, body: '' };
   }
 
   if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
+    return { statusCode: 405, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
+  // Check API key
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return {
       statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: 'Server not configured — ANTHROPIC_API_KEY missing' }),
+      headers: CORS_HEADERS,
+      body: JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured in Netlify environment variables' }),
     };
   }
 
+  // Parse request body
   let body;
   try {
     body = JSON.parse(event.body || '{}');
-  } catch {
-    return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON body' }) };
+  } catch (e) {
+    return {
+      statusCode: 400,
+      headers: CORS_HEADERS,
+      body: JSON.stringify({ error: 'Invalid JSON in request body' }),
+    };
   }
 
-  if (!body.messages || !Array.isArray(body.messages)) {
-    return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing messages array' }) };
+  // Validate messages
+  if (!body.messages || !Array.isArray(body.messages) || body.messages.length === 0) {
+    return {
+      statusCode: 400,
+      headers: CORS_HEADERS,
+      body: JSON.stringify({ error: 'Request must include a non-empty messages array' }),
+    };
   }
 
-  const anthropicPayload = {
-    model: body.model || 'claude-haiku-4-5-20251001',
-    max_tokens: Math.min(body.max_tokens || 1000, 2000),
+  // Build safe payload — only forward known fields
+  const payload = {
+    model: body.model || 'claude-sonnet-4-6',
+    max_tokens: Math.min(Number(body.max_tokens) || 1000, 2000),
     messages: body.messages,
   };
 
+  // Forward to Anthropic
+  let result;
   try {
-    const res = await fetch(ANTHROPIC_API, {
-      method: 'POST',
-      headers: {
+    result = await httpsPost(
+      'api.anthropic.com',
+      '/v1/messages',
+      {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
       },
-      body: JSON.stringify(anthropicPayload),
-    });
-
-    // Always read the full response body for debugging
-    const responseText = await res.text();
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch {
-      return {
-        statusCode: 502,
-        headers,
-        body: JSON.stringify({ error: 'Non-JSON response from Anthropic', raw: responseText.slice(0, 200) }),
-      };
-    }
-
-    if (!res.ok) {
-      // Return the full Anthropic error so we can see exactly what's wrong
-      return {
-        statusCode: res.status,
-        headers,
-        body: JSON.stringify({
-          error: data?.error?.message || `Anthropic API error ${res.status}`,
-          type: data?.error?.type || 'unknown',
-          full: data,
-        }),
-      };
-    }
-
-    return { statusCode: 200, headers, body: JSON.stringify(data) };
-
+      JSON.stringify(payload)
+    );
   } catch (e) {
     return {
       statusCode: 502,
-      headers,
-      body: JSON.stringify({ error: 'Failed to reach Anthropic API', detail: e.message }),
+      headers: CORS_HEADERS,
+      body: JSON.stringify({ error: 'Network error reaching Anthropic API', detail: e.message }),
     };
   }
+
+  // Parse Anthropic response
+  let data;
+  try {
+    data = JSON.parse(result.body);
+  } catch (e) {
+    return {
+      statusCode: 502,
+      headers: CORS_HEADERS,
+      body: JSON.stringify({ error: 'Non-JSON response from Anthropic', raw: result.body.slice(0, 300) }),
+    };
+  }
+
+  // If Anthropic returned an error, surface it clearly
+  if (result.status !== 200) {
+    return {
+      statusCode: result.status,
+      headers: CORS_HEADERS,
+      body: JSON.stringify({
+        error: data?.error?.message || `Anthropic returned ${result.status}`,
+        type: data?.error?.type,
+        full: data,
+      }),
+    };
+  }
+
+  return {
+    statusCode: 200,
+    headers: CORS_HEADERS,
+    body: JSON.stringify(data),
+  };
 };
