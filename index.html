@@ -2059,13 +2059,14 @@ Respond ONLY with valid JSON in this exact format, no other text:
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         model:'claude-sonnet-4-6',
-        max_tokens:600,
+        max_tokens:1200,
         messages:[{role:'user',content:prompt}]
       })
     });
     if(!resp.ok){
       const err=await resp.json().catch(()=>({}));
-      throw new Error(`API ${resp.status}: ${err?.error?.message||'unknown error'}`);
+      const msg=err?.error||err?.full?.error?.message||JSON.stringify(err);
+      throw new Error(`API ${resp.status}: ${msg}`);
     }
     const data=await resp.json();
     const text=data.content?.find(b=>b.type==='text')?.text||'';
@@ -2244,7 +2245,7 @@ Respond ONLY with valid JSON, no other text:
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 1200,
+        max_tokens: 3000,
         messages: [{ role: 'user', content: prompt }]
       })
     });
