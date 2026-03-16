@@ -200,10 +200,12 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
 .tee-btn.yellow{background:rgba(241,196,15,.1);border-color:rgba(241,196,15,.3);color:#f4d03f}
 .tee-btn.white{background:rgba(240,232,208,.06);border-color:rgba(240,232,208,.25);color:#f0e8d0}
 .tee-btn.red{background:rgba(231,76,60,.1);border-color:rgba(231,76,60,.3);color:#e74c3c}
+.tee-btn.black{background:rgba(44,44,44,.3);border-color:rgba(180,180,180,.3);color:#aaaaaa}
 .tee-btn.active.blue{background:rgba(52,152,219,.25);border-color:#5dade2}
 .tee-btn.active.yellow{background:rgba(241,196,15,.25);border-color:#f4d03f}
 .tee-btn.active.white{background:rgba(240,232,208,.18);border-color:#f0e8d0}
 .tee-btn.active.red{background:rgba(231,76,60,.25);border-color:#e74c3c}
+.tee-btn.active.black{background:rgba(44,44,44,.6);border-color:#aaaaaa}
 .tee-info{font-size:10px;color:var(--dim);margin-top:5px}
 
 /* ── Scorecard table ──────────────────────────────────────────── */
@@ -568,6 +570,32 @@ details[open] summary::after{content:' ▾'}
         <div class="bd-row" id="bd-pills"></div>
         <div class="chart-wrap" style="height:180px"><canvas id="ch-donut"></canvas></div>
       </div>
+      <!-- AI Round Review — shown per round in history -->
+      <div class="card" id="c-ai-review" style="display:none">
+        <div class="ct">🤖 AI Round Review</div>
+        <div id="ai-review-select" style="margin-bottom:10px">
+          <label>Select a round to review</label>
+          <select id="ai-round-sel" style="margin-top:4px"></select>
+        </div>
+        <button class="btn btn-o mb8" onclick="generateAIReview()" id="ai-review-btn">✨ Generate Review</button>
+        <div id="ai-review-output" style="display:none">
+          <div style="background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.2);border-radius:10px;padding:14px;margin-top:4px">
+            <div style="margin-bottom:12px">
+              <div style="font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:5px">✅ What you did well</div>
+              <div id="ai-positive" style="font-size:13px;color:var(--cream);line-height:1.6"></div>
+            </div>
+            <div style="border-top:1px solid rgba(255,255,255,.07);padding-top:12px;margin-bottom:12px">
+              <div style="font-size:9px;letter-spacing:2px;color:#e67e22;text-transform:uppercase;margin-bottom:5px">📉 Area to improve</div>
+              <div id="ai-negative" style="font-size:13px;color:var(--cream);line-height:1.6"></div>
+            </div>
+            <div style="border-top:1px solid rgba(255,255,255,.07);padding-top:12px">
+              <div style="font-size:9px;letter-spacing:2px;color:var(--birdie);text-transform:uppercase;margin-bottom:5px">🏋️ Practice drill</div>
+              <div id="ai-drill" style="font-size:13px;color:var(--cream);line-height:1.6"></div>
+            </div>
+          </div>
+        </div>
+        <div id="ai-review-msg"></div>
+      </div>
       <div class="card" id="c-trend" style="display:none">
         <div class="ct">Score Trend</div>
         <div class="chart-wrap" style="height:180px"><canvas id="ch-trend"></canvas></div>
@@ -593,12 +621,18 @@ details[open] summary::after{content:' ▾'}
     <!-- LEADERBOARD -->
     <div id="pg-leaderboard" style="display:none" class="sec">
       <div class="card">
-        <div class="ct">🏆 Season Leaderboard</div>
+        <div class="ct">🏆 Season Leaderboard — Avg vs Par</div>
         <div id="lb-list"></div>
       </div>
       <div class="card">
-        <div class="ct">Most Birdies</div>
+        <div class="ct">⭐ Scoring Points</div>
+        <div style="font-size:10px;color:var(--dim);margin-bottom:10px">Eagle = 3pts &nbsp;·&nbsp; Birdie = 1pt</div>
         <div id="lb-birdies"></div>
+      </div>
+      <div class="card">
+        <div class="ct">🎯 Consistency — Fewest Doubles+</div>
+        <div style="font-size:10px;color:var(--dim);margin-bottom:10px">Ranked by lowest doubles per round (min 1 round)</div>
+        <div id="lb-doubles"></div>
       </div>
     </div>
 
@@ -613,6 +647,11 @@ details[open] summary::after{content:' ▾'}
         <input type="text" id="add-name" placeholder="Full name" class="mb8">
         <button class="btn" onclick="addPlayer()">➕ Add Player</button>
         <div id="add-msg" style="margin-top:7px;font-size:11px;color:var(--dim)"></div>
+      </div>
+      <div class="card" id="scanned-courses-card" style="display:none">
+        <div class="ct">🗺️ Scanned Courses</div>
+        <div style="font-size:11px;color:var(--dim);margin-bottom:10px">Courses added by photo scan. Tap to edit or delete.</div>
+        <div id="scanned-courses-list"></div>
       </div>
       <div class="card">
         <div class="ct">☁️ Sync Status</div>
@@ -721,11 +760,37 @@ const COURSES=[
     white: {par:[4,4,4,3,4,5,4,3,4,4,4,4,4,5,4,3,4,4],r:75.4,s:145,y:7411,tp:72},
     yellow:{par:[4,4,4,3,4,5,4,3,4,4,4,4,4,5,4,3,4,4],r:73.0,s:138,y:7080,tp:72}
   }},
+  {name:'Broadstone Golf Club',loc:'Broadstone, Dorset',def:'yellow',tees:{
+    white: {par:[5,4,4,4,4,3,4,3,5, 4,3,4,4,4,3,4,4,4],r:71.5,s:139,y:6381,tp:70},
+    yellow:{par:[5,4,4,4,4,3,4,3,5, 4,3,4,4,4,3,4,4,4],r:69.9,s:130,y:6106,tp:70},
+    red:   {par:[5,4,4,4,4,3,4,3,5, 4,3,4,4,4,3,4,4,4],r:67.0,s:119,y:5390,tp:70}
+  }},
+  {name:'Trevose Golf Club - Championship',loc:'Padstow, Cornwall',def:'white',tees:{
+    blue:  {par:[4,4,3,5,4,4,4,3,5, 5,3,4,5,4,4,3,4,4],r:74.3,s:128,y:7079,tp:72},
+    white: {par:[4,4,3,5,4,4,4,3,5, 5,3,4,5,4,4,3,4,4],r:71.5,s:122,y:6415,tp:72},
+    yellow:{par:[4,4,3,5,4,4,4,3,5, 5,3,4,5,4,4,3,4,4],r:69.8,s:118,y:6187,tp:72}
+  }},
+  {name:'Cawder Golf Club - Championship',loc:'Bishopbriggs, Glasgow',def:'yellow',tees:{
+    white: {par:[4,4,4,4,4,3,5,3,4, 4,5,5,3,4,4,3,4,3],r:70.5,s:129,y:6279,tp:70},
+    yellow:{par:[4,4,4,4,4,3,5,3,4, 4,5,5,3,4,4,3,4,3],r:69.5,s:128,y:6090,tp:70},
+    red:   {par:[4,4,4,4,4,3,5,3,4, 4,5,5,3,4,4,3,4,3],r:67.6,s:122,y:5664,tp:70}
+  }},
+  {name:'Machrihanish Golf Club',loc:'Kintyre, Argyll, Scotland',def:'yellow',tees:{
+    blue:  {par:[4,4,4,4,4,4,4,3,4, 5,4,3,4,4,3,4,4,4],r:72.5,s:139,y:6473,tp:71},
+    white: {par:[4,4,4,4,4,4,4,3,4, 5,4,3,4,4,3,4,4,4],r:71.5,s:135,y:6226,tp:70},
+    yellow:{par:[4,4,4,4,4,4,4,3,4, 5,4,3,4,4,3,4,4,4],r:70.2,s:132,y:5956,tp:70}
+  }},
+  {name:'Machrihanish Dunes Golf Club',loc:'Kintyre, Argyll, Scotland',def:'white',tees:{
+    black: {par:[4,4,5,4,3,3,4,5,4, 4,4,3,4,4,4,5,4,4],r:77.2,s:133,y:7082,tp:72},
+    white: {par:[4,4,5,4,3,3,4,5,4, 4,4,3,4,4,4,5,4,4],r:73.4,s:126,y:6249,tp:72},
+    yellow:{par:[4,4,5,4,3,3,4,5,4, 4,4,3,4,4,4,5,4,4],r:71.5,s:123,y:5835,tp:72},
+    red:   {par:[4,4,5,4,3,3,4,5,4, 4,4,3,4,4,4,5,4,4],r:68.0,s:116,y:5076,tp:72}
+  }},
   {name:'Custom / Other',loc:'Enter your course',def:'white',tees:{
     white:{par:Array(18).fill(4),r:72,s:113,y:6200,tp:72}
   }}
 ];
-const TC={blue:{l:'Blue',d:'#5dade2'},yellow:{l:'Yellow',d:'#f4d03f'},white:{l:'White',d:'#f0e8d0'},red:{l:'Red',d:'#e74c3c'}};
+const TC={blue:{l:'Blue',d:'#5dade2'},yellow:{l:'Yellow',d:'#f4d03f'},white:{l:'White',d:'#f0e8d0'},red:{l:'Red',d:'#e74c3c'},black:{l:'Black',d:'#2c2c2c'}};
 
 // ─────────────────────────────────────────────────────────────────
 // STATE
@@ -1077,6 +1142,10 @@ function renderStats(){
   document.getElementById('c-bd').style.display=has?'block':'none';
   document.getElementById('c-trend').style.display=rs.length>1?'block':'none';
   document.getElementById('c-holes').style.display=fullR.length>0?'block':'none';
+  // Show AI review card when there are rounds
+  const aiCard=document.getElementById('c-ai-review');
+  if(aiCard){aiCard.style.display=has?'block':'none';}
+  if(has) populateRoundSelector();
   document.getElementById('c-putts').style.display=fullR.length>0?'block':'none';
   document.getElementById('c-fg').style.display=fullR.length>0?'block':'none';
 
@@ -1165,32 +1234,76 @@ function renderLeaderboard(){
     const rs=p.rounds||[];
     const sc=rs.map(r=>r.totalScore).filter(Boolean);
     const diffs=rs.map(r=>r.diff).filter(v=>v!=null);
-    return{name,rounds:rs.length,best:sc.length?Math.min(...sc):null,avg:sc.length?Math.round(sc.reduce((a,b)=>a+b,0)/sc.length):null,
+    const eagles=rs.reduce((a,r)=>a+(r.eagles||0),0);
+    const birdies=rs.reduce((a,r)=>a+(r.birdies||0),0);
+    const doubles=rs.reduce((a,r)=>a+(r.doubles||0),0);
+    const pts=(eagles*3)+(birdies*1);
+    const avgDoubles=rs.length?+(doubles/rs.length).toFixed(1):null;
+    return{name,rounds:rs.length,best:sc.length?Math.min(...sc):null,
+      avg:sc.length?Math.round(sc.reduce((a,b)=>a+b,0)/sc.length):null,
       avgDiff:diffs.length?+(diffs.reduce((a,b)=>a+b,0)/diffs.length).toFixed(1):null,
-      birdies:rs.reduce((a,r)=>a+(r.birdies||0),0),eagles:rs.reduce((a,r)=>a+(r.eagles||0),0)};
+      birdies,eagles,doubles,pts,avgDoubles};
   }).filter(p=>p.rounds>0).sort((a,b)=>(a.avgDiff??99)-(b.avgDiff??99));
 
   const lb=document.getElementById('lb-list');
-  if(!players.length){lb.innerHTML='<div class="empty"><div class="empty-icon">🏆</div>No rounds played yet</div>';
-    document.getElementById('lb-birdies').innerHTML='';return;}
-  lb.innerHTML='';
   const posClass=['gold','silver','bronze'];
+
+  if(!players.length){
+    lb.innerHTML='<div class="empty"><div class="empty-icon">🏆</div>No rounds played yet</div>';
+    document.getElementById('lb-birdies').innerHTML='';
+    document.getElementById('lb-doubles').innerHTML='';
+    return;
+  }
+
+  // ── Avg vs par board ──
+  lb.innerHTML='';
   players.forEach((p,i)=>{
     const d=document.createElement('div');d.className='lb-row';
     const diff=p.avgDiff!=null?(p.avgDiff>=0?'+'+p.avgDiff:p.avgDiff.toString()):'—';
-    const pc=posClass[i]||'';
-    const isMe=p.name===me;
-    d.innerHTML=`<div class="lb-pos ${pc}">${i+1}</div><div class="avatar" style="width:34px;height:34px;font-size:13px">${initials(p.name)}</div><div><div class="lb-name">${p.name}${isMe?' <span style="font-size:10px;color:var(--gold)">▶ you</span>':''}</div><div class="lb-meta">${p.rounds} round${p.rounds!==1?'s':''} · Best ${p.best??'—'} · Avg ${p.avg??'—'}</div></div><div style="text-align:right"><div class="lb-score" style="color:${p.avgDiff!=null&&p.avgDiff<0?'var(--birdie)':p.avgDiff===0?'var(--par)':'var(--bogey)'}">${diff}</div><div style="font-size:9px;color:var(--dimmer);margin-top:2px">avg vs par</div></div>`;
+    const pc=posClass[i]||'';const isMe=p.name===me;
+    d.innerHTML=`<div class="lb-pos ${pc}">${i+1}</div>
+      <div class="avatar" style="width:34px;height:34px;font-size:13px">${initials(p.name)}</div>
+      <div><div class="lb-name">${p.name}${isMe?' <span style="font-size:10px;color:var(--gold)">▶ you</span>':''}</div>
+      <div class="lb-meta">${p.rounds} round${p.rounds!==1?'s':''} · Best ${p.best??'—'} · Avg ${p.avg??'—'}</div></div>
+      <div style="text-align:right">
+        <div class="lb-score" style="color:${p.avgDiff!=null&&p.avgDiff<0?'var(--birdie)':p.avgDiff===0?'var(--par)':'var(--bogey)'}">${diff}</div>
+        <div style="font-size:9px;color:var(--dimmer);margin-top:2px">avg vs par</div>
+      </div>`;
     lb.appendChild(d);
   });
-  // Birdies leaderboard
-  const byBirdies=[...players].sort((a,b)=>b.birdies-a.birdies);
+
+  // ── Points board (eagle=3, birdie=1) ──
+  const byPts=[...players].sort((a,b)=>b.pts-a.pts);
   const bl=document.getElementById('lb-birdies');bl.innerHTML='';
-  byBirdies.forEach((p,i)=>{
+  byPts.forEach((p,i)=>{
     const d=document.createElement('div');d.className='lb-row';
     const pc=posClass[i]||'';
-    d.innerHTML=`<div class="lb-pos ${pc}">${i+1}</div><div class="avatar" style="width:34px;height:34px;font-size:13px">${initials(p.name)}</div><div><div class="lb-name">${p.name}</div><div class="lb-meta">${p.eagles} eagle${p.eagles!==1?'s':''} · ${p.birdies} birdie${p.birdies!==1?'s':''}</div></div><div style="text-align:right"><div class="lb-score" style="color:var(--birdie)">${p.birdies}</div><div style="font-size:9px;color:var(--dimmer);margin-top:2px">birdies</div></div>`;
+    d.innerHTML=`<div class="lb-pos ${pc}">${i+1}</div>
+      <div class="avatar" style="width:34px;height:34px;font-size:13px">${initials(p.name)}</div>
+      <div><div class="lb-name">${p.name}</div>
+      <div class="lb-meta">🦅 ${p.eagles}×3pts · 🐦 ${p.birdies}×1pt</div></div>
+      <div style="text-align:right">
+        <div class="lb-score" style="color:var(--eagle)">${p.pts}</div>
+        <div style="font-size:9px;color:var(--dimmer);margin-top:2px">points</div>
+      </div>`;
     bl.appendChild(d);
+  });
+
+  // ── Fewest doubles board ──
+  const byDoubles=[...players].sort((a,b)=>(a.avgDoubles??99)-(b.avgDoubles??99));
+  const dl=document.getElementById('lb-doubles');dl.innerHTML='';
+  byDoubles.forEach((p,i)=>{
+    const d=document.createElement('div');d.className='lb-row';
+    const pc=posClass[i]||'';
+    d.innerHTML=`<div class="lb-pos ${pc}">${i+1}</div>
+      <div class="avatar" style="width:34px;height:34px;font-size:13px">${initials(p.name)}</div>
+      <div><div class="lb-name">${p.name}</div>
+      <div class="lb-meta">${p.doubles} total · ${p.rounds} round${p.rounds!==1?'s':''}</div></div>
+      <div style="text-align:right">
+        <div class="lb-score" style="color:var(--par)">${p.avgDoubles??'—'}</div>
+        <div style="font-size:9px;color:var(--dimmer);margin-top:2px">per round</div>
+      </div>`;
+    dl.appendChild(d);
   });
 }
 
@@ -1207,6 +1320,7 @@ function renderAllPlayers(){
     if(n!==me){div.onclick=()=>{enterAs(n);goTo('home');};}
     list.appendChild(div);
   });
+  renderScannedCourses();
 }
 
 function addPlayer(){
@@ -1233,26 +1347,64 @@ function handlePhoto(input){
 async function parsePhoto(){
   if(!photoFile)return;
   const ci=document.getElementById('course-sel').value;
-  const pi=ci!==''?`Course: ${COURSES[ci].name}, tee: ${stee}, pars: ${cpars.join(',')}`:'Unknown course';
-  document.getElementById('photo-msg').innerHTML='<div class="alert"><span class="spin"></span>Reading scorecard with AI...</div>';
+  const courseInfo=ci!==''?`The course is ${getCourseByRef(ci)?.name||'unknown'}, played from ${stee} tees. The par for each hole in order is: ${cpars.join(', ')}.`:'Unknown course — try to identify it from the scorecard.';
+
+  document.getElementById('photo-msg').innerHTML='<div class="alert"><span class="spin"></span> Reading scorecard with AI — this takes a few seconds...</div>';
   document.getElementById('parse-btn').disabled=true;
+
   try{
     const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(photoFile);});
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:[
-        {type:'image',source:{type:'base64',media_type:photoFile.type||'image/jpeg',data:b64}},
-        {type:'text',text:`Golf scorecard image. ${pi}. Extract 18 hole gross scores for the player. Return ONLY valid JSON: {"scores":[4,5,...],"putts":[2,1,...]} — exactly 18 values each, use null if unreadable. No other text.`}
-      ]}]})});
+    const prompt=`You are reading a golf scorecard photograph. ${courseInfo}
+
+Your task: extract the GROSS score (total strokes taken) for each of the 18 holes, and putts if visible.
+
+IMPORTANT RULES:
+- Return the GROSS score — the actual number of strokes on each hole, NOT net or stableford points
+- If you see coloured circles/dots around a score (these mean birdie/eagle/bogey in some apps), read the number inside
+- If a hole shows a score like "4" with a circle meaning birdie on a par 4, the gross score is still 4 — wait, that would be a par — a birdie would show "3". Read the actual number shown
+- Count carefully — a triple bogey on a par 4 is 7, not 3
+- If the scorecard shows OUT total and IN total, use them to sanity check your reading (OUT should be sum of holes 1-9)
+- If a score is genuinely unclear, use null
+- Return ONLY valid JSON, no explanation:
+
+{"scores":[h1,h2,h3,h4,h5,h6,h7,h8,h9,h10,h11,h12,h13,h14,h15,h16,h17,h18],"putts":[p1,p2,...p18],"outTotal":39,"inTotal":35,"confidence":"high/medium/low"}
+
+Use null for any value you cannot read with confidence. Putts array should be null values if putts not shown.`;
+
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',max_tokens:800,
+        messages:[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:photoFile.type||'image/jpeg',data:b64}},
+          {type:'text',text:prompt}
+        ]}]
+      })
+    });
     const data=await resp.json();
     const text=data.content?.find(b=>b.type==='text')?.text||'';
     const parsed=JSON.parse(text.replace(/```json|```/g,'').trim());
-    if(parsed.scores?.length){
-      buildSC(parsed.scores,parsed.putts);
-      switchEntry('manual');
-      document.getElementById('photo-msg').innerHTML='<div class="alert alert-ok">✅ Scores loaded! Check and edit below, then save.</div>';
-    }else throw new Error();
+
+    if(!parsed.scores||parsed.scores.length<9) throw new Error('too few scores');
+
+    // Sanity check: does scores sum match reported totals?
+    const outSum=parsed.scores.slice(0,9).filter(Boolean).reduce((a,b)=>a+b,0);
+    const inSum=parsed.scores.slice(9).filter(Boolean).reduce((a,b)=>a+b,0);
+    const outOk=!parsed.outTotal||(outSum===parsed.outTotal);
+    const inOk=!parsed.inTotal||(inSum===parsed.inTotal);
+
+    buildSC(parsed.scores,parsed.putts);
+    switchEntry('manual');
+
+    const conf=parsed.confidence||'medium';
+    const warn=(!outOk||!inOk)?' Some totals didn\'t match — please check carefully.':'';
+    const confColour=conf==='high'?'alert-ok':'alert';
+    document.getElementById('photo-msg').innerHTML=`<div class="alert ${confColour}">
+      ${conf==='high'?'✅':'⚠️'} Scores loaded (${conf} confidence).${warn} Check each hole before saving — tap any score to edit it.
+    </div>`;
+
   }catch(e){
-    document.getElementById('photo-msg').innerHTML='<div class="alert alert-err">⚠️ Couldn\'t read all scores — please check and enter manually.</div>';
+    document.getElementById('photo-msg').innerHTML='<div class="alert alert-err">⚠️ Couldn\'t read the scorecard — try a clearer, well-lit photo. Enter scores manually below.</div>';
     if(document.getElementById('course-sel').value!=='')buildSC();
   }
   document.getElementById('parse-btn').disabled=false;
@@ -1493,6 +1645,144 @@ function cancelCourseScan(){
   document.getElementById('sc-loc').value = '';
   const inp = document.getElementById('course-card-inp');
   if(inp) inp.value = '';
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SCANNED COURSE MANAGEMENT (edit / delete)
+// ─────────────────────────────────────────────────────────────────
+function renderScannedCourses(){
+  const card = document.getElementById('scanned-courses-card');
+  const list = document.getElementById('scanned-courses-list');
+  if(!gd.customCourses || !Object.keys(gd.customCourses).length){
+    card.style.display='none'; return;
+  }
+  card.style.display='block'; list.innerHTML='';
+  Object.entries(gd.customCourses).forEach(([key,c])=>{
+    const tees=Object.keys(c.tees||{});
+    const par=c.tees[tees[0]]?.totalPar||'?';
+    const div=document.createElement('div');
+    div.style.cssText='border-bottom:1px solid rgba(255,255,255,.06);padding:10px 0;display:flex;justify-content:space-between;align-items:center';
+    div.innerHTML=`
+      <div>
+        <div style="font-size:13px;font-weight:500;color:var(--cream)">${c.name||key}</div>
+        <div style="font-size:10px;color:var(--dim);margin-top:2px">${c.loc||''} · Par ${par} · ${tees.join(', ')} tees</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-ghost btn-sm" onclick="editScannedCourse('${key.replace(/'/g,"\\'")}')">✏️</button>
+        <button class="btn btn-ghost btn-sm" style="color:#e74c3c;border-color:rgba(231,76,60,.3)" onclick="deleteScannedCourse('${key.replace(/'/g,"\\'")}')">🗑️</button>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+function deleteScannedCourse(key){
+  if(!confirm(`Delete "${key}" from the course list? This cannot be undone.`)) return;
+  delete gd.customCourses[key];
+  pushGist();
+  populateCourses();
+  renderScannedCourses();
+}
+
+function editScannedCourse(key){
+  const c = gd.customCourses[key];
+  if(!c) return;
+  // Pre-populate the course review form and switch to the course scanner tab
+  goTo('round');
+  switchEntry('course');
+  document.getElementById('sc-name').value = c.name||key;
+  document.getElementById('sc-loc').value = c.loc||'';
+  const tees=Object.keys(c.tees||{});
+  const firstTee=c.tees[tees[0]]||{};
+  document.getElementById('sc-par').value = firstTee.totalPar||'';
+  document.getElementById('sc-rating').value = firstTee.rating||'';
+  document.getElementById('sc-slope').value = firstTee.slope||'';
+  const pars = firstTee.par||Array(18).fill(4);
+  buildParEditGrid(pars);
+  ['blue','yellow','white','red'].forEach(t=>{
+    const cb=document.getElementById('tee-'+t);
+    if(cb) cb.checked=!!(c.tees[t]);
+  });
+  document.getElementById('course-review').style.display='block';
+  // Remove old entry so saving replaces it
+  delete gd.customCourses[key];
+}
+
+// ─────────────────────────────────────────────────────────────────
+// AI ROUND REVIEW
+// ─────────────────────────────────────────────────────────────────
+function populateRoundSelector(){
+  const sel = document.getElementById('ai-round-sel');
+  if(!sel) return;
+  const rs=(gd.players[me]?.rounds||[]);
+  sel.innerHTML = rs.length
+    ? rs.map((r,i)=>`<option value="${i}">${r.date} — ${r.course} (${r.diff>=0?'+':''}${r.diff})</option>`).reverse().join('')
+    : '<option>No rounds yet</option>';
+}
+
+async function generateAIReview(){
+  const sel=document.getElementById('ai-round-sel');
+  const rs=gd.players[me]?.rounds||[];
+  if(!rs.length){return;}
+  const idx=parseInt(sel.value);
+  const r=rs[idx];
+  if(!r){return;}
+
+  const btn=document.getElementById('ai-review-btn');
+  btn.disabled=true; btn.textContent='⏳ Generating...';
+  document.getElementById('ai-review-output').style.display='none';
+  document.getElementById('ai-review-msg').innerHTML='<div class="alert"><span class="spin"></span> Analysing your round...</div>';
+
+  const diffs=(r.scores||[]).map((s,i)=>s!=null?s-(r.pars[i]):null);
+  const holeSummary=(r.pars||[]).map((p,i)=>{
+    const s=r.scores?.[i]; if(s==null)return`H${i+1}(par${p}):?`;
+    const d=s-p; return`H${i+1}(par${p}):${s}(${d>=0?'+':''}${d})`;
+  }).join(', ');
+
+  const totalPutts=(r.putts||[]).filter(Boolean).reduce((a,b)=>a+b,0);
+  const girPct=r.gir?Math.round(r.gir.filter(v=>v==='Yes').length/18*100):null;
+  const firCount=r.fir?r.fir.filter((v,i)=>v==='Yes'&&r.pars[i]!==3).length:null;
+  const firHoles=r.pars?r.pars.filter(p=>p!==3).length:11;
+
+  const prompt=`You are a golf coach reviewing a round for ${r.player}. Be concise, warm, specific and data-driven.
+
+Round: ${r.course} (${r.tee} tees, par ${r.totalPar}) on ${r.date}
+Score: ${r.totalScore} (${r.diff>=0?'+':''}${r.diff} vs par)
+Hole-by-hole: ${holeSummary}
+Birdies: ${r.birdies||0}, Eagles: ${r.eagles||0}, Pars: ${r.parsCount||0}, Bogeys: ${r.bogeys||0}, Doubles+: ${r.doubles||0}
+${totalPutts?`Total putts: ${totalPutts} (${(totalPutts/18).toFixed(1)} avg)`:''}
+${girPct!=null?`GIR: ${girPct}%`:''}
+${firCount!=null?`FIR: ${firCount}/${firHoles}`:''}
+${r.notes?`Player's notes: "${r.notes}"`:''}
+
+Respond ONLY with valid JSON in this exact format, no other text:
+{
+  "positive": "One specific thing they did well (2-3 sentences, reference actual holes/stats)",
+  "negative": "One specific area that cost them shots (2-3 sentences, reference actual holes/stats)",
+  "drill": "One concrete practice drill to improve the weakness (2-3 sentences, be specific about the drill)"
+}`;
+
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:600,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const data=await resp.json();
+    const text=data.content?.find(b=>b.type==='text')?.text||'';
+    const parsed=JSON.parse(text.replace(/```json|```/g,'').trim());
+    document.getElementById('ai-positive').textContent=parsed.positive||'';
+    document.getElementById('ai-negative').textContent=parsed.negative||'';
+    document.getElementById('ai-drill').textContent=parsed.drill||'';
+    document.getElementById('ai-review-output').style.display='block';
+    document.getElementById('ai-review-msg').innerHTML='';
+  }catch(e){
+    document.getElementById('ai-review-msg').innerHTML='<div class="alert alert-err">⚠️ Could not generate review — please try again.</div>';
+  }
+  btn.disabled=false; btn.textContent='✨ Generate Review';
 }
 
 // ─────────────────────────────────────────────────────────────────
