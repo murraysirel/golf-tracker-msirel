@@ -13,7 +13,6 @@ exports.handler = async (event) => {
     'Content-Type': 'application/json',
   };
 
-  // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
   }
@@ -38,15 +37,13 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON body' }) };
   }
 
-  // Validate required fields
   if (!body.messages || !Array.isArray(body.messages)) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing messages array' }) };
   }
 
-  // Build the Anthropic request — only forward safe fields
   const anthropicPayload = {
-    model: body.model || 'claude-sonnet-4-20250514',
-    max_tokens: Math.min(body.max_tokens || 1000, 2000), // cap at 2000
+    model: body.model || 'claude-haiku-4-5-20251001',
+    max_tokens: Math.min(body.max_tokens || 1000, 2000),
     messages: body.messages,
   };
 
@@ -61,13 +58,29 @@ exports.handler = async (event) => {
       body: JSON.stringify(anthropicPayload),
     });
 
-    const data = await res.json();
+    // Always read the full response body for debugging
+    const responseText = await res.text();
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch {
+      return {
+        statusCode: 502,
+        headers,
+        body: JSON.stringify({ error: 'Non-JSON response from Anthropic', raw: responseText.slice(0, 200) }),
+      };
+    }
 
     if (!res.ok) {
+      // Return the full Anthropic error so we can see exactly what's wrong
       return {
         statusCode: res.status,
         headers,
-        body: JSON.stringify({ error: data?.error?.message || `Anthropic API error ${res.status}` }),
+        body: JSON.stringify({
+          error: data?.error?.message || `Anthropic API error ${res.status}`,
+          type: data?.error?.type || 'unknown',
+          full: data,
+        }),
       };
     }
 
