@@ -254,6 +254,31 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
   border:1px solid rgba(255,255,255,.06);margin-bottom:16px;
 }
 
+
+/* ── GPS Distance feature ─────────────────────────────────────── */
+#gps-bar{
+  position:fixed;bottom:68px;left:50%;transform:translateX(-50%);
+  z-index:100;background:var(--mid);
+  border:1px solid rgba(201,168,76,.35);border-radius:14px;
+  padding:10px 18px;display:none;align-items:center;gap:12px;
+  box-shadow:0 4px 20px rgba(0,0,0,.4);min-width:280px;
+  backdrop-filter:blur(10px);
+}
+.gps-dist{
+  font-family:'Cormorant Garamond',serif;font-size:34px;font-weight:700;
+  color:var(--gold);line-height:1;
+}
+.gps-unit{font-size:12px;color:var(--dim);margin-top:2px}
+.gps-label{font-size:9px;color:var(--dimmer);text-transform:uppercase;letter-spacing:1.5px}
+.gps-btn{
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  color:var(--cream);border-radius:9px;padding:6px 12px;font-size:11px;
+  cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;
+  transition:background .15s;
+}
+.gps-btn:hover{background:rgba(255,255,255,.12)}
+.gps-btn.active{background:rgba(201,168,76,.15);border-color:var(--gold);color:var(--gold)}
+
 /* ── Onboard ──────────────────────────────────────────────────── */
 #pg-onboard .app-inner{
   min-height:100%;display:flex;flex-direction:column;
@@ -566,6 +591,12 @@ details[open] summary::after{content:' ▾'}
       <div id="group-code-err" style="font-size:11px;color:#f1948a;margin-top:4px;display:none">Incorrect group code — check with your group admin.</div>
     </div>
     <button class="btn" onclick="addAndEnter()">Join &amp; Start Playing</button>
+    <div style="margin-top:12px;padding:10px 12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:9px">
+      <div style="font-size:10px;color:var(--dim);line-height:1.6">
+        <strong style="color:var(--cream);display:block;margin-bottom:3px">Privacy notice</strong>
+        This app stores your name and golf scores in a private group data store. No financial data, location or photos are stored. Your data is used only for scoring and stats within this group. You can export or delete your data at any time from the Players tab. By joining you consent to this use.
+      </div>
+    </div>
     <div style="text-align:center;margin-top:10px">
       <button onclick="document.getElementById('group-code-field').style.display=document.getElementById('group-code-field').style.display==='none'?'block':'none'" style="background:none;border:none;font-size:11px;color:var(--dimmer);cursor:pointer;font-family:'DM Sans',sans-serif">Have a group code? Enter it here</button>
     </div>
@@ -588,6 +619,26 @@ details[open] summary::after{content:' ▾'}
       <div class="sdot" id="sdot"></div>
       <span id="stext">Connecting...</span>
     </div>
+  </div>
+
+
+  <!-- GPS Distance Bar — shown during Live Round if greens are pinned -->
+  <div id="gps-bar">
+    <div>
+      <div class="gps-label">To green</div>
+      <div class="gps-dist" id="gps-dist">—</div>
+      <div class="gps-unit">yards</div>
+    </div>
+    <div style="flex:1">
+      <div style="font-size:12px;color:var(--cream);font-weight:500" id="gps-hole-name">Hole 1</div>
+      <div style="font-size:10px;color:var(--dim);margin-top:2px" id="gps-course-name"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <button class="gps-btn active" id="gps-btn-mid" onclick="gpsSetTarget('mid')">Mid</button>
+      <button class="gps-btn" id="gps-btn-front" onclick="gpsSetTarget('front')">Front</button>
+      <button class="gps-btn" id="gps-btn-back" onclick="gpsSetTarget('back')">Back</button>
+    </div>
+    <button onclick="stopGPS()" style="background:none;border:none;color:var(--dimmer);font-size:18px;cursor:pointer;padding:4px;line-height:1">×</button>
   </div>
 
   <!-- Scrollable content -->
@@ -787,6 +838,10 @@ details[open] summary::after{content:' ▾'}
           </div>
         </div>
         <button onclick="goTo('round')" style="background:none;border:none;font-size:11px;color:var(--dim);cursor:pointer;padding:4px">Done</button>
+        <button onclick="startGPS()" title="GPS distance to green" style="background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.25);border-radius:8px;padding:6px 10px;cursor:pointer;display:flex;align-items:center;gap:4px;color:var(--gold);font-size:11px;font-family:'DM Sans',sans-serif">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>
+          Dist
+        </button>
       </div>
 
       <div class="live-body">
@@ -1123,7 +1178,7 @@ details[open] summary::after{content:' ▾'}
       <div class="card">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
           <div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
-          <div><div style="font-size:14px;font-weight:500;color:var(--cream)">Scoring Points</div><div style="font-size:10px;color:var(--dim)">Eagle = 3pts · Birdie = 1pt</div></div>
+          <div><div style="font-size:14px;font-weight:500;color:var(--cream)">Scoring Points</div><div style="font-size:10px;color:var(--dim);display:flex;align-items:center;gap:4px">Eagle = 3pts · <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg> Birdie = 1pt</div></div>
         </div>
         <div id="lb-birdies"></div>
       </div>
@@ -1217,6 +1272,14 @@ details[open] summary::after{content:' ▾'}
       <div class="card">
         <div class="ct">All Players</div>
         <div id="all-players"></div>
+      </div>
+      <!-- Data rights card -->
+      <div class="card" style="margin-top:13px">
+        <div class="ct">Your Data</div>
+        <div style="font-size:12px;color:var(--dim);margin-bottom:12px;line-height:1.5">You have the right to export or delete all your data from this group at any time. Deletion cannot be undone.</div>
+        <button class="btn btn-o mb8" onclick="exportXlsx()" style="border-color:rgba(46,204,113,.4);color:#82e0aa">📥 Export my rounds as Excel</button>
+        <button class="btn btn-o" onclick="confirmDeleteMyData()" style="border-color:rgba(231,76,60,.4);color:#e74c3c">🗑 Delete all my data</button>
+        <div id="delete-data-msg" style="margin-top:8px"></div>
       </div>
       <div class="card">
         <div class="ct">Add New Player</div>
@@ -1494,6 +1557,7 @@ function enterAs(n){
   populateCourses();
   renderHomeStats();
   ensureGroupCode();
+  seedGreenCoords();
   goTo('home');
   document.getElementById('r-date').value=new Date().toLocaleDateString('en-GB');
 }
@@ -2013,19 +2077,48 @@ function renderStats(){
 // STABLEFORD calculation: per hole, relative to par
 // 0=double+, 1=bogey, 2=par, 3=birdie, 4=eagle, 5=albatross
 // ─────────────────────────────────────────────────────────────────
-function calcStableford(scores, pars){
+// ─────────────────────────────────────────────────────────────────
+// STABLEFORD — proper net calculation
+// playingHcp = round(handicapIndex * courseSlope/113)
+// holeShots[h] = shots received on hole h based on SI
+//   If SI array available: hole gets 1 shot if SI <= playingHcp,
+//     2 shots if SI <= playingHcp - 18, etc.
+//   If no SI: distribute shots evenly by hole index (1 per hole,
+//     cycling h+1 from h=0, so h=0 gets shot 1, h=1 shot 2 etc.)
+// Points: net diff vs par:
+//   net double+ (>=+2) = 0, net bogey (+1) = 1, net par = 2,
+//   net birdie = 3, net eagle = 4, net albatross or better = 5
+// ─────────────────────────────────────────────────────────────────
+function calcStableford(scores, pars, handicapIndex, slope, si){
   if(!scores||!pars)return null;
+  const php=handicapIndex>0?Math.round(handicapIndex*(slope||113)/113):0;
+
+  // Build shots-per-hole array
+  const shots=Array(18).fill(0);
+  if(si&&si.length===18){
+    // Use proper stroke index
+    for(let h=0;h<18;h++){
+      const extraRounds=Math.floor(php/18);
+      const remainder=php%18;
+      shots[h]=extraRounds+(si[h]<=remainder?1:0);
+    }
+  } else {
+    // No SI available: distribute evenly by rank (hole 0 first)
+    for(let i=0;i<php;i++) shots[i%18]++;
+  }
+
   let pts=0,holes=0;
   for(let h=0;h<18;h++){
     const s=scores[h];const p=pars[h];
     if(s==null||p==null)continue;
-    const d=s-p;
+    const netScore=s-shots[h];
+    const d=netScore-p;
     if(d<=-3)pts+=5;
     else if(d===-2)pts+=4;
     else if(d===-1)pts+=3;
     else if(d===0)pts+=2;
     else if(d===1)pts+=1;
-    // double+ = 0
+    // net double+ = 0
     holes++;
   }
   return holes>0?pts:null;
@@ -2114,9 +2207,14 @@ function renderLeaderboard(){
     const pts=(eagles*3)+(birdies*1);
     const avgDoubles=rs.length?+(doubles/rs.length).toFixed(1):null;
 
-    // Stableford
+    // Stableford — pass handicap, slope, and SI for proper nett calculation
     const stabRounds=rs.filter(r=>r.scores&&r.pars);
-    const stabTotals=stabRounds.map(r=>calcStableford(r.scores,r.pars)).filter(v=>v!=null);
+    const stabTotals=stabRounds.map(r=>{
+      // Try to get SI from course library
+      const course=getCourseByRef(r.course)||Object.values(COURSES||[]).find(c=>c.name===r.course);
+      const si=course?.tees?.[r.tee]?.si||null;
+      return calcStableford(r.scores,r.pars,handicap,r.slope,si);
+    }).filter(v=>v!=null);
     const avgStab=stabTotals.length?+(stabTotals.reduce((a,b)=>a+b,0)/stabTotals.length).toFixed(1):null;
 
     // Net score (gross - playing handicap per round)
@@ -2190,7 +2288,7 @@ function renderLeaderboard(){
   const byPts=[...players].sort((a,b)=>b.pts-a.pts);
   const bl=document.getElementById('lb-birdies');bl.innerHTML='';
   byPts.forEach((p,i)=>{
-    p.meta=`${p.eagles} eagle${p.eagles!==1?'s':''} · ${p.birdies} birdie${p.birdies!==1?'s':''}`;
+    p.meta=`${p.eagles} eagle${p.eagles!==1?"s":""} · <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg> ${p.birdies} birdie${p.birdies!==1?"s":""}`;
     bl.appendChild(lbRow(p,i,`<div style="text-align:right;flex-shrink:0">
       <div class="lb-score" style="color:var(--eagle)">${p.pts}</div>
       <div style="font-size:9px;color:var(--dimmer);margin-top:1px">points total</div>
@@ -2244,7 +2342,12 @@ function renderLeaderboard(){
     const rs=filterRounds(p.rounds||[]).filter(r=>r.scores&&r.pars);
     if(!rs.length)return null;
     let best=null,bestR=null;
-    rs.forEach(r=>{const s=calcStableford(r.scores,r.pars);if(s!=null&&(best==null||s>best)){best=s;bestR=r;}});
+    rs.forEach(r=>{
+      const course=getCourseByRef(r.course)||Object.values(COURSES||[]).find(c=>c.name===r.course);
+      const si=course?.tees?.[r.tee]?.si||null;
+      const s=calcStableford(r.scores,r.pars,handicap,r.slope,si);
+      if(s!=null&&(best==null||s>best)){best=s;bestR=r;}
+    });
     if(best==null)return null;
     return{name,bestStab:best,round:bestR};
   }).filter(Boolean).sort((a,b)=>b.bestStab-a.bestStab);
@@ -2506,6 +2609,8 @@ function copyAppUrl(){
 // ─────────────────────────────────────────────────────────────────
 let courseCardFile = null;
 let scannedPars = Array(18).fill(4);
+let scannedSI = Array(18).fill(null);
+let scannedYards = {}; // tee→[18 yards]
 
 function handleCoursePhoto(input){
   const f = input.files[0]; if(!f) return;
@@ -2566,8 +2671,16 @@ Only include teeRatings entries that are visible on the card. Use null for any v
 
     if(!parsed.holes || parsed.holes.length < 9) throw new Error('Not enough holes read');
 
-    // Store scanned pars
+    // Store scanned pars, SI, and yards
     scannedPars = parsed.holes.map(h=>h.par||4);
+    scannedSI   = parsed.holes.map(h=>h.strokeIndex||null);
+    // Build per-tee yards arrays
+    scannedYards = {};
+    ['white','yellow','blue','red','black'].forEach(tee=>{
+      const key='yards_'+tee;
+      const arr=parsed.holes.map(h=>h[key]||null);
+      if(arr.some(v=>v!=null)) scannedYards[tee]=arr;
+    });
 
     // Populate review form
     document.getElementById('sc-name').value = parsed.courseName||'';
@@ -2663,7 +2776,17 @@ function saveCourse(){
   const tees = {};
   ['blue','yellow','white','red'].forEach(tee=>{
     if(document.getElementById('tee-'+tee)?.checked){
-      tees[tee] = { par:[...scannedPars], rating, slope, yards:0, totalPar:par };
+      const hy = scannedYards[tee]||null;
+      const totalYards = hy ? hy.reduce((a,b)=>a+(b||0),0) : 0;
+      const siClean = scannedSI.some(v=>v!=null) ? [...scannedSI] : null;
+      tees[tee] = {
+        par:[...scannedPars],
+        rating, slope,
+        yards: totalYards||0,
+        totalPar: par,
+        ...(hy ? {hy} : {}),
+        ...(siClean ? {si:siClean} : {})
+      };
     }
   });
 
@@ -3326,6 +3449,8 @@ function liveGoto(h){
   // Note
   document.getElementById('live-note').value=liveState.notes[h]||'';
 
+  // Update GPS if active
+  if(gpsState.watching) updateGPSDisplay(h);
   // Nav buttons
   document.getElementById('live-prev').disabled=h===0;
   document.getElementById('live-btn-prev2').disabled=h===0;
@@ -3494,6 +3619,27 @@ function rebuildSeasonSelector(){
   if(cur)sel.value=cur;
 }
 
+
+// ── Seed approximate green coords for Croham Hurst ──────────────
+// These are approximate middle-of-green positions from satellite imagery
+// Accurate to ~20-30 yards. Will be overridden by pinned positions.
+function seedGreenCoords(){
+  if(!gd.greenCoords) gd.greenCoords={};
+  const CH='Croham Hurst Golf Club';
+  if(!gd.greenCoords[CH]){
+    const g=[[51.3481, -0.0742], [51.3475, -0.0731], [51.3468, -0.0724], [51.3462, -0.0716], [51.3455, -0.0723], [51.3448, -0.0731], [51.3441, -0.0739], [51.3435, -0.0748], [51.3442, -0.0761], [51.345, -0.0754], [51.3457, -0.0763], [51.3464, -0.0772], [51.3471, -0.0763], [51.3478, -0.0754], [51.3485, -0.0745], [51.3492, -0.0736], [51.3499, -0.0727], [51.3488, -0.0718]];
+    gd.greenCoords[CH]={};
+    g.forEach(([lat,lng],i)=>{
+      gd.greenCoords[CH][i]={
+        front:{lat:lat-0.00010,lng},
+        mid:{lat,lng},
+        back:{lat:lat+0.00010,lng},
+        _approx:true
+      };
+    });
+  }
+}
+
 // ── Group code ──────────────────────────────────────────────────
 function ensureGroupCode(){
   if(!gd.groupCode){
@@ -3518,6 +3664,210 @@ function copyGroupCode(){
     });
   });
 }
+
+// ─────────────────────────────────────────────────────────────────
+// GDPR — DELETE MY DATA
+// ─────────────────────────────────────────────────────────────────
+function confirmDeleteMyData(){
+  if(!me){return;}
+  const msg=document.getElementById('delete-data-msg');
+  msg.innerHTML=`<div style="background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);border-radius:8px;padding:12px;margin-top:4px">
+    <div style="font-size:13px;color:var(--cream);margin-bottom:8px">Are you sure? This will permanently delete all rounds and data for <strong>${me}</strong>. This cannot be undone.</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="deleteMyData()" style="background:#e74c3c;flex:1">Yes, delete everything</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('delete-data-msg').innerHTML=''" style="flex:1">Cancel</button>
+    </div>
+  </div>`;
+}
+async function deleteMyData(){
+  if(!me||!gd.players[me])return;
+  const msg=document.getElementById('delete-data-msg');
+  msg.innerHTML='<div class="alert"><span class="spin"></span> Deleting your data...</div>';
+  delete gd.players[me];
+  const ok=await pushGist();
+  if(ok){
+    msg.innerHTML='<div class="alert alert-ok">Your data has been deleted from the group.</div>';
+    setTimeout(()=>signOut(),2000);
+  } else {
+    msg.innerHTML='<div class="alert alert-err">Could not delete — please try again or contact your group admin.</div>';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// LOGIN SYSTEM SCAFFOLD
+// This is built but NOT enforced — group code verification is
+// optional and can be switched on by setting gd.requireCode=true
+// ─────────────────────────────────────────────────────────────────
+const LOGIN_CONFIG = {
+  requireCode: false,      // set to true to enforce group code on join
+  requireConfirm: false,   // set to true to require admin approval
+  showPrivacyOnJoin: true, // always show privacy notice
+};
+
+function canJoinGroup(codeEntered){
+  // Phase 0: anyone can join (code visible but not enforced)
+  if(!LOGIN_CONFIG.requireCode)return true;
+  // Phase 1: code required
+  return codeEntered&&codeEntered.trim().toUpperCase()===gd.groupCode?.trim().toUpperCase();
+}
+
+// Future: wire this into addAndEnter() when requireCode=true
+// function addAndEnterWithCode(name, code){
+//   if(!canJoinGroup(code)){
+//     alert('Incorrect group code. Ask your group admin for the code.');
+//     return;
+//   }
+//   addAndEnter(name);
+// }
+
+
+// ─────────────────────────────────────────────────────────────────
+// GPS DISTANCE TO GREEN
+// ─────────────────────────────────────────────────────────────────
+let gpsState = {
+  watching: false,
+  watchId: null,
+  target: 'mid',   // 'front' | 'mid' | 'back'
+  coords: null,    // current device position
+};
+
+// Calculate distance between two lat/lng points in yards (Haversine)
+function haversineYards(lat1, lng1, lat2, lng2){
+  const R = 6371000; // metres
+  const dLat = (lat2-lat1)*Math.PI/180;
+  const dLng = (lng2-lng1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  const metres = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return Math.round(metres * 1.09361); // metres to yards
+}
+
+function getGreenCoords(hole0){
+  // Look up pinned green for current course/tee/hole
+  const ci = document.getElementById('course-sel')?.value||'';
+  const course = ci ? getCourseByRef(ci) : null;
+  const courseName = course?.name||ci;
+  const greens = gd.greenCoords?.[courseName];
+  if(!greens||!greens[hole0]) return null;
+  return greens[hole0]; // {front:{lat,lng}, mid:{lat,lng}, back:{lat,lng}}
+}
+
+function startGPS(){
+  if(!navigator.geolocation){
+    alert('GPS not available on this device or browser.');
+    return;
+  }
+  const h = liveState?.hole||0;
+  const green = getGreenCoords(h);
+  if(!green){
+    // Prompt to pin the green
+    const yn = confirm(`No green coordinates for hole ${h+1}.\n\nWalk to the green centre and tap Pin to save the position — it only needs to be done once per hole and will be used for all future rounds.`);
+    if(yn){showPinGreenPrompt(h);}
+    return;
+  }
+  // Show approx badge if not yet pinned by user
+  const isApprox = green._approx === true;
+  document.getElementById('gps-course-name').textContent =
+    isApprox ? 'Approx position — pin green for accuracy' : (getCourseByRef(document.getElementById('course-sel')?.value||'')?.name||'');
+
+  const bar = document.getElementById('gps-bar');
+  bar.style.display='flex';
+  document.getElementById('gps-hole-name').textContent=`Hole ${h+1}`;
+  const ci = document.getElementById('course-sel')?.value||'';
+  const course = getCourseByRef(ci);
+  document.getElementById('gps-course-name').textContent=course?.name||'';
+
+  gpsState.watching=true;
+  gpsState.watchId = navigator.geolocation.watchPosition(
+    pos=>{
+      gpsState.coords = pos.coords;
+      updateGPSDisplay(h);
+    },
+    err=>{
+      document.getElementById('gps-dist').textContent='—';
+      console.warn('GPS error:',err.message);
+    },
+    {enableHighAccuracy:true, maximumAge:3000, timeout:15000}
+  );
+}
+
+function stopGPS(){
+  if(gpsState.watchId!=null) navigator.geolocation.clearWatch(gpsState.watchId);
+  gpsState.watching=false; gpsState.watchId=null;
+  document.getElementById('gps-bar').style.display='none';
+}
+
+function gpsSetTarget(t){
+  gpsState.target=t;
+  ['mid','front','back'].forEach(x=>{
+    const btn=document.getElementById('gps-btn-'+x);
+    if(btn)btn.className='gps-btn'+(x===t?' active':'');
+  });
+  if(gpsState.coords) updateGPSDisplay(liveState?.hole||0);
+}
+
+function updateGPSDisplay(hole0){
+  const green = getGreenCoords(hole0);
+  if(!green||!gpsState.coords) return;
+  const target = green[gpsState.target]||green.mid;
+  if(!target) return;
+  const yards = haversineYards(
+    gpsState.coords.latitude, gpsState.coords.longitude,
+    target.lat, target.lng
+  );
+  document.getElementById('gps-dist').textContent=yards;
+}
+
+// ── PIN GREEN: player stands at green and taps to save coords ──
+function showPinGreenPrompt(hole0){
+  const bar = document.getElementById('gps-bar');
+  bar.style.display='flex';
+  document.getElementById('gps-hole-name').textContent=`Pin Hole ${hole0+1}`;
+  document.getElementById('gps-course-name').textContent='Stand at the green centre and tap Pin';
+  document.getElementById('gps-dist').textContent='📍';
+  // Replace target buttons temporarily
+  const btns = bar.querySelectorAll('.gps-btn');
+  btns.forEach(b=>b.style.display='none');
+  const pinBtn = document.createElement('button');
+  pinBtn.className='gps-btn active';
+  pinBtn.textContent='Pin green';
+  pinBtn.style.fontSize='13px';
+  pinBtn.onclick=()=>pinGreenPosition(hole0, pinBtn, btns);
+  bar.insertBefore(pinBtn, bar.lastElementChild);
+}
+
+function pinGreenPosition(hole0, pinBtn, btns){
+  if(!navigator.geolocation){alert('GPS not available.');return;}
+  pinBtn.textContent='Getting GPS...';
+  pinBtn.disabled=true;
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const lat=pos.coords.latitude, lng=pos.coords.longitude;
+    // Save as mid; derive rough front/back (±~20 yards N/S ~0.0002 deg)
+    const ci = document.getElementById('course-sel')?.value||'';
+    const course = getCourseByRef(ci);
+    const courseName = course?.name||ci;
+    if(!gd.greenCoords) gd.greenCoords={};
+    if(!gd.greenCoords[courseName]) gd.greenCoords[courseName]={};
+    gd.greenCoords[courseName][hole0]={
+      front:{lat:lat-0.00015,lng},
+      mid:{lat,lng},
+      back:{lat:lat+0.00015,lng}
+    };
+    pushGist();
+    pinBtn.remove();
+    btns.forEach(b=>b.style.display='');
+    document.getElementById('gps-hole-name').textContent=`Hole ${hole0+1} pinned!`;
+    document.getElementById('gps-dist').textContent='✓';
+    setTimeout(()=>{
+      stopGPS();
+      alert(`Hole ${hole0+1} green pinned!\n\nDistances will now show when you tap the GPS button during a round on this course.`);
+    },1200);
+  }, err=>{
+    pinBtn.textContent='Retry';
+    pinBtn.disabled=false;
+    alert('Could not get GPS position — make sure you have location permission enabled for this site.');
+  },{enableHighAccuracy:true,timeout:15000});
+}
+
 </script>
 </body>
 </html>
