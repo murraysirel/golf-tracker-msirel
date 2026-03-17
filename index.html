@@ -560,7 +560,15 @@ details[open] summary::after{content:' ▾'}
     <div id="onb-player-list"><div class="empty"><div class="empty-icon">🔄</div>Loading players...</div></div>
     <div class="divider"><span>first time?</span></div>
     <input type="text" id="new-name" placeholder="Enter your full name" class="mb8">
-    <button class="btn" onclick="addAndEnter()">➕ Join &amp; Start Playing</button>
+    <div id="group-code-field" style="display:none;margin-bottom:8px">
+      <label style="font-size:11px;color:var(--dim)">Group code (ask your group admin)</label>
+      <input type="text" id="new-group-code" placeholder="e.g. RR4XK2" style="text-transform:uppercase;letter-spacing:3px;font-size:16px;text-align:center" maxlength="6">
+      <div id="group-code-err" style="font-size:11px;color:#f1948a;margin-top:4px;display:none">Incorrect group code — check with your group admin.</div>
+    </div>
+    <button class="btn" onclick="addAndEnter()">Join &amp; Start Playing</button>
+    <div style="text-align:center;margin-top:10px">
+      <button onclick="document.getElementById('group-code-field').style.display=document.getElementById('group-code-field').style.display==='none'?'block':'none'" style="background:none;border:none;font-size:11px;color:var(--dimmer);cursor:pointer;font-family:'DM Sans',sans-serif">Have a group code? Enter it here</button>
+    </div>
     <div style="margin-top:10px;font-size:11px;color:var(--dimmer);text-align:center;line-height:1.6">
       No account needed — just enter your name.<br>Your scores sync automatically with the group.
     </div>
@@ -1090,23 +1098,82 @@ details[open] summary::after{content:' ▾'}
 
     <!-- LEADERBOARD -->
     <div id="pg-leaderboard" style="display:none" class="sec">
+
+      <!-- Season filter + group code -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <div style="flex:1">
+          <label style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:2px;display:block;margin-bottom:5px">Season</label>
+          <select id="lb-season-sel" onchange="renderLeaderboard()" style="width:100%;font-size:13px;padding:8px 12px">
+            <option value="all">All Time</option>
+          </select>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:5px">Group code</div>
+          <div id="lb-group-code" style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:var(--gold);letter-spacing:3px;cursor:pointer" onclick="copyGroupCode()" title="Tap to copy">—</div>
+        </div>
+      </div>
+
       <div class="card">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
-          <div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0"><div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></div></div>
+          <div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></div>
           <div><div style="font-size:14px;font-weight:500;color:var(--cream)">Season Leaderboard</div><div style="font-size:10px;color:var(--dim)">Ranked by avg vs par</div></div>
         </div>
         <div id="lb-list"></div>
       </div>
       <div class="card">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
-          <div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0"><div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div></div>
+          <div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
           <div><div style="font-size:14px;font-weight:500;color:var(--cream)">Scoring Points</div><div style="font-size:10px;color:var(--dim)">Eagle = 3pts · Birdie = 1pt</div></div>
         </div>
         <div id="lb-birdies"></div>
       </div>
       <div class="card">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
-          <div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0"><div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div></div>
+          <div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+          <div><div style="font-size:14px;font-weight:500;color:var(--cream)">Avg Stableford</div><div style="font-size:10px;color:var(--dim)">Points per round (2=par baseline)</div></div>
+        </div>
+        <div id="lb-stableford"></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
+          <div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
+          <div><div style="font-size:14px;font-weight:500;color:var(--cream)">Avg Net Score</div><div style="font-size:10px;color:var(--dim)">Gross score minus handicap allowance</div></div>
+        </div>
+        <div id="lb-net"></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
+          <div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg></div>
+          <div><div style="font-size:14px;font-weight:500;color:var(--cream)">Buffer or Better</div><div style="font-size:10px;color:var(--dim)">Old system: rounds on HCP or ≤2 over</div></div>
+        </div>
+        <div id="lb-buffer"></div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
+          <div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+          <div><div style="font-size:14px;font-weight:500;color:var(--cream)">Best Stableford Round</div><div style="font-size:10px;color:var(--dim)">Highest single-round Stableford score</div></div>
+        </div>
+        <div id="lb-best-stab"></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
+          <div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg></div>
+          <div><div style="font-size:14px;font-weight:500;color:var(--cream)">Most Birdies in a Round</div><div style="font-size:10px;color:var(--dim)">Best single-round birdie count</div></div>
+        </div>
+        <div id="lb-best-birdies"></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
+          <div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"/><path d="M5 21h14"/></svg></div>
+          <div><div style="font-size:14px;font-weight:500;color:var(--cream)">Best Round</div><div style="font-size:10px;color:var(--dim)">Lowest gross score in the season</div></div>
+        </div>
+        <div id="lb-best-round"></div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
+          <div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
           <div><div style="font-size:14px;font-weight:500;color:var(--cream)">Fewest Doubles+</div><div style="font-size:10px;color:var(--dim)">Avg doubles per round</div></div>
         </div>
         <div id="lb-doubles"></div>
@@ -1115,6 +1182,38 @@ details[open] summary::after{content:' ▾'}
 
     <!-- PLAYERS / SETTINGS -->
     <div id="pg-players" style="display:none" class="sec">
+      <!-- Group code card -->
+      <div class="card" style="margin-bottom:13px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div>
+            <div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:3px">Your Group Code</div>
+            <div id="players-group-code" style="font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:700;color:var(--gold);letter-spacing:4px">—</div>
+          </div>
+          <button onclick="copyGroupCode()" class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:12px">Copy</button>
+        </div>
+        <div style="font-size:11px;color:var(--dim);line-height:1.5;margin-bottom:12px">Share this code with friends so they can join your group.</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid rgba(255,255,255,.05)">
+          <div>
+            <div style="font-size:13px;color:var(--cream)">Require group code to join</div>
+            <div style="font-size:10px;color:var(--dim);margin-top:2px">New players must enter the code above</div>
+          </div>
+          <div id="gc-toggle-wrap">
+            <button onclick="toggleGroupCodeRequired()" id="gc-toggle-btn" class="btn btn-ghost" style="width:auto;padding:6px 14px;font-size:12px">Off</button>
+          </div>
+        </div>
+      </div>
+      <!-- Season management -->
+      <div class="card" style="margin-bottom:13px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase">Season Management</div>
+        </div>
+        <div style="font-size:12px;color:var(--dim);margin-bottom:12px;line-height:1.5">Name your seasons to make the leaderboard more meaningful. The current year will be labelled automatically if not set here.</div>
+        <div id="season-list" style="margin-bottom:10px"></div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="new-season-name" placeholder="e.g. 2026 Summer" style="flex:1;font-size:13px">
+          <button class="btn" onclick="addSeason()" style="width:auto;padding:10px 16px;font-size:13px">Add</button>
+        </div>
+      </div>
       <div class="card">
         <div class="ct">All Players</div>
         <div id="all-players"></div>
@@ -1394,6 +1493,7 @@ function enterAs(n){
   document.getElementById('s-gistid').textContent='gist.github.com/murraysirel/'+DEFAULT_GIST;
   populateCourses();
   renderHomeStats();
+  ensureGroupCode();
   goTo('home');
   document.getElementById('r-date').value=new Date().toLocaleDateString('en-GB');
 }
@@ -1401,6 +1501,16 @@ function enterAs(n){
 function addAndEnter(){
   const n=document.getElementById('new-name').value.trim();
   if(!n){alert('Please enter your name.');return;}
+  // Group code check — only enforced if gd.requireGroupCode is true
+  if(gd.requireGroupCode&&gd.groupCode){
+    const entered=(document.getElementById('new-group-code')?.value||'').trim().toUpperCase();
+    const errEl=document.getElementById('group-code-err');
+    if(entered!==gd.groupCode){
+      if(errEl){errEl.style.display='block';setTimeout(()=>errEl.style.display='none',4000);}
+      document.getElementById('group-code-field').style.display='block';
+      return;
+    }
+  }
   if(!gd.players[n])gd.players[n]={handicap:0,rounds:[]};
   pushGist();
   enterAs(n);
@@ -1899,12 +2009,103 @@ function renderStats(){
 // ─────────────────────────────────────────────────────────────────
 // LEADERBOARD
 // ─────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+// STABLEFORD calculation: per hole, relative to par
+// 0=double+, 1=bogey, 2=par, 3=birdie, 4=eagle, 5=albatross
+// ─────────────────────────────────────────────────────────────────
+function calcStableford(scores, pars){
+  if(!scores||!pars)return null;
+  let pts=0,holes=0;
+  for(let h=0;h<18;h++){
+    const s=scores[h];const p=pars[h];
+    if(s==null||p==null)continue;
+    const d=s-p;
+    if(d<=-3)pts+=5;
+    else if(d===-2)pts+=4;
+    else if(d===-1)pts+=3;
+    else if(d===0)pts+=2;
+    else if(d===1)pts+=1;
+    // double+ = 0
+    holes++;
+  }
+  return holes>0?pts:null;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// BUFFER OR BETTER: old WHS buffer zone
+// Playing handicap = Math.round(handicap * slope/113)  (simplified)
+// "Buffer or better" = gross score <= totalPar + playingHcp + 2
+// i.e. nett score vs par <= +2 when using full handicap
+// ─────────────────────────────────────────────────────────────────
+function isBufferOrBetter(round, handicap){
+  if(!round.totalScore||!round.totalPar)return false;
+  // Playing handicap: use course slope/rating if available, else raw index
+  const slope=round.slope||113;
+  const rating=round.rating||round.totalPar;
+  const playingHcp=Math.round((handicap*(slope/113)));
+  const nettScore=round.totalScore-playingHcp;
+  const nettDiff=nettScore-round.totalPar;
+  return nettDiff<=2; // buffer zone: nett par to nett+2 counts, nett-1 or better is a cut
+}
+
 function renderLeaderboard(){
   const lb=document.getElementById('lb-list');
   const posClass=['gold','silver','bronze'];
 
+  // ── Season filter population ──
+  const seasonSel=document.getElementById('lb-season-sel');
+  const currentSeason=seasonSel?.value||'all';
+  // Collect all years from all rounds
+  const allYears=new Set();
+  Object.values(gd.players).forEach(p=>(p.rounds||[]).forEach(r=>{
+    const yr=parseDateGB(r.date).toString().slice(0,4);
+    if(yr&&yr!=='NaN')allYears.add(yr);
+  }));
+  // Rebuild season options preserving current selection
+  if(seasonSel){
+    const sortedYears=[...allYears].sort().reverse();
+    const existing=[...seasonSel.options].map(o=>o.value);
+    sortedYears.forEach(yr=>{
+      if(!existing.includes(yr)){
+        const o=document.createElement('option');
+        o.value=yr;
+        // Label as season: "2026 Season" etc
+        // Name the season: Jan-May = Spring, Jun-Sep = Summer, Oct-Dec = Winter
+        // Since we only have year-level data, use a friendly label
+        o.textContent=yr+' Season';
+        seasonSel.appendChild(o);
+      }
+    });
+    // Restore selection
+    if(currentSeason&&currentSeason!=='all')seasonSel.value=currentSeason;
+  }
+  // Group code display
+  if(gd.groupCode){
+    const gcEl=document.getElementById('lb-group-code');
+    if(gcEl)gcEl.textContent=gd.groupCode;
+  }
+
+  // ── Filter rounds by season ──
+  function filterRounds(rounds){
+    if(!seasonSel||seasonSel.value==='all')return rounds;
+    const val=seasonSel.value;
+    if(val.startsWith('season:')){
+      // Named season — match by year from gd.seasons
+      const sname=val.slice(7);
+      const season=(gd.seasons||[]).find(s=>s.name===sname);
+      if(!season)return rounds;
+      return rounds.filter(r=>parseDateGB(r.date).toString().startsWith(season.year));
+    }
+    // Year-based filter
+    return rounds.filter(r=>parseDateGB(r.date).toString().startsWith(val));
+  }
+
+  // ── Build player stats ──
   const players=Object.entries(gd.players).map(([name,p])=>{
-    const rs=p.rounds||[];
+    const allRs=p.rounds||[];
+    const rs=filterRounds(allRs);
+    if(!rs.length)return null;
+    const handicap=p.handicap||0;
     const sc=rs.map(r=>r.totalScore).filter(Boolean);
     const diffs=rs.map(r=>r.diff).filter(v=>v!=null);
     const eagles=rs.reduce((a,r)=>a+(r.eagles||0),0);
@@ -1912,20 +2113,46 @@ function renderLeaderboard(){
     const doubles=rs.reduce((a,r)=>a+(r.doubles||0),0);
     const pts=(eagles*3)+(birdies*1);
     const avgDoubles=rs.length?+(doubles/rs.length).toFixed(1):null;
-    return{name,rounds:rs.length,best:sc.length?Math.min(...sc):null,
+
+    // Stableford
+    const stabRounds=rs.filter(r=>r.scores&&r.pars);
+    const stabTotals=stabRounds.map(r=>calcStableford(r.scores,r.pars)).filter(v=>v!=null);
+    const avgStab=stabTotals.length?+(stabTotals.reduce((a,b)=>a+b,0)/stabTotals.length).toFixed(1):null;
+
+    // Net score (gross - playing handicap per round)
+    const netRounds=rs.filter(r=>r.totalScore&&r.totalPar);
+    const netScores=netRounds.map(r=>{
+      const slope=r.slope||113;
+      const playingHcp=Math.round(handicap*(slope/113));
+      return r.totalScore-playingHcp;
+    });
+    const avgNet=netScores.length?+(netScores.reduce((a,b)=>a+b,0)/netScores.length).toFixed(1):null;
+    const bestNet=netScores.length?Math.min(...netScores):null;
+
+    // Buffer or better count
+    const bufferCount=handicap>0?rs.filter(r=>isBufferOrBetter(r,handicap)).length:null;
+    const bufferPct=bufferCount!=null&&rs.length?Math.round(bufferCount/rs.length*100):null;
+
+    return{name,rounds:rs.length,handicap,
+      best:sc.length?Math.min(...sc):null,
       avg:sc.length?Math.round(sc.reduce((a,b)=>a+b,0)/sc.length):null,
       avgDiff:diffs.length?+(diffs.reduce((a,b)=>a+b,0)/diffs.length).toFixed(1):null,
-      birdies,eagles,doubles,pts,avgDoubles};
-  }).filter(p=>p.rounds>0).sort((a,b)=>(a.avgDiff??99)-(b.avgDiff??99));
+      birdies,eagles,doubles,pts,avgDoubles,
+      avgStab,stabCount:stabTotals.length,
+      avgNet,bestNet,netCount:netScores.length,
+      bufferCount,bufferPct};
+  }).filter(Boolean).sort((a,b)=>(a.avgDiff??99)-(b.avgDiff??99));
+
+  const emptyMsg='<div class="empty" style="padding:24px 0"><div style="font-size:28px;margin-bottom:8px">—</div><div style="font-size:13px">No rounds this season yet</div></div>';
 
   if(!players.length){
-    lb.innerHTML='<div class="empty"><div class="empty-icon" style="font-size:28px;margin-bottom:8px">—</div>No rounds played yet</div>';
-    document.getElementById('lb-birdies').innerHTML='';
-    document.getElementById('lb-doubles').innerHTML='';
+    ['lb-list','lb-birdies','lb-stableford','lb-net','lb-buffer','lb-best-stab','lb-best-birdies','lb-best-round','lb-doubles'].forEach(id=>{
+      const el=document.getElementById(id);if(el)el.innerHTML=emptyMsg;
+    });
     return;
   }
 
-  // Helper to build a v0-style leaderboard row
+  // Helper: leaderboard row
   const lbRow=(p,i,metricHtml)=>{
     const d=document.createElement('div');
     const isMe=p.name===me;
@@ -1947,41 +2174,183 @@ function renderLeaderboard(){
     return d;
   };
 
-  // ── Avg vs par board ──
+  // ── 1. Avg vs par ──
   lb.innerHTML='';
   players.forEach((p,i)=>{
     const diff=p.avgDiff!=null?(p.avgDiff>=0?'+'+p.avgDiff:p.avgDiff.toString()):'—';
     const diffColor=p.avgDiff!=null&&p.avgDiff<0?'var(--birdie)':p.avgDiff===0?'var(--par)':'var(--bogey)';
     p.meta=`${p.rounds} round${p.rounds!==1?'s':''} · Best ${p.best??'—'} · Avg ${p.avg??'—'}`;
-    const metric=`<div style="text-align:right;flex-shrink:0">
+    lb.appendChild(lbRow(p,i,`<div style="text-align:right;flex-shrink:0">
       <div class="lb-score" style="color:${diffColor}">${diff}</div>
       <div style="font-size:9px;color:var(--dimmer);margin-top:1px">avg vs par</div>
-    </div>`;
-    lb.appendChild(lbRow(p,i,metric));
+    </div>`));
   });
 
-  // ── Points board (eagle=3, birdie=1) ──
+  // ── 2. Scoring points ──
   const byPts=[...players].sort((a,b)=>b.pts-a.pts);
   const bl=document.getElementById('lb-birdies');bl.innerHTML='';
   byPts.forEach((p,i)=>{
-    p.meta=`🦅 ${p.eagles}×3pts · 🐦 ${p.birdies}×1pt`;
-    const metric=`<div style="text-align:right;flex-shrink:0">
+    p.meta=`${p.eagles} eagle${p.eagles!==1?'s':''} · ${p.birdies} birdie${p.birdies!==1?'s':''}`;
+    bl.appendChild(lbRow(p,i,`<div style="text-align:right;flex-shrink:0">
       <div class="lb-score" style="color:var(--eagle)">${p.pts}</div>
-      <div style="font-size:9px;color:var(--dimmer);margin-top:1px">points</div>
-    </div>`;
-    bl.appendChild(lbRow(p,i,metric));
+      <div style="font-size:9px;color:var(--dimmer);margin-top:1px">points total</div>
+    </div>`));
   });
 
-  // ── Fewest doubles board ──
+  // ── 3. Avg Stableford ──
+  const bySt=[...players].filter(p=>p.avgStab!=null).sort((a,b)=>b.avgStab-a.avgStab);
+  const sl=document.getElementById('lb-stableford');sl.innerHTML='';
+  if(!bySt.length){sl.innerHTML='<div style="font-size:12px;color:var(--dimmer);padding:10px 0">Stableford calculated once hole-by-hole scores are available</div>';}
+  bySt.forEach((p,i)=>{
+    const target=36; // par target
+    const diff=+(p.avgStab-target).toFixed(1);
+    const diffStr=diff>=0?'+'+diff:''+diff;
+    const color=diff>=0?'var(--birdie)':diff>=-4?'var(--bogey)':'var(--double)';
+    p.meta=`${p.stabCount} round${p.stabCount!==1?'s':''} · HCP ${p.handicap||'—'}`;
+    sl.appendChild(lbRow(p,i,`<div style="text-align:right;flex-shrink:0">
+      <div class="lb-score" style="color:var(--gold)">${p.avgStab}</div>
+      <div style="font-size:9px;color:${color};margin-top:1px">${diffStr} vs 36</div>
+    </div>`));
+  });
+
+  // ── 4. Avg Net Score ──
+  const byNet=[...players].filter(p=>p.avgNet!=null).sort((a,b)=>a.avgNet-b.avgNet);
+  const nl=document.getElementById('lb-net');nl.innerHTML='';
+  if(!byNet.length){nl.innerHTML='<div style="font-size:12px;color:var(--dimmer);padding:10px 0">Set your handicap in Stats to enable net scoring</div>';}
+  byNet.forEach((p,i)=>{
+    p.meta=`HCP ${p.handicap} · Best net ${p.bestNet??'—'} · ${p.netCount} round${p.netCount!==1?'s':''}`;
+    nl.appendChild(lbRow(p,i,`<div style="text-align:right;flex-shrink:0">
+      <div class="lb-score" style="color:var(--cream)">${p.avgNet}</div>
+      <div style="font-size:9px;color:var(--dimmer);margin-top:1px">avg net</div>
+    </div>`));
+  });
+
+  // ── 5. Buffer or Better ──
+  const byBuf=[...players].filter(p=>p.bufferCount!=null).sort((a,b)=>b.bufferCount-a.bufferCount);
+  const bbl=document.getElementById('lb-buffer');bbl.innerHTML='';
+  if(!byBuf.length){bbl.innerHTML='<div style="font-size:12px;color:var(--dimmer);padding:10px 0">Set your handicap in Stats to track buffer or better rounds</div>';}
+  byBuf.forEach((p,i)=>{
+    p.meta=`${p.bufferPct}% of ${p.rounds} round${p.rounds!==1?'s':''} · HCP ${p.handicap}`;
+    bbl.appendChild(lbRow(p,i,`<div style="text-align:right;flex-shrink:0">
+      <div class="lb-score" style="color:var(--birdie)">${p.bufferCount}</div>
+      <div style="font-size:9px;color:var(--dimmer);margin-top:1px">rounds buffer+</div>
+    </div>`));
+  });
+
+
+  // ── 7. Best single-round Stableford ──
+  // Each player's best ever stableford round in the filtered period
+  const bestStabPlayers=Object.entries(gd.players).map(([name,p])=>{
+    const rs=filterRounds(p.rounds||[]).filter(r=>r.scores&&r.pars);
+    if(!rs.length)return null;
+    let best=null,bestR=null;
+    rs.forEach(r=>{const s=calcStableford(r.scores,r.pars);if(s!=null&&(best==null||s>best)){best=s;bestR=r;}});
+    if(best==null)return null;
+    return{name,bestStab:best,round:bestR};
+  }).filter(Boolean).sort((a,b)=>b.bestStab-a.bestStab);
+
+  const bsl=document.getElementById('lb-best-stab');bsl.innerHTML='';
+  if(!bestStabPlayers.length){bsl.innerHTML=emptyMsg;}
+  bestStabPlayers.forEach((p,i)=>{
+    const diff=+(p.bestStab-36).toFixed(0);
+    const diffStr=diff>=0?'+'+diff:''+diff;
+    const color=diff>=0?'var(--birdie)':diff>=-4?'var(--bogey)':'var(--double)';
+    const fakeP={name:p.name,meta:`${p.round.course} · ${p.round.date}`};
+    const d=document.createElement('div');
+    const isMe=p.name===me;
+    d.className='lb-row'+(isMe?' lb-me':'');
+    const pc=posClass[i]||'';
+    d.innerHTML=`<div class="lb-pos ${pc}">${i+1}</div>
+      ${isMe?`<div class="lb-avatar-me">${initials(p.name)}</div>`:`<div class="avatar" style="width:36px;height:36px;font-size:13px;border:1px solid rgba(255,255,255,.1)">${initials(p.name)}</div>`}
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:7px">
+          <span class="lb-name" style="${isMe?'color:var(--gold)':''}">${p.name}</span>
+          ${isMe?'<span class="lb-you-badge">You</span>':''}
+        </div>
+        <div class="lb-meta">${p.round.course} · ${p.round.date}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div class="lb-score" style="color:var(--gold)">${p.bestStab}</div>
+        <div style="font-size:9px;color:${color};margin-top:1px">${diffStr} vs 36</div>
+      </div>`;
+    bsl.appendChild(d);
+  });
+
+  // ── 8. Most birdies in a single round ──
+  const bestBirdiePlayers=Object.entries(gd.players).map(([name,p])=>{
+    const rs=filterRounds(p.rounds||[]);
+    if(!rs.length)return null;
+    let best=0,bestR=null;
+    rs.forEach(r=>{if((r.birdies||0)>best){best=r.birdies;bestR=r;}});
+    if(!bestR)return null;
+    return{name,bestBirdies:best,round:bestR};
+  }).filter(Boolean).sort((a,b)=>b.bestBirdies-a.bestBirdies);
+
+  const bbl2=document.getElementById('lb-best-birdies');bbl2.innerHTML='';
+  if(!bestBirdiePlayers.length){bbl2.innerHTML=emptyMsg;}
+  bestBirdiePlayers.forEach((p,i)=>{
+    const isMe=p.name===me;
+    const d=document.createElement('div');
+    d.className='lb-row'+(isMe?' lb-me':'');
+    const pc=posClass[i]||'';
+    d.innerHTML=`<div class="lb-pos ${pc}">${i+1}</div>
+      ${isMe?`<div class="lb-avatar-me">${initials(p.name)}</div>`:`<div class="avatar" style="width:36px;height:36px;font-size:13px;border:1px solid rgba(255,255,255,.1)">${initials(p.name)}</div>`}
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:7px">
+          <span class="lb-name" style="${isMe?'color:var(--gold)':''}">${p.name}</span>
+          ${isMe?'<span class="lb-you-badge">You</span>':''}
+        </div>
+        <div class="lb-meta">${p.round.course} · ${p.round.date} · ${p.round.totalScore} gross</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div class="lb-score" style="color:var(--birdie)">${p.bestBirdies}</div>
+        <div style="font-size:9px;color:var(--dimmer);margin-top:1px">birdies in round</div>
+      </div>`;
+    bbl2.appendChild(d);
+  });
+
+  // ── 9. Best gross round of season ──
+  const bestRoundPlayers=Object.entries(gd.players).map(([name,p])=>{
+    const rs=filterRounds(p.rounds||[]).filter(r=>r.totalScore);
+    if(!rs.length)return null;
+    const bestR=rs.reduce((a,b)=>b.totalScore<a.totalScore?b:a);
+    return{name,score:bestR.totalScore,diff:bestR.diff,round:bestR};
+  }).filter(Boolean).sort((a,b)=>a.diff-b.diff||a.score-b.score);
+
+  const brl=document.getElementById('lb-best-round');brl.innerHTML='';
+  if(!bestRoundPlayers.length){brl.innerHTML=emptyMsg;}
+  bestRoundPlayers.forEach((p,i)=>{
+    const isMe=p.name===me;
+    const d=document.createElement('div');
+    d.className='lb-row'+(isMe?' lb-me':'');
+    const pc=posClass[i]||'';
+    const dStr=p.diff>=0?'+'+p.diff:''+p.diff;
+    const dCol=p.diff<0?'var(--birdie)':p.diff===0?'var(--par)':p.diff<=3?'var(--bogey)':'var(--double)';
+    d.innerHTML=`<div class="lb-pos ${pc}">${i+1}</div>
+      ${isMe?`<div class="lb-avatar-me">${initials(p.name)}</div>`:`<div class="avatar" style="width:36px;height:36px;font-size:13px;border:1px solid rgba(255,255,255,.1)">${initials(p.name)}</div>`}
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:7px">
+          <span class="lb-name" style="${isMe?'color:var(--gold)':''}">${p.name}</span>
+          ${isMe?'<span class="lb-you-badge">You</span>':''}
+        </div>
+        <div class="lb-meta">${p.round.course} · ${p.round.date}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div class="lb-score" style="color:var(--gold)">${p.score}</div>
+        <div style="font-size:9px;color:${dCol};margin-top:1px">${dStr} par</div>
+      </div>`;
+    brl.appendChild(d);
+  });
+
+  // ── 6. Fewest doubles ──
   const byDoubles=[...players].sort((a,b)=>(a.avgDoubles??99)-(b.avgDoubles??99));
   const dl=document.getElementById('lb-doubles');dl.innerHTML='';
   byDoubles.forEach((p,i)=>{
     p.meta=`${p.doubles} total · ${p.rounds} round${p.rounds!==1?'s':''}`;
-    const metric=`<div style="text-align:right;flex-shrink:0">
+    dl.appendChild(lbRow(p,i,`<div style="text-align:right;flex-shrink:0">
       <div class="lb-score" style="color:var(--par)">${p.avgDoubles??'—'}</div>
       <div style="font-size:9px;color:var(--dimmer);margin-top:1px">per round</div>
-    </div>`;
-    dl.appendChild(lbRow(p,i,metric));
+    </div>`));
   });
 }
 
@@ -1990,6 +2359,11 @@ function renderLeaderboard(){
 // ─────────────────────────────────────────────────────────────────
 function renderAllPlayers(){
   const list=document.getElementById('all-players');list.innerHTML='';
+  const pgc=document.getElementById('players-group-code');if(pgc)pgc.textContent=gd.groupCode||'—';
+  // Sync group code toggle button state
+  const gcBtn=document.getElementById('gc-toggle-btn');
+  if(gcBtn)gcBtn.textContent=gd.requireGroupCode?'On':'Off';
+  renderSeasonList();
   Object.keys(gd.players).forEach(n=>{
     const p=gd.players[n];const rs=p.rounds||[];
     const sc=rs.map(r=>r.totalScore).filter(Boolean);
@@ -3042,6 +3416,108 @@ function liveNextOrFinish(){
   }
 }
 
+
+// ─────────────────────────────────────────────────────────────────
+// GROUP CODE & SEASON ADMIN
+// ─────────────────────────────────────────────────────────────────
+function toggleGroupCodeRequired(){
+  gd.requireGroupCode=!gd.requireGroupCode;
+  const btn=document.getElementById('gc-toggle-btn');
+  if(btn)btn.textContent=gd.requireGroupCode?'On':'Off';
+  pushGist();
+}
+
+function renderSeasonList(){
+  const el=document.getElementById('season-list');if(!el)return;
+  const seasons=gd.seasons||[];
+  if(!seasons.length){el.innerHTML='<div style="font-size:12px;color:var(--dimmer);padding:4px 0">No custom seasons yet — rounds are grouped by year</div>';return;}
+  el.innerHTML='';
+  seasons.forEach((s,i)=>{
+    const d=document.createElement('div');
+    d.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)';
+    d.innerHTML=`<div style="flex:1;font-size:13px;color:var(--cream)">${s.name}</div>
+      <div style="font-size:11px;color:var(--dim)">${s.year}</div>
+      <button onclick="deleteSeason(${i})" class="btn btn-ghost" style="width:auto;padding:4px 10px;font-size:11px">Remove</button>`;
+    el.appendChild(d);
+  });
+}
+
+function addSeason(){
+  const inp=document.getElementById('new-season-name');
+  const name=inp?.value.trim();
+  if(!name)return;
+  // Extract year from name or use current year
+  const yearMatch=name.match(/\b(20\d{2})\b/);
+  const year=yearMatch?yearMatch[1]:new Date().getFullYear().toString();
+  if(!gd.seasons)gd.seasons=[];
+  gd.seasons.push({name,year});
+  inp.value='';
+  renderSeasonList();
+  rebuildSeasonSelector();
+  pushGist();
+}
+
+function deleteSeason(i){
+  if(!gd.seasons)return;
+  gd.seasons.splice(i,1);
+  renderSeasonList();
+  rebuildSeasonSelector();
+  pushGist();
+}
+
+function rebuildSeasonSelector(){
+  const sel=document.getElementById('lb-season-sel');if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="all">All Time</option>';
+  // Add custom named seasons
+  (gd.seasons||[]).forEach(s=>{
+    const o=document.createElement('option');
+    o.value='season:'+s.name;
+    o.textContent=s.name;
+    sel.appendChild(o);
+  });
+  // Add year-based options
+  const allYears=new Set();
+  Object.values(gd.players).forEach(p=>(p.rounds||[]).forEach(r=>{
+    const yr=parseDateGB(r.date).toString().slice(0,4);
+    if(yr&&yr!=='NaN')allYears.add(yr);
+  }));
+  [...allYears].sort().reverse().forEach(yr=>{
+    // Only add year if not already covered by a named season
+    const covered=(gd.seasons||[]).some(s=>s.year===yr);
+    if(!covered){
+      const o=document.createElement('option');
+      o.value=yr;o.textContent=yr+' Season';
+      sel.appendChild(o);
+    }
+  });
+  if(cur)sel.value=cur;
+}
+
+// ── Group code ──────────────────────────────────────────────────
+function ensureGroupCode(){
+  if(!gd.groupCode){
+    const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    gd.groupCode=Array.from({length:6},()=>chars[Math.floor(Math.random()*chars.length)]).join('');
+    pushGist();
+  }
+  const gcEl=document.getElementById('lb-group-code');
+  if(gcEl)gcEl.textContent=gd.groupCode;
+  const pgc=document.getElementById('players-group-code');
+  if(pgc)pgc.textContent=gd.groupCode;
+}
+function copyGroupCode(){
+  const code=gd.groupCode||'';
+  if(!code)return;
+  navigator.clipboard?.writeText(code).then(()=>{
+    ['lb-group-code','players-group-code'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(!el)return;
+      const orig=el.textContent;el.textContent='Copied!';
+      setTimeout(()=>el.textContent=orig,1500);
+    });
+  });
+}
 </script>
 </body>
 </html>
