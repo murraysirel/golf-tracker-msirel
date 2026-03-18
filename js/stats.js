@@ -109,7 +109,7 @@ export function renderHomeStats() {
 
   const recent = document.getElementById('home-recent');
   if (!rs.length) {
-    recent.innerHTML = '<div class="empty"><div class="empty-icon">\u26F3</div>No rounds yet \u2014 add your first!</div>';
+    recent.innerHTML = '<div class="empty"><div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg></div>No rounds yet \u2014 add your first!</div>';
     return;
   }
   recent.innerHTML = '';
@@ -251,7 +251,7 @@ export function renderStats() {
     CH.trend = new Chart(document.getElementById('ch-trend'), {
       type: 'line',
       data: { labels: rs.map(r => r.date.slice(0, 5)), datasets: [{ data: rs.map(r => r.diff), borderColor: '#c9a84c', backgroundColor: 'rgba(201,168,76,.08)', tension: .35, pointBackgroundColor: rs.map(r => r.diff < 0 ? '#3498db' : r.diff === 0 ? '#2ecc71' : '#e67e22'), pointRadius: 5, pointBorderWidth: 0, fill: true }] },
-      options: { ...CO, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.raw >= 0 ? '+' : ''}${c.raw} vs par` } } }, scales: { x: { ticks: { color: '#8899bb', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,.04)' } }, y: { ticks: { color: '#8899bb', font: { size: 9 }, callback: v => v >= 0 ? '+' + v : v }, grid: { color: 'rgba(255,255,255,.04)' } } } }
+      options: { ...CO, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.raw >= 0 ? '+' : ''}${c.raw} vs par` } } }, scales: { x: { ticks: { color: '#8899bb', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,.04)' } }, y: { ticks: { color: '#8899bb', font: { size: 9 }, stepSize: 1, callback: v => { if (!Number.isInteger(v)) return null; return (v > 0 ? '+' : '') + v; } }, grid: { color: 'rgba(255,255,255,.04)' } } } }
     });
   }
 
@@ -261,7 +261,7 @@ export function renderStats() {
     CH.holes = new Chart(document.getElementById('ch-holes'), {
       type: 'bar',
       data: { labels: Array.from({ length: 18 }, (_, i) => i + 1), datasets: [{ data: hA, backgroundColor: hA.map(v => v <= -2 ? '#f1c40f' : v < 0 ? '#3498db' : v === 0 ? '#2ecc71' : v <= 1 ? '#e67e22' : '#e74c3c'), borderRadius: 3 }] },
-      options: { ...CO, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.raw >= 0 ? '+' : ''}${c.raw} avg` } } }, scales: { x: { ticks: { color: '#8899bb', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,.04)' } }, y: { ticks: { color: '#8899bb', font: { size: 9 }, callback: v => v >= 0 ? '+' + v : v }, grid: { color: 'rgba(255,255,255,.04)' } } } }
+      options: { ...CO, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.raw >= 0 ? '+' : ''}${c.raw} avg` } } }, scales: { x: { ticks: { color: '#8899bb', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,.04)' } }, y: { ticks: { color: '#8899bb', font: { size: 9 }, stepSize: 0.5, callback: v => { if (Math.round(v * 2) !== v * 2) return null; const f = parseFloat(v.toFixed(1)); return (v > 0 ? '+' : '') + f; } }, grid: { color: 'rgba(255,255,255,.04)' } } } }
     });
 
     const pR = fullR.filter(r => (r.putts || []).filter(Boolean).length >= 9);
@@ -271,7 +271,7 @@ export function renderStats() {
       CH.putts = new Chart(document.getElementById('ch-putts'), {
         type: 'bar',
         data: { labels: Array.from({ length: 18 }, (_, i) => i + 1), datasets: [{ data: pA, backgroundColor: 'rgba(201,168,76,.6)', borderRadius: 3 }] },
-        options: { ...CO, scales: { x: { ticks: { color: '#8899bb', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,.04)' } }, y: { min: 0, ticks: { color: '#8899bb', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,.04)' } } } }
+        options: { ...CO, scales: { x: { ticks: { color: '#8899bb', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,.04)' } }, y: { min: 0, ticks: { color: '#8899bb', font: { size: 9 }, stepSize: 0.5, callback: v => Math.round(v * 2) === v * 2 ? parseFloat(v.toFixed(1)) : null }, grid: { color: 'rgba(255,255,255,.04)' } } } }
       });
     }
 
@@ -300,7 +300,7 @@ export function renderStats() {
     const dot = TC[r.tee]?.d || '#888';
     const d = document.createElement('div');
     d.className = 'hi';
-    d.innerHTML = `<div><div class="hc">${r.course}</div><div class="hm"><span class="tdot" style="background:${dot}"></span>${(r.tee || '').charAt(0).toUpperCase() + (r.tee || '').slice(1)} \u00B7 ${r.date} \u00B7 ${r.parsCount || 0}P \u00B7 ${r.bogeys || 0}Bog${r.birdies > 0 ? ` \u00B7 \uD83D\uDC26${r.birdies}` : ''}</div></div><div style="text-align:right"><div class="hs">${r.totalScore}</div><div class="hd">${dv} (Par ${r.totalPar})</div></div>`;
+    d.innerHTML = `<div><div class="hc">${r.course}</div><div class="hm"><span class="tdot" style="background:${dot}"></span>${(r.tee || '').charAt(0).toUpperCase() + (r.tee || '').slice(1)} \u00B7 ${r.date} \u00B7 ${r.parsCount || 0}P \u00B7 ${r.bogeys || 0}Bog${r.birdies > 0 ? ` \u00B7 <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg>${r.birdies}` : ''}</div></div><div style="text-align:right"><div class="hs">${r.totalScore}</div><div class="hd">${dv} (Par ${r.totalPar})</div></div>`;
     hist.appendChild(d);
   });
 }

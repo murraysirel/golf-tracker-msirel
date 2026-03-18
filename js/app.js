@@ -16,6 +16,7 @@ import { startGPS, stopGPS, gpsSetTarget, pinGreenPosition } from './gps.js';
 import { exportXlsx } from './export.js';
 import { openAdminSettings, closeAdminSettings, verifyAdminPw, adminPopulateRounds, adminDeleteRound } from './admin.js';
 import { copyGroupCode, leaveGroup, toggleGroupCodeRequired, addSeason, deleteSeason, confirmDeleteMyData, deleteMyData, copyAppUrl, rebuildSeasonSelector } from './group.js';
+import { initCompetition } from './competition.js';
 import { state } from './state.js';
 
 // ── Register nav handlers (to avoid circular imports) ─────────────
@@ -25,7 +26,8 @@ registerNavHandlers({
   renderAllPlayers,
   renderHomeStats,
   renderPracticePage,
-  initLiveRound
+  initLiveRound,
+  initCompetition
 });
 
 // ── Splash screen dismiss ─────────────────────────────────────────
@@ -41,7 +43,7 @@ registerNavHandlers({
 // ── Navigation bar ────────────────────────────────────────────────
 document.getElementById('nb-home')?.addEventListener('click', () => goTo('home'));
 document.getElementById('nb-round')?.addEventListener('click', () => goTo('round'));
-document.getElementById('nb-live')?.addEventListener('click', () => goTo('live'));
+document.getElementById('nb-live')?.addEventListener('click', () => goTo('competition'));
 document.getElementById('nb-stats')?.addEventListener('click', () => goTo('stats'));
 document.getElementById('nb-leaderboard')?.addEventListener('click', () => goTo('leaderboard'));
 document.getElementById('nb-practice')?.addEventListener('click', () => goTo('practice'));

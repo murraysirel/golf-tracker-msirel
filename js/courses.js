@@ -273,7 +273,7 @@ export function renderScannedCourses() {
       </div>
       <div style="display:flex;gap:6px">
         <button class="btn btn-ghost btn-sm" data-edit-course="${key.replace(/'/g, "\\'")}">✏️</button>
-        <button class="btn btn-ghost btn-sm" style="color:#e74c3c;border-color:rgba(231,76,60,.3)" data-delete-course="${key.replace(/'/g, "\\'")}">🗑️</button>
+        <button class="btn btn-ghost btn-sm" style="color:#e74c3c;border-color:rgba(231,76,60,.3)" data-delete-course="${key.replace(/'/g, "\\'")}"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
       </div>`;
     // Bind events after appending
     const editBtn = div.querySelector('[data-edit-course]');

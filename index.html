@@ -38,10 +38,10 @@
 
   <div class="card mb12">
     <div class="ct">Who are you?</div>
-    <div id="onb-player-list"><div class="empty"><div class="empty-icon">🔄</div>Loading players...</div></div>
+    <div id="onb-player-list"><div class="empty"><div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></div>Loading players...</div></div>
     <div class="divider"><span>first time?</span></div>
     <div style="background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.25);border-radius:9px;padding:10px 12px;margin-bottom:10px">
-      <div style="font-size:10px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:3px">⚠️ Beta Version</div>
+      <div style="font-size:10px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:3px"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Beta Version</div>
       <div style="font-size:11px;color:var(--dim);line-height:1.5">You'll need the group code from an existing member to join. Ask your group admin.</div>
     </div>
     <input type="text" id="new-name" placeholder="Enter your full name" class="mb8">
@@ -160,9 +160,9 @@
     <div id="pg-round" style="display:none">
       <div class="tab-bar">
         <div class="tab active" id="tab-m">Manual</div>
-        <div class="tab" id="tab-p">📷 Scores</div>
-        <div class="tab" id="tab-c">🗺️ Add Course</div>
-        <div class="tab" id="tab-l">📡 Live Round</div>
+        <div class="tab" id="tab-p"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>Scores</div>
+        <div class="tab" id="tab-c"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>Course</div>
+        <div class="tab" id="tab-l"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49"/></svg>Live</div>
       </div>
       <div class="sec">
         <div class="card">
@@ -221,14 +221,14 @@
           <div class="card">
             <div class="ct">Upload Scorecard Photo</div>
             <div class="pdrop" id="photo-drop">
-              <div style="font-size:32px;margin-bottom:8px">📷</div>
+              <div style="margin-bottom:10px;color:var(--dim)"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div>
               <div style="font-size:13px;color:var(--dim)">Tap to take or upload a photo</div>
               <div style="font-size:11px;color:var(--dimmer);margin-top:4px">AI will read your scores automatically</div>
             </div>
             <input type="file" id="photo-inp" accept="image/*" capture="environment" style="display:none">
             <img id="photo-prev" style="display:none;width:100%;border-radius:9px;margin-bottom:10px;border:1px solid rgba(255,255,255,.08)">
             <div id="photo-msg"></div>
-            <button class="btn" id="parse-btn" style="display:none">🔍 Read Scorecard with AI</button>
+            <button class="btn" id="parse-btn" style="display:none"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>Read Scorecard with AI</button>
           </div>
         </div>
 
@@ -239,18 +239,18 @@
               Photograph the printed scorecard from any course. AI reads the course name, all 18 hole pars, distances and stroke indexes — then saves it permanently to your group's course list.
             </div>
             <div class="pdrop" id="course-card-drop">
-              <div style="font-size:32px;margin-bottom:8px">🗺️</div>
+              <div style="margin-bottom:10px;color:var(--dim)"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg></div>
               <div style="font-size:13px;color:var(--dim)">Tap to photograph the course card</div>
               <div style="font-size:11px;color:var(--dimmer);margin-top:4px">Works with any printed scorecard</div>
             </div>
             <input type="file" id="course-card-inp" accept="image/*" capture="environment" style="display:none">
             <img id="course-card-prev" style="display:none;width:100%;border-radius:9px;margin-bottom:10px;border:1px solid rgba(255,255,255,.08)">
             <div id="course-scan-msg"></div>
-            <button class="btn" id="course-scan-btn" style="display:none">🔍 Read Course Card with AI</button>
+            <button class="btn" id="course-scan-btn" style="display:none"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>Read Course Card with AI</button>
           </div>
           <div id="course-review" style="display:none">
             <div class="card">
-              <div class="ct">✏️ Review Scanned Course</div>
+              <div class="ct">Review Scanned Course</div>
               <div style="font-size:11px;color:var(--dim);margin-bottom:12px;line-height:1.5">Check and correct anything before saving. This course will be available to everyone in your group.</div>
               <label>Course Name</label>
               <input type="text" id="sc-name" placeholder="e.g. Croham Hurst Golf Club" class="mb8">
@@ -273,7 +273,7 @@
                 <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#e74c3c;margin-bottom:0"><input type="checkbox" id="tee-red" style="width:auto;accent-color:#e74c3c"> Red</label>
               </div>
               <button class="btn mb8" id="save-course-btn">Save Course to Group List</button>
-              <button id="cancel-course-btn" class="btn btn-ghost">✕ Cancel</button>
+              <button id="cancel-course-btn" class="btn btn-ghost">Cancel</button>
               <div id="course-save-msg" style="margin-top:8px;font-size:11px;color:var(--dim)"></div>
             </div>
           </div>
@@ -375,6 +375,46 @@
           <button class="btn btn-ghost" id="live-btn-prev2" style="flex:0 0 auto;width:auto;padding:14px 18px">← Back</button>
           <button class="btn" id="live-btn-next2" style="flex:1">Next Hole →</button>
         </div>
+      </div>
+    </div>
+
+    <!-- COMPETITION MODE -->
+    <div id="pg-competition" style="display:none" class="sec">
+      <div style="background:var(--mid);padding:10px 16px 8px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:0">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase;margin-bottom:2px">Live</div>
+            <div style="font-size:18px;font-weight:700;color:var(--cream);font-family:'Cormorant Garamond',serif">Competition</div>
+          </div>
+          <div id="comp-poll-status" style="font-size:10px;color:var(--dimmer);text-align:right"></div>
+        </div>
+        <!-- Format toggle -->
+        <div style="display:flex;gap:5px;margin-top:10px">
+          <button class="fpill active" id="comp-fmt-stab" data-fmt="stableford">Stableford</button>
+          <button class="fpill" id="comp-fmt-gross" data-fmt="gross">Gross</button>
+        </div>
+      </div>
+
+      <!-- Today's leaderboard -->
+      <div class="card" style="margin:12px 0 0">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <div style="width:28px;height:28px;border-radius:8px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+          </div>
+          <span style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase">Today's Standings</span>
+        </div>
+        <div id="comp-lb"></div>
+      </div>
+
+      <!-- Activity feed -->
+      <div class="card" style="margin:12px 0">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <div style="width:28px;height:28px;border-radius:8px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </div>
+          <span style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase">Activity Feed</span>
+        </div>
+        <div id="comp-feed"></div>
       </div>
     </div>
 
@@ -741,14 +781,14 @@
       <div class="card" style="margin-top:13px">
         <div class="ct">Your Data</div>
         <div style="font-size:12px;color:var(--dim);margin-bottom:12px;line-height:1.5">You have the right to export or delete all your data from this group at any time. Deletion cannot be undone.</div>
-        <button class="btn btn-o mb8" style="border-color:rgba(46,204,113,.4);color:#82e0aa"id="export-xlsx-btn">📥 Export my rounds as Excel</button>
-        <button class="btn btn-o" style="border-color:rgba(231,76,60,.4);color:#e74c3c"id="confirm-delete-data-btn">🗑 Delete all my data</button>
+        <button class="btn btn-o mb8" style="border-color:rgba(46,204,113,.4);color:#82e0aa"id="export-xlsx-btn"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export my rounds as Excel</button>
+        <button class="btn btn-o" style="border-color:rgba(231,76,60,.4);color:#e74c3c"id="confirm-delete-data-btn"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>Delete all my data</button>
         <div id="delete-data-msg" style="margin-top:8px"></div>
       </div>
       <div class="card">
         <div class="ct">Add New Player</div>
         <input type="text" id="add-name" placeholder="Full name" class="mb8">
-        <button class="btn" id="add-player-btn">➕ Add Player</button>
+        <button class="btn" id="add-player-btn">Add Player</button>
         <div id="add-msg" style="margin-top:7px;font-size:11px;color:var(--dim)"></div>
       </div>
       <div class="card" id="scanned-courses-card" style="display:none">
@@ -809,7 +849,7 @@
             <select id="admin-del-player" style="margin-bottom:8px"><option value="">— Select —</option></select>
             <label>Round</label>
             <select id="admin-del-round" style="margin-bottom:10px"><option value="">— Select player first —</option></select>
-            <button class="btn btn-o" id="admin-del-round-btn" style="border-color:rgba(231,76,60,.4);color:#e74c3c">🗑 Delete Selected Round</button>
+            <button class="btn btn-o" id="admin-del-round-btn" style="border-color:rgba(231,76,60,.4);color:#e74c3c"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>Delete Selected Round</button>
             <div id="admin-del-msg" style="margin-top:8px;font-size:11px;color:var(--dim)"></div>
           </div>
           <!-- Deletion log -->

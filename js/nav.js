@@ -4,7 +4,7 @@
 import { PAGES } from './constants.js';
 
 // These are imported lazily to avoid circular deps — resolved at call time
-let _renderStats, _renderLeaderboard, _renderAllPlayers, _renderHomeStats, _renderPracticePage, _initLiveRound;
+let _renderStats, _renderLeaderboard, _renderAllPlayers, _renderHomeStats, _renderPracticePage, _initLiveRound, _initCompetition;
 
 export function registerNavHandlers(handlers) {
   _renderStats = handlers.renderStats;
@@ -13,6 +13,7 @@ export function registerNavHandlers(handlers) {
   _renderHomeStats = handlers.renderHomeStats;
   _renderPracticePage = handlers.renderPracticePage;
   _initLiveRound = handlers.initLiveRound;
+  _initCompetition = handlers.initCompetition;
 }
 
 export function goTo(p) {
@@ -30,6 +31,7 @@ export function goTo(p) {
   if (p === 'home' && _renderHomeStats) _renderHomeStats();
   if (p === 'practice' && _renderPracticePage) _renderPracticePage();
   if (p === 'live' && _initLiveRound) _initLiveRound();
+  if (p === 'competition' && _initCompetition) _initCompetition();
 }
 
 export function switchEntry(t) {

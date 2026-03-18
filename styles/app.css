@@ -627,4 +627,7 @@ details[open] summary::after{content:' ▾'}
 @keyframes splashTitleOut{
   to{opacity:0;transform:translateY(-6px)}
 }
-</style>
+
+/* ── Competition mode ─────────────────────────────────────────── */
+#comp-feed > div:last-child { border-bottom: none; }
+
