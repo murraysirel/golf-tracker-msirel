@@ -1,0 +1,244 @@
+// ─────────────────────────────────────────────────────────────────
+// AI REVIEW & ANALYSIS
+// ─────────────────────────────────────────────────────────────────
+import { state } from './state.js';
+import { pushGist } from './api.js';
+import { parseDateGB } from './stats.js';
+import { getCourseByRef } from './courses.js';
+
+export function handlePhoto(input) {
+  const f = input.files[0]; if (!f) return;
+  state.photoFile = f;
+  const pv = document.getElementById('photo-prev');
+  pv.src = URL.createObjectURL(f); pv.style.display = 'block';
+  document.getElementById('parse-btn').style.display = 'block';
+  document.getElementById('photo-msg').innerHTML = '';
+}
+
+export async function parsePhoto() {
+  if (!state.photoFile) return;
+  const ci = document.getElementById('course-sel').value;
+  const courseInfo = ci !== '' ? `The course is ${getCourseByRef(ci)?.name || 'unknown'}, played from ${state.stee} tees. The par for each hole in order is: ${state.cpars.join(', ')}.` : 'Unknown course — try to identify it from the scorecard.';
+
+  document.getElementById('photo-msg').innerHTML = '<div class="alert"><span class="spin"></span> Reading scorecard with AI — this takes a few seconds...</div>';
+  document.getElementById('parse-btn').disabled = true;
+
+  try {
+    const b64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = rej;
+      r.readAsDataURL(state.photoFile);
+    });
+    const prompt = `You are reading a golf scorecard photograph. ${courseInfo}
+
+Your task: extract the GROSS score (total strokes taken) for each of the 18 holes, and putts if visible.
+
+IMPORTANT RULES:
+- Return the GROSS score — the actual number of strokes on each hole, NOT net or stableford points
+- If you see coloured circles/dots around a score (these mean birdie/eagle/bogey in some apps), read the number inside
+- If a hole shows a score like "4" with a circle meaning birdie on a par 4, the gross score is still 4 — wait, that would be a par — a birdie would show "3". Read the actual number shown
+- Count carefully — a triple bogey on a par 4 is 7, not 3
+- If the scorecard shows OUT total and IN total, use them to sanity check your reading (OUT should be sum of holes 1-9)
+- If a score is genuinely unclear, use null
+- Return ONLY valid JSON, no explanation:
+
+{"scores":[h1,h2,h3,h4,h5,h6,h7,h8,h9,h10,h11,h12,h13,h14,h15,h16,h17,h18],"putts":[p1,p2,...p18],"outTotal":39,"inTotal":35,"confidence":"high/medium/low"}
+
+Use null for any value you cannot read with confidence. Putts array should be null values if putts not shown.`;
+
+    const resp = await fetch('/.netlify/functions/ai', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001', max_tokens: 600,
+        messages: [{ role: 'user', content: [
+          { type: 'image', source: { type: 'base64', media_type: state.photoFile.type || 'image/jpeg', data: b64 } },
+          { type: 'text', text: prompt }
+        ]}]
+      })
+    });
+    const data = await resp.json();
+    const text = data.content?.find(b => b.type === 'text')?.text || '';
+    const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+
+    if (!parsed.scores || parsed.scores.length < 9) throw new Error('too few scores');
+
+    const outSum = parsed.scores.slice(0, 9).filter(Boolean).reduce((a, b) => a + b, 0);
+    const inSum = parsed.scores.slice(9).filter(Boolean).reduce((a, b) => a + b, 0);
+    const outOk = !parsed.outTotal || (outSum === parsed.outTotal);
+    const inOk = !parsed.inTotal || (inSum === parsed.inTotal);
+
+    import('./scorecard.js').then(({ buildSC }) => buildSC(parsed.scores, parsed.putts));
+    import('./nav.js').then(({ switchEntry }) => switchEntry('manual'));
+
+    const conf = parsed.confidence || 'medium';
+    const warn = (!outOk || !inOk) ? ' Some totals didn\'t match — please check carefully.' : '';
+    const confColour = conf === 'high' ? 'alert-ok' : 'alert';
+    document.getElementById('photo-msg').innerHTML = `<div class="alert ${confColour}">
+      ${conf === 'high' ? '\u2705' : '\u26A0\uFE0F'} Scores loaded (${conf} confidence).${warn} Check each hole before saving — tap any score to edit it.
+    </div>`;
+
+  } catch (e) {
+    document.getElementById('photo-msg').innerHTML = '<div class="alert alert-err">\u26A0\uFE0F Couldn\'t read the scorecard — try a clearer, well-lit photo. Enter scores manually below.</div>';
+    if (document.getElementById('course-sel').value !== '') {
+      import('./scorecard.js').then(({ buildSC }) => buildSC());
+    }
+  }
+  document.getElementById('parse-btn').disabled = false;
+}
+
+export async function generateAIReview() {
+  const sel = document.getElementById('ai-round-sel');
+  const rs = state.gd.players[state.me]?.rounds || [];
+  if (!rs.length) return;
+  if (sel.value === 'last5') { generateStatsAnalysis(); return; }
+  const idx = parseInt(sel.value);
+  const r = rs[idx];
+  if (!r) return;
+
+  const puttsOk = (r.putts || []).some(v => v != null && v !== '' && !isNaN(v));
+  const firOk = (r.fir || []).some(v => v === 'Yes' || v === 'No' || v === 'N/A');
+  const girOk = (r.gir || []).some(v => v === 'Yes' || v === 'No');
+  if (!puttsOk || !firOk || !girOk) {
+    document.getElementById('ai-review-msg').innerHTML = '<div class="alert alert-err">\u26A0\uFE0F AI assessment requires complete data — please ensure Putts, Fairways (FIR) and Greens (GIR) are all entered for this round.</div>';
+    return;
+  }
+
+  const btn = document.getElementById('ai-review-btn');
+  btn.disabled = true; btn.textContent = '\u23F3 Generating...';
+  document.getElementById('ai-review-output').style.display = 'none';
+  document.getElementById('ai-review-msg').innerHTML = '<div class="alert"><span class="spin"></span> Analysing your round...</div>';
+
+  const holeSummary = (r.pars || []).map((p, i) => {
+    const s = r.scores?.[i]; if (s == null) return `H${i+1}(par${p}):?`;
+    const d = s - p; return `H${i+1}(par${p}):${s}(${d >= 0 ? '+' : ''}${d})`;
+  }).join(', ');
+
+  const totalPutts = (r.putts || []).filter(Boolean).reduce((a, b) => a + b, 0);
+  const girPct = r.gir ? Math.round(r.gir.filter(v => v === 'Yes').length / 18 * 100) : null;
+  const firCount = r.fir ? r.fir.filter((v, i) => v === 'Yes' && r.pars[i] !== 3).length : null;
+  const firHoles = r.pars ? r.pars.filter(p => p !== 3).length : 11;
+
+  const prompt = `Golf coach reviewing a round for ${r.player}. Be specific and concise.
+
+${r.course} (${r.tee}, par ${r.totalPar}) ${r.date} — Score: ${r.totalScore} (${r.diff >= 0 ? '+' : ''}${r.diff})
+${holeSummary}
+Eagles:${r.eagles||0} Birdies:${r.birdies||0} Pars:${r.parsCount||0} Bogeys:${r.bogeys||0} Doubles+:${r.doubles||0}${totalPutts ? ` Putts:${totalPutts}(${(totalPutts/18).toFixed(1)}/hole)` : ''}${girPct != null ? ` GIR:${girPct}%` : ''}${firCount != null ? ` FIR:${firCount}/${firHoles}` : ''}${r.notes ? ` Notes:"${r.notes}"` : ''}
+
+IMPORTANT: Only mention eagles if eagles > 0. Only mention birdies if birdies > 0. Do not assume scoring opportunities that aren't in the data. Base the review strictly on what the numbers show.
+
+Respond ONLY with valid JSON:
+{
+  "positive": "One specific strength (2 sentences, cite actual holes/numbers from the data)",
+  "negative": "One specific weakness that cost shots (2 sentences, cite actual holes/numbers)",
+  "drill": "One concrete drill to fix the weakness (2 sentences, specific reps and targets)"
+}`;
+
+  try {
+    const resp = await fetch('/.netlify/functions/ai', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 700, messages: [{ role: 'user', content: prompt }] })
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      const msg = err?.error || err?.full?.error?.message || JSON.stringify(err);
+      throw new Error(`API ${resp.status}: ${msg}`);
+    }
+    const data = await resp.json();
+    const text = data.content?.find(b => b.type === 'text')?.text || '';
+    const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+    document.getElementById('ai-positive').textContent = parsed.positive || '';
+    document.getElementById('ai-negative').textContent = parsed.negative || '';
+    document.getElementById('ai-drill').textContent = parsed.drill || '';
+    document.getElementById('ai-review-output').style.display = 'block';
+    document.getElementById('ai-review-msg').innerHTML = '';
+    storeAIReviewInRound(idx, parsed);
+  } catch (e) {
+    console.error('AI review error:', e);
+    document.getElementById('ai-review-msg').innerHTML = `<div class="alert alert-err">\u26A0\uFE0F Could not generate review — ${e.message || 'please try again'}.</div>`;
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3z"/></svg> Generate Review';
+}
+
+export async function generateStatsAnalysis() {
+  const rs = (state.gd.players[state.me]?.rounds || []);
+  const sorted = [...rs].sort((a, b) => parseDateGB(b.date) - parseDateGB(a.date));
+  if (sorted.length < 5) {
+    document.getElementById('ai-stats-msg').innerHTML = '<div class="alert alert-err">You need at least 5 rounds submitted to use this feature.</div>';
+    return;
+  }
+  const last5 = sorted.slice(0, 5);
+  const btn = document.getElementById('ai-stats-btn');
+  btn.disabled = true; btn.textContent = 'Analysing...';
+  document.getElementById('ai-stats-output').style.display = 'none';
+  document.getElementById('ai-stats-msg').innerHTML = '<div class="alert"><span class="spin"></span> Analysing your last 5 rounds...</div>';
+
+  const roundsSummary = last5.map((r, i) => {
+    const totalPutts = (r.putts || []).filter(Boolean).reduce((a, b) => a + b, 0);
+    const girPct = r.gir ? Math.round(r.gir.filter(v => v === 'Yes').length / 18 * 100) : null;
+    const firCount = r.fir ? r.fir.filter((v, j) => v === 'Yes' && (r.pars || [])[j] !== 3).length : null;
+    const firHoles = (r.pars || []).filter(p => p !== 3).length || 14;
+    return `Round ${i+1}: ${r.course} (${r.tee}, par ${r.totalPar}) on ${r.date}
+  Score: ${r.totalScore} (${r.diff >= 0 ? '+' : ''}${r.diff}) | Eagles:${r.eagles||0} Birdies:${r.birdies||0} Pars:${r.parsCount||0} Bogeys:${r.bogeys||0} Doubles+:${r.doubles||0}
+  ${totalPutts ? `Putts: ${totalPutts} (${(totalPutts/18).toFixed(1)}/hole)  ` : ''}${girPct != null ? `GIR: ${girPct}%  ` : ''}${firCount != null ? `FIR: ${firCount}/${firHoles}` : ''}`;
+  }).join('\n\n');
+
+  const avgScore = Math.round(last5.reduce((a, r) => a + (r.totalScore || 0), 0) / 5);
+  const avgDiff = +(last5.reduce((a, r) => a + (r.diff || 0), 0) / 5).toFixed(1);
+  const handicap = state.gd.players[state.me]?.handicap || 'unknown';
+
+  const prompt = `Golf coach analysing patterns across ${state.me}'s last 5 rounds. Handicap: ${handicap}. Avg: ${avgScore} (${avgDiff >= 0 ? '+' : ''}${avgDiff}).
+
+${roundsSummary}
+
+Find genuine multi-round patterns, not single-round noise. Respond ONLY with valid JSON:
+{
+  "positive": "Strongest consistent pattern (2 sentences, cite numbers)",
+  "negative": "Most persistent weakness across rounds (2 sentences, cite stats)",
+  "drill": "One high-priority drill with exact reps and measurable target (2 sentences)",
+  "handicap": "Handicap trajectory — up, down or stable? Why? (1 sentence)"
+}`;
+
+  const sparkSVG = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3z"/></svg>';
+  try {
+    const resp = await fetch('/.netlify/functions/ai', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 800, messages: [{ role: 'user', content: prompt }] })
+    });
+    if (!resp.ok) { const e = await resp.json().catch(() => ({})); throw new Error(`API ${resp.status}: ${e?.error || JSON.stringify(e)}`); }
+    const data = await resp.json();
+    const text = data.content?.find(b => b.type === 'text')?.text || '';
+    const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+    document.getElementById('ai-stats-positive').textContent = parsed.positive || '';
+    document.getElementById('ai-stats-negative').textContent = parsed.negative || '';
+    document.getElementById('ai-stats-drill').textContent = parsed.drill || '';
+    document.getElementById('ai-stats-handicap').textContent = parsed.handicap || '';
+    document.getElementById('ai-stats-output').style.display = 'block';
+    document.getElementById('ai-stats-msg').innerHTML = '';
+    state.gd.players[state.me].statsAnalysis = parsed;
+    state.gd.players[state.me].statsAnalysisDate = new Date().toLocaleDateString('en-GB');
+    pushGist();
+  } catch (e) {
+    console.error('Stats analysis error:', e);
+    document.getElementById('ai-stats-msg').innerHTML = `<div class="alert alert-err">Could not generate analysis — ${e.message || 'please try again'}.</div>`;
+  }
+  btn.disabled = false;
+  btn.innerHTML = sparkSVG + ' Analyse My Last 5 Rounds';
+}
+
+export function clearStatsAnalysis() {
+  if (!state.gd.players[state.me]) return;
+  delete state.gd.players[state.me].statsAnalysis;
+  delete state.gd.players[state.me].statsAnalysisDate;
+  document.getElementById('ai-stats-output').style.display = 'none';
+  document.getElementById('ai-stats-msg').innerHTML = '';
+  pushGist();
+}
+
+function storeAIReviewInRound(roundIndex, review) {
+  const p = state.gd.players[state.me];
+  if (!p || !p.rounds[roundIndex]) return;
+  p.rounds[roundIndex].aiReview = review;
+  pushGist();
+}
