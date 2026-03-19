@@ -291,8 +291,29 @@
 
     <!-- LIVE ROUND -->
     <div id="pg-live" style="display:none">
+
+      <!-- Group setup (shown before round starts) -->
+      <div id="live-group-setup" class="sec" style="display:none">
+        <div class="card">
+          <div class="ct" style="margin-bottom:14px">Who is playing today?</div>
+          <div style="font-size:11px;color:var(--dim);margin-bottom:12px">Tap to select players for this round. You can score 1–4 players simultaneously.</div>
+          <div id="live-group-chips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px"></div>
+
+          <!-- Match play toggle -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid rgba(255,255,255,.06);margin-top:4px">
+            <div>
+              <div style="font-size:13px;color:var(--cream)">Match play</div>
+              <div style="font-size:10px;color:var(--dim);margin-top:2px">Requires exactly 2 players selected</div>
+            </div>
+            <button id="live-matchplay-toggle" style="padding:6px 14px;border-radius:20px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;border:1.5px solid rgba(255,255,255,.15);background:transparent;color:var(--dim)">Off</button>
+          </div>
+
+          <button class="btn" id="live-group-start-btn" style="margin-top:14px">Start Round →</button>
+        </div>
+      </div>
+
       <!-- Sticky header: hole nav + progress pips -->
-      <div class="live-hdr">
+      <div class="live-hdr" id="live-hole-view-hdr">
         <div class="live-hole-nav">
           <button class="live-nav-btn" id="live-prev">&#8249;</button>
           <div>
@@ -338,41 +359,54 @@
           <span id="live-gps-pill-text">GPS off — tap to start</span>
         </div>
 
-        <!-- Score input -->
-        <div class="live-field">
-          <label>Score</label>
-          <div class="live-score-row">
-            <button class="live-score-btn" id="live-score-minus">−</button>
-            <div class="live-score-val" id="live-score-val">—</div>
-            <button class="live-score-btn" id="live-score-plus">+</button>
+        <!-- Group view (2+ players) -->
+        <div id="live-group-view" style="display:none">
+          <div id="live-group-rows"></div>
+          <!-- Match result banner -->
+          <div id="live-match-banner" style="display:none;margin-bottom:12px;padding:12px;border-radius:12px;background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.3);text-align:center">
+            <div id="live-match-status" style="font-size:13px;color:var(--gold);font-weight:600"></div>
+            <div id="live-match-hole-result" style="font-size:11px;color:var(--dim);margin-top:4px"></div>
           </div>
         </div>
 
-        <!-- Putts input -->
-        <div class="live-field">
-          <label>Putts</label>
-          <div class="live-putt-row">
-            <button class="live-putt-btn" id="live-putt-minus">−</button>
-            <div class="live-putt-val" id="live-putt-val">—</div>
-            <button class="live-putt-btn" id="live-putt-plus">+</button>
+        <!-- Single-player view -->
+        <div id="live-single-view">
+          <!-- Score input -->
+          <div class="live-field">
+            <label>Score</label>
+            <div class="live-score-row">
+              <button class="live-score-btn" id="live-score-minus">−</button>
+              <div class="live-score-val" id="live-score-val">—</div>
+              <button class="live-score-btn" id="live-score-plus">+</button>
+            </div>
           </div>
-        </div>
 
-        <!-- FIR toggle (hidden on par 3s) -->
-        <div class="live-field" id="live-fir-field">
-          <label>Fairway in Regulation</label>
-          <div class="live-toggle-row">
-            <button class="live-toggle-btn" id="live-fir-yes">Hit</button>
-            <button class="live-toggle-btn" id="live-fir-no">Missed</button>
+          <!-- Putts input -->
+          <div class="live-field">
+            <label>Putts</label>
+            <div class="live-putt-row">
+              <button class="live-putt-btn" id="live-putt-minus">−</button>
+              <div class="live-putt-val" id="live-putt-val">—</div>
+              <button class="live-putt-btn" id="live-putt-plus">+</button>
+            </div>
           </div>
-        </div>
 
-        <!-- GIR toggle -->
-        <div class="live-field">
-          <label>Green in Regulation</label>
-          <div class="live-toggle-row">
-            <button class="live-toggle-btn" id="live-gir-yes">Hit</button>
-            <button class="live-toggle-btn" id="live-gir-no">Missed</button>
+          <!-- FIR toggle (hidden on par 3s) -->
+          <div class="live-field" id="live-fir-field">
+            <label>Fairway in Regulation</label>
+            <div class="live-toggle-row">
+              <button class="live-toggle-btn" id="live-fir-yes">Hit</button>
+              <button class="live-toggle-btn" id="live-fir-no">Missed</button>
+            </div>
+          </div>
+
+          <!-- GIR toggle -->
+          <div class="live-field">
+            <label>Green in Regulation</label>
+            <div class="live-toggle-row">
+              <button class="live-toggle-btn" id="live-gir-yes">Hit</button>
+              <button class="live-toggle-btn" id="live-gir-no">Missed</button>
+            </div>
           </div>
         </div>
 

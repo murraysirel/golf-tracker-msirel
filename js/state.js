@@ -16,7 +16,17 @@ export const state = {
     putts: Array(18).fill(null),
     fir: Array(18).fill(''),
     gir: Array(18).fill(''),
-    notes: Array(18).fill('')
+    notes: Array(18).fill(''),
+    // Multi-player group mode (Feature 3)
+    group: [],          // selected player names for this round
+    groupScores: {},    // { playerName: Array(18).fill(null) }
+    groupPutts: {},     // { playerName: Array(18).fill(null) }
+    groupFir: {},       // { playerName: Array(18).fill('') }
+    groupGir: {},       // { playerName: Array(18).fill('') }
+    // Match play (Feature 4)
+    matchPlay: false,
+    matchFormat: 'singles', // 'singles' | 'pairs'
+    matchResult: null
   },
   // Course card scanner state
   courseCardFile: null,

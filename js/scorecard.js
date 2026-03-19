@@ -163,7 +163,9 @@ export async function saveRound() {
   // Reset live round state
   state.liveState = {
     hole: 0, scores: Array(18).fill(null), putts: Array(18).fill(null),
-    fir: Array(18).fill(''), gir: Array(18).fill(''), notes: Array(18).fill('')
+    fir: Array(18).fill(''), gir: Array(18).fill(''), notes: Array(18).fill(''),
+    group: [], groupScores: {}, groupPutts: {}, groupFir: {}, groupGir: {},
+    matchPlay: false, matchFormat: 'singles', matchResult: null
   };
   state.cpars = Array(18).fill(4);
   state.stee = '';

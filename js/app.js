@@ -10,7 +10,7 @@ import { renderStats, setFilter, toggleHcpEdit, saveHandicap, renderHomeStats } 
 import { renderLeaderboard } from './leaderboard.js';
 import { renderOnboard, enterAs, addAndEnter, signOut, addPlayer, renderAllPlayers, renderPlayersToday } from './players.js';
 import { renderPracticePage, selectPracticeArea, startPracticeSession, regeneratePlan, logPracticeShots, completePracticeSession } from './practice.js';
-import { initLiveRound, liveGoto, liveAdj, liveSetToggle, liveSaveNote, liveNextOrFinish, liveRenderPips } from './live.js';
+import { initLiveRound, liveGoto, liveAdj, liveSetToggle, liveSaveNote, liveNextOrFinish, liveRenderPips, toggleGroupPlayer, startGroupRound, toggleMatchPlay } from './live.js';
 import { generateAIReview, generateStatsAnalysis, clearStatsAnalysis, parsePhoto, handlePhoto } from './ai.js';
 import { startGPS, stopGPS, gpsSetTarget, pinGreenPosition, pinTeePosition } from './gps.js';
 import { exportXlsx } from './export.js';
@@ -87,6 +87,10 @@ document.getElementById('course-card-inp')?.addEventListener('change', function 
 document.getElementById('course-scan-btn')?.addEventListener('click', scanCourseCard);
 document.getElementById('save-course-btn')?.addEventListener('click', saveCourse);
 document.getElementById('cancel-course-btn')?.addEventListener('click', cancelCourseScan);
+
+// ── Live round — group setup ──────────────────────────────────────
+document.getElementById('live-group-start-btn')?.addEventListener('click', startGroupRound);
+document.getElementById('live-matchplay-toggle')?.addEventListener('click', toggleMatchPlay);
 
 // ── Live round ────────────────────────────────────────────────────
 document.getElementById('live-prev')?.addEventListener('click', () => liveGoto(state.liveState.hole - 1));
