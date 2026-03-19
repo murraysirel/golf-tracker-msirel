@@ -254,6 +254,9 @@ Both variables are set in the Netlify dashboard. Neither is ever sent to the bro
 
 | Date | Change |
 |---|---|
+| 2026-03-19 | **Round entry redesign** — removed 4-tab bar; replaced with three compact entry cards (Type it in / Scan scorecard / Add a course) + a full-width "Play with the Caddie 🏌️" pill CTA; CTA shows inline course selector when no course selected, otherwise launches unified live screen directly |
+| 2026-03-19 | **Caddie button restyled** — changed from gold circle to subtle pill (`var(--mid)` bg, 1px gold border, grip-line SVG, `box-shadow: 0 4px 16px rgba(0,0,0,.35)`); clicking returns to `#pg-live` instead of opening an overlay |
+| 2026-03-19 | **Unified Caddie+Live screen** — `#caddie-view` overlay removed; `#pg-live` now contains full GPS distance block (front/mid/back yards) + per-player scoring rows + sticky header + fixed footer; GPS auto-starts on round launch; Wake Lock prompted once and persisted to `localStorage` key `rr_wakelock` |
 | 2026-03-19 | **Light mode** — `[data-theme="light"]` CSS variables (Schoolhouse White palette); `--wa-*` and `--chart-*` tokens replace all `rgba(255,255,255,...)` occurrences; Chart.js uses `cc()` helper for theme-aware tick/grid colors; Dark/Light toggle in profile panel persisted to `localStorage` key `rr_theme`; theme applied at boot in `app.js` before splash fades |
 | 2026-03-19 | **Caddie View** — full-screen GPS + scoring overlay (`js/caddie.js`, `#caddie-view`); `gps.js` now populates `caddie-dist-{front,mid,back}`; Wake Lock API for screen-on during round |
 | 2026-03-19 | **Floating Caddie button** — draggable `#caddie-btn` appears above tab bar when `startGroupRound()` fires (`state.roundActive`), disappears when round finishes |
