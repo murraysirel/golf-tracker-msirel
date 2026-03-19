@@ -759,3 +759,22 @@ details[open] summary::after{content:' ▾'}
   --dim:   #4A5568;
   --dimmer:#718096;
 }
+
+/* ── Theme toggle (profile panel) ────────────────────────────── */
+.theme-toggle-wrap{
+  display:flex;gap:0;
+  background:var(--mid);
+  border-radius:8px;
+  padding:3px;
+}
+.theme-tab{
+  padding:6px 14px;
+  border:none;border-radius:6px;
+  font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;
+  background:transparent;color:var(--dim);
+  cursor:pointer;transition:background .15s,color .15s;
+}
+.theme-tab.active{
+  background:var(--card);color:var(--cream);
+  box-shadow:0 1px 3px rgba(0,0,0,.15);
+}

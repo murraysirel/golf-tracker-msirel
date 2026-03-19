@@ -20,6 +20,14 @@ import { initCompetition } from './competition.js';
 import { state } from './state.js';
 import { openCaddieView, closeCaddieView, initCaddieButton } from './caddie.js';
 
+// ── Theme ─────────────────────────────────────────────────────────
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  document.getElementById('theme-dark-btn')?.classList.toggle('active', theme === 'dark');
+  document.getElementById('theme-light-btn')?.classList.toggle('active', theme === 'light');
+}
+applyTheme(localStorage.getItem('rr_theme') || 'dark');
+
 // ── Register nav handlers (to avoid circular imports) ─────────────
 registerNavHandlers({
   renderStats,
@@ -137,6 +145,14 @@ document.getElementById('live-note')?.addEventListener('input', liveSaveNote);
 document.getElementById('live-flag-btn')?.addEventListener('click', openCorrectionModal);
 document.getElementById('correction-close-btn')?.addEventListener('click', () => { document.getElementById('correction-modal').style.display = 'none'; });
 document.getElementById('correction-submit-btn')?.addEventListener('click', submitCorrectionReport);
+
+// ── Theme toggle ─────────────────────────────────────────────────
+document.getElementById('theme-dark-btn')?.addEventListener('click', () => {
+  applyTheme('dark'); localStorage.setItem('rr_theme', 'dark');
+});
+document.getElementById('theme-light-btn')?.addEventListener('click', () => {
+  applyTheme('light'); localStorage.setItem('rr_theme', 'light');
+});
 
 // ── Caddie View ───────────────────────────────────────────────────
 document.getElementById('caddie-btn')?.addEventListener('click', openCaddieView);
