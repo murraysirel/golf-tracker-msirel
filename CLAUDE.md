@@ -251,3 +251,9 @@ Both variables are set in the Netlify dashboard. Neither is ever sent to the bro
 ## Change log
 
 <!-- Add entries here newest-first: date · author · description -->
+
+| Date | Change |
+|---|---|
+| 2026-03-19 | **Caddie View** — full-screen GPS + scoring overlay (`js/caddie.js`, `#caddie-view`); `gps.js` now populates `caddie-dist-{front,mid,back}`; Wake Lock API for screen-on during round |
+| 2026-03-19 | **Floating Caddie button** — draggable `#caddie-btn` appears above tab bar when `startGroupRound()` fires (`state.roundActive`), disappears when round finishes |
+| 2026-03-19 | **Nav reduced to 5 tabs** — Live and Players tabs removed from bottom nav; Players & Settings moved to a slide-in profile panel (`#profile-panel`) triggered by a circular icon in the header |
