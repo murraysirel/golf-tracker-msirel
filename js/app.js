@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────────────────────────
 import { loadGist } from './api.js';
 import { goTo, switchEntry, registerNavHandlers } from './nav.js';
-import { onCourseChange, populateCourses, scanCourseCard, saveCourse, cancelCourseScan, handleCoursePhoto } from './courses.js';
+import { onCourseChange, populateCourses, scanCourseCard, saveCourse, cancelCourseScan, handleCoursePhoto, searchCourseAPI } from './courses.js';
 import { buildSC, recalc, saveRound } from './scorecard.js';
 import { renderStats, setFilter, toggleHcpEdit, saveHandicap, renderHomeStats } from './stats.js';
 import { renderLeaderboard } from './leaderboard.js';
@@ -80,6 +80,10 @@ document.getElementById('save-round-btn')?.addEventListener('click', saveRound);
 document.getElementById('photo-drop')?.addEventListener('click', () => document.getElementById('photo-inp').click());
 document.getElementById('photo-inp')?.addEventListener('change', function () { handlePhoto(this); });
 document.getElementById('parse-btn')?.addEventListener('click', parsePhoto);
+
+// Course API search
+document.getElementById('api-search-btn')?.addEventListener('click', searchCourseAPI);
+document.getElementById('api-course-search')?.addEventListener('keydown', e => { if (e.key === 'Enter') searchCourseAPI(); });
 
 // Course card scanner
 document.getElementById('course-card-drop')?.addEventListener('click', () => document.getElementById('course-card-inp').click());

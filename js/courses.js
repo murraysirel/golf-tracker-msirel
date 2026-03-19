@@ -209,21 +209,36 @@ export function saveCourse() {
   }
 
   const tees = {};
-  ['blue','yellow','white','red'].forEach(tee => {
-    if (document.getElementById('tee-' + tee)?.checked) {
-      const hy = state.scannedYards[tee] || null;
-      const totalYards = hy ? hy.reduce((a, b) => a + (b || 0), 0) : 0;
-      const siClean = state.scannedSI.some(v => v != null) ? [...state.scannedSI] : null;
-      tees[tee] = {
+  if (state._apiTees && Object.keys(state._apiTees).length) {
+    // Use full API tee data — update par array from the editable grid
+    Object.entries(state._apiTees).forEach(([key, t]) => {
+      if (!document.getElementById('tee-' + key)?.checked && ['blue','yellow','white','red'].includes(key)) return;
+      tees[key] = {
+        ...t,
         par: [...state.scannedPars],
-        rating, slope,
-        yards: totalYards || 0,
+        rating: t.rating ?? rating,
+        slope: t.slope ?? slope,
         totalPar: par,
-        ...(hy ? { hy } : {}),
-        ...(siClean ? { si: siClean } : {})
       };
-    }
-  });
+    });
+    state._apiTees = null;
+  } else {
+    ['blue','yellow','white','red'].forEach(tee => {
+      if (document.getElementById('tee-' + tee)?.checked) {
+        const hy = state.scannedYards[tee] || null;
+        const totalYards = hy ? hy.reduce((a, b) => a + (b || 0), 0) : 0;
+        const siClean = state.scannedSI.some(v => v != null) ? [...state.scannedSI] : null;
+        tees[tee] = {
+          par: [...state.scannedPars],
+          rating, slope,
+          yards: totalYards || 0,
+          totalPar: par,
+          ...(hy ? { hy } : {}),
+          ...(siClean ? { si: siClean } : {})
+        };
+      }
+    });
+  }
 
   if (!Object.keys(tees).length) {
     document.getElementById('course-save-msg').textContent = 'Please select at least one tee colour.';
@@ -314,6 +329,147 @@ export function editScannedCourse(key) {
   });
   document.getElementById('course-review').style.display = 'block';
   delete state.gd.customCourses[key];
+}
+
+// ── Golf Course API search + import ──────────────────────────────
+
+// Map API tee names to app tee colour keys
+function apiTeeToKey(teeName) {
+  const n = (teeName || '').toLowerCase().trim();
+  if (/black|champion/.test(n)) return 'black';
+  if (/blue|back/.test(n)) return 'blue';
+  if (/white|medal|mens|men/.test(n)) return 'white';
+  if (/yellow|gents|standard|forward/.test(n)) return 'yellow';
+  if (/red|ladi|women/.test(n)) return 'red';
+  // fallback: keep first word, lowercase
+  return n.split(/\s+/)[0] || 'white';
+}
+
+export async function searchCourseAPI() {
+  const q = document.getElementById('api-course-search')?.value.trim();
+  const msg = document.getElementById('api-search-msg');
+  const results = document.getElementById('api-search-results');
+  if (!q) { msg.textContent = 'Enter a course name to search.'; return; }
+
+  msg.innerHTML = '<span class="spin"></span> Searching…';
+  results.innerHTML = '';
+
+  try {
+    const resp = await fetch(`/.netlify/functions/courses?search=${encodeURIComponent(q)}`);
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Search failed');
+
+    const courses = data.courses || [];
+    if (!courses.length) { msg.textContent = 'No courses found. Try a different name.'; return; }
+
+    msg.textContent = `${courses.length} result${courses.length > 1 ? 's' : ''} found:`;
+    results.innerHTML = '';
+    courses.slice(0, 10).forEach(c => {
+      const div = document.createElement('div');
+      div.style.cssText = 'padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer';
+      div.innerHTML = `
+        <div style="font-size:13px;font-weight:500;color:var(--cream)">${c.club_name || c.course_name || 'Unknown'}</div>
+        <div style="font-size:10px;color:var(--dim);margin-top:2px">${[c.location?.city, c.location?.state, c.location?.country].filter(Boolean).join(', ') || ''}</div>
+        <div style="font-size:10px;color:var(--gold);margin-top:2px">${c.holes || 18} holes · Tap to import →</div>`;
+      div.addEventListener('click', () => importCourseFromAPI(c.id));
+      results.appendChild(div);
+    });
+  } catch (e) {
+    msg.textContent = '⚠️ Search failed — check your connection and try again.';
+    console.error('Course API search error:', e);
+  }
+}
+
+export async function importCourseFromAPI(courseId) {
+  const msg = document.getElementById('api-search-msg');
+  const results = document.getElementById('api-search-results');
+  msg.innerHTML = '<span class="spin"></span> Importing course…';
+  results.innerHTML = '';
+
+  try {
+    const resp = await fetch(`/.netlify/functions/courses?id=${encodeURIComponent(courseId)}`);
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Import failed');
+
+    const c = data.course || data;
+
+    // Build name and location
+    const name = c.club_name || c.course_name || '';
+    const loc = [c.location?.city, c.location?.state, c.location?.country].filter(Boolean).join(', ');
+
+    // Build tees from API tee data
+    const tees = {};
+    (c.tees || []).forEach(tee => {
+      const key = apiTeeToKey(tee.tee_name);
+      const holes = tee.holes || [];
+      if (holes.length < 9) return;
+      const par = holes.map(h => h.par || 4);
+      const hy = holes.map(h => h.yardage || null);
+      tees[key] = {
+        par,
+        rating: tee.course_rating || null,
+        slope: tee.slope_rating || null,
+        yards: tee.total_yards || hy.reduce((a, b) => a + (b || 0), 0) || 0,
+        totalPar: tee.par_total || par.reduce((a, b) => a + b, 0),
+        hy,
+      };
+    });
+
+    if (!Object.keys(tees).length) throw new Error('No tee data returned for this course');
+
+    // Seed approximate green coords from course lat/lng if available
+    if (c.location?.latitude && c.location?.longitude && name) {
+      if (!state.gd.greenCoords) state.gd.greenCoords = {};
+      if (!state.gd.greenCoords[name]) {
+        // Place all 18 holes at course centre — very approximate
+        const lat = parseFloat(c.location.latitude);
+        const lng = parseFloat(c.location.longitude);
+        state.gd.greenCoords[name] = {};
+        for (let h = 1; h <= 18; h++) {
+          state.gd.greenCoords[name][h] = { lat, lng, _approx: true };
+        }
+      }
+    }
+
+    // Populate the review form
+    document.getElementById('sc-name').value = name;
+    document.getElementById('sc-loc').value = loc;
+
+    const firstTeeKey = Object.keys(tees)[0];
+    const firstTee = tees[firstTeeKey];
+    document.getElementById('sc-par').value = firstTee.totalPar || '';
+    document.getElementById('sc-rating').value = firstTee.rating || '';
+    document.getElementById('sc-slope').value = firstTee.slope || '';
+
+    // Store tee yard data on state for saveCourse() to pick up
+    state.scannedPars = [...firstTee.par];
+    state.scannedSI = Array(18).fill(null);
+    state.scannedYards = {};
+    Object.entries(tees).forEach(([k, t]) => {
+      if (t.hy) state.scannedYards[k] = t.hy;
+    });
+    // Store extra tee data so saveCourse() gets all tees
+    state._apiTees = tees;
+
+    buildParEditGrid(state.scannedPars);
+
+    // Check tee colour boxes for tees we got
+    ['blue', 'yellow', 'white', 'red', 'black'].forEach(t => {
+      const cb = document.getElementById('tee-' + t);
+      if (cb) cb.checked = !!(tees[t]);
+    });
+
+    document.getElementById('course-review').style.display = 'block';
+    msg.innerHTML = `<span style="color:#2ecc71">✅ ${name} imported — review below, then save.</span>`;
+    results.innerHTML = '';
+
+    // Scroll to review section
+    document.getElementById('course-review').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  } catch (e) {
+    msg.textContent = `⚠️ Import failed: ${e.message}`;
+    console.error('Course API import error:', e);
+  }
 }
 
 export function handleCoursePhoto(input) {

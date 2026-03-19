@@ -240,6 +240,18 @@
 
         <div id="entry-course" style="display:none">
           <div class="card">
+            <div class="ct">Search Course Database</div>
+            <div style="font-size:12px;color:var(--dim);margin-bottom:12px;line-height:1.6">
+              Search thousands of courses worldwide. Hole pars, yardages, ratings and slopes imported automatically.
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:10px">
+              <input type="text" id="api-course-search" placeholder="e.g. Croham Hurst" style="flex:1">
+              <button class="btn" id="api-search-btn" style="width:auto;padding:0 18px;white-space:nowrap">Search</button>
+            </div>
+            <div id="api-search-msg" style="font-size:11px;color:var(--dim);margin-bottom:6px"></div>
+            <div id="api-search-results"></div>
+          </div>
+          <div class="card">
             <div class="ct">📸 Scan Course Scorecard</div>
             <div style="font-size:12px;color:var(--dim);margin-bottom:12px;line-height:1.6">
               Photograph the printed scorecard from any course. AI reads the course name, all 18 hole pars, distances and stroke indexes — then saves it permanently to your group's course list.
