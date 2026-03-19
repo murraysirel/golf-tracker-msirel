@@ -6,6 +6,20 @@ import { getCourseByRef } from './courses.js';
 import { recalc } from './scorecard.js';
 import { goTo } from './nav.js';
 
+
+// ── Wake Lock ─────────────────────────────────────────────────────
+async function requestWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  try {
+    state.wakeLock = await navigator.wakeLock.request('screen');
+    state.wakeLock.addEventListener('release', () => { state.wakeLock = null; });
+  } catch (e) { /* denied or not supported */ }
+}
+
+function releaseWakeLock() {
+  if (state.wakeLock) { state.wakeLock.release(); state.wakeLock = null; }
+}
+
 // ── Group setup ───────────────────────────────────────────────────
 
 export function initLiveRound() {
@@ -34,11 +48,9 @@ export function initLiveRound() {
 
 function showGroupSetup() {
   const setup = document.getElementById('live-group-setup');
-  const hdr = document.getElementById('live-hole-view-hdr');
-  const body = document.querySelector('#pg-live .live-body');
+  const holeView = document.getElementById('live-hole-view');
   if (setup) setup.style.display = 'block';
-  if (hdr) hdr.style.display = 'none';
-  if (body) body.style.display = 'none';
+  if (holeView) holeView.style.display = 'none';
 
   // Render player chips
   const chips = document.getElementById('live-group-chips');
@@ -131,17 +143,32 @@ export function startGroupRound() {
 
   // Show hole view
   const setup = document.getElementById('live-group-setup');
-  const hdr = document.getElementById('live-hole-view-hdr');
-  const body = document.querySelector('#pg-live .live-body');
+  const holeView = document.getElementById('live-hole-view');
   if (setup) setup.style.display = 'none';
-  if (hdr) hdr.style.display = '';
-  if (body) body.style.display = '';
+  if (holeView) holeView.style.display = 'block';
 
   liveRenderPips();
   liveGoto(state.liveState.hole);
-  // Show caddie button
+
+  // Show floating caddie button (returns to this screen if user navigates away)
   state.roundActive = true;
   document.getElementById('caddie-btn')?.classList.add('visible');
+
+  // Wake lock (persistent preference stored in localStorage)
+  const wlPref = localStorage.getItem('rr_wakelock');
+  if ('wakeLock' in navigator) {
+    if (wlPref === 'yes') {
+      requestWakeLock();
+    } else if (wlPref === null && confirm('Keep screen on during your round?')) {
+      localStorage.setItem('rr_wakelock', 'yes');
+      requestWakeLock();
+    } else if (wlPref === null) {
+      localStorage.setItem('rr_wakelock', 'no');
+    }
+  }
+
+  // Auto-start GPS watch (distances display once green coords are available)
+  import('./gps.js').then(({ startGPSWatch }) => startGPSWatch());
 }
 
 // ── Pip strip ─────────────────────────────────────────────────────
@@ -190,40 +217,16 @@ export function liveGoto(h) {
   document.getElementById('live-yards').textContent = hYards?.[h] || '—';
   document.getElementById('live-si').textContent = si?.[h] || '—';
 
-  const isGroup = state.liveState.group.length > 1;
-
-  // Show/hide views
-  const singleView = document.getElementById('live-single-view');
-  const groupView = document.getElementById('live-group-view');
-  if (singleView) singleView.style.display = isGroup ? 'none' : '';
-  if (groupView) groupView.style.display = isGroup ? '' : 'none';
-
-  if (isGroup) {
-    liveRenderGroupHole(h);
-  } else {
-    const sc = state.liveState.scores[h];
-    const sv = document.getElementById('live-score-val');
-    sv.textContent = sc != null ? sc : '—';
-    if (sc != null) {
-      const d = sc - par;
-      sv.style.color = d <= -2 ? 'var(--eagle)' : d === -1 ? 'var(--birdie)' : d === 0 ? 'var(--par)' : d === 1 ? 'var(--bogey)' : 'var(--double)';
-    } else sv.style.color = 'var(--gold)';
-
-    const pv = state.liveState.putts[h];
-    document.getElementById('live-putt-val').textContent = pv != null ? pv : '—';
-
-    const firField = document.getElementById('live-fir-field');
-    firField.style.display = par === 3 ? 'none' : 'block';
-    liveUpdateToggle('fir', state.liveState.fir[h]);
-    liveUpdateToggle('gir', state.liveState.gir[h]);
-  }
+  // Always use group rendering (handles 1 or more players)
+  liveRenderGroupHole(h);
 
   document.getElementById('live-note').value = state.liveState.notes[h] || '';
 
-  // Update GPS if active
-  import('./gps.js').then(({ updateGPSDisplay, updateLiveGPSPill }) => {
+  // Update GPS display and pin-green button
+  import('./gps.js').then(({ updateGPSDisplay, hasGreenCoords }) => {
     if (state.gpsState.watching) updateGPSDisplay(h);
-    updateLiveGPSPill();
+    const pinBtn = document.getElementById('live-pin-green-btn');
+    if (pinBtn) pinBtn.style.display = hasGreenCoords(h) ? 'none' : 'block';
   });
 
   document.getElementById('live-prev').disabled = h === 0;
@@ -526,19 +529,9 @@ export function liveNextOrFinish() {
 async function liveFinishAndSave() {
   state.roundActive = false;
   document.getElementById('caddie-btn')?.classList.remove('visible');
-  const isGroup = state.liveState.group.length > 1;
-
-  if (isGroup) {
-    // Multi-player: save a round record for each player
-    await liveGroupSave();
-  } else {
-    // Single player: sync to manual scorecard and go to round tab for review/save
-    for (let i = 0; i < 18; i++) liveSyncToManual(i);
-    goTo('round');
-    setTimeout(() => {
-      document.getElementById('save-round-btn')?.scrollIntoView({ behavior: 'smooth' });
-    }, 300);
-  }
+  releaseWakeLock();
+  // Always save directly for all group sizes
+  await liveGroupSave();
 }
 
 async function liveGroupSave() {

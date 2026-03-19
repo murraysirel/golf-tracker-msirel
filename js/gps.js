@@ -32,21 +32,23 @@ function getTeeCoords(hole0) {
   return tees[hole0];
 }
 
-export function updateLiveGPSPill() {
-  const pill = document.getElementById('live-gps-pill');
-  const pillText = document.getElementById('live-gps-pill-text');
-  if (!pill || !pillText) return;
-  if (state.gpsState.watching) {
-    pill.style.background = 'rgba(46,204,113,.1)';
-    pill.style.borderColor = 'rgba(46,204,113,.3)';
-    pill.style.color = 'var(--par)';
-    pillText.textContent = 'GPS active — distances showing below';
-  } else {
-    pill.style.background = 'rgba(201,168,76,.07)';
-    pill.style.borderColor = 'rgba(201,168,76,.2)';
-    pill.style.color = 'var(--dim)';
-    pillText.textContent = 'GPS off — tap to start';
-  }
+export function hasGreenCoords(hole0) {
+  return getGreenCoords(hole0) !== null;
+}
+
+// startGPSWatch: always starts position watching for the unified live screen.
+// Distances show once green coords exist; no alert if they're missing.
+export function startGPSWatch() {
+  if (!navigator.geolocation || state.gpsState.watching) return;
+  state.gpsState.watching = true;
+  state.gpsState.watchId = navigator.geolocation.watchPosition(
+    pos => {
+      state.gpsState.coords = pos.coords;
+      updateGPSDisplay(state.liveState?.hole || 0);
+    },
+    err => { console.warn('GPS error:', err.message); },
+    { enableHighAccuracy: true, maximumAge: 3000, timeout: 15000 }
+  );
 }
 
 export function startGPS() {
@@ -87,8 +89,13 @@ export function stopGPS() {
   if (state.gpsState.watchId != null) navigator.geolocation.clearWatch(state.gpsState.watchId);
   state.gpsState.watching = false;
   state.gpsState.watchId = null;
-  document.getElementById('gps-bar').style.display = 'none';
-  updateLiveGPSPill();
+  const bar = document.getElementById('gps-bar');
+  if (bar) bar.style.display = 'none';
+  // Reset distance displays
+  ['front','mid','back'].forEach(t => {
+    const el = document.getElementById('live-dist-' + t);
+    if (el) el.textContent = '—';
+  });
 }
 
 export function gpsSetTarget(t) {
@@ -111,15 +118,13 @@ export function updateGPSDisplay(hole0) {
   );
   document.getElementById('gps-dist').textContent = yards;
 
-  // Also update caddie view distances
+  // Update unified live screen distances
   const { latitude: _clat, longitude: _clng } = state.gpsState.coords;
   ['front','mid','back'].forEach(t => {
     const tgt = green[t];
-    if (tgt) {
-      const y = haversineYards(_clat, _clng, tgt.lat, tgt.lng);
-      const el = document.getElementById('caddie-dist-' + t);
-      if (el) el.textContent = y;
-    }
+    const y = tgt ? haversineYards(_clat, _clng, tgt.lat, tgt.lng) : null;
+    const el = document.getElementById('live-dist-' + t);
+    if (el) el.textContent = y !== null ? y : '—';
   });
 
   // Show tee distance if tee is pinned
