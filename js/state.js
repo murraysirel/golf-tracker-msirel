@@ -49,5 +49,7 @@ export const state = {
     watchId: null,
     target: 'mid',
     coords: null
-  }
+  },
+  roundActive: false,
+  wakeLock: null
 };

@@ -18,6 +18,7 @@ import { openAdminSettings, closeAdminSettings, verifyAdminPw, adminPopulateRoun
 import { copyGroupCode, leaveGroup, toggleGroupCodeRequired, addSeason, deleteSeason, confirmDeleteMyData, deleteMyData, copyAppUrl, rebuildSeasonSelector } from './group.js';
 import { initCompetition } from './competition.js';
 import { state } from './state.js';
+import { openCaddieView, closeCaddieView, initCaddieButton } from './caddie.js';
 
 // ── Register nav handlers (to avoid circular imports) ─────────────
 registerNavHandlers({
@@ -43,11 +44,32 @@ registerNavHandlers({
 // ── Navigation bar ────────────────────────────────────────────────
 document.getElementById('nb-home')?.addEventListener('click', () => goTo('home'));
 document.getElementById('nb-round')?.addEventListener('click', () => goTo('round'));
-document.getElementById('nb-live')?.addEventListener('click', () => goTo('competition'));
 document.getElementById('nb-stats')?.addEventListener('click', () => goTo('stats'));
 document.getElementById('nb-leaderboard')?.addEventListener('click', () => goTo('leaderboard'));
 document.getElementById('nb-practice')?.addEventListener('click', () => goTo('practice'));
-document.getElementById('nb-players')?.addEventListener('click', () => goTo('players'));
+
+// ── Profile panel ─────────────────────────────────────────────────
+function openProfilePanel() {
+  import('./players.js').then(({ renderAllPlayers }) => renderAllPlayers());
+  import('./courses.js').then(({ renderScannedCourses }) => renderScannedCourses());
+  document.getElementById('profile-panel')?.classList.add('open');
+  document.getElementById('profile-backdrop')?.classList.add('open');
+  const gc = document.getElementById('players-group-code');
+  if (gc && state.gd?.groupCode) gc.textContent = state.gd.groupCode;
+  const admin = document.getElementById('admin-gistid');
+  if (admin) admin.textContent = 'gist.github.com/murraysirel/' + (state.gd?.groupCode || '');
+  const gistRow = document.getElementById('gist-row');
+  if (gistRow) gistRow.style.display = '';
+  const sgistid = document.getElementById('s-gistid');
+  import('./constants.js').then(({ DEFAULT_GIST }) => { if (sgistid) sgistid.textContent = 'gist.github.com/murraysirel/' + DEFAULT_GIST; });
+}
+function closeProfilePanel() {
+  document.getElementById('profile-panel')?.classList.remove('open');
+  document.getElementById('profile-backdrop')?.classList.remove('open');
+}
+document.getElementById('profile-icon-btn')?.addEventListener('click', openProfilePanel);
+document.getElementById('profile-panel-close')?.addEventListener('click', closeProfilePanel);
+document.getElementById('profile-backdrop')?.addEventListener('click', closeProfilePanel);
 
 // ── Onboard ───────────────────────────────────────────────────────
 document.getElementById('onb-join-btn')?.addEventListener('click', addAndEnter);
@@ -115,6 +137,23 @@ document.getElementById('live-note')?.addEventListener('input', liveSaveNote);
 document.getElementById('live-flag-btn')?.addEventListener('click', openCorrectionModal);
 document.getElementById('correction-close-btn')?.addEventListener('click', () => { document.getElementById('correction-modal').style.display = 'none'; });
 document.getElementById('correction-submit-btn')?.addEventListener('click', submitCorrectionReport);
+
+// ── Caddie View ───────────────────────────────────────────────────
+document.getElementById('caddie-btn')?.addEventListener('click', openCaddieView);
+document.getElementById('caddie-close-btn')?.addEventListener('click', closeCaddieView);
+document.getElementById('caddie-score-minus')?.addEventListener('click', () => { import('./caddie.js').then(m => m.caddieAdj('score', -1)); });
+document.getElementById('caddie-score-plus')?.addEventListener('click', () => { import('./caddie.js').then(m => m.caddieAdj('score', 1)); });
+document.getElementById('caddie-putt-minus')?.addEventListener('click', () => { import('./caddie.js').then(m => m.caddieAdj('putts', -1)); });
+document.getElementById('caddie-putt-plus')?.addEventListener('click', () => { import('./caddie.js').then(m => m.caddieAdj('putts', 1)); });
+document.getElementById('caddie-fir-yes')?.addEventListener('click', () => { import('./caddie.js').then(m => m.caddieToggle('fir', 'Yes')); });
+document.getElementById('caddie-fir-no')?.addEventListener('click', () => { import('./caddie.js').then(m => m.caddieToggle('fir', 'No')); });
+document.getElementById('caddie-gir-yes')?.addEventListener('click', () => { import('./caddie.js').then(m => m.caddieToggle('gir', 'Yes')); });
+document.getElementById('caddie-gir-no')?.addEventListener('click', () => { import('./caddie.js').then(m => m.caddieToggle('gir', 'No')); });
+document.getElementById('caddie-note')?.addEventListener('input', () => { import('./caddie.js').then(m => m.caddieNote()); });
+document.getElementById('caddie-prev-btn')?.addEventListener('click', () => { import('./caddie.js').then(m => m.caddiePrev()); });
+document.getElementById('caddie-next-btn')?.addEventListener('click', () => { import('./caddie.js').then(m => m.caddieNext()); });
+// Initialise caddie button drag behaviour
+initCaddieButton();
 
 // ── Stats ─────────────────────────────────────────────────────────
 document.getElementById('hcp-edit-btn')?.addEventListener('click', toggleHcpEdit);
