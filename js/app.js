@@ -10,7 +10,7 @@ import { renderStats, setFilter, toggleHcpEdit, saveHandicap, renderHomeStats } 
 import { renderLeaderboard } from './leaderboard.js';
 import { renderOnboard, enterAs, addAndEnter, signOut, addPlayer, renderAllPlayers, renderPlayersToday } from './players.js';
 import { renderPracticePage, selectPracticeArea, startPracticeSession, regeneratePlan, logPracticeShots, completePracticeSession } from './practice.js';
-import { initLiveRound, liveGoto, liveAdj, liveSetToggle, liveSaveNote, liveNextOrFinish, liveRenderPips, toggleGroupPlayer, startGroupRound, toggleMatchPlay } from './live.js';
+import { initLiveRound, liveGoto, liveAdj, liveSetToggle, liveSaveNote, liveNextOrFinish, liveRenderPips, toggleGroupPlayer, startGroupRound, toggleMatchPlay, openCorrectionModal, submitCorrectionReport } from './live.js';
 import { generateAIReview, generateStatsAnalysis, clearStatsAnalysis, parsePhoto, handlePhoto } from './ai.js';
 import { startGPS, stopGPS, gpsSetTarget, pinGreenPosition, pinTeePosition } from './gps.js';
 import { exportXlsx } from './export.js';
@@ -108,6 +108,9 @@ document.getElementById('live-fir-no')?.addEventListener('click', () => liveSetT
 document.getElementById('live-gir-yes')?.addEventListener('click', () => liveSetToggle('gir', 'Yes'));
 document.getElementById('live-gir-no')?.addEventListener('click', () => liveSetToggle('gir', 'No'));
 document.getElementById('live-note')?.addEventListener('input', liveSaveNote);
+document.getElementById('live-flag-btn')?.addEventListener('click', openCorrectionModal);
+document.getElementById('correction-close-btn')?.addEventListener('click', () => { document.getElementById('correction-modal').style.display = 'none'; });
+document.getElementById('correction-submit-btn')?.addEventListener('click', submitCorrectionReport);
 
 // ── Stats ─────────────────────────────────────────────────────────
 document.getElementById('hcp-edit-btn')?.addEventListener('click', toggleHcpEdit);

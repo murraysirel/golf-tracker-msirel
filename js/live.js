@@ -609,3 +609,63 @@ async function liveGroupSave() {
 export function liveFinish() {
   liveNextOrFinish();
 }
+
+// ── Course correction report (Feature 5) ─────────────────────────
+
+export function openCorrectionModal() {
+  const modal = document.getElementById('correction-modal');
+  if (!modal) return;
+
+  const h = state.liveState.hole;
+  const par = state.cpars[h];
+  const ci = document.getElementById('course-sel')?.value;
+  const course = ci !== '' ? getCourseByRef(ci) : null;
+  const teeData = course?.tees?.[state.stee];
+  const yards = teeData?.hy?.[h] || '—';
+  const si = teeData?.si?.[h] || '—';
+
+  const prefill = document.getElementById('correction-prefill');
+  if (prefill) {
+    prefill.innerHTML = `<strong style="color:var(--gold)">${course?.name || 'Unknown course'}</strong><br>
+      Hole ${h + 1} · Par ${par} · Yards ${yards} · SI ${si}`;
+  }
+
+  const note = document.getElementById('correction-note');
+  if (note) note.value = '';
+  const msg = document.getElementById('correction-msg');
+  if (msg) msg.textContent = '';
+
+  modal.style.display = 'flex';
+}
+
+export async function submitCorrectionReport() {
+  const note = document.getElementById('correction-note')?.value.trim();
+  const msg = document.getElementById('correction-msg');
+  if (!note) { if (msg) msg.textContent = 'Please describe the issue.'; return; }
+
+  const h = state.liveState.hole;
+  const par = state.cpars[h];
+  const ci = document.getElementById('course-sel')?.value;
+  const course = ci !== '' ? getCourseByRef(ci) : null;
+  const teeData = course?.tees?.[state.stee];
+
+  if (!state.gd.courseCorrections) state.gd.courseCorrections = [];
+  state.gd.courseCorrections.push({
+    id: Date.now(),
+    course: course?.name || '',
+    hole: h + 1,
+    par,
+    yards: teeData?.hy?.[h] || null,
+    si: teeData?.si?.[h] || null,
+    reportedBy: state.me,
+    reportedAt: new Date().toLocaleDateString('en-GB') + ' ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+    note,
+    status: 'pending'
+  });
+
+  const { pushGist } = await import('./api.js');
+  await pushGist();
+
+  if (msg) { msg.style.color = 'var(--par)'; msg.textContent = '✅ Report submitted — admin will review.'; }
+  setTimeout(() => { document.getElementById('correction-modal').style.display = 'none'; }, 1500);
+}

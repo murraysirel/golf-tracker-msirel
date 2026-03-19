@@ -32,6 +32,7 @@ export function verifyAdminPw() {
     document.getElementById('admin-panel').style.display = 'block';
     adminPopulatePlayers();
     renderAdminLog();
+    renderAdminCorrections();
   } else {
     document.getElementById('admin-pw-err').style.display = 'block';
   }
@@ -101,4 +102,104 @@ function renderAdminLog() {
       <span style="color:#e74c3c">\uD83D\uDDD1</span> <strong style="color:var(--cream)">${e.player}</strong> \u2014 ${e.course} (${e.date}) deleted by <strong style="color:var(--gold)">${e.deletedBy}</strong> on ${e.deletedAt}
     </div>`
   ).join('');
+}
+
+function renderAdminCorrections() {
+  const el = document.getElementById('admin-corrections');
+  if (!el) return;
+  const corrections = (state.gd.courseCorrections || []).filter(c => c.status === 'pending');
+  if (!corrections.length) { el.textContent = 'No pending corrections.'; return; }
+  el.innerHTML = '';
+  corrections.forEach((c, idx) => {
+    // Find original index in the full array
+    const origIdx = state.gd.courseCorrections.indexOf(c);
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:10px;margin-bottom:8px';
+    wrap.innerHTML = `
+      <div style="font-weight:600;color:var(--cream);font-size:12px;margin-bottom:4px">${c.course} — Hole ${c.hole}</div>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:4px">Par ${c.par} · Yards ${c.yards ?? '—'} · SI ${c.si ?? '—'}</div>
+      <div style="font-size:11px;color:var(--cream);margin-bottom:6px;font-style:italic">"${c.note}"</div>
+      <div style="font-size:10px;color:var(--dimmer);margin-bottom:8px">By ${c.reportedBy} · ${c.reportedAt}</div>
+      <div id="correction-edit-${origIdx}" style="display:none;margin-bottom:8px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <label style="font-size:10px;color:var(--dim)">Par<input type="number" id="fix-par-${origIdx}" value="${c.par}" min="3" max="6" style="width:44px;margin-left:4px"></label>
+          <label style="font-size:10px;color:var(--dim)">Yards<input type="number" id="fix-yards-${origIdx}" value="${c.yards ?? ''}" min="50" max="700" style="width:54px;margin-left:4px"></label>
+          <label style="font-size:10px;color:var(--dim)">SI<input type="number" id="fix-si-${origIdx}" value="${c.si ?? ''}" min="1" max="18" style="width:44px;margin-left:4px"></label>
+        </div>
+        <button class="btn btn-sm" style="margin-top:6px;padding:6px 12px;font-size:11px" data-save-fix="${origIdx}">Save fix</button>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:11px" data-open-fix="${origIdx}">Apply fix</button>
+        <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:11px;border-color:rgba(231,76,60,.3);color:#e74c3c" data-dismiss="${origIdx}">Dismiss</button>
+      </div>`;
+    el.appendChild(wrap);
+  });
+
+  // Bind events
+  el.querySelectorAll('[data-open-fix]').forEach(btn => {
+    const i = btn.dataset.openFix;
+    btn.addEventListener('click', () => {
+      const edit = document.getElementById('correction-edit-' + i);
+      if (edit) edit.style.display = edit.style.display === 'none' ? '' : 'none';
+    });
+  });
+  el.querySelectorAll('[data-save-fix]').forEach(btn => {
+    btn.addEventListener('click', () => adminApplyFix(parseInt(btn.dataset.saveFix)));
+  });
+  el.querySelectorAll('[data-dismiss]').forEach(btn => {
+    btn.addEventListener('click', () => adminDismissCorrection(parseInt(btn.dataset.dismiss)));
+  });
+}
+
+async function adminApplyFix(origIdx) {
+  const c = state.gd.courseCorrections?.[origIdx];
+  if (!c) return;
+  const newPar = parseInt(document.getElementById('fix-par-' + origIdx)?.value);
+  const newYards = parseInt(document.getElementById('fix-yards-' + origIdx)?.value) || null;
+  const newSI = parseInt(document.getElementById('fix-si-' + origIdx)?.value) || null;
+  const holeIdx = c.hole - 1; // 0-based
+
+  // Apply to all tees of the matching course
+  const { COURSES } = await import('./constants.js');
+  const { getCourseByRef } = await import('./courses.js');
+  let applied = false;
+
+  // Try built-in courses
+  COURSES.forEach(course => {
+    if (course.name !== c.course) return;
+    Object.values(course.tees).forEach(teeData => {
+      if (!isNaN(newPar) && teeData.par?.[holeIdx] != null) { teeData.par[holeIdx] = newPar; applied = true; }
+      if (newYards && teeData.hy) teeData.hy[holeIdx] = newYards;
+      if (newSI && teeData.si) teeData.si[holeIdx] = newSI;
+    });
+  });
+
+  // Also try custom courses
+  if (state.gd.customCourses?.[c.course]) {
+    const cc = state.gd.customCourses[c.course];
+    Object.values(cc.tees || {}).forEach(teeData => {
+      if (!isNaN(newPar) && teeData.par?.[holeIdx] != null) { teeData.par[holeIdx] = newPar; applied = true; }
+      if (newYards && teeData.hy) teeData.hy[holeIdx] = newYards;
+      if (newSI && teeData.si) teeData.si[holeIdx] = newSI;
+    });
+  }
+
+  c.status = 'resolved';
+  c.resolvedAt = new Date().toLocaleDateString('en-GB');
+  c.resolvedBy = state.me;
+  await pushGist();
+  renderAdminCorrections();
+  const msg = document.getElementById('admin-del-msg');
+  if (msg) { msg.style.color = 'var(--par)'; msg.innerHTML = `<span style="color:#2ecc71">✅ Fix applied${!applied ? ' (custom course updated — built-in courses require a code change)' : ''}.</span>`; }
+}
+
+async function adminDismissCorrection(origIdx) {
+  const c = state.gd.courseCorrections?.[origIdx];
+  if (!c) return;
+  c.status = 'dismissed';
+  c.resolvedAt = new Date().toLocaleDateString('en-GB');
+  c.resolvedBy = state.me;
+  await pushGist();
+  renderAdminCorrections();
 }
