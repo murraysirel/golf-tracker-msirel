@@ -4,21 +4,21 @@
 // ─────────────────────────────────────────────────────────────────
 import { loadGist } from './api.js';
 import { goTo, switchEntry, registerNavHandlers } from './nav.js';
-import { onCourseChange, populateCourses, scanCourseCard, saveCourse, cancelCourseScan, handleCoursePhoto, searchCourseAPI } from './courses.js';
+import { onCourseChange, scanCourseCard, saveCourse, cancelCourseScan, handleCoursePhoto, searchCourseAPI } from './courses.js';
 import { buildSC, recalc, saveRound } from './scorecard.js';
 import { renderStats, setFilter, toggleHcpEdit, saveHandicap, renderHomeStats } from './stats.js';
 import { renderLeaderboard } from './leaderboard.js';
 import { renderOnboard, enterAs, addAndEnter, signOut, addPlayer, renderAllPlayers, renderPlayersToday } from './players.js';
 import { renderPracticePage, selectPracticeArea, startPracticeSession, regeneratePlan, logPracticeShots, completePracticeSession } from './practice.js';
-import { initLiveRound, liveGoto, liveAdj, liveSetToggle, liveSaveNote, liveNextOrFinish, liveRenderPips, toggleGroupPlayer, startGroupRound, toggleMatchPlay, openCorrectionModal, submitCorrectionReport } from './live.js';
+import { initLiveRound, liveGoto, liveSaveNote, liveNextOrFinish, toggleGroupPlayer, startGroupRound, toggleMatchPlay, openCorrectionModal, submitCorrectionReport } from './live.js';
 import { generateAIReview, generateStatsAnalysis, clearStatsAnalysis, parsePhoto, handlePhoto } from './ai.js';
-import { startGPS, stopGPS, gpsSetTarget, pinGreenPosition, pinTeePosition } from './gps.js';
+import { stopGPS, gpsSetTarget, pinGreenPosition, pinTeePosition } from './gps.js';
 import { exportXlsx } from './export.js';
 import { openAdminSettings, closeAdminSettings, verifyAdminPw, adminPopulateRounds, adminDeleteRound } from './admin.js';
 import { copyGroupCode, leaveGroup, toggleGroupCodeRequired, addSeason, deleteSeason, confirmDeleteMyData, deleteMyData, copyAppUrl, rebuildSeasonSelector } from './group.js';
 import { initCompetition } from './competition.js';
 import { state } from './state.js';
-import { openCaddieView, closeCaddieView, initCaddieButton } from './caddie.js';
+import { initCaddieButton } from './caddie.js';
 
 // ── Theme ─────────────────────────────────────────────────────────
 function applyTheme(theme) {
@@ -95,13 +95,22 @@ document.getElementById('gps-btn-front')?.addEventListener('click', () => gpsSet
 document.getElementById('gps-btn-back')?.addEventListener('click', () => gpsSetTarget('back'));
 document.getElementById('gps-stop-btn')?.addEventListener('click', stopGPS);
 document.getElementById('gps-btn-pin-tee')?.addEventListener('click', () => pinTeePosition(state.liveState?.hole || 0));
-document.getElementById('live-gps-pill')?.addEventListener('click', startGPS);
-
 // ── Round / scorecard tab ─────────────────────────────────────────
-document.getElementById('tab-m')?.addEventListener('click', () => switchEntry('manual'));
-document.getElementById('tab-p')?.addEventListener('click', () => switchEntry('photo'));
-document.getElementById('tab-c')?.addEventListener('click', () => switchEntry('course'));
-document.getElementById('tab-l')?.addEventListener('click', () => goTo('live'));
+// Entry card buttons
+document.getElementById('entry-btn-manual')?.addEventListener('click', () => switchEntry('manual'));
+document.getElementById('entry-btn-photo')?.addEventListener('click', () => switchEntry('photo'));
+document.getElementById('entry-btn-course')?.addEventListener('click', () => switchEntry('course'));
+
+// Play with the Caddie CTA
+document.getElementById('caddie-play-btn')?.addEventListener('click', () => {
+  const courseVal = document.getElementById('course-sel')?.value;
+  if (!courseVal) {
+    document.getElementById('caddie-inline-setup')?.style && (document.getElementById('caddie-inline-setup').style.display = 'block');
+  } else {
+    goTo('live');
+  }
+});
+document.getElementById('caddie-letsgo-btn')?.addEventListener('click', () => goTo('live'));
 
 document.getElementById('course-sel')?.addEventListener('change', onCourseChange);
 document.getElementById('save-round-btn')?.addEventListener('click', saveRound);
@@ -131,17 +140,11 @@ document.getElementById('live-prev')?.addEventListener('click', () => liveGoto(s
 document.getElementById('live-next')?.addEventListener('click', () => liveGoto(state.liveState.hole + 1));
 document.getElementById('live-btn-prev2')?.addEventListener('click', () => liveGoto(state.liveState.hole - 1));
 document.getElementById('live-btn-next2')?.addEventListener('click', liveNextOrFinish);
-document.getElementById('live-go-round')?.addEventListener('click', () => goTo('round'));
-document.getElementById('live-gps-btn')?.addEventListener('click', startGPS);
-document.getElementById('live-score-minus')?.addEventListener('click', () => liveAdj('score', -1));
-document.getElementById('live-score-plus')?.addEventListener('click', () => liveAdj('score', 1));
-document.getElementById('live-putt-minus')?.addEventListener('click', () => liveAdj('putts', -1));
-document.getElementById('live-putt-plus')?.addEventListener('click', () => liveAdj('putts', 1));
-document.getElementById('live-fir-yes')?.addEventListener('click', () => liveSetToggle('fir', 'Yes'));
-document.getElementById('live-fir-no')?.addEventListener('click', () => liveSetToggle('fir', 'No'));
-document.getElementById('live-gir-yes')?.addEventListener('click', () => liveSetToggle('gir', 'Yes'));
-document.getElementById('live-gir-no')?.addEventListener('click', () => liveSetToggle('gir', 'No'));
 document.getElementById('live-note')?.addEventListener('input', liveSaveNote);
+document.getElementById('live-pin-green-btn')?.addEventListener('click', () => {
+  const h = state.liveState?.hole || 0;
+  pinGreenPosition(h, document.getElementById('live-pin-green-btn'), []);
+});
 document.getElementById('live-flag-btn')?.addEventListener('click', openCorrectionModal);
 document.getElementById('correction-close-btn')?.addEventListener('click', () => { document.getElementById('correction-modal').style.display = 'none'; });
 document.getElementById('correction-submit-btn')?.addEventListener('click', submitCorrectionReport);
@@ -154,20 +157,8 @@ document.getElementById('theme-light-btn')?.addEventListener('click', () => {
   applyTheme('light'); localStorage.setItem('rr_theme', 'light');
 });
 
-// ── Caddie View ───────────────────────────────────────────────────
-document.getElementById('caddie-btn')?.addEventListener('click', openCaddieView);
-document.getElementById('caddie-close-btn')?.addEventListener('click', closeCaddieView);
-document.getElementById('caddie-score-minus')?.addEventListener('click', () => { import('./caddie.js').then(m => m.caddieAdj('score', -1)); });
-document.getElementById('caddie-score-plus')?.addEventListener('click', () => { import('./caddie.js').then(m => m.caddieAdj('score', 1)); });
-document.getElementById('caddie-putt-minus')?.addEventListener('click', () => { import('./caddie.js').then(m => m.caddieAdj('putts', -1)); });
-document.getElementById('caddie-putt-plus')?.addEventListener('click', () => { import('./caddie.js').then(m => m.caddieAdj('putts', 1)); });
-document.getElementById('caddie-fir-yes')?.addEventListener('click', () => { import('./caddie.js').then(m => m.caddieToggle('fir', 'Yes')); });
-document.getElementById('caddie-fir-no')?.addEventListener('click', () => { import('./caddie.js').then(m => m.caddieToggle('fir', 'No')); });
-document.getElementById('caddie-gir-yes')?.addEventListener('click', () => { import('./caddie.js').then(m => m.caddieToggle('gir', 'Yes')); });
-document.getElementById('caddie-gir-no')?.addEventListener('click', () => { import('./caddie.js').then(m => m.caddieToggle('gir', 'No')); });
-document.getElementById('caddie-note')?.addEventListener('input', () => { import('./caddie.js').then(m => m.caddieNote()); });
-document.getElementById('caddie-prev-btn')?.addEventListener('click', () => { import('./caddie.js').then(m => m.caddiePrev()); });
-document.getElementById('caddie-next-btn')?.addEventListener('click', () => { import('./caddie.js').then(m => m.caddieNext()); });
+// ── Caddie floating button ─────────────────────────────────────────
+document.getElementById('caddie-btn')?.addEventListener('click', () => goTo('live'));
 // Initialise caddie button drag behaviour
 initCaddieButton();
 

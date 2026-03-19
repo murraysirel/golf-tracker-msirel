@@ -35,10 +35,14 @@ export function goTo(p) {
 }
 
 export function switchEntry(t) {
+  // Show the log panel if any entry type is selected
+  const panel = document.getElementById('round-log-panel');
+  if (panel) panel.style.display = t ? 'block' : 'none';
   document.getElementById('entry-manual').style.display = t === 'manual' ? 'block' : 'none';
   document.getElementById('entry-photo').style.display = t === 'photo' ? 'block' : 'none';
   document.getElementById('entry-course').style.display = t === 'course' ? 'block' : 'none';
-  document.getElementById('tab-m').classList.toggle('active', t === 'manual');
-  document.getElementById('tab-p').classList.toggle('active', t === 'photo');
-  document.getElementById('tab-c').classList.toggle('active', t === 'course');
+  // Update active state on entry cards
+  ['manual','photo','course'].forEach(type => {
+    document.getElementById('entry-btn-' + type)?.classList.toggle('active', type === t);
+  });
 }
