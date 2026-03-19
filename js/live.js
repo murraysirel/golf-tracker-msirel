@@ -139,6 +139,9 @@ export function startGroupRound() {
 
   liveRenderPips();
   liveGoto(state.liveState.hole);
+  // Show caddie button
+  state.roundActive = true;
+  document.getElementById('caddie-btn')?.classList.add('visible');
 }
 
 // ── Pip strip ─────────────────────────────────────────────────────
@@ -521,6 +524,8 @@ export function liveNextOrFinish() {
 }
 
 async function liveFinishAndSave() {
+  state.roundActive = false;
+  document.getElementById('caddie-btn')?.classList.remove('visible');
   const isGroup = state.liveState.group.length > 1;
 
   if (isGroup) {
