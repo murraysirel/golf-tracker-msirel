@@ -48,7 +48,7 @@ function showGroupSetup() {
   allPlayers.forEach(name => {
     const isSelected = state.liveState.group.includes(name);
     const chip = document.createElement('button');
-    chip.style.cssText = `padding:7px 14px;border-radius:20px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;border:1.5px solid ${isSelected ? 'var(--gold)' : 'rgba(255,255,255,.15)'};background:${isSelected ? 'rgba(201,168,76,.15)' : 'transparent'};color:${isSelected ? 'var(--gold)' : 'var(--dim)'};font-weight:${isSelected ? '600' : '400'}`;
+    chip.style.cssText = `padding:7px 14px;border-radius:20px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;border:1.5px solid ${isSelected ? 'var(--gold)' : 'var(--wa-15)'};background:${isSelected ? 'rgba(201,168,76,.15)' : 'transparent'};color:${isSelected ? 'var(--gold)' : 'var(--dim)'};font-weight:${isSelected ? '600' : '400'}`;
     chip.textContent = name === state.me ? name + ' (you)' : name;
     chip.dataset.player = name;
     chip.addEventListener('click', () => toggleGroupPlayer(name));
@@ -99,7 +99,7 @@ function updateMatchPlayToggle() {
   const btn = document.getElementById('live-matchplay-toggle');
   if (!btn) return;
   const on = state.liveState.matchPlay;
-  btn.style.borderColor = on ? 'var(--gold)' : 'rgba(255,255,255,.15)';
+  btn.style.borderColor = on ? 'var(--gold)' : 'var(--wa-15)';
   btn.style.background = on ? 'rgba(201,168,76,.15)' : 'transparent';
   btn.style.color = on ? 'var(--gold)' : 'var(--dim)';
   btn.textContent = on ? 'On' : 'Off';
@@ -260,7 +260,7 @@ function liveRenderGroupHole(h) {
       <button class="live-toggle-btn lg-fir-no${fir === 'No' ? ' on-no' : ''}" data-player="${name}" style="flex:0 0 auto;padding:6px 10px;font-size:11px">Miss</button>`;
 
     const row = document.createElement('div');
-    row.style.cssText = 'padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:6px';
+    row.style.cssText = 'padding:10px 0;border-bottom:1px solid var(--wa-06);margin-bottom:6px';
     row.innerHTML = `
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <span style="font-size:13px;font-weight:600;color:${name === state.me ? 'var(--gold)' : 'var(--cream)'}">${name}</span>

@@ -13,14 +13,23 @@ export function dc(k) {
   if (CH[k]) { CH[k].destroy(); delete CH[k]; }
 }
 
-export const CO = {
-  responsive: true, maintainAspectRatio: false,
-  plugins: { legend: { display: false } },
-  scales: {
-    x: { ticks: { color: '#8899bb', font: { size: 9, family: "'DM Sans',sans-serif" } }, grid: { color: 'rgba(255,255,255,.04)' } },
-    y: { ticks: { color: '#8899bb', font: { size: 9, family: "'DM Sans',sans-serif" } }, grid: { color: 'rgba(255,255,255,.04)' } }
-  }
-};
+// Read a CSS custom property value (for Chart.js which needs raw strings)
+function cc(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+export function co() {
+  const tick = cc('--chart-tick');
+  const grid = cc('--chart-grid');
+  return {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: tick, font: { size: 9, family: "'DM Sans',sans-serif" } }, grid: { color: grid } },
+      y: { ticks: { color: tick, font: { size: 9, family: "'DM Sans',sans-serif" } }, grid: { color: grid } }
+    }
+  };
+}
+// Legacy alias kept for any external spread usage (resolved at call time)
+export const CO = {};
 
 export function setFilter(f) {
   state.statsFilter = f;
@@ -121,9 +130,9 @@ export function renderHomeStats() {
     const dot = TC[r.tee]?.d || '#888';
     const shortCourse = r.course.replace(' Golf Club', '').replace(' Golf Course', '').replace(' Golf Links', '');
     const d = document.createElement('div');
-    d.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;margin-bottom:8px;transition:border-color .2s,background .2s;cursor:pointer';
+    d.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px;background:var(--wa-03);border:1px solid var(--wa-07);border-radius:12px;margin-bottom:8px;transition:border-color .2s,background .2s;cursor:pointer';
     d.addEventListener('mouseenter', () => { d.style.background = 'rgba(201,168,76,.04)'; d.style.borderColor = 'rgba(201,168,76,.2)'; });
-    d.addEventListener('mouseleave', () => { d.style.background = 'rgba(255,255,255,.03)'; d.style.borderColor = 'rgba(255,255,255,.07)'; });
+    d.addEventListener('mouseleave', () => { d.style.background = 'var(--wa-03)'; d.style.borderColor = 'var(--wa-07)'; });
     d.innerHTML = `
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:8px">
@@ -242,7 +251,7 @@ export function renderStats() {
     CH.donut = new Chart(document.getElementById('ch-donut'), {
       type: 'doughnut',
       data: { labels: ['Eagle','Birdie','Par','Bogey','Double+'], datasets: [{ data: [tE,tB,tP,tBo,tD], backgroundColor: ['#f1c40f','#3498db','#2ecc71','#e67e22','#e74c3c'], borderWidth: 0 }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#8899bb', font: { size: 10 }, boxWidth: 11, padding: 10 } } } }
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: cc('--chart-tick'), font: { size: 10 }, boxWidth: 11, padding: 10 } } } }
     });
   }
 
@@ -251,7 +260,7 @@ export function renderStats() {
     CH.trend = new Chart(document.getElementById('ch-trend'), {
       type: 'line',
       data: { labels: rs.map(r => r.date.slice(0, 5)), datasets: [{ data: rs.map(r => r.diff), borderColor: '#c9a84c', backgroundColor: 'rgba(201,168,76,.08)', tension: .35, pointBackgroundColor: rs.map(r => r.diff < 0 ? '#3498db' : r.diff === 0 ? '#2ecc71' : '#e67e22'), pointRadius: 5, pointBorderWidth: 0, fill: true }] },
-      options: { ...CO, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.raw >= 0 ? '+' : ''}${c.raw} vs par` } } }, scales: { x: { ticks: { color: '#8899bb', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,.04)' } }, y: { ticks: { color: '#8899bb', font: { size: 9 }, stepSize: 1, callback: v => { if (!Number.isInteger(v)) return null; return (v > 0 ? '+' : '') + v; } }, grid: { color: 'rgba(255,255,255,.04)' } } } }
+      options: { ...co(), plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.raw >= 0 ? '+' : ''}${c.raw} vs par` } } }, scales: { x: { ticks: { color: cc('--chart-tick'), font: { size: 9 } }, grid: { color: cc('--chart-grid') } }, y: { ticks: { color: cc('--chart-tick'), font: { size: 9 }, stepSize: 1, callback: v => { if (!Number.isInteger(v)) return null; return (v > 0 ? '+' : '') + v; } }, grid: { color: cc('--chart-grid') } } } }
     });
   }
 
@@ -261,7 +270,7 @@ export function renderStats() {
     CH.holes = new Chart(document.getElementById('ch-holes'), {
       type: 'bar',
       data: { labels: Array.from({ length: 18 }, (_, i) => i + 1), datasets: [{ data: hA, backgroundColor: hA.map(v => v <= -2 ? '#f1c40f' : v < 0 ? '#3498db' : v === 0 ? '#2ecc71' : v <= 1 ? '#e67e22' : '#e74c3c'), borderRadius: 3 }] },
-      options: { ...CO, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.raw >= 0 ? '+' : ''}${c.raw} avg` } } }, scales: { x: { ticks: { color: '#8899bb', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,.04)' } }, y: { ticks: { color: '#8899bb', font: { size: 9 }, stepSize: 0.5, callback: v => { if (Math.round(v * 2) !== v * 2) return null; const f = parseFloat(v.toFixed(1)); return (v > 0 ? '+' : '') + f; } }, grid: { color: 'rgba(255,255,255,.04)' } } } }
+      options: { ...co(), plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.raw >= 0 ? '+' : ''}${c.raw} avg` } } }, scales: { x: { ticks: { color: cc('--chart-tick'), font: { size: 9 } }, grid: { color: cc('--chart-grid') } }, y: { ticks: { color: cc('--chart-tick'), font: { size: 9 }, stepSize: 0.5, callback: v => { if (Math.round(v * 2) !== v * 2) return null; const f = parseFloat(v.toFixed(1)); return (v > 0 ? '+' : '') + f; } }, grid: { color: cc('--chart-grid') } } } }
     });
 
     const pR = fullR.filter(r => (r.putts || []).filter(Boolean).length >= 9);
@@ -271,7 +280,7 @@ export function renderStats() {
       CH.putts = new Chart(document.getElementById('ch-putts'), {
         type: 'bar',
         data: { labels: Array.from({ length: 18 }, (_, i) => i + 1), datasets: [{ data: pA, backgroundColor: 'rgba(201,168,76,.6)', borderRadius: 3 }] },
-        options: { ...CO, scales: { x: { ticks: { color: '#8899bb', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,.04)' } }, y: { min: 0, ticks: { color: '#8899bb', font: { size: 9 }, stepSize: 0.5, callback: v => Math.round(v * 2) === v * 2 ? parseFloat(v.toFixed(1)) : null }, grid: { color: 'rgba(255,255,255,.04)' } } } }
+        options: { ...co(), scales: { x: { ticks: { color: cc('--chart-tick'), font: { size: 9 } }, grid: { color: cc('--chart-grid') } }, y: { min: 0, ticks: { color: cc('--chart-tick'), font: { size: 9 }, stepSize: 0.5, callback: v => Math.round(v * 2) === v * 2 ? parseFloat(v.toFixed(1)) : null }, grid: { color: cc('--chart-grid') } } } }
       });
     }
 
@@ -288,7 +297,7 @@ export function renderStats() {
     CH.fg = new Chart(document.getElementById('ch-fg'), {
       type: 'bar',
       data: { labels: Array.from({ length: 18 }, (_, i) => i + 1), datasets: [{ label: 'FIR%', data: firP, backgroundColor: 'rgba(46,204,113,.6)', borderRadius: 2 }, { label: 'GIR%', data: girP, backgroundColor: 'rgba(52,152,219,.6)', borderRadius: 2 }] },
-      options: { ...CO, plugins: { legend: { display: true, position: 'top', labels: { color: '#8899bb', font: { size: 10 }, boxWidth: 10, padding: 8 } } }, scales: { x: { ticks: { color: '#8899bb', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,.04)' } }, y: { min: 0, max: 100, ticks: { color: '#8899bb', font: { size: 9 }, callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,.04)' } } } }
+      options: { ...co(), plugins: { legend: { display: true, position: 'top', labels: { color: cc('--chart-tick'), font: { size: 10 }, boxWidth: 10, padding: 8 } } }, scales: { x: { ticks: { color: cc('--chart-tick'), font: { size: 9 } }, grid: { color: cc('--chart-grid') } }, y: { min: 0, max: 100, ticks: { color: cc('--chart-tick'), font: { size: 9 }, callback: v => v + '%' }, grid: { color: cc('--chart-grid') } } } }
     });
   }
 
@@ -355,7 +364,7 @@ function renderMatchRecord() {
   rows.forEach(({ opp, wMe, wOpp, h, hasMatchData, shared }) => {
     const label = hasMatchData ? '' : ' <span style="font-size:9px;color:var(--dimmer)">(gross form)</span>';
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)';
+    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--wa-05)';
     row.innerHTML = `
       <div>
         <div style="font-size:13px;color:var(--cream)">vs ${opp}${label}</div>
