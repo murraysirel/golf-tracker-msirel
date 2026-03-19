@@ -84,9 +84,10 @@ export function liveGoto(h) {
 
   document.getElementById('live-note').value = state.liveState.notes[h] || '';
 
-  // Update GPS if active
-  import('./gps.js').then(({ updateGPSDisplay }) => {
+  // Update GPS display and status pill
+  import('./gps.js').then(({ updateGPSDisplay, updateLiveGPSPill }) => {
     if (state.gpsState.watching) updateGPSDisplay(h);
+    updateLiveGPSPill();
   });
 
   document.getElementById('live-prev').disabled = h === 0;

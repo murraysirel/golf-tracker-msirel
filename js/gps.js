@@ -14,13 +14,39 @@ function haversineYards(lat1, lng1, lat2, lng2) {
   return Math.round(metres * 1.09361);
 }
 
-function getGreenCoords(hole0) {
+function getCourseName() {
   const ci = document.getElementById('course-sel')?.value || '';
   const course = ci ? getCourseByRef(ci) : null;
-  const courseName = course?.name || ci;
-  const greens = state.gd.greenCoords?.[courseName];
+  return course?.name || ci;
+}
+
+function getGreenCoords(hole0) {
+  const greens = state.gd.greenCoords?.[getCourseName()];
   if (!greens || !greens[hole0]) return null;
   return greens[hole0];
+}
+
+function getTeeCoords(hole0) {
+  const tees = state.gd.teeCoords?.[getCourseName()];
+  if (!tees || !tees[hole0]) return null;
+  return tees[hole0];
+}
+
+export function updateLiveGPSPill() {
+  const pill = document.getElementById('live-gps-pill');
+  const pillText = document.getElementById('live-gps-pill-text');
+  if (!pill || !pillText) return;
+  if (state.gpsState.watching) {
+    pill.style.background = 'rgba(46,204,113,.1)';
+    pill.style.borderColor = 'rgba(46,204,113,.3)';
+    pill.style.color = 'var(--par)';
+    pillText.textContent = 'GPS active — distances showing below';
+  } else {
+    pill.style.background = 'rgba(201,168,76,.07)';
+    pill.style.borderColor = 'rgba(201,168,76,.2)';
+    pill.style.color = 'var(--dim)';
+    pillText.textContent = 'GPS off — tap to start';
+  }
 }
 
 export function startGPS() {
@@ -37,8 +63,16 @@ export function startGPS() {
   bar.style.display = 'flex';
   document.getElementById('gps-hole-name').textContent = `Hole ${h+1}`;
   const ci = document.getElementById('course-sel')?.value || '';
-  const course = getCourseByRef(ci);
+  const course = ci ? getCourseByRef(ci) : null;
   document.getElementById('gps-course-name').textContent = isApprox ? 'Approx position — pin green for accuracy' : (course?.name || '');
+
+  // Show "Pin tee" button if no tee coords yet
+  const teePinBtn = document.getElementById('gps-btn-pin-tee');
+  if (teePinBtn) teePinBtn.style.display = getTeeCoords(h) ? 'none' : '';
+
+  // Show tee distance section if tee is already pinned
+  const teeWrap = document.getElementById('gps-tee-wrap');
+  if (teeWrap) teeWrap.style.display = getTeeCoords(h) ? '' : 'none';
 
   state.gpsState.watching = true;
   state.gpsState.watchId = navigator.geolocation.watchPosition(
@@ -46,6 +80,7 @@ export function startGPS() {
     err => { document.getElementById('gps-dist').textContent = '—'; console.warn('GPS error:', err.message); },
     { enableHighAccuracy: true, maximumAge: 3000, timeout: 15000 }
   );
+  updateLiveGPSPill();
 }
 
 export function stopGPS() {
@@ -53,6 +88,7 @@ export function stopGPS() {
   state.gpsState.watching = false;
   state.gpsState.watchId = null;
   document.getElementById('gps-bar').style.display = 'none';
+  updateLiveGPSPill();
 }
 
 export function gpsSetTarget(t) {
@@ -74,6 +110,19 @@ export function updateGPSDisplay(hole0) {
     target.lat, target.lng
   );
   document.getElementById('gps-dist').textContent = yards;
+
+  // Show tee distance if tee is pinned
+  const tee = getTeeCoords(hole0);
+  const teeWrap = document.getElementById('gps-tee-wrap');
+  if (tee && teeWrap) {
+    teeWrap.style.display = '';
+    const teeYards = haversineYards(
+      state.gpsState.coords.latitude, state.gpsState.coords.longitude,
+      tee.lat, tee.lng
+    );
+    const td = document.getElementById('gps-tee-dist');
+    if (td) td.textContent = teeYards;
+  }
 }
 
 function showPinGreenPrompt(hole0) {
@@ -98,9 +147,7 @@ export function pinGreenPosition(hole0, pinBtn, btns) {
   pinBtn.disabled = true;
   navigator.geolocation.getCurrentPosition(pos => {
     const lat = pos.coords.latitude, lng = pos.coords.longitude;
-    const ci = document.getElementById('course-sel')?.value || '';
-    const course = getCourseByRef(ci);
-    const courseName = course?.name || ci;
+    const courseName = getCourseName();
     if (!state.gd.greenCoords) state.gd.greenCoords = {};
     if (!state.gd.greenCoords[courseName]) state.gd.greenCoords[courseName] = {};
     state.gd.greenCoords[courseName][hole0] = {
@@ -121,5 +168,26 @@ export function pinGreenPosition(hole0, pinBtn, btns) {
     pinBtn.textContent = 'Retry';
     pinBtn.disabled = false;
     alert('Could not get GPS position — make sure you have location permission enabled for this site.');
+  }, { enableHighAccuracy: true, timeout: 15000 });
+}
+
+export function pinTeePosition(hole0) {
+  if (!navigator.geolocation) { alert('GPS not available.'); return; }
+  const btn = document.getElementById('gps-btn-pin-tee');
+  if (btn) { btn.textContent = 'Getting GPS...'; btn.disabled = true; }
+  navigator.geolocation.getCurrentPosition(pos => {
+    const lat = pos.coords.latitude, lng = pos.coords.longitude;
+    const courseName = getCourseName();
+    if (!state.gd.teeCoords) state.gd.teeCoords = {};
+    if (!state.gd.teeCoords[courseName]) state.gd.teeCoords[courseName] = {};
+    state.gd.teeCoords[courseName][hole0] = { lat, lng };
+    pushGist();
+    if (btn) { btn.textContent = 'Tee pinned ✓'; btn.disabled = false; btn.style.display = 'none'; }
+    const teeWrap = document.getElementById('gps-tee-wrap');
+    if (teeWrap) teeWrap.style.display = '';
+    if (state.gpsState.coords) updateGPSDisplay(hole0);
+  }, err => {
+    if (btn) { btn.textContent = 'Pin tee'; btn.disabled = false; }
+    alert('Could not get GPS position — make sure location permission is enabled.');
   }, { enableHighAccuracy: true, timeout: 15000 });
 }

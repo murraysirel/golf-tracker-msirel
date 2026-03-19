@@ -12,7 +12,7 @@ import { renderOnboard, enterAs, addAndEnter, signOut, addPlayer, renderAllPlaye
 import { renderPracticePage, selectPracticeArea, startPracticeSession, regeneratePlan, logPracticeShots, completePracticeSession } from './practice.js';
 import { initLiveRound, liveGoto, liveAdj, liveSetToggle, liveSaveNote, liveNextOrFinish, liveRenderPips } from './live.js';
 import { generateAIReview, generateStatsAnalysis, clearStatsAnalysis, parsePhoto, handlePhoto } from './ai.js';
-import { startGPS, stopGPS, gpsSetTarget, pinGreenPosition } from './gps.js';
+import { startGPS, stopGPS, gpsSetTarget, pinGreenPosition, pinTeePosition } from './gps.js';
 import { exportXlsx } from './export.js';
 import { openAdminSettings, closeAdminSettings, verifyAdminPw, adminPopulateRounds, adminDeleteRound } from './admin.js';
 import { copyGroupCode, leaveGroup, toggleGroupCodeRequired, addSeason, deleteSeason, confirmDeleteMyData, deleteMyData, copyAppUrl, rebuildSeasonSelector } from './group.js';
@@ -64,6 +64,8 @@ document.getElementById('gps-btn-mid')?.addEventListener('click', () => gpsSetTa
 document.getElementById('gps-btn-front')?.addEventListener('click', () => gpsSetTarget('front'));
 document.getElementById('gps-btn-back')?.addEventListener('click', () => gpsSetTarget('back'));
 document.getElementById('gps-stop-btn')?.addEventListener('click', stopGPS);
+document.getElementById('gps-btn-pin-tee')?.addEventListener('click', () => pinTeePosition(state.liveState?.hole || 0));
+document.getElementById('live-gps-pill')?.addEventListener('click', startGPS);
 
 // ── Round / scorecard tab ─────────────────────────────────────────
 document.getElementById('tab-m')?.addEventListener('click', () => switchEntry('manual'));
