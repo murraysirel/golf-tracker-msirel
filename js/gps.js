@@ -111,6 +111,17 @@ export function updateGPSDisplay(hole0) {
   );
   document.getElementById('gps-dist').textContent = yards;
 
+  // Also update caddie view distances
+  const { latitude: _clat, longitude: _clng } = state.gpsState.coords;
+  ['front','mid','back'].forEach(t => {
+    const tgt = green[t];
+    if (tgt) {
+      const y = haversineYards(_clat, _clng, tgt.lat, tgt.lng);
+      const el = document.getElementById('caddie-dist-' + t);
+      if (el) el.textContent = y;
+    }
+  });
+
   // Show tee distance if tee is pinned
   const tee = getTeeCoords(hole0);
   const teeWrap = document.getElementById('gps-tee-wrap');
