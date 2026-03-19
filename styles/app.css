@@ -748,3 +748,14 @@ details[open] summary::after{content:' ▾'}
   background:var(--navy);border-top:1px solid rgba(255,255,255,.06);
   flex-shrink:0;
 }
+
+/* ── Light mode tokens (Schoolhouse White) ────────────────────── */
+[data-theme="light"]{
+  --navy:  #F4F0E8;
+  --mid:   #EAE6DC;
+  --card:  #FFFFFF;
+  --border:rgba(27,42,74,.12);
+  --cream: #1B2A4A;
+  --dim:   #4A5568;
+  --dimmer:#718096;
+}
