@@ -294,6 +294,9 @@ export function renderLeaderboard() {
     brl.appendChild(d);
   });
 
+  // H2H
+  renderH2H(filterRounds);
+
   // 6. Fewest doubles
   const byDoubles = [...players].sort((a, b) => (a.avgDoubles ?? 99) - (b.avgDoubles ?? 99));
   const dl = document.getElementById('lb-doubles'); dl.innerHTML = '';
@@ -303,5 +306,94 @@ export function renderLeaderboard() {
       <div class="lb-score" style="color:var(--par)">${p.avgDoubles ?? '—'}</div>
       <div style="font-size:9px;color:var(--dimmer);margin-top:1px">per round</div>
     </div>`));
+  });
+}
+
+function renderH2H(filterRounds) {
+  const el = document.getElementById('lb-h2h');
+  if (!el) return;
+  el.innerHTML = '';
+
+  const playerNames = Object.keys(state.gd.players);
+  if (playerNames.length < 2) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--dimmer);padding:8px 0">Need at least 2 players with shared rounds</div>';
+    return;
+  }
+
+  // Build H2H records for all pairs
+  const records = [];
+  for (let i = 0; i < playerNames.length; i++) {
+    for (let j = i + 1; j < playerNames.length; j++) {
+      const pA = playerNames[i], pB = playerNames[j];
+      const rsA = filterRounds(state.gd.players[pA]?.rounds || []);
+      const rsB = filterRounds(state.gd.players[pB]?.rounds || []);
+
+      // Find shared rounds (same date + course)
+      let wA = 0, wB = 0, h = 0;
+      let hasMatchData = false;
+      let sharedRounds = 0;
+
+      rsA.forEach(rA => {
+        const rB = rsB.find(r => r.date === rA.date && r.course === rA.course);
+        if (!rB) return;
+        sharedRounds++;
+
+        // Check for real match outcome data first
+        if (rA.matchOutcome) {
+          hasMatchData = true;
+          const mo = rA.matchOutcome;
+          if (mo.result === 'won') {
+            if (mo.leader === pA) wA++;
+            else wB++;
+          } else if (mo.result === 'halved') {
+            h++;
+          }
+        } else if (rB.matchOutcome) {
+          hasMatchData = true;
+          const mo = rB.matchOutcome;
+          if (mo.result === 'won') {
+            if (mo.leader === pB) wB++;
+            else wA++;
+          } else if (mo.result === 'halved') {
+            h++;
+          }
+        } else {
+          // Virtual: lower gross wins
+          if (rA.diff < rB.diff) wA++;
+          else if (rB.diff < rA.diff) wB++;
+          else h++;
+        }
+      });
+
+      if (!sharedRounds) continue;
+      records.push({ pA, pB, wA, wB, h, hasMatchData, sharedRounds });
+    }
+  }
+
+  if (!records.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--dimmer);padding:8px 0">No shared rounds found — rounds on same date and course will appear here</div>';
+    return;
+  }
+
+  records.forEach(({ pA, pB, wA, wB, h, hasMatchData, sharedRounds }) => {
+    const isAMe = pA === state.me, isBMe = pB === state.me;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)';
+    const label = hasMatchData ? '' : '<span style="font-size:9px;color:var(--dimmer);margin-left:4px">(gross form)</span>';
+    row.innerHTML = `
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;color:var(--cream);display:flex;align-items:center;gap:4px">
+          <span style="${isAMe ? 'color:var(--gold);font-weight:600' : ''}">${pA}</span>
+          <span style="color:var(--dimmer);font-size:10px">vs</span>
+          <span style="${isBMe ? 'color:var(--gold);font-weight:600' : ''}">${pB}</span>
+          ${label}
+        </div>
+        <div style="font-size:10px;color:var(--dim);margin-top:3px">${sharedRounds} shared round${sharedRounds !== 1 ? 's' : ''}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:14px;font-weight:600;color:var(--cream)">${wA}–${wB}–${h}</div>
+        <div style="font-size:9px;color:var(--dimmer);margin-top:1px">W–L–H</div>
+      </div>`;
+    el.appendChild(row);
   });
 }

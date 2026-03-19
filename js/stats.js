@@ -303,6 +303,70 @@ export function renderStats() {
     d.innerHTML = `<div><div class="hc">${r.course}</div><div class="hm"><span class="tdot" style="background:${dot}"></span>${(r.tee || '').charAt(0).toUpperCase() + (r.tee || '').slice(1)} \u00B7 ${r.date} \u00B7 ${r.parsCount || 0}P \u00B7 ${r.bogeys || 0}Bog${r.birdies > 0 ? ` \u00B7 <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg>${r.birdies}` : ''}</div></div><div style="text-align:right"><div class="hs">${r.totalScore}</div><div class="hd">${dv} (Par ${r.totalPar})</div></div>`;
     hist.appendChild(d);
   });
+
+  // Match record
+  renderMatchRecord();
+}
+
+function renderMatchRecord() {
+  const card = document.getElementById('c-match-record');
+  const list = document.getElementById('match-record-list');
+  if (!card || !list) return;
+
+  const myRounds = state.gd.players[state.me]?.rounds || [];
+  const opponents = Object.keys(state.gd.players).filter(n => n !== state.me);
+  const rows = [];
+
+  opponents.forEach(opp => {
+    const theirRounds = state.gd.players[opp]?.rounds || [];
+    let wMe = 0, wOpp = 0, h = 0, hasMatchData = false, shared = 0;
+
+    myRounds.forEach(rMe => {
+      const rOpp = theirRounds.find(r => r.date === rMe.date && r.course === rMe.course);
+      if (!rOpp) return;
+      shared++;
+      if (rMe.matchOutcome) {
+        hasMatchData = true;
+        const mo = rMe.matchOutcome;
+        if (mo.result === 'won') { if (mo.leader === state.me) wMe++; else wOpp++; }
+        else if (mo.result === 'halved') h++;
+      } else if (rOpp.matchOutcome) {
+        hasMatchData = true;
+        const mo = rOpp.matchOutcome;
+        if (mo.result === 'won') { if (mo.leader === opp) wOpp++; else wMe++; }
+        else if (mo.result === 'halved') h++;
+      } else {
+        if (rMe.diff < rOpp.diff) wMe++;
+        else if (rOpp.diff < rMe.diff) wOpp++;
+        else h++;
+      }
+    });
+
+    if (!shared) return;
+    rows.push({ opp, wMe, wOpp, h, hasMatchData, shared });
+  });
+
+  if (!rows.length) {
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = '';
+  list.innerHTML = '';
+  rows.forEach(({ opp, wMe, wOpp, h, hasMatchData, shared }) => {
+    const label = hasMatchData ? '' : ' <span style="font-size:9px;color:var(--dimmer)">(gross form)</span>';
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)';
+    row.innerHTML = `
+      <div>
+        <div style="font-size:13px;color:var(--cream)">vs ${opp}${label}</div>
+        <div style="font-size:10px;color:var(--dim);margin-top:2px">${shared} shared round${shared !== 1 ? 's' : ''}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:14px;font-weight:600;color:var(--gold)">${wMe}–${wOpp}–${h}</div>
+        <div style="font-size:9px;color:var(--dimmer)">W–L–H</div>
+      </div>`;
+    list.appendChild(row);
+  });
 }
 
 export function calcStableford(scores, pars, handicapIndex, slope, si) {
