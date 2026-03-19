@@ -254,6 +254,7 @@ Both variables are set in the Netlify dashboard. Neither is ever sent to the bro
 
 | Date | Change |
 |---|---|
+| 2026-03-19 | **Light mode** — `[data-theme="light"]` CSS variables (Schoolhouse White palette); `--wa-*` and `--chart-*` tokens replace all `rgba(255,255,255,...)` occurrences; Chart.js uses `cc()` helper for theme-aware tick/grid colors; Dark/Light toggle in profile panel persisted to `localStorage` key `rr_theme`; theme applied at boot in `app.js` before splash fades |
 | 2026-03-19 | **Caddie View** — full-screen GPS + scoring overlay (`js/caddie.js`, `#caddie-view`); `gps.js` now populates `caddie-dist-{front,mid,back}`; Wake Lock API for screen-on during round |
 | 2026-03-19 | **Floating Caddie button** — draggable `#caddie-btn` appears above tab bar when `startGroupRound()` fires (`state.roundActive`), disappears when round finishes |
 | 2026-03-19 | **Nav reduced to 5 tabs** — Live and Players tabs removed from bottom nav; Players & Settings moved to a slide-in profile panel (`#profile-panel`) triggered by a circular icon in the header |
