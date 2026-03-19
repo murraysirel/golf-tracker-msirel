@@ -673,19 +673,19 @@ details[open] summary::after{content:' ▾'}
   border-bottom:1px solid var(--wa-06);
 }
 
-/* ── Caddie floating button ───────────────────────────────────── */
+/* ── Caddie floating button (pill HUD) ────────────────────────── */
 #caddie-btn{
-  position:fixed;bottom:calc(72px + var(--safe-bot));left:50%;
-  transform:translateX(-50%);
-  width:68px;height:68px;border-radius:50%;
-  background:var(--gold);color:var(--navy);
-  border:none;cursor:pointer;
-  display:none;flex-direction:column;align-items:center;justify-content:center;
-  box-shadow:0 4px 24px rgba(201,168,76,.45);
+  position:fixed;bottom:calc(72px + var(--safe-bot) + 12px);right:20px;
   z-index:250;touch-action:none;user-select:none;
+  display:none;align-items:center;gap:6px;
+  padding:10px 16px;border-radius:40px;
+  background:var(--mid);border:1px solid var(--gold);color:var(--gold);
+  font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;
+  cursor:pointer;
+  box-shadow:0 4px 16px rgba(0,0,0,.35);
 }
 #caddie-btn.visible{display:flex}
-#caddie-btn:active{opacity:.9}
+#caddie-btn:active{opacity:.85}
 
 /* ── Caddie View ──────────────────────────────────────────────── */
 #caddie-view{
@@ -758,6 +758,43 @@ details[open] summary::after{content:' ▾'}
 .caddie-pip.bogey-pip{background:var(--bogey);border-color:var(--bogey)}
 .caddie-pip.double-pip{background:var(--double);border-color:var(--double)}
 .caddie-nav-row{
+  display:flex;gap:8px;
+  padding:12px 16px calc(12px + var(--safe-bot));
+  background:var(--navy);border-top:1px solid var(--wa-06);
+  flex-shrink:0;
+}
+
+/* ── Round entry cards ────────────────────────────────────────── */
+.round-entry-card{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:7px;padding:14px 8px;
+  background:var(--mid);border:1px solid var(--border);border-radius:12px;
+  color:var(--dim);font-size:11px;font-family:'DM Sans',sans-serif;
+  cursor:pointer;text-align:center;line-height:1.3;
+  transition:border-color .15s,color .15s;
+}
+.round-entry-card:hover,.round-entry-card.active{border-color:var(--gold);color:var(--gold)}
+
+/* ── Unified live screen GPS block ───────────────────────────── */
+.live-gps-block{
+  background:var(--mid);border-bottom:1px solid var(--wa-06);
+  display:flex;flex-direction:column;align-items:center;
+  padding:14px 16px;gap:6px;flex-shrink:0;
+}
+.live-dist-row{display:flex;gap:24px;align-items:flex-end}
+.live-dist-item{display:flex;flex-direction:column;align-items:center;gap:2px}
+.live-dist-main{
+  font-family:'Cormorant Garamond',serif;
+  font-size:60px;font-weight:700;color:var(--gold);line-height:1;
+}
+.live-dist-secondary{
+  font-family:'Cormorant Garamond',serif;
+  font-size:34px;font-weight:700;color:var(--dim);line-height:1;
+}
+.live-dist-lbl{font-size:9px;color:var(--dimmer);text-transform:uppercase;letter-spacing:1.5px}
+.live-hole-meta{font-size:11px;color:var(--dim)}
+.live-scoring-scroll{flex:1;overflow-y:auto}
+.live-unified-footer{
   display:flex;gap:8px;
   padding:12px 16px calc(12px + var(--safe-bot));
   background:var(--navy);border-top:1px solid var(--wa-06);
