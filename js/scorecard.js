@@ -29,13 +29,14 @@ export function buildSC(pf, pp) {
   const course = ci !== '' ? getCourseByRef(ci) : null;
   const teeData = course?.tees?.[state.stee];
   const hYards = teeData?.hy || null;
+  const siArr = teeData?.si || null;
   let op = 0, ip = 0, oY = 0, iY = 0;
   for (let h = 0; h < 18; h++) {
     if (h === 9) {
       const s = document.createElement('tr');
       s.className = 'sub';
       const yDisp = oY ? `<td style="font-size:10px;color:var(--dim)">${oY}</td>` : `<td>—</td>`;
-      s.innerHTML = `<td colspan="2" style="text-align:left;padding-left:7px;font-size:10px;letter-spacing:1px">OUT</td>${yDisp}<td id="out-s" style="color:var(--gold)">—</td><td colspan="3">${op}</td>`;
+      s.innerHTML = `<td colspan="2" style="text-align:left;padding-left:7px;font-size:10px;letter-spacing:1px">OUT</td>${yDisp}<td style="font-size:10px;color:var(--dimmer)">—</td><td id="out-s" style="color:var(--gold)">—</td><td colspan="3">${op}</td>`;
       tb.appendChild(s);
     }
     const r = document.createElement('tr');
@@ -45,8 +46,10 @@ export function buildSC(pf, pp) {
     const isP3 = state.cpars[h] === 3;
     const yd = hYards?.[h];
     const ydCell = yd ? `<td style="font-size:10px;color:var(--dim)">${yd}</td>` : `<td style="font-size:10px;color:var(--dimmer)">—</td>`;
+    const siVal = siArr?.[h];
+    const siCell = siVal != null ? `<td style="font-size:10px;color:var(--dim)">${siVal}</td>` : `<td style="font-size:10px;color:var(--dimmer)">—</td>`;
     const firOpts = isP3 ? '<option value="N/A">N/A</option>' : '<option value="">—</option><option value="Yes">Yes</option><option value="No">No</option>';
-    r.innerHTML = `<td class="hn">${h+1}</td><td class="pc">${state.cpars[h]}</td>${ydCell}<td><input type="number" id="h${h}" min="1" max="15" value="${sv}" placeholder="—" data-hole="${h}" style="width:36px"></td><td><input type="number" id="p${h}" min="0" max="6" value="${pv}" placeholder="—" style="width:36px"></td><td><select id="fir${h}" style="font-size:10px;padding:3px 1px;min-width:42px">${firOpts}</select></td><td><select id="gir${h}" style="font-size:10px;padding:3px 1px;min-width:42px"><option value="">—</option><option value="Yes">Yes</option><option value="No">No</option></select></td>`;
+    r.innerHTML = `<td class="hn">${h+1}</td><td class="pc">${state.cpars[h]}</td>${ydCell}${siCell}<td><input type="number" id="h${h}" min="1" max="15" value="${sv}" placeholder="—" data-hole="${h}" style="width:36px"></td><td><input type="number" id="p${h}" min="0" max="6" value="${pv}" placeholder="—" style="width:36px"></td><td><select id="fir${h}" style="font-size:10px;padding:3px 1px;min-width:42px">${firOpts}</select></td><td><select id="gir${h}" style="font-size:10px;padding:3px 1px;min-width:42px"><option value="">—</option><option value="Yes">Yes</option><option value="No">No</option></select></td>`;
     tb.appendChild(r);
     if (h < 9) { op += state.cpars[h]; if (yd) oY += yd; }
     else { ip += state.cpars[h]; if (yd) iY += yd; }
@@ -54,7 +57,7 @@ export function buildSC(pf, pp) {
   const is = document.createElement('tr');
   is.className = 'sub';
   const iYDisp = iY ? `<td style="font-size:10px;color:var(--dim)">${iY}</td>` : `<td>—</td>`;
-  is.innerHTML = `<td colspan="2" style="text-align:left;padding-left:7px;font-size:10px;letter-spacing:1px">IN</td>${iYDisp}<td id="in-s" style="color:var(--gold)">—</td><td colspan="3">${ip}</td>`;
+  is.innerHTML = `<td colspan="2" style="text-align:left;padding-left:7px;font-size:10px;letter-spacing:1px">IN</td>${iYDisp}<td style="font-size:10px;color:var(--dimmer)">—</td><td id="in-s" style="color:var(--gold)">—</td><td colspan="3">${ip}</td>`;
   tb.appendChild(is);
   document.getElementById('tot-bar').style.display = 'flex';
   recalc();
