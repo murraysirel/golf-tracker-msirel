@@ -116,6 +116,40 @@ export function renderHomeStats() {
   document.getElementById('h-best').textContent = sc.length ? Math.min(...sc) : '—';
   document.getElementById('h-birdies').textContent = rs.reduce((a, r) => a + (r.birdies || 0), 0);
 
+  // GIR / FIR combined card
+  const fullR0 = rs.filter(r => (r.scores || []).filter(Boolean).length === 18);
+  const girTot0 = fullR0.reduce((a, r) => a + (r.gir || []).filter(v => v === 'Yes').length, 0);
+  const girPoss0 = fullR0.length * 18;
+  const girPct = girPoss0 ? Math.round(girTot0 / girPoss0 * 100) : null;
+  let firHits0 = 0, firPoss0 = 0;
+  fullR0.forEach(r => { (r.fir || []).forEach((v, h) => { if ((r.pars?.[h] ?? r.pars?.[h]) !== 3) { firPoss0++; if (v === 'Yes') firHits0++; } }); });
+  const firPct = firPoss0 ? Math.round(firHits0 / firPoss0 * 100) : null;
+
+  // Delta vs last calendar month
+  const now0 = new Date();
+  const lmMonth = String(now0.getMonth() === 0 ? 12 : now0.getMonth()).padStart(2, '0');
+  const lmYear = String(now0.getMonth() === 0 ? now0.getFullYear() - 1 : now0.getFullYear());
+  const lmRounds = fullR0.filter(r => { const p = r.date?.split('/'); return p && p[1] === lmMonth && p[2] === lmYear; });
+  let girDelta = null, firDelta = null;
+  if (lmRounds.length) {
+    const lmGirTot = lmRounds.reduce((a, r) => a + (r.gir || []).filter(v => v === 'Yes').length, 0);
+    const lmGirPct = Math.round(lmGirTot / (lmRounds.length * 18) * 100);
+    if (girPct !== null) girDelta = girPct - lmGirPct;
+    let lmFH = 0, lmFP = 0;
+    lmRounds.forEach(r => { (r.fir || []).forEach((v, h) => { if ((r.pars?.[h]) !== 3) { lmFP++; if (v === 'Yes') lmFH++; } }); });
+    const lmFirPct = lmFP ? Math.round(lmFH / lmFP * 100) : null;
+    if (firPct !== null && lmFirPct !== null) firDelta = firPct - lmFirPct;
+  }
+
+  const girPctEl = document.getElementById('h-gir-pct');
+  const firPctEl = document.getElementById('h-fir-pct');
+  const girDeltaEl = document.getElementById('h-gir-delta');
+  const firDeltaEl = document.getElementById('h-fir-delta');
+  if (girPctEl) girPctEl.textContent = girPct != null ? girPct + '%' : '—';
+  if (firPctEl) firPctEl.textContent = firPct != null ? firPct + '%' : '—';
+  if (girDeltaEl) { girDeltaEl.textContent = girDelta != null ? (girDelta >= 0 ? '+' : '') + girDelta + '% vs last mo' : ''; girDeltaEl.style.color = girDelta != null && girDelta < 0 ? 'var(--bogey)' : 'var(--par)'; }
+  if (firDeltaEl) { firDeltaEl.textContent = firDelta != null ? (firDelta >= 0 ? '+' : '') + firDelta + '% vs last mo' : ''; firDeltaEl.style.color = firDelta != null && firDelta < 0 ? 'var(--bogey)' : 'var(--par)'; }
+
   const recent = document.getElementById('home-recent');
   if (!rs.length) {
     recent.innerHTML = '<div class="empty"><div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg></div>No rounds yet \u2014 add your first!</div>';

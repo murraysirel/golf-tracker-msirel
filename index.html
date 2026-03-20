@@ -153,7 +153,24 @@
         <div class="kpi"><span class="kv" id="h-rounds">0</span><span class="kl">Rounds</span></div>
         <div class="kpi"><span class="kv" id="h-avg">—</span><span class="kl">Avg</span></div>
         <div class="kpi"><span class="kv" id="h-best">—</span><span class="kl">Best</span></div>
-        <div class="kpi"><span class="kv" id="h-birdies" style="color:var(--birdie)">0</span><span class="kl">Birdies</span></div>
+        <div class="kpi"><span class="kv" style="color:var(--birdie);display:flex;align-items:center;justify-content:center;gap:4px"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg><span id="h-birdies">0</span></span><span class="kl">Birdies</span></div>
+      </div>
+
+      <!-- GIR / FIR combined card -->
+      <div class="kpi" style="margin-bottom:13px">
+        <div style="display:flex;gap:8px">
+          <div style="flex:1">
+            <div class="kv" id="h-gir-pct" style="font-size:22px">—</div>
+            <div class="kl">GIR</div>
+            <div class="ks" id="h-gir-delta"></div>
+          </div>
+          <div style="width:1px;background:var(--border);flex-shrink:0"></div>
+          <div style="flex:1">
+            <div class="kv" id="h-fir-pct" style="font-size:22px">—</div>
+            <div class="kl">FIR</div>
+            <div class="ks" id="h-fir-delta"></div>
+          </div>
+        </div>
       </div>
 
       <!-- Quick actions -->
