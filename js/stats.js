@@ -115,6 +115,8 @@ export function renderHomeStats() {
   const seasonCount = seasonRounds.length;
   if (greetEl) greetEl.textContent = greeting + ', ' + firstName;
   if (metaEl) metaEl.textContent = `HCP ${hcpVal} · ${seasonCount} round${seasonCount !== 1 ? 's' : ''} this season`;
+  const avatarEl = document.getElementById('hdr-avatar-initials');
+  if (avatarEl) avatarEl.textContent = initials(state.me);
 
   // ── Sorted rounds, last 5 and prev 5 ────────────────────────
   const sorted = [...rs].sort((a, b) => parseDateGB(a.date) - parseDateGB(b.date));

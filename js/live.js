@@ -600,6 +600,28 @@ export function liveNextOrFinish() {
   advance();
 }
 
+export function cancelRound() {
+  if (!confirm('Cancel this round? All progress will be lost.')) return;
+  state.roundActive = false;
+  state.liveState.hole = 0;
+  state.liveState.scores = Array(18).fill(null);
+  state.liveState.putts = Array(18).fill(null);
+  state.liveState.fir = Array(18).fill('');
+  state.liveState.gir = Array(18).fill('');
+  state.liveState.notes = Array(18).fill('');
+  state.liveState.group = [];
+  state.liveState.groupScores = {};
+  state.liveState.groupPutts = {};
+  state.liveState.groupFir = {};
+  state.liveState.groupGir = {};
+  state.liveState.matchPlay = false;
+  const cBtn = document.getElementById('caddie-btn');
+  cBtn?.classList.remove('visible');
+  cBtn?.classList.remove('in-progress');
+  releaseWakeLock();
+  goTo('home');
+}
+
 async function liveFinishAndSave() {
   state.roundActive = false;
   const _cBtn2 = document.getElementById('caddie-btn');

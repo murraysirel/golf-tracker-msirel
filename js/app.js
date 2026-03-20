@@ -10,7 +10,7 @@ import { renderStats, setFilter, toggleHcpEdit, saveHandicap, renderHomeStats } 
 import { renderLeaderboard } from './leaderboard.js';
 import { renderOnboard, enterAs, addAndEnter, signOut, addPlayer, renderAllPlayers, renderPlayersToday } from './players.js';
 import { renderPracticePage, selectPracticeArea, startPracticeSession, regeneratePlan, logPracticeShots, completePracticeSession } from './practice.js';
-import { initLiveRound, liveGoto, liveSaveNote, liveNextOrFinish, toggleGroupPlayer, startGroupRound, toggleMatchPlay, openCorrectionModal, submitCorrectionReport } from './live.js';
+import { initLiveRound, liveGoto, liveSaveNote, liveNextOrFinish, toggleGroupPlayer, startGroupRound, toggleMatchPlay, openCorrectionModal, submitCorrectionReport, cancelRound } from './live.js';
 import { generateAIReview, generateStatsAnalysis, clearStatsAnalysis, parsePhoto, handlePhoto } from './ai.js';
 import { stopGPS, gpsSetTarget, pinGreenPosition, pinTeePosition } from './gps.js';
 import { exportXlsx } from './export.js';
@@ -137,6 +137,8 @@ document.getElementById('cancel-course-btn')?.addEventListener('click', cancelCo
 // ── Live round — group setup ──────────────────────────────────────
 document.getElementById('live-group-start-btn')?.addEventListener('click', startGroupRound);
 document.getElementById('live-matchplay-toggle')?.addEventListener('click', toggleMatchPlay);
+document.getElementById('live-cancel-setup-btn')?.addEventListener('click', cancelRound);
+document.getElementById('live-cancel-round-btn')?.addEventListener('click', cancelRound);
 
 // ── Live round ────────────────────────────────────────────────────
 document.getElementById('live-prev')?.addEventListener('click', () => liveGoto(state.liveState.hole - 1));
