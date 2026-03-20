@@ -13,7 +13,9 @@ export function setGameMode(mode) {
 export function updateFormatUI() {
   const wolfBtn = document.getElementById('fmt-wolf');
   const strokeBtn = document.getElementById('fmt-stroke');
-  const hint = document.getElementById('wolf-need-4');
+  const matchBtn = document.getElementById('fmt-match');
+  const wolfHint = document.getElementById('wolf-need-4');
+  const matchHint = document.getElementById('match-need-2');
   if (!wolfBtn || !strokeBtn) return;
 
   const playerCount = Object.keys(state.gd?.players || {}).length;
@@ -23,11 +25,17 @@ export function updateFormatUI() {
   wolfBtn.style.opacity = canWolf ? '' : '0.45';
   wolfBtn.style.cursor = canWolf ? '' : 'not-allowed';
   wolfBtn.title = canWolf ? '' : 'Wolf requires exactly 4 players';
-  if (hint) hint.style.display = !canWolf ? 'block' : 'none';
 
   const isWolf = state.gameMode === 'wolf';
-  strokeBtn.classList.toggle('active', !isWolf);
+  const isMatch = state.gameMode === 'match';
+
+  strokeBtn.classList.toggle('active', !isWolf && !isMatch);
   wolfBtn.classList.toggle('active', isWolf && canWolf);
+  if (matchBtn) matchBtn.classList.toggle('active', isMatch);
+
+  if (wolfHint) wolfHint.style.display = !canWolf ? 'block' : 'none';
+  if (matchHint) matchHint.style.display = isMatch ? 'block' : 'none';
+
   if (!canWolf && isWolf) state.gameMode = 'stroke';
 }
 
