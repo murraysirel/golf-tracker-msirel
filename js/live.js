@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
 import { getCourseByRef } from './courses.js';
-import { recalc } from './scorecard.js';
+import { recalc, scoreCol } from './scorecard.js';
 import { goTo } from './nav.js';
 // Wolf hooks loaded via dynamic import to avoid circular deps
 
@@ -19,6 +19,11 @@ async function requestWakeLock() {
 
 function releaseWakeLock() {
   if (state.wakeLock) { state.wakeLock.release(); state.wakeLock = null; }
+}
+
+// ── Score colour helper ───────────────────────────────────────────
+function updateScoreColour(element, score, par) {
+  if (element && score != null) element.style.color = scoreCol(score - par);
 }
 
 // ── Group setup ───────────────────────────────────────────────────
@@ -250,6 +255,12 @@ export function liveRenderPips() {
 export function liveGoto(h) {
   if (h < 0 || h > 17) return;
   state.liveState.hole = h;
+  // Pre-fill null scores to par on first visit to a hole
+  state.liveState.group.forEach(name => {
+    if (state.liveState.groupScores[name] && state.liveState.groupScores[name][h] === null) {
+      state.liveState.groupScores[name][h] = state.cpars[h];
+    }
+  });
   liveRenderPips();
   const par = state.cpars[h];
   const ci = document.getElementById('course-sel')?.value;
@@ -306,15 +317,7 @@ function liveRenderGroupHole(h) {
     const fir = state.liveState.groupFir[name]?.[h] ?? '';
     const gir = state.liveState.groupGir[name]?.[h] ?? '';
 
-    const scColor = sc != null ? (() => {
-      const d = sc - par;
-      return d <= -2 ? 'var(--eagle)' : d === -1 ? 'var(--birdie)' : d === 0 ? 'var(--par)' : d === 1 ? 'var(--bogey)' : 'var(--double)';
-    })() : 'var(--gold)';
-
-    const firBtns = par === 3 ? '' : `
-      <span style="font-size:10px;color:var(--dim)">FIR</span>
-      <button class="live-toggle-btn lg-fir-yes${fir === 'Yes' ? ' on-yes' : ''}" data-player="${name}" style="flex:0 0 auto;padding:6px 10px;font-size:11px">Hit</button>
-      <button class="live-toggle-btn lg-fir-no${fir === 'No' ? ' on-no' : ''}" data-player="${name}" style="flex:0 0 auto;padding:6px 10px;font-size:11px">Miss</button>`;
+    const scColor = sc != null ? scoreCol(sc - par) : 'var(--gold)';
 
     const row = document.createElement('div');
     row.style.cssText = 'padding:10px 0;border-bottom:1px solid var(--wa-06);margin-bottom:6px';
@@ -324,20 +327,22 @@ function liveRenderGroupHole(h) {
         <span style="font-size:11px;color:var(--dim)">${sc != null ? (sc - par >= 0 ? '+' + (sc - par) : '' + (sc - par)) + ' this hole' : 'no score'}</span>
       </div>
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-        <span style="font-size:10px;color:var(--dim);width:42px">Score</span>
-        <button class="live-score-btn lg-score-minus" data-player="${name}" style="width:34px;height:34px;font-size:16px">−</button>
-        <span style="font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:700;color:${scColor};width:44px;text-align:center;line-height:1">${sc != null ? sc : '—'}</span>
-        <button class="live-score-btn lg-score-plus" data-player="${name}" style="width:34px;height:34px;font-size:16px">+</button>
-        <span style="font-size:10px;color:var(--dim);margin-left:8px;width:36px">Putts</span>
-        <button class="live-putt-btn lg-putts-minus" data-player="${name}" style="width:30px;height:30px">−</button>
+        <span style="font-size:10px;color:var(--dim);width:38px">Score</span>
+        <button class="live-score-btn lg-score-minus" data-player="${name}">−</button>
+        <span class="live-score-val" data-player="${name}" style="color:${scColor}">${sc != null ? sc : par}</span>
+        <button class="live-score-btn lg-score-plus" data-player="${name}">+</button>
+        <span style="font-size:10px;color:var(--dim);margin-left:6px;width:34px">Putts</span>
+        <button class="live-putt-btn lg-putts-minus" data-player="${name}">−</button>
         <span style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--cream);width:28px;text-align:center">${pt != null ? pt : '—'}</span>
-        <button class="live-putt-btn lg-putts-plus" data-player="${name}" style="width:30px;height:30px">+</button>
+        <button class="live-putt-btn lg-putts-plus" data-player="${name}">+</button>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-        ${firBtns}
-        <span style="font-size:10px;color:var(--dim)">GIR</span>
-        <button class="live-toggle-btn lg-gir-yes${gir === 'Yes' ? ' on-yes' : ''}" data-player="${name}" style="flex:0 0 auto;padding:6px 10px;font-size:11px">Hit</button>
-        <button class="live-toggle-btn lg-gir-no${gir === 'No' ? ' on-no' : ''}" data-player="${name}" style="flex:0 0 auto;padding:6px 10px;font-size:11px">Miss</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
+        <div${par === 3 ? ' style="display:none"' : ''}>
+          <button class="live-toggle-pill lg-fir-pill${fir === 'Yes' ? ' active-fir' : ''}" data-player="${name}">Fairway Hit</button>
+        </div>
+        <div>
+          <button class="live-toggle-pill lg-gir-pill${gir === 'Yes' ? ' active-gir' : ''}" data-player="${name}">Green in Reg</button>
+        </div>
       </div>`;
     container.appendChild(row);
   });
@@ -355,17 +360,11 @@ function liveRenderGroupHole(h) {
   container.querySelectorAll('.lg-putts-plus').forEach(btn => {
     btn.addEventListener('click', () => liveGroupAdj(btn.dataset.player, 'putts', 1));
   });
-  container.querySelectorAll('.lg-fir-yes').forEach(btn => {
+  container.querySelectorAll('.lg-fir-pill').forEach(btn => {
     btn.addEventListener('click', () => liveGroupToggle(btn.dataset.player, 'fir', 'Yes'));
   });
-  container.querySelectorAll('.lg-fir-no').forEach(btn => {
-    btn.addEventListener('click', () => liveGroupToggle(btn.dataset.player, 'fir', 'No'));
-  });
-  container.querySelectorAll('.lg-gir-yes').forEach(btn => {
+  container.querySelectorAll('.lg-gir-pill').forEach(btn => {
     btn.addEventListener('click', () => liveGroupToggle(btn.dataset.player, 'gir', 'Yes'));
-  });
-  container.querySelectorAll('.lg-gir-no').forEach(btn => {
-    btn.addEventListener('click', () => liveGroupToggle(btn.dataset.player, 'gir', 'No'));
   });
 
   // Update match banner
@@ -385,6 +384,14 @@ function liveGroupAdj(playerName, field, delta) {
     state.liveState.groupPutts[playerName][h] = Math.max(0, Math.min(6, cur + delta));
   }
   liveRenderGroupHole(h);
+  // Bounce animation on updated score value
+  if (field === 'score') {
+    const scoreEl = document.querySelector(`.live-score-val[data-player="${playerName}"]`);
+    if (scoreEl) {
+      scoreEl.classList.add('score-bounce');
+      setTimeout(() => scoreEl.classList.remove('score-bounce'), 210);
+    }
+  }
   liveUpdateRunning();
   // Sync first player's scores into liveState.scores for pip colours
   const first = state.liveState.group[0];
