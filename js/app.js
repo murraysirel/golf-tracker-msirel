@@ -84,10 +84,6 @@ document.getElementById('profile-backdrop')?.addEventListener('click', closeProf
 document.getElementById('onb-join-btn')?.addEventListener('click', addAndEnter);
 
 // ── Home page ─────────────────────────────────────────────────────
-document.getElementById('home-go-round')?.addEventListener('click', () => goTo('round'));
-document.getElementById('home-go-stats')?.addEventListener('click', () => goTo('stats'));
-document.getElementById('home-go-leaderboard')?.addEventListener('click', () => goTo('leaderboard'));
-document.getElementById('home-go-export')?.addEventListener('click', exportXlsx);
 document.getElementById('home-go-stats-link')?.addEventListener('click', () => goTo('stats'));
 
 // ── GPS bar ───────────────────────────────────────────────────────

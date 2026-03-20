@@ -173,20 +173,6 @@
         </div>
       </div>
 
-      <!-- Quick actions -->
-      <div style="margin-bottom:13px">
-        <div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px">Quick Actions</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <button class="btn" id="home-go-round" style="border-radius:12px;padding:14px;font-size:13px"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg> New Round</button>
-          <button class="btn btn-ghost" id="home-go-stats" style="border-radius:12px;padding:14px;font-size:13px"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Stats</button>
-          <button class="btn btn-ghost" id="home-go-leaderboard" style="border-radius:12px;padding:14px;font-size:13px"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg> Board</button>
-          <button class="btn btn-ghost" id="home-go-export" style="border-radius:12px;padding:14px;font-size:13px;border-color:rgba(46,204,113,.3);color:#82e0aa"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export</button>
-        </div>
-      </div>
-
-      <!-- Gold gradient divider -->
-      <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,.35),transparent);margin-bottom:13px"></div>
-
       <!-- Recent rounds -->
       <div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -929,7 +915,7 @@
       <div class="card" style="margin-top:13px">
         <div class="ct">Your Data</div>
         <div style="font-size:12px;color:var(--dim);margin-bottom:12px;line-height:1.5">You have the right to export or delete all your data from this group at any time. Deletion cannot be undone.</div>
-        <button class="btn btn-o mb8" style="border-color:rgba(46,204,113,.4);color:#82e0aa"id="export-xlsx-btn"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export my rounds as Excel</button>
+        <button class="btn btn-o mb8" style="border-color:rgba(46,204,113,.4);color:#82e0aa"id="export-xlsx-btn"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export my data</button>
         <button class="btn btn-o" style="border-color:rgba(231,76,60,.4);color:#e74c3c"id="confirm-delete-data-btn"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>Delete all my data</button>
         <div id="delete-data-msg" style="margin-top:8px"></div>
       </div>
