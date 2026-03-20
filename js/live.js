@@ -253,6 +253,14 @@ export function liveGoto(h) {
   nextBtn.textContent = h === 17 ? 'Finish & Save Round' : 'Next Hole \u2192';
 
   liveUpdateRunning();
+
+  // Wolf: update banner
+  if (state.gameMode === 'wolf') {
+    import('./gamemodes.js').then(({ updateWolfBanner }) => updateWolfBanner(h));
+  } else {
+    const wolfBar = document.getElementById('wolf-live-bar');
+    if (wolfBar) wolfBar.style.display = 'none';
+  }
 }
 
 // ── Group hole rendering ──────────────────────────────────────────
@@ -535,12 +543,25 @@ function liveSyncToManual(h) {
 
 export function liveNextOrFinish() {
   const h = state.liveState.hole;
-  if (h < 17) {
-    liveGoto(h + 1);
-  } else {
-    // Save round(s)
-    liveFinishAndSave();
+  const advance = () => { if (h < 17) liveGoto(h + 1); else liveFinishAndSave(); };
+
+  // Wolf: calculate hole points then show result before advancing
+  if (state.gameMode === 'wolf') {
+    import('./gamemodes.js').then(({ isWolfRound, calcHolePoints, showHoleResult }) => {
+      if (isWolfRound()) {
+        const scores = {};
+        state.wolfState.order.forEach(name => {
+          scores[name] = state.liveState.groupScores[name] || Array(18).fill(null);
+        });
+        const result = calcHolePoints(h, scores, state.cpars);
+        showHoleResult(result, h, advance);
+      } else {
+        advance();
+      }
+    });
+    return;
   }
+  advance();
 }
 
 async function liveFinishAndSave() {
