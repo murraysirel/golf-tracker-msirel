@@ -13,7 +13,7 @@ Browser (PWA, vanilla JS ES modules, no build step)
   │
   ├── index.html          ← entire app shell (all pages, modals, navbar in one file)
   ├── styles/app.css      ← design system via CSS custom properties
-  └── js/*.js             ← 17 ES module files, entry point is app.js
+  └── js/*.js             ← 18 ES module files, entry point is app.js
          │
          ├── /.netlify/functions/sync  ← GitHub Gist proxy (sync.js)
          │       └── GitHub Gist: golf_data.json  ← single source of truth
@@ -49,6 +49,7 @@ Netlify hosts both the static frontend and the two serverless functions. No buil
 | `group.js` | Group code, season CRUD, "delete my data", clipboard helpers |
 | `admin.js` | Password-protected admin panel — round deletion (logged to `deletionLog`), course-correction application |
 | `export.js` | XLSX export using global `XLSX` — two sheets: All Rounds + Hole Data |
+| `gamemodes.js` | Wolf + Match Play game mode engine; `setGameMode()`, `updateFormatUI()`, Wolf state init/scoring/banners/scoreboard, `isWolfRound()` |
 
 ---
 
@@ -63,6 +64,11 @@ state = {
   photoFile,       // File object for scorecard photo upload
   CH,              // Chart.js instance container (managed by stats.js)
   statsFilter,     // Active filter: '5'|'10'|'all'|'month'|'course'
+  gameMode,        // 'stroke' | 'match' | 'wolf'
+  wolfState: {
+    order[],         // Player name turn order (hole 1 wolf = order[0])
+    holes[]          // Per-hole result objects from scoreWolfHole()
+  },
   liveState: {
     hole,                // Current hole index (0–17)
     scores[],            // Single-player hole scores
@@ -153,7 +159,9 @@ state = {
   penalties, bunkers, chips: number,
   rating: number,      // course rating
   slope: number,       // slope rating
-  aiReview?: { positive, negative, drill }   // optional, added post-save
+  aiReview?: { positive, negative, drill },  // optional, added post-save
+  matchResult?: { ... },                     // optional, set when match play round saved
+  wolfResult?: { order, holes, winner }      // optional, set when Wolf round saved
 }
 ```
 
@@ -254,6 +262,15 @@ Both variables are set in the Netlify dashboard. Neither is ever sent to the bro
 
 | Date | Change |
 |---|---|
+| 2026-03-20 | **Global micro-animations** — `@keyframes fadeUp` card entrance stagger extended to nth-child(5); `.btn/.btn-o/.btn-ghost` `:active` scale(0.93) press feedback with 80ms transition; scorecard extra stats (penalties/bunkers/chips) hidden by default behind "More +/Less −" JS toggle (`.scorecard-table` / `.sc-extra-cols` / `toggleSCExtras()` in `scorecard.js`); replaces native `<details>` element |
+| 2026-03-20 | **Caddie score entry** — scores pre-filled to par on first hole visit; `.live-score-btn` 44×44px, `var(--mid)` bg, 24px/300 font, no border; `.live-score-val` 26px/700, min-width 52px; FIR/GIR replaced with `.live-toggle-pill` pill buttons ("Fairway Hit"/"Green in Reg"); `active-fir`=green, `active-gir`=blue; FIR hidden on par-3s; `scoreCol()` used for score colour; `@keyframes scoreBounce` + `.score-bounce` on +/− tap |
+| 2026-03-20 | **Profile panel close button** — avatar icon cross-fades to ✕ when panel open via `.avatar-btn` + `.avatar-initials`/`.avatar-close` CSS opacity toggle on `.panel-open` class |
+| 2026-03-20 | **Rolling ball splash screen** — replaced wink/shrink animation with golf ball rolling in from left, logo spinning on ball, grass strip SVG, title/tagline fade-in; `prefers-reduced-motion` respected; `loadGist()` runs in parallel |
+| 2026-03-20 | **Caddie button fix** — tapping caddie button mid-round restores current hole view without reinitialising; green dot (`.caddie-dot`, `.in-progress`) shows when round active |
+| 2026-03-20 | **Home screen declutter** — Quick Actions button grid and gold gradient divider removed; dead event listeners removed from `app.js`; profile panel export label → "Export my data" |
+| 2026-03-20 | **Home KPI cards** — birdie card gets inline 16×16 bird SVG; new GIR%/FIR% combined `.kpi` block with delta vs prior calendar month; `renderHomeStats()` in `stats.js` updated |
+| 2026-03-20 | **Game format pills** — Stroke Play pill renamed to "Stroke / Stableford"; Match Play added as a first-class format pill (`#fmt-match`, `state.gameMode = 'match'`) alongside Wolf; selecting Match Play auto-inits `state.liveState.matchPlay` and `matchResult` on round start; validates exactly 2 players at start; old `#live-matchplay-row` toggle hidden (replaced by pill) |
+| 2026-03-20 | **Wolf game mode** — new `js/gamemodes.js` module; `state.gameMode` ('stroke'\|'match'\|'wolf'); Wolf requires 4 players, scoring engine with Lone Wolf / Six-pointer declarations, per-hole partner selection modal with 10 s auto-dismiss, Wolf scoreboard, standings persisted to `round.wolfResult`; `state.wolfState` holds order + hole results |
 | 2026-03-20 | **Looper rebrand** — renamed app from "RRGs Tracker" to "Looper" throughout UI, manifest, splash, and onboarding; replaced Viking logo with new Looper caddie mascot (`/assets/looper-logo.png`); new tagline "Your AI caddie" |
 | 2026-03-19 | **Round entry redesign** — removed 4-tab bar; replaced with three compact entry cards (Type it in / Scan scorecard / Add a course) + a full-width "Play with the Caddie 🏌️" pill CTA; CTA shows inline course selector when no course selected, otherwise launches unified live screen directly |
 | 2026-03-19 | **Caddie button restyled** — changed from gold circle to subtle pill (`var(--mid)` bg, 1px gold border, grip-line SVG, `box-shadow: 0 4px 16px rgba(0,0,0,.35)`); clicking returns to `#pg-live` instead of opening an overlay |
