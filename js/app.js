@@ -47,7 +47,7 @@ registerNavHandlers({
   setTimeout(() => {
     splash.classList.add('fade-out');
     setTimeout(() => { splash.style.display = 'none'; }, 450);
-  }, 2050);
+  }, 2550);
 })();
 
 // ── Navigation bar ────────────────────────────────────────────────

@@ -673,7 +673,7 @@ details[open] summary::after{content:' ▾'}
   /* Sit just above grass (4vh) with half-ball clearance */
   bottom:calc(4vh + 4px);
   left:0;width:96px;height:96px;
-  animation:splashBallMove 1.2s cubic-bezier(.25,.46,.45,.94) forwards;
+  animation:splashBallMove 1.6s cubic-bezier(.25,.46,.45,.94) forwards;
 }
 
 /* Ball circle with logo — rotates exactly 2 full turns, lands upright */
@@ -682,9 +682,15 @@ details[open] summary::after{content:' ▾'}
   width:96px;height:96px;border-radius:50%;
   background:#F4F0E8;
   overflow:hidden;
-  animation:splashBallSpin 1.5s cubic-bezier(.25,.46,.45,.94) forwards;
+  animation:splashBallSpin 1.8s cubic-bezier(.25,.46,.45,.94) forwards;
 }
-#splash-ball-inner img{width:100%;height:100%;object-fit:cover}
+#splash-ball-inner img{width:100%;height:100%;object-fit:cover;position:relative;z-index:1}
+/* Dimples overlay — rotates with the ball, sits above the logo */
+.splash-dimples{
+  position:absolute;top:0;left:0;width:96px;height:96px;
+  pointer-events:none;z-index:2;
+  fill:rgba(0,0,0,0.16);
+}
 
 /* Oval shadow beneath the ball */
 #splash-ball-shadow{
@@ -695,14 +701,12 @@ details[open] summary::after{content:' ▾'}
   border-radius:50%;filter:blur(4px);
 }
 
-/* Flag stick — off-centre right, fades in with ball */
+/* Flag stick — off-centre right, visible immediately */
 #splash-flag{
   position:absolute;
-  bottom:calc(4vh - 4px);
-  left:calc(50vw + 80px);
-  width:50px;height:170px;
-  opacity:0;
-  animation:splashTextIn .3s ease 1.1s forwards;
+  bottom:calc(4vh - 12px);
+  left:calc(50vw + 52px);
+  width:68px;height:192px;
 }
 
 /* Grass strip — irregular SVG curve across bottom */
@@ -726,6 +730,7 @@ details[open] summary::after{content:' ▾'}
   100%{transform:rotate(720deg)}
 }
 
+
 /* Title block fades and rises in */
 @keyframes splashTextIn{
   from{opacity:0;transform:translateX(-50%) translateY(8px)}
@@ -736,7 +741,6 @@ details[open] summary::after{content:' ▾'}
 @media(prefers-reduced-motion:reduce){
   #splash-ball-track{animation:none;transform:translateX(calc(50vw - 48px))}
   #splash-ball-inner{animation:none;transform:rotate(0deg)}
-  #splash-flag{animation:none;opacity:1}
   #splash-text{animation:none;opacity:1}
 }
 
