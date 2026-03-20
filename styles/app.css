@@ -148,11 +148,14 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
   transition:background .15s,transform .1s;
 }
 .btn:hover{background:var(--gold2)}
-.btn:active{transform:scale(.98)}
-.btn-o{background:transparent;border:1px solid rgba(201,168,76,.5);color:var(--gold)}
+.btn{transition:background .15s,transform 80ms ease}
+.btn:active{transform:scale(.93)}
+.btn-o{background:transparent;border:1px solid rgba(201,168,76,.5);color:var(--gold);transition:background .15s,transform 80ms ease}
 .btn-o:hover{background:rgba(201,168,76,.08)}
-.btn-ghost{background:var(--wa-04);border:1px solid var(--wa-08);color:var(--dim)}
+.btn-o:active{transform:scale(.93)}
+.btn-ghost{background:var(--wa-04);border:1px solid var(--wa-08);color:var(--dim);transition:background .15s,transform 80ms ease}
 .btn-ghost:hover{border-color:var(--wa-2)}
+.btn-ghost:active{transform:scale(.93)}
 .divider{display:flex;align-items:center;gap:10px;margin:14px 0}
 .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--wa-07)}
 .divider span{font-size:10px;color:var(--dimmer);letter-spacing:1px;text-transform:uppercase}
@@ -866,6 +869,15 @@ details[open] summary::after{content:' ▾'}
   flex-shrink:0;
 }
 
+/* ── Scorecard extra columns toggle ──────────────────────────── */
+.sc-extra-cols{display:none}
+.scorecard-table.sc-extras-visible .sc-extra-cols{display:block}
+.sc-extras-toggle{
+  display:block;font-size:11px;color:var(--dim);text-align:right;
+  margin-top:8px;cursor:pointer;text-decoration:none;
+}
+.sc-extras-toggle:hover{color:var(--gold)}
+
 /* ── Card entrance animation ──────────────────────────────────── */
 @media (prefers-reduced-motion: no-preference) {
   @keyframes fadeUp{
@@ -875,6 +887,8 @@ details[open] summary::after{content:' ▾'}
   .card{animation:fadeUp 200ms ease-out both}
   .card:nth-child(2){animation-delay:40ms}
   .card:nth-child(3){animation-delay:80ms}
+  .card:nth-child(4){animation-delay:120ms}
+  .card:nth-child(5){animation-delay:160ms}
 }
 
 /* ── Light mode tokens (Schoolhouse White) ────────────────────── */

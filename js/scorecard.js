@@ -176,3 +176,11 @@ export async function saveRound() {
     });
   });
 }
+
+export function toggleSCExtras() {
+  const table = document.querySelector('.scorecard-table');
+  const toggle = document.getElementById('sc-extras-toggle');
+  if (!table) return;
+  const visible = table.classList.toggle('sc-extras-visible');
+  if (toggle) toggle.textContent = visible ? 'Less −' : 'More +';
+}

@@ -5,7 +5,7 @@
 import { loadGist } from './api.js';
 import { goTo, switchEntry, registerNavHandlers } from './nav.js';
 import { onCourseChange, scanCourseCard, saveCourse, cancelCourseScan, handleCoursePhoto, searchCourseAPI } from './courses.js';
-import { buildSC, recalc, saveRound } from './scorecard.js';
+import { buildSC, recalc, saveRound, toggleSCExtras } from './scorecard.js';
 import { renderStats, setFilter, toggleHcpEdit, saveHandicap, renderHomeStats } from './stats.js';
 import { renderLeaderboard } from './leaderboard.js';
 import { renderOnboard, enterAs, addAndEnter, signOut, addPlayer, renderAllPlayers, renderPlayersToday } from './players.js';
@@ -113,6 +113,7 @@ document.getElementById('caddie-letsgo-btn')?.addEventListener('click', () => go
 
 document.getElementById('course-sel')?.addEventListener('change', onCourseChange);
 document.getElementById('save-round-btn')?.addEventListener('click', saveRound);
+document.getElementById('sc-extras-toggle')?.addEventListener('click', toggleSCExtras);
 
 // Photo entry
 document.getElementById('photo-drop')?.addEventListener('click', () => document.getElementById('photo-inp').click());
