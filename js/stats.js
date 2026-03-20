@@ -109,8 +109,11 @@ export function renderHomeStats() {
   const greeting = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
   const greetEl = document.getElementById('home-greeting');
   const metaEl = document.getElementById('home-hdr-meta');
-  const currentYear = String(new Date().getFullYear());
-  const seasonRounds = rs.filter(r => r.date?.split('/')?.[2] === currentYear);
+  const now = new Date();
+  const currentYear = String(now.getFullYear());
+  const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+  // Use parseDateGB-compatible split to get year/month — never new Date() on DD/MM/YYYY strings
+  const seasonRounds = rs.filter(r => { const dp = r.date?.split('/'); return dp && dp[2] === currentYear; });
   const hcpVal = p.handicap > 0 ? p.handicap : '—';
   const seasonCount = seasonRounds.length;
   if (greetEl) greetEl.textContent = greeting + ', ' + firstName;
@@ -118,89 +121,135 @@ export function renderHomeStats() {
   const avatarEl = document.getElementById('hdr-avatar-initials');
   if (avatarEl) avatarEl.textContent = initials(state.me);
 
-  // ── Sorted rounds, last 5 and prev 5 ────────────────────────
+  // ── Sorted rounds, last 5 ────────────────────────────────────
   const sorted = [...rs].sort((a, b) => parseDateGB(a.date) - parseDateGB(b.date));
   const last5 = sorted.slice(-5);
-  const prev5 = sorted.slice(-10, -5);
 
-  // ── Card 1: Avg vs par ───────────────────────────────────────
-  const last5Diffs = last5.map(r => r.diff).filter(d => d !== undefined && d !== null && !isNaN(d));
-  const avgVsPar = last5Diffs.length ? (last5Diffs.reduce((a, b) => a + b, 0) / last5Diffs.length) : null;
-  const prev5Diffs = prev5.map(r => r.diff).filter(d => d !== undefined && d !== null && !isNaN(d));
-  const prevAvgVsPar = prev5Diffs.length ? prev5Diffs.reduce((a, b) => a + b, 0) / prev5Diffs.length : null;
-  const avgParEl = document.getElementById('h-avg-par');
-  const avgParDeltaEl = document.getElementById('h-avg-par-delta');
-  if (avgParEl) avgParEl.textContent = avgVsPar !== null ? (avgVsPar >= 0 ? '+' : '') + avgVsPar.toFixed(1) : '—';
-  if (avgParDeltaEl) {
-    if (avgVsPar !== null && prevAvgVsPar !== null) {
-      const d = avgVsPar - prevAvgVsPar;
-      const improving = d < 0;
-      avgParDeltaEl.textContent = (improving ? '↓' : '↑') + ' ' + Math.abs(d).toFixed(1) + ' vs prev 5';
-      avgParDeltaEl.style.color = improving ? 'var(--par)' : 'var(--bogey)';
-    } else { avgParDeltaEl.textContent = ''; }
+  // ── Raw GIR/FIR helpers (return floats for delta precision) ──
+  function girRaw(rounds) {
+    const hits = rounds.reduce((a, r) => a + (r.gir || []).filter(v => v === 'Yes').length, 0);
+    const poss = rounds.reduce((a, r) => a + (r.gir || []).length, 0);
+    return poss ? hits / poss * 100 : null;
+  }
+  function firRaw(rounds) {
+    let hits = 0, poss = 0;
+    rounds.forEach(r => { (r.fir || []).forEach((v, h) => { if ((r.pars?.[h]) !== 3) { poss++; if (v === 'Yes') hits++; } }); });
+    return poss ? hits / poss * 100 : null;
   }
 
-  // ── Card 2: Best round this season ──────────────────────────
+  // ── Card 1: Avg vs par — delta vs season avg ─────────────────
+  const avgParEl = document.getElementById('h-avg-par');
+  const avgParDeltaEl = document.getElementById('h-avg-par-delta');
+  const validDiff = d => d !== undefined && d !== null && !isNaN(d);
+  const last5Diffs = last5.map(r => r.diff).filter(validDiff);
+  const avgVsPar = last5Diffs.length === 5
+    ? last5Diffs.reduce((a, b) => a + b, 0) / 5
+    : last5Diffs.length ? last5Diffs.reduce((a, b) => a + b, 0) / last5Diffs.length : null;
+  if (avgParEl) avgParEl.textContent = avgVsPar !== null ? (avgVsPar >= 0 ? '+' : '') + avgVsPar.toFixed(1) : '—';
+  if (avgParDeltaEl) {
+    if (rs.length < 5) {
+      avgParDeltaEl.textContent = '— need 5 rounds';
+      avgParDeltaEl.style.color = 'var(--dim)';
+    } else {
+      const seasonDiffs = seasonRounds.map(r => r.diff).filter(validDiff);
+      const seasonAvg = seasonDiffs.length ? seasonDiffs.reduce((a, b) => a + b, 0) / seasonDiffs.length : null;
+      if (avgVsPar !== null && seasonAvg !== null) {
+        const delta = avgVsPar - seasonAvg;
+        if (delta < 0) { avgParDeltaEl.textContent = '↓ ' + Math.abs(delta).toFixed(1) + ' vs season'; avgParDeltaEl.style.color = 'var(--par)'; }
+        else if (delta > 0) { avgParDeltaEl.textContent = '↑ ' + delta.toFixed(1) + ' vs season'; avgParDeltaEl.style.color = 'var(--bogey)'; }
+        else { avgParDeltaEl.textContent = '→ on season avg'; avgParDeltaEl.style.color = 'var(--dim)'; }
+      } else { avgParDeltaEl.textContent = ''; }
+    }
+  }
+
+  // ── Card 2: Best round this season — course + date two lines ─
   const bestEl = document.getElementById('h-best');
   const bestMetaEl = document.getElementById('h-best-meta');
   const seasonWithScore = seasonRounds.filter(r => r.totalScore);
   const bestRound = seasonWithScore.length ? seasonWithScore.reduce((min, r) => r.totalScore < min.totalScore ? r : min) : null;
   if (bestEl) bestEl.textContent = bestRound ? bestRound.totalScore : '—';
-  if (bestMetaEl && bestRound) {
-    const shortC = (bestRound.course || '').replace(' Golf Club', '').replace(' Golf Course', '').replace(' Golf Links', '');
-    const dp = bestRound.date?.split('/');
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const dateStr = dp && dp.length === 3 ? months[parseInt(dp[1]) - 1] + ' ' + dp[0] : '';
-    bestMetaEl.textContent = shortC + (dateStr ? ', ' + dateStr : '');
-  } else if (bestMetaEl) { bestMetaEl.textContent = ''; }
+  if (bestMetaEl) {
+    if (bestRound) {
+      const fullName = (bestRound.course || '').replace(' Golf Club', '').replace(' Golf Course', '').replace(' Golf Links', '');
+      const shortC = fullName.length > 16 ? fullName.slice(0, 16) + '…' : fullName;
+      const dp = bestRound.date?.split('/');
+      const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      // dp[0]=DD, dp[1]=MM, dp[2]=YYYY — use parseDateGB-compatible indexing
+      const dateStr = dp && dp.length === 3 ? MONTHS[parseInt(dp[1], 10) - 1] + ' ' + parseInt(dp[0], 10) : '';
+      bestMetaEl.innerHTML =
+        `<span style="display:block;font-size:11px;color:var(--dim)">${shortC}</span>` +
+        `<span style="display:block;font-size:11px;color:var(--dim)">${dateStr}</span>`;
+    } else {
+      bestMetaEl.innerHTML = '';
+    }
+  }
 
-  // ── Card 3: Birdies this season ──────────────────────────────
+  // ── Card 3: Birdies — two delta lines (vs last month, vs last year) ──
   const birdiesEl = document.getElementById('h-birdies');
   const birdiesDeltaEl = document.getElementById('h-birdies-delta');
   const seasonBirdies = seasonRounds.reduce((a, r) => a + (r.birdies || 0), 0);
-  const last5Birdies = last5.reduce((a, r) => a + (r.birdies || 0), 0);
-  const prev5Birdies = prev5.reduce((a, r) => a + (r.birdies || 0), 0);
   if (birdiesEl) birdiesEl.textContent = seasonBirdies;
+
   if (birdiesDeltaEl) {
-    if (prev5.length) {
-      const bd = last5Birdies - prev5Birdies;
-      const improving = bd > 0;
-      birdiesDeltaEl.textContent = (bd >= 0 ? '+' : '') + bd + ' vs prev 5';
-      birdiesDeltaEl.style.color = improving ? 'var(--par)' : bd < 0 ? 'var(--bogey)' : 'var(--dim)';
-    } else { birdiesDeltaEl.textContent = ''; }
+    // Last month range — derive from JS Date, compare via date string parts
+    const lastMonthNum = now.getMonth() === 0 ? 12 : now.getMonth(); // getMonth() is 0-indexed; Jan→0 wraps to Dec=12
+    const lastMonthStr = String(lastMonthNum).padStart(2, '0');
+    const lastMonthYear = now.getMonth() === 0 ? String(now.getFullYear() - 1) : currentYear;
+    const lastYear = String(now.getFullYear() - 1);
+
+    const thisMonthRounds = rs.filter(r => { const dp = r.date?.split('/'); return dp && dp[1] === currentMonth && dp[2] === currentYear; });
+    const lastMonthRounds = rs.filter(r => { const dp = r.date?.split('/'); return dp && dp[1] === lastMonthStr && dp[2] === lastMonthYear; });
+    const lastYearRounds  = rs.filter(r => { const dp = r.date?.split('/'); return dp && dp[2] === lastYear; });
+
+    const thisMonthB = thisMonthRounds.reduce((a, r) => a + (r.birdies || 0), 0);
+    const lastMonthB = lastMonthRounds.reduce((a, r) => a + (r.birdies || 0), 0);
+    const thisYearB  = seasonBirdies;
+    const lastYearB  = lastYearRounds.reduce((a, r) => a + (r.birdies || 0), 0);
+
+    function birdieMonthLine() {
+      if (!lastMonthRounds.length) return `<span style="color:var(--dim)">— no data last month</span>`;
+      const d = thisMonthB - lastMonthB;
+      if (d > 0) return `<span style="color:var(--par)">↑ ${d} vs last month</span>`;
+      if (d < 0) return `<span style="color:var(--bogey)">↓ ${Math.abs(d)} vs last month</span>`;
+      return `<span style="color:var(--dim)">→ same as last month</span>`;
+    }
+    function birdieYearLine() {
+      if (!lastYearRounds.length) return `<span style="color:var(--dim)">— no ${lastYear} data</span>`;
+      const d = thisYearB - lastYearB;
+      if (d > 0) return `<span style="color:var(--par)">↑ ${d} vs ${lastYear}</span>`;
+      if (d < 0) return `<span style="color:var(--bogey)">↓ ${Math.abs(d)} vs ${lastYear}</span>`;
+      return `<span style="color:var(--dim)">→ same as ${lastYear}</span>`;
+    }
+    birdiesDeltaEl.style.cssText = 'display:flex;flex-direction:column;gap:2px;font-size:10px';
+    birdiesDeltaEl.innerHTML = birdieMonthLine() + birdieYearLine();
   }
 
-  // ── Card 4: GIR / FIR from last 5 with delta vs prev 5 ──────
-  function calcGIR(rounds) {
-    const hits = rounds.reduce((a, r) => a + (r.gir || []).filter(v => v === 'Yes').length, 0);
-    const poss = rounds.reduce((a, r) => a + (r.gir || []).length, 0);
-    return poss ? Math.round(hits / poss * 100) : null;
-  }
-  function calcFIR(rounds) {
-    let hits = 0, poss = 0;
-    rounds.forEach(r => { (r.fir || []).forEach((v, h) => { if ((r.pars?.[h]) !== 3) { poss++; if (v === 'Yes') hits++; } }); });
-    return poss ? Math.round(hits / poss * 100) : null;
-  }
-  const girPct = calcGIR(last5);
-  const firPct = calcFIR(last5);
-  const prevGirPct = calcGIR(prev5);
-  const prevFirPct = calcFIR(prev5);
-  const girDelta = girPct !== null && prevGirPct !== null ? girPct - prevGirPct : null;
-  const firDelta = firPct !== null && prevFirPct !== null ? firPct - prevFirPct : null;
-  const girPctEl = document.getElementById('h-gir-pct');
-  const firPctEl = document.getElementById('h-fir-pct');
+  // ── Card 4: GIR / FIR — delta vs season avg ──────────────────
+  const girPctEl  = document.getElementById('h-gir-pct');
+  const firPctEl  = document.getElementById('h-fir-pct');
   const girDeltaEl = document.getElementById('h-gir-delta');
   const firDeltaEl = document.getElementById('h-fir-delta');
-  if (girPctEl) girPctEl.textContent = girPct !== null ? girPct + '%' : '—';
-  if (firPctEl) firPctEl.textContent = firPct !== null ? firPct + '%' : '—';
-  if (girDeltaEl) {
-    girDeltaEl.textContent = girDelta !== null ? (girDelta >= 0 ? '↑' : '↓') + ' ' + Math.abs(girDelta) + '% vs last 5' : '';
-    girDeltaEl.style.color = girDelta !== null && girDelta > 0 ? 'var(--par)' : 'var(--bogey)';
+
+  const last5GIR   = girRaw(last5);
+  const last5FIR   = firRaw(last5);
+  const seasonGIR  = girRaw(seasonRounds);
+  const seasonFIR  = firRaw(seasonRounds);
+
+  if (girPctEl) girPctEl.textContent = last5GIR !== null ? Math.round(last5GIR) + '%' : '—';
+  if (firPctEl) firPctEl.textContent = last5FIR !== null ? Math.round(last5FIR) + '%' : '—';
+
+  function renderGIRFIRDelta(el, last5Val, seasonVal) {
+    if (!el) return;
+    el.style.fontSize = '10px';
+    if (last5Val !== null && seasonVal !== null) {
+      const delta = last5Val - seasonVal;
+      if (delta > 0) { el.textContent = '↑ ' + Math.abs(delta).toFixed(1) + '% vs season'; el.style.color = 'var(--par)'; }
+      else if (delta < 0) { el.textContent = '↓ ' + Math.abs(delta).toFixed(1) + '% vs season'; el.style.color = 'var(--bogey)'; }
+      else { el.textContent = '→ on season avg'; el.style.color = 'var(--dim)'; }
+    } else { el.textContent = ''; }
   }
-  if (firDeltaEl) {
-    firDeltaEl.textContent = firDelta !== null ? (firDelta >= 0 ? '↑' : '↓') + ' ' + Math.abs(firDelta) + '% vs last 5' : '';
-    firDeltaEl.style.color = firDelta !== null && firDelta > 0 ? 'var(--par)' : 'var(--bogey)';
-  }
+  renderGIRFIRDelta(girDeltaEl, last5GIR, seasonGIR);
+  renderGIRFIRDelta(firDeltaEl, last5FIR, seasonFIR);
 
   // ── Recent rounds ────────────────────────────────────────────
   const recent = document.getElementById('home-recent');
