@@ -2,7 +2,7 @@
 
 ## Product Summary
 
-RRGs Tracker is a mobile-first progressive web app for a small group of golfers to record, compare, and analyse their rounds together. Players enter scores manually or via AI-parsed scorecard photos, track live hole-by-hole scoring (including multi-player groups and match play), and view personal stats (handicap trend, Stableford points, FIR/GIR charts) alongside a shared group leaderboard with nine ranking views. AI features — powered by Anthropic Claude via a Netlify proxy — cover scorecard OCR, post-round coaching reviews, multi-round stats analysis, and personalised practice-session planning.
+Looper is a mobile-first progressive web app — your AI caddie — for a small group of golfers to record, compare, and analyse their rounds together. Players enter scores manually or via AI-parsed scorecard photos, track live hole-by-hole scoring (including multi-player groups and match play), and view personal stats (handicap trend, Stableford points, FIR/GIR charts) alongside a shared group leaderboard with nine ranking views. AI features — powered by Anthropic Claude via a Netlify proxy — cover scorecard OCR, post-round coaching reviews, multi-round stats analysis, and personalised practice-session planning.
 
 ---
 
@@ -254,6 +254,7 @@ Both variables are set in the Netlify dashboard. Neither is ever sent to the bro
 
 | Date | Change |
 |---|---|
+| 2026-03-20 | **Looper rebrand** — renamed app from "RRGs Tracker" to "Looper" throughout UI, manifest, splash, and onboarding; replaced Viking logo with new Looper caddie mascot (`/assets/looper-logo.png`); new tagline "Your AI caddie" |
 | 2026-03-19 | **Round entry redesign** — removed 4-tab bar; replaced with three compact entry cards (Type it in / Scan scorecard / Add a course) + a full-width "Play with the Caddie 🏌️" pill CTA; CTA shows inline course selector when no course selected, otherwise launches unified live screen directly |
 | 2026-03-19 | **Caddie button restyled** — changed from gold circle to subtle pill (`var(--mid)` bg, 1px gold border, grip-line SVG, `box-shadow: 0 4px 16px rgba(0,0,0,.35)`); clicking returns to `#pg-live` instead of opening an overlay |
 | 2026-03-19 | **Unified Caddie+Live screen** — `#caddie-view` overlay removed; `#pg-live` now contains full GPS distance block (front/mid/back yards) + per-player scoring rows + sticky header + fixed footer; GPS auto-starts on round launch; Wake Lock prompted once and persisted to `localStorage` key `rr_wakelock` |
