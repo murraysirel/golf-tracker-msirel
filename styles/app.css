@@ -607,7 +607,7 @@ details[open] summary::after{content:' ▾'}
     splashEyelidUp   .22s ease-out .97s forwards;
 }
 
-/* "RRGs Tracker" text below logo — fades in then out with the logo */
+/* "Looper" text below logo — fades in then out with the logo */
 #splash-title{
   font-family:'Cormorant Garamond',serif;
   font-size:clamp(20px,5vw,30px);font-weight:700;
