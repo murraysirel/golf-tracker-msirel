@@ -46,8 +46,8 @@ registerNavHandlers({
   if (!splash) return;
   setTimeout(() => {
     splash.classList.add('fade-out');
-    setTimeout(() => { splash.style.display = 'none'; }, 500);
-  }, 2300);
+    setTimeout(() => { splash.style.display = 'none'; }, 450);
+  }, 2050);
 })();
 
 // ── Navigation bar ────────────────────────────────────────────────
@@ -203,6 +203,7 @@ document.getElementById('open-admin-btn')?.addEventListener('click', openAdminSe
 
 // ── Wolf game format ──────────────────────────────────────────────
 document.getElementById('fmt-stroke')?.addEventListener('click', () => setGameMode('stroke'));
+document.getElementById('fmt-match')?.addEventListener('click', () => setGameMode('match'));
 document.getElementById('fmt-wolf')?.addEventListener('click', () => setGameMode('wolf'));
 document.getElementById('wolf-info-btn')?.addEventListener('click', () => {
   document.getElementById('wolf-rules-modal').style.display = 'flex';

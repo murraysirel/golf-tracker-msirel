@@ -20,11 +20,22 @@
 </head>
 <body>
 <div id="splash-screen">
-  <div id="splash-logo-wrap">
-    <img src="/assets/looper_caddie.png" alt="Looper">
-    <div id="splash-eyelid"></div>
+  <!-- Title text: fades in after ball stops -->
+  <div id="splash-text">
+    <div id="splash-app-name">Looper</div>
+    <div id="splash-tagline">Your AI caddie</div>
   </div>
-  <div id="splash-title">Looper</div>
+  <!-- Ball: translates left→centre, logo rotates then settles upright -->
+  <div id="splash-ball-track">
+    <div id="splash-ball-shadow"></div>
+    <div id="splash-ball-inner">
+      <img src="/assets/looper_caddie.png" alt="Looper">
+    </div>
+  </div>
+  <!-- Grass strip -->
+  <svg id="splash-grass" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 80" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0,45 Q80,22 180,38 Q320,58 460,28 Q580,8 700,36 Q830,60 930,26 Q970,14 1000,32 L1000,80 L0,80 Z" fill="#2d5a1b"/>
+  </svg>
 </div>
 
 <!-- ══════════════ ONBOARD ══════════════ -->
