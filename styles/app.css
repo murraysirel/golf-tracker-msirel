@@ -1,6 +1,7 @@
 /* ── Reset & Root ─────────────────────────────────────────────── */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
+  font-size:16px;
 
   /* ── Logo data URIs ──────────────────────────────────────────── */
   --logo-filled: url("/assets/looper-logo.png");
@@ -346,10 +347,10 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
 .parea-btn .parea-sub{font-size:10px;color:var(--dim);display:block}
 /* Filter pills — already defined above */
 .fpill{
-  padding:6px 14px;border-radius:20px;font-size:11px;font-weight:500;
+  padding:6px 14px;border-radius:20px;font-size:0.8125rem;font-weight:500;
   background:var(--navy);border:1px solid var(--wa-06);
   color:var(--dim);cursor:pointer;font-family:'DM Sans',sans-serif;
-  transition:all .15s;white-space:nowrap;
+  transition:all .15s;white-space:nowrap;min-height:34px;
 }
 .fpill.active,.fpill:active{
   background:var(--gold);border-color:var(--gold);color:var(--navy);font-weight:600;
@@ -819,13 +820,26 @@ details[open] summary::after{content:' ▾'}
   --chart-tick:#4A5568;
   --chart-grid:rgba(0,0,0,.06);
   --navy:  #F4F0E8;
-  --mid:   #EAE6DC;
+  --mid:   #E8E4DC;
   --card:  #FFFFFF;
   --border:rgba(27,42,74,.12);
-  --cream: #1B2A4A;
-  --dim:   #4A5568;
+  --cream: #1a1a18;
+  --gold:  #8B6914;
+  --dim:   #5a5952;
   --dimmer:#718096;
 }
+
+/* ── Tee button contrast overrides for light mode ─────────────── */
+[data-theme="light"] .tee-btn.blue{background:#0c447c;border-color:#0c447c;color:#e6f1fb}
+[data-theme="light"] .tee-btn.yellow{background:#854f0b;border-color:#854f0b;color:#faeeda}
+[data-theme="light"] .tee-btn.white{background:#444441;border-color:#444441;color:#f1efe8}
+[data-theme="light"] .tee-btn.red{background:#791f1f;border-color:#791f1f;color:#fcebeb}
+[data-theme="light"] .tee-btn.black{background:#2c2c2a;border-color:#2c2c2a;color:#d3d1c7}
+[data-theme="light"] .tee-btn.active.blue{background:#0c447c;border-color:#0c447c;color:#e6f1fb}
+[data-theme="light"] .tee-btn.active.yellow{background:#854f0b;border-color:#854f0b;color:#faeeda}
+[data-theme="light"] .tee-btn.active.white{background:#444441;border-color:#444441;color:#f1efe8}
+[data-theme="light"] .tee-btn.active.red{background:#791f1f;border-color:#791f1f;color:#fcebeb}
+[data-theme="light"] .tee-btn.active.black{background:#2c2c2a;border-color:#2c2c2a;color:#d3d1c7}
 
 /* ── Theme toggle (profile panel) ────────────────────────────── */
 .theme-toggle-wrap{

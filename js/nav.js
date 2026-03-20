@@ -17,21 +17,53 @@ export function registerNavHandlers(handlers) {
 }
 
 export function goTo(p) {
+  // Find the currently visible page for fade-out
+  let outgoing = null;
   PAGES.forEach(pg => {
     const el = document.getElementById('pg-' + pg);
-    if (el) el.style.display = pg === p ? 'block' : 'none';
+    if (el && el.style.display === 'block') outgoing = el;
   });
+  const incoming = document.getElementById('pg-' + p);
+
   document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
   const nb = document.getElementById('nb-' + p);
   if (nb) nb.classList.add('active');
-  document.getElementById('app-scroll').scrollTop = 0;
-  if (p === 'stats' && _renderStats) _renderStats();
-  if (p === 'leaderboard' && _renderLeaderboard) _renderLeaderboard();
-  if (p === 'players' && _renderAllPlayers) _renderAllPlayers();
-  if (p === 'home' && _renderHomeStats) _renderHomeStats();
-  if (p === 'practice' && _renderPracticePage) _renderPracticePage();
-  if (p === 'live' && _initLiveRound) _initLiveRound();
-  if (p === 'competition' && _initCompetition) _initCompetition();
+
+  function showPage() {
+    document.getElementById('app-scroll').scrollTop = 0;
+    PAGES.forEach(pg => {
+      const el = document.getElementById('pg-' + pg);
+      if (el) {
+        el.style.transition = '';
+        el.style.opacity = '';
+        el.style.display = pg === p ? 'block' : 'none';
+      }
+    });
+    if (incoming) {
+      incoming.style.opacity = '0';
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          incoming.style.transition = 'opacity 120ms';
+          incoming.style.opacity = '1';
+        });
+      });
+    }
+    if (p === 'stats' && _renderStats) _renderStats();
+    if (p === 'leaderboard' && _renderLeaderboard) _renderLeaderboard();
+    if (p === 'players' && _renderAllPlayers) _renderAllPlayers();
+    if (p === 'home' && _renderHomeStats) _renderHomeStats();
+    if (p === 'practice' && _renderPracticePage) _renderPracticePage();
+    if (p === 'live' && _initLiveRound) _initLiveRound();
+    if (p === 'competition' && _initCompetition) _initCompetition();
+  }
+
+  if (outgoing && outgoing !== incoming) {
+    outgoing.style.transition = 'opacity 120ms';
+    outgoing.style.opacity = '0';
+    setTimeout(showPage, 120);
+  } else {
+    showPage();
+  }
 }
 
 export function switchEntry(t) {
