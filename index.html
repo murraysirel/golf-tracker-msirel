@@ -36,6 +36,15 @@
   <svg id="splash-grass" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 80" preserveAspectRatio="none" aria-hidden="true">
     <path d="M0,45 Q80,22 180,38 Q320,58 460,28 Q580,8 700,36 Q830,60 930,26 Q970,14 1000,32 L1000,80 L0,80 Z" fill="#2d5a1b"/>
   </svg>
+  <!-- Flag stick — just off-centre right, appears with ball -->
+  <svg id="splash-flag" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 170" aria-hidden="true">
+    <!-- wooden pole -->
+    <rect x="20" y="0" width="6" height="162" rx="3" fill="#8B6914"/>
+    <rect x="21" y="0" width="2" height="162" rx="1" fill="#c9a84c" opacity="0.3"/>
+    <!-- flag (pointing right) -->
+    <polygon points="26,6 26,56 62,32" fill="var(--gold)"/>
+    <polygon points="26,6 26,56 62,32" fill="none" stroke="rgba(0,0,0,0.15)" stroke-width="1"/>
+  </svg>
 </div>
 
 <!-- ══════════════ ONBOARD ══════════════ -->
@@ -535,11 +544,11 @@
           <div style="font-size:11px;color:var(--dim);flex:1">WHS Index from MyEG or your club</div>
         </div>
         <!-- Filter pills -->
-        <div style="display:flex;gap:5px;flex-wrap:wrap" id="filter-pills">
-          <button class="fpill active" data-f="5">Last 5</button>
-          <button class="fpill" data-f="month">Month</button>
-          <button class="fpill" data-f="course">Course</button>
-          <button class="fpill" data-f="all">All time</button>
+        <div style="display:flex;gap:6px" id="filter-pills">
+          <button class="fpill active" data-f="5" style="flex:1;text-align:center">Last 5</button>
+          <button class="fpill" data-f="month" style="flex:1;text-align:center">Month</button>
+          <button class="fpill" data-f="course" style="flex:1;text-align:center">Course</button>
+          <button class="fpill" data-f="all" style="flex:1;text-align:center">All time</button>
         </div>
         <div id="filter-course-row" style="display:none;margin-top:8px">
           <select id="filter-course-sel" style="width:100%"></select>
