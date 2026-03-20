@@ -24,6 +24,17 @@ function releaseWakeLock() {
 // ── Group setup ───────────────────────────────────────────────────
 
 export function initLiveRound() {
+  // If a round is already in progress, restore the current hole — don't reinitialise
+  if (state.roundActive && state.liveState.group.length > 0) {
+    const setup = document.getElementById('live-group-setup');
+    const holeView = document.getElementById('live-hole-view');
+    if (setup) setup.style.display = 'none';
+    if (holeView) holeView.style.display = 'block';
+    liveRenderPips();
+    liveGoto(state.liveState.hole);
+    return;
+  }
+
   const ci = document.getElementById('course-sel')?.value;
   const course = ci !== '' ? getCourseByRef(ci) : null;
   if (!course) {
@@ -72,9 +83,9 @@ function showGroupSetup() {
     state.liveState.group = [state.me];
     showGroupSetup();
   }
-  // Hide match play row when Wolf format is selected
+  // Match play is now a format pill — hide the old toggle row
   const mpRow = document.getElementById('live-matchplay-row');
-  if (mpRow) mpRow.style.display = state.gameMode === 'wolf' ? 'none' : '';
+  if (mpRow) mpRow.style.display = 'none';
   // Update match play toggle
   updateMatchPlayToggle();
 }
@@ -130,6 +141,22 @@ export function startGroupRound() {
     alert('Wolf requires exactly 4 players. Please select 4 players above.');
     return;
   }
+  // Match play validation + init
+  if (state.gameMode === 'match') {
+    if (state.liveState.group.length !== 2) {
+      alert('Match play requires exactly 2 players. Please select 2 players above.');
+      return;
+    }
+    state.liveState.matchPlay = true;
+    state.liveState.matchResult = {
+      format: 'singles',
+      players: [...state.liveState.group],
+      holesUp: 0,
+      leader: null,
+      holesPlayed: 0,
+      result: 'ongoing'
+    };
+  }
   // Initialise per-player arrays
   state.liveState.groupScores = {};
   state.liveState.groupPutts = {};
@@ -169,7 +196,9 @@ export function startGroupRound() {
 
   // Show floating caddie button (returns to this screen if user navigates away)
   state.roundActive = true;
-  document.getElementById('caddie-btn')?.classList.add('visible');
+  const _cBtn = document.getElementById('caddie-btn');
+  _cBtn?.classList.add('visible');
+  _cBtn?.classList.add('in-progress');
 
   // Wake lock (persistent preference stored in localStorage)
   const wlPref = localStorage.getItem('rr_wakelock');
@@ -566,7 +595,9 @@ export function liveNextOrFinish() {
 
 async function liveFinishAndSave() {
   state.roundActive = false;
-  document.getElementById('caddie-btn')?.classList.remove('visible');
+  const _cBtn2 = document.getElementById('caddie-btn');
+  _cBtn2?.classList.remove('visible');
+  _cBtn2?.classList.remove('in-progress');
   releaseWakeLock();
   // Always save directly for all group sizes
   await liveGroupSave();

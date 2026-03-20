@@ -690,6 +690,8 @@ details[open] summary::after{content:' ▾'}
 }
 #caddie-btn.visible{display:flex}
 #caddie-btn:active{opacity:.85}
+#caddie-dot{display:none;width:7px;height:7px;border-radius:50%;background:var(--par);box-shadow:0 0 5px var(--par);flex-shrink:0}
+#caddie-btn.in-progress #caddie-dot{display:block}
 
 /* ── Caddie View ──────────────────────────────────────────────── */
 #caddie-view{
