@@ -1,6 +1,6 @@
 {
-  "name": "Looper",
-  "short_name": "Looper",
+  "name": "Rob Roy Golfers Tracker",
+  "short_name": "Rob Roy",
   "description": "Looper — your AI caddie",
   "start_url": "/",
   "display": "standalone",
@@ -8,12 +8,7 @@
   "theme_color": "#0a1628",
   "icons": [
     {
-      "src": "/assets/looper-logo.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/assets/looper-logo.png",
+      "src": "/looper_caddie.png",
       "sizes": "512x512",
       "type": "image/png"
     }
