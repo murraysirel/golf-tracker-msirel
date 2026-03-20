@@ -63,6 +63,7 @@ function openProfilePanel() {
   import('./courses.js').then(({ renderScannedCourses }) => renderScannedCourses());
   document.getElementById('profile-panel')?.classList.add('open');
   document.getElementById('profile-backdrop')?.classList.add('open');
+  document.getElementById('profile-icon-btn')?.classList.add('panel-open');
   const gc = document.getElementById('players-group-code');
   if (gc && state.gd?.groupCode) gc.textContent = state.gd.groupCode;
   const admin = document.getElementById('admin-gistid');
@@ -75,6 +76,7 @@ function openProfilePanel() {
 function closeProfilePanel() {
   document.getElementById('profile-panel')?.classList.remove('open');
   document.getElementById('profile-backdrop')?.classList.remove('open');
+  document.getElementById('profile-icon-btn')?.classList.remove('panel-open');
 }
 document.getElementById('profile-icon-btn')?.addEventListener('click', openProfilePanel);
 document.getElementById('profile-panel-close')?.addEventListener('click', closeProfilePanel);
