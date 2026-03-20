@@ -376,13 +376,18 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
   pointer-events:none;
 }
 .home-kpi-split-top{
-  position:absolute;top:14px;left:16px;
-  display:flex;flex-direction:column;gap:4px;
+  position:absolute;top:14px;left:14px;
+  display:flex;flex-direction:column;gap:3px;
+  max-width:46%;overflow:hidden;
 }
 .home-kpi-split-bot{
-  position:absolute;bottom:14px;right:16px;
-  display:flex;flex-direction:column;gap:4px;text-align:right;align-items:flex-end;
+  position:absolute;bottom:14px;right:14px;
+  display:flex;flex-direction:column;gap:3px;text-align:right;align-items:flex-end;
+  max-width:46%;overflow:hidden;
 }
+/* Smaller value + delta inside the split card to avoid crossing the diagonal */
+.home-kpi-split .home-kpi-val{font-size:20px}
+.home-kpi-split .home-kpi-delta{font-size:9px}
 
 /* ── Practice area buttons — v0 style ────────────────────────── */
 .parea-btn{
@@ -595,7 +600,7 @@ details[open] summary::after{content:' ▾'}
 .lb-avatar-me{
   width:38px;height:38px;border-radius:50%;background:var(--navy);
   border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;
-  font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:600;color:var(--gold);flex-shrink:0;
+  font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;color:var(--gold);flex-shrink:0;
 }
 .lb-name{font-size:13px;font-weight:500;color:var(--cream);flex:1}
 .lb-meta{font-size:10px;color:var(--dim);margin-top:1px}

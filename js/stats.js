@@ -142,13 +142,15 @@ export function renderHomeStats() {
   const avgParDeltaEl = document.getElementById('h-avg-par-delta');
   const validDiff = d => d !== undefined && d !== null && !isNaN(d);
   const last5Diffs = last5.map(r => r.diff).filter(validDiff);
-  const avgVsPar = last5Diffs.length === 5
-    ? last5Diffs.reduce((a, b) => a + b, 0) / 5
-    : last5Diffs.length ? last5Diffs.reduce((a, b) => a + b, 0) / last5Diffs.length : null;
+  const N = last5Diffs.length; // actual rounds used (up to 5)
+  const avgVsPar = N ? last5Diffs.reduce((a, b) => a + b, 0) / N : null;
   if (avgParEl) avgParEl.textContent = avgVsPar !== null ? (avgVsPar >= 0 ? '+' : '') + avgVsPar.toFixed(1) : '—';
   if (avgParDeltaEl) {
-    if (rs.length < 5) {
-      avgParDeltaEl.textContent = '— need 5 rounds';
+    if (N === 0) {
+      avgParDeltaEl.textContent = '';
+    } else if (N < 5) {
+      // Fewer than 5 rounds — show value but label clearly
+      avgParDeltaEl.textContent = `last ${N} round${N !== 1 ? 's' : ''}`;
       avgParDeltaEl.style.color = 'var(--dim)';
     } else {
       const seasonDiffs = seasonRounds.map(r => r.diff).filter(validDiff);
@@ -203,8 +205,6 @@ export function renderHomeStats() {
 
     const thisMonthB = thisMonthRounds.reduce((a, r) => a + (r.birdies || 0), 0);
     const lastMonthB = lastMonthRounds.reduce((a, r) => a + (r.birdies || 0), 0);
-    const thisYearB  = seasonBirdies;
-    const lastYearB  = lastYearRounds.reduce((a, r) => a + (r.birdies || 0), 0);
 
     function birdieMonthLine() {
       if (!lastMonthRounds.length) return `<span style="color:var(--dim)">— no data last month</span>`;
@@ -213,15 +213,8 @@ export function renderHomeStats() {
       if (d < 0) return `<span style="color:var(--bogey)">↓ ${Math.abs(d)} vs last month</span>`;
       return `<span style="color:var(--dim)">→ same as last month</span>`;
     }
-    function birdieYearLine() {
-      if (!lastYearRounds.length) return `<span style="color:var(--dim)">— no ${lastYear} data</span>`;
-      const d = thisYearB - lastYearB;
-      if (d > 0) return `<span style="color:var(--par)">↑ ${d} vs ${lastYear}</span>`;
-      if (d < 0) return `<span style="color:var(--bogey)">↓ ${Math.abs(d)} vs ${lastYear}</span>`;
-      return `<span style="color:var(--dim)">→ same as ${lastYear}</span>`;
-    }
-    birdiesDeltaEl.style.cssText = 'display:flex;flex-direction:column;gap:2px;font-size:10px';
-    birdiesDeltaEl.innerHTML = birdieMonthLine() + birdieYearLine();
+    birdiesDeltaEl.style.cssText = 'font-size:10px';
+    birdiesDeltaEl.innerHTML = birdieMonthLine();
   }
 
   // ── Card 4: GIR / FIR — delta vs season avg ──────────────────
@@ -240,12 +233,11 @@ export function renderHomeStats() {
 
   function renderGIRFIRDelta(el, last5Val, seasonVal) {
     if (!el) return;
-    el.style.fontSize = '10px';
     if (last5Val !== null && seasonVal !== null) {
       const delta = last5Val - seasonVal;
-      if (delta > 0) { el.textContent = '↑ ' + Math.abs(delta).toFixed(1) + '% vs season'; el.style.color = 'var(--par)'; }
-      else if (delta < 0) { el.textContent = '↓ ' + Math.abs(delta).toFixed(1) + '% vs season'; el.style.color = 'var(--bogey)'; }
-      else { el.textContent = '→ on season avg'; el.style.color = 'var(--dim)'; }
+      if (delta > 0) { el.textContent = '↑ ' + Math.abs(delta).toFixed(1) + '%'; el.style.color = 'var(--par)'; }
+      else if (delta < 0) { el.textContent = '↓ ' + Math.abs(delta).toFixed(1) + '%'; el.style.color = 'var(--bogey)'; }
+      else { el.textContent = '→ avg'; el.style.color = 'var(--dim)'; }
     } else { el.textContent = ''; }
   }
   renderGIRFIRDelta(girDeltaEl, last5GIR, seasonGIR);
