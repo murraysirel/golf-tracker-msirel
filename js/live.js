@@ -613,6 +613,10 @@ async function liveGroupSave() {
       // Include match outcome if match play was used
       ...(state.liveState.matchPlay && state.liveState.matchResult
         ? { matchOutcome: { ...state.liveState.matchResult } }
+        : {}),
+      // Include Wolf result if Wolf round
+      ...(state.gameMode === 'wolf' && state.wolfState?.order?.length
+        ? { wolfResult: { order: state.wolfState.order, finalScores: { ...state.wolfState.scores }, holeResults: state.wolfState.holeResults, winner: [...state.wolfState.order].sort((a, b) => (state.wolfState.scores[b] || 0) - (state.wolfState.scores[a] || 0))[0] || '' } }
         : {})
     };
     if (!state.gd.players[playerName]) state.gd.players[playerName] = { handicap: 0, rounds: [] };
