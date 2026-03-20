@@ -5,6 +5,7 @@ import { state } from './state.js';
 import { getCourseByRef } from './courses.js';
 import { recalc } from './scorecard.js';
 import { goTo } from './nav.js';
+// Wolf hooks loaded via dynamic import to avoid circular deps
 
 
 // ── Wake Lock ─────────────────────────────────────────────────────
@@ -71,6 +72,9 @@ function showGroupSetup() {
     state.liveState.group = [state.me];
     showGroupSetup();
   }
+  // Hide match play row when Wolf format is selected
+  const mpRow = document.getElementById('live-matchplay-row');
+  if (mpRow) mpRow.style.display = state.gameMode === 'wolf' ? 'none' : '';
   // Update match play toggle
   updateMatchPlayToggle();
 }
@@ -121,6 +125,11 @@ export function startGroupRound() {
   if (!state.liveState.group.length) {
     state.liveState.group = [state.me];
   }
+  // Wolf validation
+  if (state.gameMode === 'wolf' && state.liveState.group.length !== 4) {
+    alert('Wolf requires exactly 4 players. Please select 4 players above.');
+    return;
+  }
   // Initialise per-player arrays
   state.liveState.groupScores = {};
   state.liveState.groupPutts = {};
@@ -141,14 +150,22 @@ export function startGroupRound() {
     state.liveState.groupGir[p] = [...state.liveState.gir];
   }
 
-  // Show hole view
+  // Show hole view (or Wolf order setup)
   const setup = document.getElementById('live-group-setup');
   const holeView = document.getElementById('live-hole-view');
   if (setup) setup.style.display = 'none';
-  if (holeView) holeView.style.display = 'block';
 
-  liveRenderPips();
-  liveGoto(state.liveState.hole);
+  if (state.gameMode === 'wolf') {
+    // Wolf: show order setup before hole view
+    import('./gamemodes.js').then(({ showWolfOrderSetup }) => {
+      showWolfOrderSetup(state.liveState.group);
+    });
+    // Wake lock + GPS still start
+  } else {
+    if (holeView) holeView.style.display = 'block';
+    liveRenderPips();
+    liveGoto(state.liveState.hole);
+  }
 
   // Show floating caddie button (returns to this screen if user navigates away)
   state.roundActive = true;

@@ -355,7 +355,7 @@
           <div class="ct" style="margin-bottom:14px">Who is playing today?</div>
           <div style="font-size:11px;color:var(--dim);margin-bottom:12px">Tap to select players for this round. You can score 1–4 players simultaneously.</div>
           <div id="live-group-chips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px"></div>
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--wa-06);margin-top:4px">
+          <div id="live-matchplay-row" style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--wa-06);margin-top:4px">
             <div>
               <div style="font-size:13px;color:var(--cream)">Match play</div>
               <div style="font-size:10px;color:var(--dim);margin-top:2px">Requires exactly 2 players selected</div>
@@ -363,6 +363,16 @@
             <button id="live-matchplay-toggle" style="padding:6px 14px;border-radius:20px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;border:1.5px solid var(--wa-15);background:transparent;color:var(--dim)">Off</button>
           </div>
           <button class="btn" id="live-group-start-btn" style="margin-top:14px">Start Round →</button>
+        </div>
+      </div>
+
+      <!-- Phase 1b: Wolf playing order setup -->
+      <div id="wolf-order-setup" class="sec" style="display:none">
+        <div class="card">
+          <div class="ct">Set Playing Order</div>
+          <div style="font-size:12px;color:var(--dim);margin-bottom:16px;line-height:1.5">Throw a ball at the tee marker — closest to furthest sets the order. Drag or use the arrows to arrange players.</div>
+          <div id="wolf-order-cards"></div>
+          <button class="btn" id="wolf-order-confirm" style="margin-top:8px">Start Wolf Round →</button>
         </div>
       </div>
 
