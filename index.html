@@ -190,6 +190,19 @@
           </div>
         </div>
 
+        <!-- Game Format selector -->
+        <div id="game-format-row" style="margin-bottom:14px">
+          <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px">Game Format</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <button class="fpill active" id="fmt-stroke" data-fmt="stroke">Stroke Play</button>
+            <span style="display:inline-flex;align-items:center;gap:5px">
+              <button class="fpill" id="fmt-wolf" data-fmt="wolf">Wolf</button>
+              <button id="wolf-info-btn" title="Wolf rules" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--wa-1);background:var(--wa-04);color:var(--dim);font-size:12px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;padding:0;flex-shrink:0">ⓘ</button>
+            </span>
+          </div>
+          <div id="wolf-need-4" style="display:none;font-size:11px;color:var(--dimmer);margin-top:6px">Wolf requires exactly 4 players</div>
+        </div>
+
         <!-- Primary CTA: Play with the Caddie -->
         <button id="caddie-play-btn" class="btn" style="border-radius:40px;font-size:16px;padding:18px;letter-spacing:.2px;margin-bottom:8px">Play with the Caddie 🏌️</button>
         <div id="caddie-inline-setup" style="display:none;margin-bottom:16px">
@@ -969,6 +982,38 @@
             <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:8px">Course Corrections</div>
             <div id="admin-corrections" style="font-size:11px;color:var(--dim)"></div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wolf Rules Modal -->
+    <div id="wolf-rules-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9100;align-items:flex-end;justify-content:center">
+      <div style="background:var(--mid);border:1px solid var(--wa-08);border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+          <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase">Wolf — How to Play</div>
+          <button id="wolf-rules-close" style="background:none;border:none;color:var(--dim);font-size:20px;cursor:pointer;line-height:1">✕</button>
+        </div>
+        <div style="font-size:13px;color:var(--cream);line-height:1.7">
+          <div style="color:var(--gold);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">The Order</div>
+          <p style="margin-bottom:14px">Throw a ball at the tee marker — closest to furthest sets playing order. Enter it in the app before play starts.</p>
+
+          <div style="color:var(--gold);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">Each Hole</div>
+          <p style="margin-bottom:14px">The Wolf rotates each hole and tees off first. After each opponent's tee shot, the Wolf may call "Partner!" before the next player hits. Pass all three and the Wolf plays <strong>Lone Wolf</strong>.</p>
+
+          <div style="color:var(--gold);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">Points <span style="color:var(--dim);font-size:9px">(no carry on ties)</span></div>
+          <div style="background:var(--wa-03);border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px">
+            <div style="margin-bottom:6px">2v2 — Wolf's pair wins → <strong>+2 pts each</strong></div>
+            <div style="margin-bottom:6px">2v2 — Other pair wins → <strong>+3 pts each</strong></div>
+            <div style="margin-bottom:6px">Lone Wolf wins → Wolf <strong>+3 pts</strong></div>
+            <div style="margin-bottom:6px">Lone Wolf loses → opponents <strong>+1 pt each</strong></div>
+            <div>Any tie → no points change</div>
+          </div>
+
+          <div style="color:var(--gold);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">The 6-Pointer <span style="color:var(--dim);font-size:9px">(once per round)</span></div>
+          <p style="margin-bottom:14px">Before anyone tees off, the Wolf may stake everything. Win → Wolf <strong>+6 pts</strong>. Lose → opponents <strong>+3 pts each</strong>. Each player may only do this once.</p>
+
+          <div style="color:var(--gold);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">Holes 17 &amp; 18</div>
+          <p>The player in second place becomes Wolf on 17. Recalculate after 17 — that player is Wolf on 18. Ties go to whoever is earliest in the original order.</p>
         </div>
       </div>
     </div>

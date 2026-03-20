@@ -19,6 +19,7 @@ import { copyGroupCode, leaveGroup, toggleGroupCodeRequired, addSeason, deleteSe
 import { initCompetition } from './competition.js';
 import { state } from './state.js';
 import { initCaddieButton } from './caddie.js';
+import { setGameMode, updateFormatUI, confirmWolfOrder, showWolfScoreboard } from './gamemodes.js';
 
 // ── Theme ─────────────────────────────────────────────────────────
 function applyTheme(theme) {
@@ -199,6 +200,29 @@ document.getElementById('reload-btn')?.addEventListener('click', () => loadGist(
 document.getElementById('copy-app-url-btn')?.addEventListener('click', copyAppUrl);
 document.getElementById('sign-out-btn')?.addEventListener('click', signOut);
 document.getElementById('open-admin-btn')?.addEventListener('click', openAdminSettings);
+
+// ── Wolf game format ──────────────────────────────────────────────
+document.getElementById('fmt-stroke')?.addEventListener('click', () => setGameMode('stroke'));
+document.getElementById('fmt-wolf')?.addEventListener('click', () => setGameMode('wolf'));
+document.getElementById('wolf-info-btn')?.addEventListener('click', () => {
+  document.getElementById('wolf-rules-modal').style.display = 'flex';
+});
+document.getElementById('wolf-rules-close')?.addEventListener('click', () => {
+  document.getElementById('wolf-rules-modal').style.display = 'none';
+});
+document.getElementById('wolf-rules-modal')?.addEventListener('click', function(e) {
+  if (e.target === this) this.style.display = 'none';
+});
+// Wolf order setup confirm
+document.getElementById('wolf-order-confirm')?.addEventListener('click', confirmWolfOrder);
+// Wolf scoreboard
+document.getElementById('wolf-scoreboard-btn')?.addEventListener('click', showWolfScoreboard);
+document.getElementById('wolf-scoreboard-close')?.addEventListener('click', () => {
+  document.getElementById('wolf-scoreboard-modal').style.display = 'none';
+});
+document.getElementById('wolf-scoreboard-modal')?.addEventListener('click', function(e) {
+  if (e.target === this) this.style.display = 'none';
+});
 
 // ── Admin modal ───────────────────────────────────────────────────
 document.getElementById('admin-close-btn')?.addEventListener('click', closeAdminSettings);

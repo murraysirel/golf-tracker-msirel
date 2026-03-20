@@ -51,5 +51,7 @@ export const state = {
     coords: null
   },
   roundActive: false,
-  wakeLock: null
+  wakeLock: null,
+  gameMode: 'stroke', // 'stroke' | 'wolf'
+  wolfState: null     // populated by gamemodes.js when a Wolf round starts
 };
