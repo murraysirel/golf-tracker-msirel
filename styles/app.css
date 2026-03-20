@@ -45,10 +45,9 @@ body{
 
 /* ── Header ───────────────────────────────────────────────────── */
 .hdr{
-  background:rgba(10,22,40,.95);
-  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  background:var(--navy);
   border-bottom:1px solid var(--wa-06);
-  padding:calc(14px + var(--safe-top)) 20px 12px;
+  padding:calc(var(--safe-top) + 12px) 16px 12px;
   display:flex;align-items:center;justify-content:space-between;
   flex-shrink:0;position:relative;
 }
@@ -350,6 +349,40 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
 }
 .kl{font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px;margin-top:4px;display:block}
 .ks{font-size:10px;color:var(--dimmer);margin-top:2px}
+
+/* ── Home KPI 2×2 grid ────────────────────────────────────────── */
+.home-kpi-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:10px;padding:12px 16px 0;
+}
+.home-kpi-card{
+  background:var(--mid);border-radius:12px;
+  padding:14px 16px;display:flex;flex-direction:column;gap:4px;
+}
+.home-kpi-val{
+  font-family:'Cormorant Garamond',serif;
+  font-size:28px;font-weight:700;color:var(--cream);line-height:1;
+}
+.home-kpi-lbl{
+  font-size:9px;font-weight:600;color:var(--dim);
+  text-transform:uppercase;letter-spacing:0.07em;
+}
+.home-kpi-delta{font-size:11px;color:var(--par)}
+/* GIR/FIR diagonal split card */
+.home-kpi-split{position:relative;overflow:hidden;padding:0;min-height:110px}
+.home-kpi-split-inner{position:relative;width:100%;height:100%;min-height:110px}
+.home-kpi-divider{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  pointer-events:none;
+}
+.home-kpi-split-top{
+  position:absolute;top:14px;left:16px;
+  display:flex;flex-direction:column;gap:4px;
+}
+.home-kpi-split-bot{
+  position:absolute;bottom:14px;right:16px;
+  display:flex;flex-direction:column;gap:4px;text-align:right;align-items:flex-end;
+}
 
 /* ── Practice area buttons — v0 style ────────────────────────── */
 .parea-btn{

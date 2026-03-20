@@ -82,20 +82,14 @@
 <div id="pg-main" style="display:none;height:100%;display:none;flex-direction:column">
   <!-- Header -->
   <div class="hdr">
-    <div style="display:flex;align-items:center;gap:10px">
-      <div style="width:36px;height:36px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--navy)"><img src="/assets/looper_caddie.png" alt="Looper" style="width:100%;height:100%;object-fit:cover"></div>
-      <span style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:var(--gold);letter-spacing:.5px">Looper</span>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <div id="home-greeting" style="font-size:17px;font-weight:600;color:var(--cream)">Welcome</div>
+      <div id="home-hdr-meta" style="font-size:12px;color:var(--dim)">HCP — · — rounds this season</div>
     </div>
-    <div style="display:flex;align-items:center;gap:8px">
-      <div class="sync-pill">
-        <div class="sdot" id="sdot"></div>
-        <span id="stext">Connecting...</span>
-      </div>
-      <button class="profile-icon-btn avatar-btn" id="profile-icon-btn" title="Players &amp; Settings">
-        <span class="avatar-initials"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-        <span class="avatar-close">✕</span>
-      </button>
-    </div>
+    <button class="profile-icon-btn avatar-btn" id="profile-icon-btn" title="Players &amp; Settings">
+      <span class="avatar-initials"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+      <span class="avatar-close">✕</span>
+    </button>
   </div>
 
 
@@ -128,60 +122,62 @@
   <div class="app" id="app-scroll">
 
     <!-- HOME -->
-    <div id="pg-home" class="sec">
-      <!-- Player header card — v0 style -->
-      <div class="card" style="margin-bottom:13px">
-        <div style="display:flex;align-items:center;gap:14px">
-                    <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#a88a3a);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 14px rgba(201,168,76,.3)">
-            <span id="home-avatar-initials" style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:var(--navy)">—</span>
-          </div>
-          <div style="flex:1">
-            <div id="home-player-name" style="font-size:16px;font-weight:600;color:var(--cream)">—</div>
-            <div style="display:flex;align-items:center;gap:6px;margin-top:3px">
-              <div style="width:7px;height:7px;border-radius:50%;background:#22c55e"></div>
-              <span style="font-size:11px;color:var(--dim)">Ready to play</span>
-            </div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:2px">Handicap</div>
-            <div id="home-hcp" style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:var(--gold);line-height:1">—</div>
-          </div>
+    <div id="pg-home">
+
+      <!-- 2×2 KPI grid -->
+      <div class="home-kpi-grid" id="home-kpis">
+        <!-- Card 1: Avg vs par -->
+        <div class="home-kpi-card">
+          <div class="home-kpi-val" id="h-avg-par">—</div>
+          <div class="home-kpi-lbl">AVG VS PAR</div>
+          <div class="home-kpi-delta" id="h-avg-par-delta"></div>
         </div>
-      </div>
-
-      <!-- KPI grid -->
-      <div class="kpi-row" id="home-kpis">
-        <div class="kpi"><span class="kv" id="h-rounds">0</span><span class="kl">Rounds</span></div>
-        <div class="kpi"><span class="kv" id="h-avg">—</span><span class="kl">Avg</span></div>
-        <div class="kpi"><span class="kv" id="h-best">—</span><span class="kl">Best</span></div>
-        <div class="kpi"><span class="kv" style="color:var(--birdie);display:flex;align-items:center;justify-content:center;gap:4px"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg><span id="h-birdies">0</span></span><span class="kl">Birdies</span></div>
-      </div>
-
-      <!-- GIR / FIR combined card -->
-      <div class="kpi" style="margin-bottom:13px">
-        <div style="display:flex;gap:8px">
-          <div style="flex:1">
-            <div class="kv" id="h-gir-pct" style="font-size:22px">—</div>
-            <div class="kl">GIR</div>
-            <div class="ks" id="h-gir-delta"></div>
+        <!-- Card 2: Best round -->
+        <div class="home-kpi-card">
+          <div class="home-kpi-val" id="h-best">—</div>
+          <div class="home-kpi-lbl">BEST ROUND</div>
+          <div class="home-kpi-delta" id="h-best-meta" style="color:var(--dim)"></div>
+        </div>
+        <!-- Card 3: Birdies -->
+        <div class="home-kpi-card">
+          <div style="display:flex;align-items:center;gap:6px">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--birdie)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg>
+            <div class="home-kpi-val" id="h-birdies">0</div>
           </div>
-          <div style="width:1px;background:var(--border);flex-shrink:0"></div>
-          <div style="flex:1">
-            <div class="kv" id="h-fir-pct" style="font-size:22px">—</div>
-            <div class="kl">FIR</div>
-            <div class="ks" id="h-fir-delta"></div>
+          <div class="home-kpi-lbl">BIRDIES</div>
+          <div class="home-kpi-delta" id="h-birdies-delta"></div>
+        </div>
+        <!-- Card 4: GIR / FIR diagonal split -->
+        <div class="home-kpi-card home-kpi-split">
+          <div class="home-kpi-split-inner">
+            <svg class="home-kpi-divider" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+              <line x1="100" y1="0" x2="0" y2="100" stroke="var(--border)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
+            </svg>
+            <div class="home-kpi-split-top">
+              <div class="home-kpi-val" id="h-gir-pct">—</div>
+              <div class="home-kpi-lbl">GIR</div>
+              <div class="home-kpi-delta" id="h-gir-delta"></div>
+            </div>
+            <div class="home-kpi-split-bot">
+              <div class="home-kpi-val" id="h-fir-pct">—</div>
+              <div class="home-kpi-lbl">FIR</div>
+              <div class="home-kpi-delta" id="h-fir-delta"></div>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Recent rounds -->
-      <div>
+      <div style="padding:16px 16px 0">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:2px">Recent Rounds</div>
-          <button id="home-go-stats-link" style="font-size:12px;color:var(--gold);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif">View all →</button>
+          <div style="font-size:11px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:0.07em">Recent Rounds</div>
+          <button id="home-go-stats-link" style="font-size:12px;color:var(--gold);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none">See all</button>
         </div>
         <div id="home-recent"></div>
       </div>
+
+      <!-- Play with the Caddie CTA -->
+      <button id="home-caddie-cta" style="display:block;width:calc(100% - 32px);margin:16px 16px calc(var(--safe-bot) + 12px);padding:16px;border-radius:14px;background:var(--gold);color:var(--navy);font-size:15px;font-weight:700;letter-spacing:0.02em;border:none;cursor:pointer;text-align:center;-webkit-tap-highlight-color:transparent;font-family:'DM Sans',sans-serif">Play with the Caddie 🏌️</button>
     </div>
 
     <!-- ROUND ENTRY -->
@@ -857,6 +853,11 @@
     <div class="profile-panel-hdr">
       <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase">Players &amp; Settings</div>
       <button id="profile-panel-close" style="background:none;border:none;color:var(--dim);font-size:20px;cursor:pointer;padding:4px;line-height:1">✕</button>
+    </div>
+    <!-- Sync status line -->
+    <div style="display:flex;align-items:center;gap:6px;padding:8px 20px;border-bottom:1px solid var(--wa-06)">
+      <div class="sdot" id="sdot"></div>
+      <span id="stext" style="font-size:12px;color:var(--dim)">Connecting...</span>
     </div>
     <!-- Appearance -->
     <div class="card" style="margin-bottom:13px">

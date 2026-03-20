@@ -102,67 +102,118 @@ export function renderHomeStats() {
   const p = state.gd.players[state.me];
   if (!p) return;
   const rs = p.rounds || [];
-  const sc = rs.map(r => r.totalScore).filter(Boolean);
 
-  const ini = document.getElementById('home-avatar-initials');
-  const nm = document.getElementById('home-player-name');
-  const hcp = document.getElementById('home-hcp');
-  if (ini) ini.textContent = initials(state.me);
-  if (nm) nm.textContent = state.me;
-  if (hcp) hcp.textContent = p.handicap > 0 ? p.handicap : '—';
+  // ── Slim header greeting + meta ──────────────────────────────
+  const hr = new Date().getHours();
+  const firstName = state.me.split(' ')[0];
+  const greeting = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
+  const greetEl = document.getElementById('home-greeting');
+  const metaEl = document.getElementById('home-hdr-meta');
+  const currentYear = String(new Date().getFullYear());
+  const seasonRounds = rs.filter(r => r.date?.split('/')?.[2] === currentYear);
+  const hcpVal = p.handicap > 0 ? p.handicap : '—';
+  const seasonCount = seasonRounds.length;
+  if (greetEl) greetEl.textContent = greeting + ', ' + firstName;
+  if (metaEl) metaEl.textContent = `HCP ${hcpVal} · ${seasonCount} round${seasonCount !== 1 ? 's' : ''} this season`;
 
-  document.getElementById('h-rounds').textContent = rs.length;
-  document.getElementById('h-avg').textContent = sc.length ? Math.round(sc.reduce((a, b) => a + b, 0) / sc.length) : '—';
-  document.getElementById('h-best').textContent = sc.length ? Math.min(...sc) : '—';
-  document.getElementById('h-birdies').textContent = rs.reduce((a, r) => a + (r.birdies || 0), 0);
+  // ── Sorted rounds, last 5 and prev 5 ────────────────────────
+  const sorted = [...rs].sort((a, b) => parseDateGB(a.date) - parseDateGB(b.date));
+  const last5 = sorted.slice(-5);
+  const prev5 = sorted.slice(-10, -5);
 
-  // GIR / FIR combined card
-  const fullR0 = rs.filter(r => (r.scores || []).filter(Boolean).length === 18);
-  const girTot0 = fullR0.reduce((a, r) => a + (r.gir || []).filter(v => v === 'Yes').length, 0);
-  const girPoss0 = fullR0.length * 18;
-  const girPct = girPoss0 ? Math.round(girTot0 / girPoss0 * 100) : null;
-  let firHits0 = 0, firPoss0 = 0;
-  fullR0.forEach(r => { (r.fir || []).forEach((v, h) => { if ((r.pars?.[h] ?? r.pars?.[h]) !== 3) { firPoss0++; if (v === 'Yes') firHits0++; } }); });
-  const firPct = firPoss0 ? Math.round(firHits0 / firPoss0 * 100) : null;
-
-  // Delta vs last calendar month
-  const now0 = new Date();
-  const lmMonth = String(now0.getMonth() === 0 ? 12 : now0.getMonth()).padStart(2, '0');
-  const lmYear = String(now0.getMonth() === 0 ? now0.getFullYear() - 1 : now0.getFullYear());
-  const lmRounds = fullR0.filter(r => { const p = r.date?.split('/'); return p && p[1] === lmMonth && p[2] === lmYear; });
-  let girDelta = null, firDelta = null;
-  if (lmRounds.length) {
-    const lmGirTot = lmRounds.reduce((a, r) => a + (r.gir || []).filter(v => v === 'Yes').length, 0);
-    const lmGirPct = Math.round(lmGirTot / (lmRounds.length * 18) * 100);
-    if (girPct !== null) girDelta = girPct - lmGirPct;
-    let lmFH = 0, lmFP = 0;
-    lmRounds.forEach(r => { (r.fir || []).forEach((v, h) => { if ((r.pars?.[h]) !== 3) { lmFP++; if (v === 'Yes') lmFH++; } }); });
-    const lmFirPct = lmFP ? Math.round(lmFH / lmFP * 100) : null;
-    if (firPct !== null && lmFirPct !== null) firDelta = firPct - lmFirPct;
+  // ── Card 1: Avg vs par ───────────────────────────────────────
+  const last5Diffs = last5.map(r => r.diff).filter(d => d !== undefined && d !== null && !isNaN(d));
+  const avgVsPar = last5Diffs.length ? (last5Diffs.reduce((a, b) => a + b, 0) / last5Diffs.length) : null;
+  const prev5Diffs = prev5.map(r => r.diff).filter(d => d !== undefined && d !== null && !isNaN(d));
+  const prevAvgVsPar = prev5Diffs.length ? prev5Diffs.reduce((a, b) => a + b, 0) / prev5Diffs.length : null;
+  const avgParEl = document.getElementById('h-avg-par');
+  const avgParDeltaEl = document.getElementById('h-avg-par-delta');
+  if (avgParEl) avgParEl.textContent = avgVsPar !== null ? (avgVsPar >= 0 ? '+' : '') + avgVsPar.toFixed(1) : '—';
+  if (avgParDeltaEl) {
+    if (avgVsPar !== null && prevAvgVsPar !== null) {
+      const d = avgVsPar - prevAvgVsPar;
+      const improving = d < 0;
+      avgParDeltaEl.textContent = (improving ? '↓' : '↑') + ' ' + Math.abs(d).toFixed(1) + ' vs prev 5';
+      avgParDeltaEl.style.color = improving ? 'var(--par)' : 'var(--bogey)';
+    } else { avgParDeltaEl.textContent = ''; }
   }
 
+  // ── Card 2: Best round this season ──────────────────────────
+  const bestEl = document.getElementById('h-best');
+  const bestMetaEl = document.getElementById('h-best-meta');
+  const seasonWithScore = seasonRounds.filter(r => r.totalScore);
+  const bestRound = seasonWithScore.length ? seasonWithScore.reduce((min, r) => r.totalScore < min.totalScore ? r : min) : null;
+  if (bestEl) bestEl.textContent = bestRound ? bestRound.totalScore : '—';
+  if (bestMetaEl && bestRound) {
+    const shortC = (bestRound.course || '').replace(' Golf Club', '').replace(' Golf Course', '').replace(' Golf Links', '');
+    const dp = bestRound.date?.split('/');
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const dateStr = dp && dp.length === 3 ? months[parseInt(dp[1]) - 1] + ' ' + dp[0] : '';
+    bestMetaEl.textContent = shortC + (dateStr ? ', ' + dateStr : '');
+  } else if (bestMetaEl) { bestMetaEl.textContent = ''; }
+
+  // ── Card 3: Birdies this season ──────────────────────────────
+  const birdiesEl = document.getElementById('h-birdies');
+  const birdiesDeltaEl = document.getElementById('h-birdies-delta');
+  const seasonBirdies = seasonRounds.reduce((a, r) => a + (r.birdies || 0), 0);
+  const last5Birdies = last5.reduce((a, r) => a + (r.birdies || 0), 0);
+  const prev5Birdies = prev5.reduce((a, r) => a + (r.birdies || 0), 0);
+  if (birdiesEl) birdiesEl.textContent = seasonBirdies;
+  if (birdiesDeltaEl) {
+    if (prev5.length) {
+      const bd = last5Birdies - prev5Birdies;
+      const improving = bd > 0;
+      birdiesDeltaEl.textContent = (bd >= 0 ? '+' : '') + bd + ' vs prev 5';
+      birdiesDeltaEl.style.color = improving ? 'var(--par)' : bd < 0 ? 'var(--bogey)' : 'var(--dim)';
+    } else { birdiesDeltaEl.textContent = ''; }
+  }
+
+  // ── Card 4: GIR / FIR from last 5 with delta vs prev 5 ──────
+  function calcGIR(rounds) {
+    const hits = rounds.reduce((a, r) => a + (r.gir || []).filter(v => v === 'Yes').length, 0);
+    const poss = rounds.reduce((a, r) => a + (r.gir || []).length, 0);
+    return poss ? Math.round(hits / poss * 100) : null;
+  }
+  function calcFIR(rounds) {
+    let hits = 0, poss = 0;
+    rounds.forEach(r => { (r.fir || []).forEach((v, h) => { if ((r.pars?.[h]) !== 3) { poss++; if (v === 'Yes') hits++; } }); });
+    return poss ? Math.round(hits / poss * 100) : null;
+  }
+  const girPct = calcGIR(last5);
+  const firPct = calcFIR(last5);
+  const prevGirPct = calcGIR(prev5);
+  const prevFirPct = calcFIR(prev5);
+  const girDelta = girPct !== null && prevGirPct !== null ? girPct - prevGirPct : null;
+  const firDelta = firPct !== null && prevFirPct !== null ? firPct - prevFirPct : null;
   const girPctEl = document.getElementById('h-gir-pct');
   const firPctEl = document.getElementById('h-fir-pct');
   const girDeltaEl = document.getElementById('h-gir-delta');
   const firDeltaEl = document.getElementById('h-fir-delta');
-  if (girPctEl) girPctEl.textContent = girPct != null ? girPct + '%' : '—';
-  if (firPctEl) firPctEl.textContent = firPct != null ? firPct + '%' : '—';
-  if (girDeltaEl) { girDeltaEl.textContent = girDelta != null ? (girDelta >= 0 ? '+' : '') + girDelta + '% vs last mo' : ''; girDeltaEl.style.color = girDelta != null && girDelta < 0 ? 'var(--bogey)' : 'var(--par)'; }
-  if (firDeltaEl) { firDeltaEl.textContent = firDelta != null ? (firDelta >= 0 ? '+' : '') + firDelta + '% vs last mo' : ''; firDeltaEl.style.color = firDelta != null && firDelta < 0 ? 'var(--bogey)' : 'var(--par)'; }
+  if (girPctEl) girPctEl.textContent = girPct !== null ? girPct + '%' : '—';
+  if (firPctEl) firPctEl.textContent = firPct !== null ? firPct + '%' : '—';
+  if (girDeltaEl) {
+    girDeltaEl.textContent = girDelta !== null ? (girDelta >= 0 ? '↑' : '↓') + ' ' + Math.abs(girDelta) + '% vs last 5' : '';
+    girDeltaEl.style.color = girDelta !== null && girDelta > 0 ? 'var(--par)' : 'var(--bogey)';
+  }
+  if (firDeltaEl) {
+    firDeltaEl.textContent = firDelta !== null ? (firDelta >= 0 ? '↑' : '↓') + ' ' + Math.abs(firDelta) + '% vs last 5' : '';
+    firDeltaEl.style.color = firDelta !== null && firDelta > 0 ? 'var(--par)' : 'var(--bogey)';
+  }
 
+  // ── Recent rounds ────────────────────────────────────────────
   const recent = document.getElementById('home-recent');
   if (!rs.length) {
     recent.innerHTML = '<div class="empty"><div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg></div>No rounds yet \u2014 add your first!</div>';
     return;
   }
   recent.innerHTML = '';
-  const sorted = [...rs].sort((a, b) => parseDateGB(b.date) - parseDateGB(a.date)).slice(0, 3);
-  sorted.forEach(r => {
+  const recentSorted = [...rs].sort((a, b) => parseDateGB(b.date) - parseDateGB(a.date)).slice(0, 3);
+  recentSorted.forEach(r => {
     const diff = r.diff;
     const dv = diff >= 0 ? '+' + diff : '' + diff;
-    const diffColor = diff < 0 ? '#22c55e' : diff <= 5 ? '#f97316' : '#ef4444';
+    const diffColor = diff <= -3 ? 'var(--birdie)' : diff <= 3 ? 'var(--par)' : diff <= 10 ? 'var(--bogey)' : 'var(--double)';
     const dot = TC[r.tee]?.d || '#888';
-    const shortCourse = r.course.replace(' Golf Club', '').replace(' Golf Course', '').replace(' Golf Links', '');
+    const shortCourse = (r.course || '').replace(' Golf Club', '').replace(' Golf Course', '').replace(' Golf Links', '');
     const d = document.createElement('div');
     d.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px;background:var(--wa-03);border:1px solid var(--wa-07);border-radius:12px;margin-bottom:8px;transition:border-color .2s,background .2s;cursor:pointer';
     d.addEventListener('mouseenter', () => { d.style.background = 'rgba(201,168,76,.04)'; d.style.borderColor = 'rgba(201,168,76,.2)'; });
