@@ -37,7 +37,7 @@ Netlify hosts both the static frontend and the two serverless functions. No buil
 | `nav.js` | SPA routing: `goTo(page)`, `switchEntry(type)`, `registerNavHandlers()` (circular-dep workaround) |
 | `api.js` | `loadGist()` / `pushGist()` — Gist ↔ `state.gd` sync; `ss()` updates the status dot |
 | `scorecard.js` | `buildSC()` renders the 18-hole input table; `saveRound()` collects DOM values, computes breakdown, appends to `state.gd`, calls `pushGist()` |
-| `live.js` | Hole-by-hole live scoring UI; multi-player group mode; match play tracking; syncs back to manual scorecard before saving |
+| `live.js` | Hole-by-hole live scoring UI; multi-player group mode; match play tracking; syncs back to manual scorecard before saving; exports `cancelRound()` to reset live state and hide the caddie button |
 | `competition.js` | "Live" nav tab — activity feed + today's leaderboard; polls Gist every 45 s and diffs snapshots |
 | `stats.js` | KPI cards, five Chart.js charts, Stableford calculator, handicap edit, round history list |
 | `leaderboard.js` | Nine season-filtered ranking panels; imports `calcStableford` and `isBufferOrBetter` from `stats.js` |
@@ -63,7 +63,7 @@ state = {
   stee,            // Current tee colour key ('blue'|'yellow'|'white'|'red'|'black')
   photoFile,       // File object for scorecard photo upload
   CH,              // Chart.js instance container (managed by stats.js)
-  statsFilter,     // Active filter: '5'|'10'|'all'|'month'|'course'
+  statsFilter,     // Active filter: '5'|'all'|'month'|'course'  (Last 10 option removed)
   gameMode,        // 'stroke' | 'match' | 'wolf'
   wolfState: {
     order[],         // Player name turn order (hole 1 wolf = order[0])
@@ -196,6 +196,8 @@ Defined in `:root` in `styles/app.css`:
 
 Key component classes: `.btn` `.btn-o` `.btn-ghost`, `.card` `.ct`, `.fpill`, `.nb`, `.lb-row` `.lb-me` `.lb-pos`, `.avatar` `.lb-avatar-me`, `.live-pip`, `.tab` `.tab-bar`.
 
+Home screen KPI grid classes: `.home-kpi-grid` (2×2 CSS grid, `padding:12px 16px 0`), `.home-kpi-card` (individual card, `var(--mid)` bg, 12px radius), `.home-kpi-val` (28px Cormorant serif value), `.home-kpi-lbl` (9px uppercase label), `.home-kpi-delta` (11px trend line). Split card: `.home-kpi-split` + `.home-kpi-split-inner` + `.home-kpi-divider` (absolute-positioned SVG diagonal line) + `.home-kpi-split-top` / `.home-kpi-split-bot`.
+
 ---
 
 ## Coding Conventions
@@ -262,6 +264,12 @@ Both variables are set in the Netlify dashboard. Neither is ever sent to the bro
 
 | Date | Change |
 |---|---|
+| 2026-03-20 | **Home KPI delta lines** — Card 1 (Avg vs Par): delta compares last-5 avg vs current season avg; shows "— need 5 rounds" if fewer than 5 rounds exist. Card 2 (Best Round): meta split into two stacked 11px lines — course name (truncated to 16 chars) and "Mar 18" formatted date. Card 3 (Birdies): two stacked 10px delta lines — vs last month and vs last year (with "— no data" fallbacks). Card 4 (GIR/FIR): deltas compare last-5 vs season avg using raw float percentages (toFixed(1)). All date filtering uses `date.split('/')` field indexing — never `new Date()` on DD/MM/YYYY strings |
+| 2026-03-20 | **Player initials in header avatar** — `.avatar-btn` now shows the current player's two-letter initials (`#hdr-avatar-initials`) instead of a person SVG; populated by `renderHomeStats()` via `initials()` from `players.js` |
+| 2026-03-20 | **Cancel round** — `cancelRound()` exported from `live.js`; resets all `liveState` fields, clears `state.roundActive`, removes `.visible`/`.in-progress` from `#caddie-btn`, releases wake lock, navigates home. Two entry points: "Cancel" ghost button on group setup screen (`#live-cancel-setup-btn`) and "✕ End" text button on the right of the live hole-view sticky header (`#live-cancel-round-btn`) |
+| 2026-03-20 | **Stats filter pills** — removed "Last 10" pill; remaining filters: Last 5, Month, Course, All time. `statsFilter` type is now `'5'|'all'|'month'|'course'` |
+| 2026-03-20 | **Home screen layout restructure** — slim header replaces logo/wordmark/sync-pill: left side shows time-based greeting ("Good morning/afternoon/evening, [firstName]") + "HCP X · N rounds this season"; right side keeps avatar button. Sync status dot+text moved into profile panel as a 12px status line below the panel header. Hero card (avatar circle, full name, Ready-to-play dot, large HCP) removed. 2×2 KPI grid added directly below header: Avg vs Par, Best Round, Birdies (with bird SVG), GIR/FIR diagonal split card (absolute-positioned halves with SVG divider). Recent Rounds section updated: 11px/600 uppercase heading, "See all" link, score diff colour thresholds (birdie ≤−3, par ≤+3, bogey ≤+10, double +11+). Full-width gold "Play with the Caddie 🏌️" CTA at bottom wired to `goTo('live')`. CSS: `.hdr` padding/background updated; `.home-kpi-*` class family added |
+| 2026-03-20 | **Match Play format pill fix** — `updateFormatUI()` in `gamemodes.js` now tracks `matchBtn` and `matchHint`; toggles `.active` on `#fmt-match` when `state.gameMode === 'match'`; stroke pill only active when neither wolf nor match is selected |
 | 2026-03-20 | **Global micro-animations** — `@keyframes fadeUp` card entrance stagger extended to nth-child(5); `.btn/.btn-o/.btn-ghost` `:active` scale(0.93) press feedback with 80ms transition; scorecard extra stats (penalties/bunkers/chips) hidden by default behind "More +/Less −" JS toggle (`.scorecard-table` / `.sc-extra-cols` / `toggleSCExtras()` in `scorecard.js`); replaces native `<details>` element |
 | 2026-03-20 | **Caddie score entry** — scores pre-filled to par on first hole visit; `.live-score-btn` 44×44px, `var(--mid)` bg, 24px/300 font, no border; `.live-score-val` 26px/700, min-width 52px; FIR/GIR replaced with `.live-toggle-pill` pill buttons ("Fairway Hit"/"Green in Reg"); `active-fir`=green, `active-gir`=blue; FIR hidden on par-3s; `scoreCol()` used for score colour; `@keyframes scoreBounce` + `.score-bounce` on +/− tap |
 | 2026-03-20 | **Profile panel close button** — avatar icon cross-fades to ✕ when panel open via `.avatar-btn` + `.avatar-initials`/`.avatar-close` CSS opacity toggle on `.panel-open` class |
