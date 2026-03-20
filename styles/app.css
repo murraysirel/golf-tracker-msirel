@@ -37,9 +37,10 @@ body{
 
 /* ── Scrollable pages ─────────────────────────────────────────── */
 .app{
-  flex:1;overflow-y:auto;overflow-x:hidden;
+  flex:1;overflow-y:scroll;overflow-x:hidden;
   padding-bottom:calc(90px + var(--safe-bot));
   -webkit-overflow-scrolling:touch;
+  scroll-behavior:smooth;
 }
 
 /* ── Header ───────────────────────────────────────────────────── */
@@ -88,8 +89,9 @@ body{
   color:var(--dimmer);border:none;background:transparent;
   cursor:pointer;font-family:'DM Sans',sans-serif;
   font-size:9px;font-weight:500;letter-spacing:.2px;
-  transition:color .2s;min-width:44px;
+  transition:color .2s,transform 80ms;min-width:44px;
 }
+.nb:active{transform:scale(.92)}
 .nb.active{color:var(--gold)}
 .ni{
   font-size:18px;display:flex;align-items:center;justify-content:center;
@@ -801,6 +803,17 @@ details[open] summary::after{content:' ▾'}
   padding:12px 16px calc(12px + var(--safe-bot));
   background:var(--navy);border-top:1px solid var(--wa-06);
   flex-shrink:0;
+}
+
+/* ── Card entrance animation ──────────────────────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes fadeUp{
+    from{opacity:0;transform:translateY(10px)}
+    to{opacity:1;transform:translateY(0)}
+  }
+  .card{animation:fadeUp 200ms ease-out both}
+  .card:nth-child(2){animation-delay:40ms}
+  .card:nth-child(3){animation-delay:80ms}
 }
 
 /* ── Light mode tokens (Schoolhouse White) ────────────────────── */
