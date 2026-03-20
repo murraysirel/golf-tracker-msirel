@@ -701,12 +701,36 @@ details[open] summary::after{content:' ▾'}
   border-radius:50%;filter:blur(4px);
 }
 
-/* Flag stick — off-centre right, visible immediately */
-#splash-flag{
+/* Flag stick — wooden pole fading out toward top */
+#splash-flag-wrap{
   position:absolute;
-  bottom:calc(4vh - 12px);
-  left:calc(50vw + 52px);
-  width:68px;height:192px;
+  bottom:calc(4vh - 18px);
+  left:calc(50vw + 58px);
+  display:flex;flex-direction:column;align-items:center;
+}
+#splash-flag-pole{
+  width:9px;
+  height:50vh;
+  border-radius:5px 5px 0 0;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,0.13) 0%, transparent 28%),
+    repeating-linear-gradient(180deg, transparent 0px, transparent 22px, rgba(0,0,0,0.08) 22px, rgba(0,0,0,0.08) 23px, transparent 23px, transparent 38px, rgba(0,0,0,0.05) 38px, rgba(0,0,0,0.05) 39px),
+    linear-gradient(90deg, #c8a050 0%, #9c6e1a 14%, #7a520f 44%, #64420c 76%, #4e3309 100%);
+  -webkit-mask-image:linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.5) 38%, black 62%);
+  mask-image:linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.5) 38%, black 62%);
+}
+/* Metal ferrule band + tapered spike below pole */
+#splash-flag-spike{
+  width:13px;height:4px;
+  background:linear-gradient(90deg,#b0bbbf 0%,#dde6e8 45%,#8a9498 100%);
+  border-radius:1px;
+}
+#splash-flag-spike::after{
+  content:'';display:block;
+  width:0;height:0;margin:0 auto;
+  border-left:6.5px solid transparent;
+  border-right:6.5px solid transparent;
+  border-top:14px solid #a8b2b6;
 }
 
 /* Grass strip — irregular SVG curve across bottom */
@@ -743,6 +767,54 @@ details[open] summary::after{content:' ▾'}
   #splash-ball-inner{animation:none;transform:rotate(0deg)}
   #splash-text{animation:none;opacity:1}
 }
+
+/* ── Scorecard history bottom sheet ──────────────────────────── */
+#sc-hist-modal{position:fixed;inset:0;z-index:300;display:none;pointer-events:none}
+#sc-hist-modal.open{display:block;pointer-events:all}
+#sc-hist-backdrop{position:absolute;inset:0;background:rgba(0,0,0,0.65);opacity:0;transition:opacity .3s}
+#sc-hist-modal.open #sc-hist-backdrop{opacity:1}
+#sc-hist-sheet{
+  position:absolute;bottom:0;left:0;right:0;
+  background:var(--mid);border-radius:16px 16px 0 0;
+  max-height:88vh;display:flex;flex-direction:column;
+  transform:translateY(100%);
+  transition:transform .32s cubic-bezier(.25,.46,.45,.94);
+  box-shadow:0 -4px 32px rgba(0,0,0,.5);
+}
+#sc-hist-modal.open #sc-hist-sheet{transform:translateY(0)}
+#sc-hist-header{
+  padding:14px 16px 12px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+  flex-shrink:0;
+}
+/* drag handle pill */
+#sc-hist-header::before{
+  content:'';position:absolute;top:8px;left:50%;transform:translateX(-50%);
+  width:36px;height:4px;border-radius:2px;background:var(--border);
+}
+#sc-hist-sheet{position-anchor:unset}/* reset for ::before */
+#sc-hist-close{
+  width:28px;height:28px;border-radius:50%;border:1px solid var(--border);
+  background:transparent;color:var(--dim);font-size:13px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+#sc-hist-body{overflow-y:auto;overflow-x:auto;flex:1;padding:0 0 40px}
+/* Scorecard table */
+.sc-hist-table{border-collapse:collapse;font-size:12px;width:100%}
+.sc-hist-table th{
+  padding:8px 6px 6px;text-align:center;font-size:10px;font-weight:600;
+  color:var(--dim);text-transform:uppercase;letter-spacing:0.06em;
+  background:var(--navy);position:sticky;top:0;z-index:1;
+}
+.sc-hist-table th:first-child{text-align:left;padding-left:14px}
+.sc-hist-table td{
+  padding:7px 6px;text-align:center;
+  border-top:1px solid rgba(255,255,255,0.04);
+}
+.sc-hist-table td:first-child{text-align:left;padding-left:14px;color:var(--dim);font-size:11px}
+.sc-hist-table .sc-sub td{background:rgba(255,255,255,0.025);font-weight:700}
+.sc-hist-table .sc-tot td{background:rgba(201,168,76,0.07);font-weight:700}
 
 /* ── Competition mode ─────────────────────────────────────────── */
 #comp-feed > div:last-child { border-bottom: none; }

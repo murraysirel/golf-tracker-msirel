@@ -49,45 +49,26 @@
   <svg id="splash-grass" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 80" preserveAspectRatio="none" aria-hidden="true">
     <path d="M0,45 Q80,22 180,38 Q320,58 460,28 Q580,8 700,36 Q830,60 930,26 Q970,14 1000,32 L1000,80 L0,80 Z" fill="#2d5a1b"/>
   </svg>
-  <!-- Flag stick — off-centre right, visible from start -->
-  <svg id="splash-flag" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 68 192" aria-hidden="true">
-    <defs>
-      <!-- Wood grain gradient: light left edge → mid brown → dark right edge -->
-      <linearGradient id="wg" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%"   stop-color="#c8a050"/>
-        <stop offset="18%"  stop-color="#9c6e1a"/>
-        <stop offset="45%"  stop-color="#7a520f"/>
-        <stop offset="75%"  stop-color="#64420c"/>
-        <stop offset="100%" stop-color="#4e3309"/>
-      </linearGradient>
-      <!-- Metal sheen gradient -->
-      <linearGradient id="mg" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%"   stop-color="#c0c8cc"/>
-        <stop offset="40%"  stop-color="#e8eef0"/>
-        <stop offset="70%"  stop-color="#9aa4a8"/>
-        <stop offset="100%" stop-color="#6a7478"/>
-      </linearGradient>
-    </defs>
-    <!-- Wooden pole -->
-    <rect x="24" y="0" width="8" height="168" rx="4" fill="url(#wg)"/>
-    <!-- Wood grain detail lines -->
-    <line x1="26" y1="12" x2="25.5" y2="90"  stroke="rgba(0,0,0,0.10)" stroke-width="0.7"/>
-    <line x1="28" y1="5"  x2="28.5" y2="145" stroke="rgba(0,0,0,0.08)" stroke-width="0.5"/>
-    <line x1="30" y1="20" x2="29.5" y2="110" stroke="rgba(255,255,255,0.07)" stroke-width="0.5"/>
-    <!-- Highlight on left edge of pole -->
-    <rect x="24" y="0" width="2" height="168" rx="1" fill="rgba(255,255,255,0.12)"/>
-    <!-- Metal ferrule (band near top of spike) -->
-    <rect x="23" y="160" width="10" height="5" rx="1" fill="url(#mg)"/>
-    <!-- Metal taper spike at bottom -->
-    <polygon points="24,165 32,165 28,181" fill="url(#mg)"/>
-    <polygon points="25.5,165 30.5,165 28,178" fill="rgba(255,255,255,0.25)"/>
-    <!-- Navy flag (top triangle) -->
-    <polygon points="32,6 32,50 66,28" fill="#0a1628"/>
-    <line x1="32" y1="6" x2="66" y2="28" stroke="rgba(255,255,255,0.08)" stroke-width="0.7"/>
-    <!-- Gold flag (bottom triangle) -->
-    <polygon points="32,50 32,94 66,72" fill="#c9a84c"/>
-    <line x1="32" y1="50" x2="66" y2="72" stroke="rgba(0,0,0,0.12)" stroke-width="0.7"/>
-  </svg>
+  <!-- Flag stick — wooden pole, fades out halfway up screen -->
+  <div id="splash-flag-wrap" aria-hidden="true">
+    <div id="splash-flag-pole"></div>
+    <div id="splash-flag-spike"></div>
+  </div>
+</div>
+
+<!-- ══════════════ SCORECARD HISTORY MODAL ══════════════ -->
+<div id="sc-hist-modal">
+  <div id="sc-hist-backdrop"></div>
+  <div id="sc-hist-sheet">
+    <div id="sc-hist-header">
+      <div style="min-width:0">
+        <div id="sc-hist-course" style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+        <div id="sc-hist-meta" style="font-size:11px;color:var(--dim);margin-top:2px"></div>
+      </div>
+      <button id="sc-hist-close" aria-label="Close">✕</button>
+    </div>
+    <div id="sc-hist-body"></div>
+  </div>
 </div>
 
 <!-- ══════════════ ONBOARD ══════════════ -->

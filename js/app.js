@@ -6,7 +6,7 @@ import { loadGist } from './api.js';
 import { goTo, switchEntry, registerNavHandlers } from './nav.js';
 import { onCourseChange, scanCourseCard, saveCourse, cancelCourseScan, handleCoursePhoto, searchCourseAPI } from './courses.js';
 import { buildSC, recalc, saveRound, toggleSCExtras } from './scorecard.js';
-import { renderStats, setFilter, toggleHcpEdit, saveHandicap, renderHomeStats } from './stats.js';
+import { renderStats, setFilter, toggleHcpEdit, saveHandicap, renderHomeStats, openScorecardModal } from './stats.js';
 import { renderLeaderboard } from './leaderboard.js';
 import { renderOnboard, enterAs, addAndEnter, signOut, addPlayer, renderAllPlayers, renderPlayersToday } from './players.js';
 import { renderPracticePage, selectPracticeArea, startPracticeSession, regeneratePlan, logPracticeShots, completePracticeSession } from './practice.js';
@@ -228,6 +228,11 @@ document.getElementById('wolf-scoreboard-close')?.addEventListener('click', () =
 document.getElementById('wolf-scoreboard-modal')?.addEventListener('click', function(e) {
   if (e.target === this) this.style.display = 'none';
 });
+
+// ── Scorecard history modal ───────────────────────────────────────
+function closeScModal() { document.getElementById('sc-hist-modal')?.classList.remove('open'); }
+document.getElementById('sc-hist-close')?.addEventListener('click', closeScModal);
+document.getElementById('sc-hist-backdrop')?.addEventListener('click', closeScModal);
 
 // ── Admin modal ───────────────────────────────────────────────────
 document.getElementById('admin-close-btn')?.addEventListener('click', closeAdminSettings);

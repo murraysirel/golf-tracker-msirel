@@ -9,6 +9,108 @@ import { initials } from './players.js';
 // Chart instances container
 const CH = {};
 
+// ── Scorecard history modal ───────────────────────────────────────
+function scoreColor(d) {
+  if (d <= -2) return 'var(--eagle)';
+  if (d === -1) return 'var(--birdie)';
+  if (d === 0)  return 'var(--par)';
+  if (d === 1)  return 'var(--bogey)';
+  return 'var(--double)';
+}
+
+function findGroupRounds(round) {
+  const results = [];
+  for (const [name, pdata] of Object.entries(state.gd?.players || {})) {
+    for (const r of (pdata.rounds || [])) {
+      if (r.date === round.date && r.course === round.course) {
+        results.push({ name, round: r });
+      }
+    }
+  }
+  results.sort((a, b) => {
+    if (a.name === round.player) return -1;
+    if (b.name === round.player) return 1;
+    return a.name.localeCompare(b.name);
+  });
+  return results;
+}
+
+function buildScorecardTable(primaryRound, group) {
+  const hasWolf = !!primaryRound.wolfResult;
+  const pars = primaryRound.pars || Array(18).fill(4);
+
+  let thead = '<th>Hole</th><th>Par</th>';
+  for (const { name } of group) thead += `<th>${initials(name)}</th>`;
+  if (hasWolf) thead += '<th style="color:var(--gold)">W</th>';
+
+  function buildRow(i) {
+    const par = pars[i];
+    let cells = `<td>${i + 1}</td><td style="color:var(--dim)">${par || '—'}</td>`;
+    for (const { round: r } of group) {
+      const sc = r.scores?.[i];
+      const d = sc != null && par ? sc - par : null;
+      cells += `<td style="color:${d != null ? scoreColor(d) : 'var(--dimmer)'};font-weight:600">${sc != null ? sc : '—'}</td>`;
+    }
+    if (hasWolf) {
+      const wh = primaryRound.wolfResult.holes?.[i];
+      const wt = wh ? (wh.loneWolf ? '🐺' : wh.winner ? initials(wh.winner) : '') : '';
+      cells += `<td style="font-size:10px;color:var(--dim)">${wt}</td>`;
+    }
+    return `<tr>${cells}</tr>`;
+  }
+
+  function buildSubRow(label, sliceStart, sliceEnd) {
+    const sp = pars.slice(sliceStart, sliceEnd).reduce((a, b) => a + (b || 0), 0);
+    let cells = `<td style="color:var(--cream)">${label}</td><td style="color:var(--dim)">${sp}</td>`;
+    for (const { round: r } of group) {
+      const t = r.scores?.slice(sliceStart, sliceEnd).reduce((a, b) => a + (b || 0), 0) || 0;
+      cells += `<td style="color:var(--cream)">${t || '—'}</td>`;
+    }
+    if (hasWolf) cells += '<td></td>';
+    return `<tr class="sc-sub">${cells}</tr>`;
+  }
+
+  const totalPar = pars.reduce((a, b) => a + (b || 0), 0);
+  let totCells = `<td style="color:var(--cream)">Total</td><td style="color:var(--dim)">${totalPar}</td>`;
+  for (const { round: r } of group) {
+    const tot = r.totalScore || r.scores?.reduce((a, b) => a + (b || 0), 0) || 0;
+    const diff = tot - totalPar;
+    const dStr = diff === 0 ? 'E' : (diff > 0 ? '+' + diff : '' + diff);
+    totCells += `<td><span style="color:var(--gold);font-weight:700">${tot}</span> <span style="font-size:10px;color:${scoreColor(diff)}">${dStr}</span></td>`;
+  }
+  if (hasWolf) {
+    const w = primaryRound.wolfResult.winner || '';
+    totCells += `<td style="font-size:10px;color:var(--gold)">${w ? initials(w) : ''}</td>`;
+  }
+
+  let html = `<table class="sc-hist-table">
+    <thead><tr>${thead}</tr></thead>
+    <tbody>`;
+  for (let i = 0; i < 9; i++) html += buildRow(i);
+  html += buildSubRow('OUT', 0, 9);
+  for (let i = 9; i < 18; i++) html += buildRow(i);
+  html += buildSubRow('IN', 9, 18);
+  html += `<tr class="sc-tot">${totCells}</tr>`;
+  html += '</tbody></table>';
+
+  if (primaryRound.matchResult?.result) {
+    html += `<div style="text-align:center;padding:14px 0 4px;font-size:13px;color:var(--gold)">${primaryRound.matchResult.result}</div>`;
+  }
+  return html;
+}
+
+export function openScorecardModal(round) {
+  const modal = document.getElementById('sc-hist-modal');
+  const body  = document.getElementById('sc-hist-body');
+  if (!modal || !body) return;
+  const group = findGroupRounds(round);
+  body.innerHTML = buildScorecardTable(round, group);
+  document.getElementById('sc-hist-course').textContent = round.course || '';
+  const tee = round.tee ? ` · ${round.tee.charAt(0).toUpperCase() + round.tee.slice(1)} tees` : '';
+  document.getElementById('sc-hist-meta').textContent = (round.date || '') + tee;
+  modal.classList.add('open');
+}
+
 export function dc(k) {
   if (CH[k]) { CH[k].destroy(); delete CH[k]; }
 }
@@ -261,6 +363,7 @@ export function renderHomeStats() {
     d.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px;background:var(--wa-03);border:1px solid var(--wa-07);border-radius:12px;margin-bottom:8px;transition:border-color .2s,background .2s;cursor:pointer';
     d.addEventListener('mouseenter', () => { d.style.background = 'rgba(201,168,76,.04)'; d.style.borderColor = 'rgba(201,168,76,.2)'; });
     d.addEventListener('mouseleave', () => { d.style.background = 'var(--wa-03)'; d.style.borderColor = 'var(--wa-07)'; });
+    d.addEventListener('click', () => openScorecardModal(r));
     d.innerHTML = `
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:8px">
@@ -437,7 +540,9 @@ export function renderStats() {
     const dot = TC[r.tee]?.d || '#888';
     const d = document.createElement('div');
     d.className = 'hi';
+    d.style.cursor = 'pointer';
     d.innerHTML = `<div><div class="hc">${r.course}</div><div class="hm"><span class="tdot" style="background:${dot}"></span>${(r.tee || '').charAt(0).toUpperCase() + (r.tee || '').slice(1)} \u00B7 ${r.date} \u00B7 ${r.parsCount || 0}P \u00B7 ${r.bogeys || 0}Bog${r.birdies > 0 ? ` \u00B7 <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg>${r.birdies}` : ''}</div></div><div style="text-align:right"><div class="hs">${r.totalScore}</div><div class="hd">${dv} (Par ${r.totalPar})</div></div>`;
+    d.addEventListener('click', () => openScorecardModal(r));
     hist.appendChild(d);
   });
 
