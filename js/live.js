@@ -378,6 +378,17 @@ function liveGroupAdj(playerName, field, delta) {
     const cur = state.liveState.groupScores[playerName]?.[h] ?? par;
     if (!state.liveState.groupScores[playerName]) state.liveState.groupScores[playerName] = Array(18).fill(null);
     state.liveState.groupScores[playerName][h] = Math.max(1, Math.min(15, cur + delta));
+
+    // Fix 3: track when wolf first adjusts their score — hides the 6-pointer button
+    if (state.gameMode === 'wolf' && state.wolfState && !state.wolfState.wolfShotStarted?.[h]) {
+      import('./gamemodes.js').then(({ getWolfForHole, updateWolfBanner }) => {
+        if (playerName === getWolfForHole(h)) {
+          if (!state.wolfState.wolfShotStarted) state.wolfState.wolfShotStarted = {};
+          state.wolfState.wolfShotStarted[h] = true;
+          updateWolfBanner(h);
+        }
+      });
+    }
   } else {
     const cur = state.liveState.groupPutts[playerName]?.[h] ?? 0;
     if (!state.liveState.groupPutts[playerName]) state.liveState.groupPutts[playerName] = Array(18).fill(null);
@@ -683,7 +694,49 @@ async function liveGroupSave() {
     state.gd.players[playerName].rounds.push(rnd);
   }
 
-  const ok = await pushGist();
+  // Fix 4: for Wolf rounds, ensure every player in wolfState.order is saved
+  // (guards against any player not in liveState.group due to edge cases)
+  if (state.gameMode === 'wolf' && state.wolfState?.order?.length) {
+    const wolfResult = {
+      order: state.wolfState.order,
+      finalScores: { ...state.wolfState.scores },
+      holeResults: state.wolfState.holeResults,
+      winner: [...state.wolfState.order].sort((a, b) => (state.wolfState.scores[b] || 0) - (state.wolfState.scores[a] || 0))[0] || ''
+    };
+    for (const playerName of state.wolfState.order) {
+      if (state.liveState.group.includes(playerName)) continue; // already saved in the loop above
+      const sc = state.liveState.groupScores[playerName] || Array(18).fill(null);
+      const vs = sc.filter(Boolean);
+      if (!vs.length) continue;
+      const ts = vs.reduce((a, b) => a + b, 0);
+      const tp = state.cpars.reduce((a, b) => a + b, 0);
+      const d = ts - tp;
+      const rnd = {
+        id: Date.now() + Math.random(),
+        player: playerName,
+        course: course.name,
+        loc: course.loc || course.location || '',
+        tee: state.stee,
+        date, notes,
+        pars: [...state.cpars], scores: sc,
+        putts: state.liveState.groupPutts[playerName] || Array(18).fill(null),
+        fir: state.liveState.groupFir[playerName] || Array(18).fill(''),
+        gir: state.liveState.groupGir[playerName] || Array(18).fill(''),
+        totalScore: ts, totalPar: tp, diff: d,
+        birdies: sc.filter((s, i) => s && s < state.cpars[i]).length,
+        parsCount: sc.filter((s, i) => s && s === state.cpars[i]).length,
+        bogeys: sc.filter((s, i) => s && s === state.cpars[i] + 1).length,
+        doubles: sc.filter((s, i) => s && s >= state.cpars[i] + 2).length,
+        eagles: sc.filter((s, i) => s && s <= state.cpars[i] - 2).length,
+        rating: teeData.r, slope: teeData.s,
+        wolfResult
+      };
+      if (!state.gd.players[playerName]) state.gd.players[playerName] = { handicap: 0, rounds: [] };
+      state.gd.players[playerName].rounds.push(rnd);
+    }
+  }
+
+  const ok = await pushGist(); // single pushGist call for all players
   const syncMsg = ok ? '\u2705 Saved & synced!' : '\u26A0\uFE0F Saved locally \u2014 will sync when online';
   const names = state.liveState.group.join(', ');
   alert(`${syncMsg}\n\nRound saved for: ${names}\n${course.name} \u00B7 ${state.stee} tees`);
