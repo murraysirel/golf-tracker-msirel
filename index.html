@@ -454,8 +454,9 @@
         </div>
 
         <!-- Wolf live bar (shown only in Wolf rounds) -->
-        <div id="wolf-live-bar" style="display:none;padding:10px 16px;background:rgba(201,168,76,.06);border-bottom:1px solid rgba(201,168,76,.18);flex-shrink:0;align-items:center;justify-content:space-between;gap:10px">
+        <div id="wolf-live-bar" style="display:none;padding:10px 16px;background:rgba(201,168,76,.06);border-bottom:1px solid rgba(201,168,76,.18);flex-shrink:0;align-items:center;justify-content:space-between;gap:8px">
           <div id="wolf-hole-banner" style="flex:1;font-size:13px;color:var(--cream)"></div>
+          <button id="wolf-6pointer-btn" style="display:none;white-space:nowrap;padding:6px 12px;border-radius:16px;border:1px solid rgba(231,76,60,.5);background:rgba(231,76,60,.1);color:var(--bogey);font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;flex-shrink:0">⚡ Lone Wolf?</button>
           <button id="wolf-scoreboard-btn" style="white-space:nowrap;padding:6px 12px;border-radius:16px;border:1px solid rgba(201,168,76,.4);background:rgba(201,168,76,.08);color:var(--gold);font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;flex-shrink:0">🐺 Points</button>
         </div>
 
@@ -1040,9 +1041,16 @@
     </div>
 
     <!-- Wolf Partner Prompt Modal -->
-    <div id="wolf-partner-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9200;align-items:flex-end;justify-content:center">
-      <div style="background:var(--mid);border:1px solid var(--wa-08);border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;max-width:480px">
+    <div id="wolf-partner-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:999">
+      <div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1000;width:min(320px,calc(100vw - 32px));background:var(--card);border-radius:16px;padding:24px;border:1px solid var(--border)">
         <div id="wolf-partner-inner"></div>
+      </div>
+    </div>
+
+    <!-- Wolf 6-pointer Declaration Modal -->
+    <div id="wolf-6pointer-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:999">
+      <div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1000;width:min(320px,calc(100vw - 32px));background:var(--card);border-radius:16px;padding:24px;border:1px solid var(--border)">
+        <div id="wolf-6pointer-inner"></div>
       </div>
     </div>
 
