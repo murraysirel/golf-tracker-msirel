@@ -46,6 +46,7 @@ export function initWolfState(group) {
     order: [...group],
     scores: Object.fromEntries(group.map(p => [p, 0])),
     sixPointerUsed: Object.fromEntries(group.map(p => [p, false])),
+    wolfShotStarted: {},   // { holeIdx: true } — set when wolf first adjusts score
     holeResults: [],
     holeSetup: {}
   };
@@ -199,6 +200,19 @@ export function updateWolfBanner(holeIdx) {
 
   const wolf = getWolfForHole(holeIdx);
   const setup = state.wolfState.holeSetup?.[holeIdx];
+  const sixAvailable = !state.wolfState.sixPointerUsed[wolf];
+  const shotStarted = state.wolfState.wolfShotStarted?.[holeIdx] || false;
+
+  // Show/hide 6-pointer button; attach handler once via flag
+  const sixBtn = document.getElementById('wolf-6pointer-btn');
+  if (sixBtn) {
+    const show6 = sixAvailable && !shotStarted && !(setup?.isSixPointer);
+    sixBtn.style.display = show6 ? 'inline-block' : 'none';
+    if (!sixBtn._wolfHandlerAttached) {
+      sixBtn._wolfHandlerAttached = true;
+      sixBtn.addEventListener('click', () => show6PointerModal(state.liveState.hole));
+    }
+  }
 
   let statusHtml = '';
   if (setup?.locked) {
@@ -222,94 +236,80 @@ export function updateWolfBanner(holeIdx) {
   document.getElementById('wolf-setup-btn')?.addEventListener('click', () => showPartnerPrompt(holeIdx));
 }
 
-// ── Partner prompt modal ──────────────────────────────────────────
+// ── 6-pointer declaration modal (Fix 3) ──────────────────────────
 
-export function showPartnerPrompt(holeIdx) {
+export function show6PointerModal(holeIdx) {
   const setup = getOrCreateSetup(holeIdx);
-  if (setup.locked) return;
-  const modal = document.getElementById('wolf-partner-modal');
-  if (!modal) return;
+  if (setup.isSixPointer || setup.locked) return;
 
-  const wolf = setup.wolf;
-  const nonWolf = getNonWolfOrder(holeIdx);
-  const sixAvailable = !state.wolfState.sixPointerUsed[wolf];
+  const modal = document.getElementById('wolf-6pointer-modal');
+  const inner = document.getElementById('wolf-6pointer-inner');
+  if (!modal || !inner) return;
 
-  modal.style.display = 'flex';
-  if (sixAvailable) {
-    renderSixPointerOffer(holeIdx, wolf, nonWolf, modal);
-  } else {
-    renderPartnerStep(holeIdx, 0, wolf, nonWolf, modal);
-  }
-}
-
-function renderSixPointerOffer(holeIdx, wolf, nonWolf, modal) {
-  const inner = document.getElementById('wolf-partner-inner');
-  if (!inner) return;
   inner.innerHTML = `
-    <div style="font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase;margin-bottom:14px">Hole ${holeIdx + 1} — ${wolf} is the Wolf</div>
-    <div style="font-size:15px;font-weight:500;color:var(--cream);margin-bottom:6px">Declare Lone Wolf?</div>
-    <div style="font-size:12px;color:var(--dim);line-height:1.5;margin-bottom:20px">Win = <strong style="color:var(--cream)">+6 pts</strong> · Lose = opponents <strong style="color:var(--cream)">+3 each</strong>. One use per round.</div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-ghost" id="wp-no-six" style="flex:1">No — play normal</button>
-      <button class="btn" id="wp-yes-six" style="flex:1">⚡ Stake it</button>
-    </div>`;
-  document.getElementById('wp-yes-six').addEventListener('click', () => {
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-size:16px;font-weight:700;color:var(--cream)">Declare Lone Wolf?</div>
+      <button id="sp-close" style="background:none;border:none;color:var(--dim);font-size:20px;cursor:pointer;line-height:1;padding:0 0 0 12px">✕</button>
+    </div>
+    <div style="font-size:13px;color:var(--dim);margin-bottom:20px;line-height:1.5">Win = 6 pts. Lose = 3 pts each to opponents. Once per round.</div>
+    <button id="sp-yes" style="width:100%;padding:14px;border-radius:10px;background:var(--gold);border:none;color:var(--navy);font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;margin-bottom:8px;display:block">Yes — stake it</button>
+    <button id="sp-no" style="width:100%;padding:14px;border-radius:10px;background:var(--mid);border:1px solid var(--border);color:var(--dim);font-size:15px;font-family:'DM Sans',sans-serif;cursor:pointer;display:block">Not this hole</button>`;
+
+  document.getElementById('sp-yes').addEventListener('click', () => {
     declareSixPointer(holeIdx);
     modal.style.display = 'none';
     updateWolfBanner(holeIdx);
   });
-  document.getElementById('wp-no-six').addEventListener('click', () => {
-    renderPartnerStep(holeIdx, 0, wolf, nonWolf, modal);
+  document.getElementById('sp-no').addEventListener('click', () => {
+    modal.style.display = 'none';
   });
+  document.getElementById('sp-close').addEventListener('click', () => {
+    modal.style.display = 'none';
+  });
+
+  modal.style.display = 'block';
 }
 
-function renderPartnerStep(holeIdx, idx, wolf, nonWolf, modal) {
+// ── Partner prompt modal (Fix 2) — single centred modal ──────────
+
+export function showPartnerPrompt(holeIdx) {
+  const setup = getOrCreateSetup(holeIdx);
+  if (setup.locked) return;
+
+  const modal = document.getElementById('wolf-partner-modal');
   const inner = document.getElementById('wolf-partner-inner');
-  if (!inner) return;
+  if (!modal || !inner) return;
 
-  if (idx >= nonWolf.length) {
-    setHoleLoneWolf(holeIdx);
-    modal.style.display = 'none';
-    updateWolfBanner(holeIdx);
-    return;
-  }
+  const wolf = setup.wolf;
+  const nonWolf = getNonWolfOrder(holeIdx);
 
-  const player = nonWolf[idx];
+  const playerCards = nonWolf.map(name => `
+    <button class="wp-pick-btn" data-player="${name}" style="width:100%;padding:14px;border-radius:10px;background:var(--mid);border:1px solid var(--border);color:var(--cream);font-size:15px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;margin-bottom:8px;text-align:left;display:block">${name}</button>`).join('');
+
   inner.innerHTML = `
-    <div style="font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase;margin-bottom:14px">Hole ${holeIdx + 1} — ${wolf} is the Wolf</div>
-    <div style="font-size:15px;font-weight:500;color:var(--cream);margin-bottom:4px">${player} has teed off</div>
-    <div style="font-size:12px;color:var(--dim);margin-bottom:20px">Call them as your partner?</div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-ghost" id="wp-pass" style="flex:1">Pass</button>
-      <button class="btn" id="wp-pick" style="flex:1">Partner! 🤝</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <div style="font-size:16px;font-weight:700;color:var(--cream)">${wolf} — pick your partner</div>
+      <button id="wp-close" style="background:none;border:none;color:var(--dim);font-size:20px;cursor:pointer;line-height:1;padding:0 0 0 12px">✕</button>
     </div>
-    <div id="wp-undo" style="display:none;text-align:center;margin-top:12px"></div>`;
+    ${playerCards}
+    <button id="wp-lone-wolf" style="width:100%;padding:14px;border-radius:10px;background:var(--mid);border:1px solid var(--border);color:var(--bogey);font-size:15px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;text-align:left;display:block">Go it alone — Lone Wolf</button>`;
 
-  document.getElementById('wp-pass').addEventListener('click', () => {
-    renderPartnerStep(holeIdx, idx + 1, wolf, nonWolf, modal);
-  });
+  const close = (isLone) => {
+    modal.style.display = 'none';
+    if (isLone) setHoleLoneWolf(holeIdx);
+    updateWolfBanner(holeIdx);
+  };
 
-  document.getElementById('wp-pick').addEventListener('click', () => {
-    setHolePartner(holeIdx, player);
-    const undoEl = document.getElementById('wp-undo');
-    undoEl.style.display = 'block';
-    let sec = 5;
-    const render = () => {
-      undoEl.innerHTML = `<button id="wp-undo-btn" style="background:none;border:1px solid var(--wa-1);border-radius:8px;padding:4px 12px;color:var(--dim);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">Undo (${sec}s)</button>`;
-      document.getElementById('wp-undo-btn').addEventListener('click', () => {
-        clearInterval(timer);
-        state.wolfState.holeSetup[holeIdx].locked = false;
-        state.wolfState.holeSetup[holeIdx].partner = null;
-        renderPartnerStep(holeIdx, idx, wolf, nonWolf, modal);
-      });
-    };
-    render();
-    const timer = setInterval(() => {
-      sec--;
-      if (sec <= 0) { clearInterval(timer); modal.style.display = 'none'; updateWolfBanner(holeIdx); return; }
-      render();
-    }, 1000);
+  inner.querySelectorAll('.wp-pick-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      setHolePartner(holeIdx, btn.dataset.player);
+      close(false);
+    });
   });
+  document.getElementById('wp-lone-wolf').addEventListener('click', () => close(true));
+  document.getElementById('wp-close').addEventListener('click', () => close(true));
+
+  modal.style.display = 'block';
 }
 
 // ── Scoreboard modal ──────────────────────────────────────────────
@@ -366,7 +366,7 @@ export function showHoleResult(result, holeIdx, onClose) {
   modal.onclick = close;
 }
 
-// ── Order setup ───────────────────────────────────────────────────
+// ── Order setup (Fix 1) — drag to reorder ────────────────────────
 
 export function showWolfOrderSetup(group) {
   document.getElementById('live-group-setup').style.display = 'none';
@@ -383,24 +383,100 @@ function renderOrderCards() {
   const container = document.getElementById('wolf-order-cards');
   if (!container) return;
   const order = state.wolfState._tempOrder;
+
   container.innerHTML = order.map((name, i) => `
-    <div class="card" style="margin-bottom:8px;display:flex;align-items:center;gap:12px;padding:12px 14px">
+    <div class="card wolf-order-card" draggable="true" data-idx="${i}"
+         style="margin-bottom:8px;display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:grab;touch-action:none;user-select:none;transition:opacity .15s,border-top .1s">
+      <div style="color:var(--dimmer);font-size:20px;line-height:1;flex-shrink:0;letter-spacing:-1px">≡</div>
       <div style="width:28px;height:28px;border-radius:50%;background:var(--gold);color:var(--navy);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i + 1}</div>
       <div style="flex:1;font-size:14px;font-weight:500;color:${name === state.me ? 'var(--gold)' : 'var(--cream)'}">${name}</div>
-      <div style="display:flex;flex-direction:column;gap:4px">
-        <button data-move="${i}" data-dir="-1" class="btn btn-ghost" style="width:auto;padding:4px 10px;font-size:14px;min-height:0" ${i === 0 ? 'disabled' : ''}>↑</button>
-        <button data-move="${i}" data-dir="1" class="btn btn-ghost" style="width:auto;padding:4px 10px;font-size:14px;min-height:0" ${i === order.length - 1 ? 'disabled' : ''}>↓</button>
-      </div>
     </div>`).join('');
-  container.querySelectorAll('[data-move]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const idx = parseInt(btn.dataset.move);
-      const dir = parseInt(btn.dataset.dir);
-      const newIdx = idx + dir;
-      const ord = state.wolfState._tempOrder;
-      if (newIdx < 0 || newIdx >= ord.length) return;
-      [ord[idx], ord[newIdx]] = [ord[newIdx], ord[idx]];
-      renderOrderCards();
+
+  const cards = Array.from(container.querySelectorAll('.wolf-order-card'));
+  let dragIdx = null;
+
+  // ── HTML5 Drag (desktop) ─────────────────────────────────────
+  cards.forEach(card => {
+    const idx = parseInt(card.dataset.idx);
+
+    card.addEventListener('dragstart', e => {
+      dragIdx = idx;
+      card.style.opacity = '0.4';
+      e.dataTransfer.effectAllowed = 'move';
+    });
+
+    card.addEventListener('dragend', () => {
+      card.style.opacity = '';
+      cards.forEach(c => { c.style.borderTop = ''; });
+      dragIdx = null;
+    });
+
+    card.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const toIdx = parseInt(card.dataset.idx);
+      cards.forEach(c => { c.style.borderTop = ''; });
+      if (toIdx !== dragIdx) card.style.borderTop = '2px solid var(--gold)';
+    });
+
+    card.addEventListener('drop', e => {
+      e.preventDefault();
+      const toIdx = parseInt(card.dataset.idx);
+      if (dragIdx !== null && dragIdx !== toIdx) {
+        const ord = state.wolfState._tempOrder;
+        const [item] = ord.splice(dragIdx, 1);
+        ord.splice(toIdx, 0, item);
+        renderOrderCards();
+      }
+    });
+  });
+
+  // ── Touch (iOS Safari) ───────────────────────────────────────
+  let touchDragIdx = null;
+
+  cards.forEach(card => {
+    const idx = parseInt(card.dataset.idx);
+
+    card.addEventListener('touchstart', e => {
+      touchDragIdx = idx;
+      card.style.opacity = '0.4';
+      e.preventDefault();
+    }, { passive: false });
+
+    card.addEventListener('touchmove', e => {
+      e.preventDefault();
+      const y = e.touches[0].clientY;
+      cards.forEach(c => { c.style.borderTop = ''; });
+      for (const c of cards) {
+        const rect = c.getBoundingClientRect();
+        if (y >= rect.top && y <= rect.bottom) {
+          const overIdx = parseInt(c.dataset.idx);
+          if (overIdx !== touchDragIdx) c.style.borderTop = '2px solid var(--gold)';
+          break;
+        }
+      }
+    }, { passive: false });
+
+    card.addEventListener('touchend', e => {
+      const y = e.changedTouches[0].clientY;
+      cards.forEach(c => { c.style.opacity = ''; c.style.borderTop = ''; });
+
+      let dropIdx = null;
+      for (const c of cards) {
+        const rect = c.getBoundingClientRect();
+        if (y >= rect.top && y <= rect.bottom) {
+          dropIdx = parseInt(c.dataset.idx);
+          break;
+        }
+      }
+
+      if (touchDragIdx !== null && dropIdx !== null && touchDragIdx !== dropIdx) {
+        const ord = state.wolfState._tempOrder;
+        const [item] = ord.splice(touchDragIdx, 1);
+        ord.splice(dropIdx, 0, item);
+        renderOrderCards();
+      }
+      touchDragIdx = null;
     });
   });
 }
