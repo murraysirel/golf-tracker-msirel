@@ -127,6 +127,103 @@ export function updateScoringForLabel() {
   label.textContent = active === state.me ? 'yourself' : active;
 }
 
+// ── Match context bottom sheet ────────────────────────────────────
+
+export function showMatchContextSheet(playerName, roundId) {
+  const sheet = document.getElementById('match-context-sheet');
+  const inner = document.getElementById('match-context-inner');
+  if (!sheet || !inner) return;
+
+  const otherPlayers = Object.keys(state.gd.players).filter(p => p !== playerName);
+  if (!otherPlayers.length) return;
+
+  let selected = new Set();
+  let handicapsUsed = false;
+
+  const close = () => { sheet.style.display = 'none'; };
+
+  const render = () => {
+    const chips = otherPlayers.map(name => {
+      const on = selected.has(name);
+      return `<button class="mc-chip" data-player="${name}" style="padding:7px 14px;border-radius:20px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;border:1.5px solid ${on ? 'var(--gold)' : 'var(--border)'};background:${on ? 'rgba(201,168,76,.15)' : 'transparent'};color:${on ? 'var(--gold)' : 'var(--dim)'};margin:0 6px 6px 0">${name}</button>`;
+    }).join('');
+
+    let hcpSection = '';
+    if (selected.size > 0) {
+      const yesSt = `border:1.5px solid ${handicapsUsed ? 'var(--gold)' : 'var(--border)'};background:${handicapsUsed ? 'rgba(201,168,76,.15)' : 'transparent'};color:${handicapsUsed ? 'var(--gold)' : 'var(--dim)'}`;
+      const noSt  = `border:1.5px solid ${!handicapsUsed ? 'var(--gold)' : 'var(--border)'};background:${!handicapsUsed ? 'rgba(201,168,76,.15)' : 'transparent'};color:${!handicapsUsed ? 'var(--gold)' : 'var(--dim)'}`;
+      const pills = `<div style="display:flex;gap:8px;margin:12px 0 8px">
+        <button id="mc-hcp-yes" style="flex:1;padding:10px;border-radius:20px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;${yesSt}">Yes, full handicap</button>
+        <button id="mc-hcp-no" style="flex:1;padding:10px;border-radius:20px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;${noSt}">No — scratch</button>
+      </div>`;
+
+      let table = '';
+      if (handicapsUsed) {
+        table = `<div style="margin-bottom:8px">` + [...selected].map(name => {
+          const hIdx = state.gd.players[name]?.handicap || 0;
+          const sid = 'mc-hcp-' + name.replace(/[^a-z0-9]/gi, '-');
+          return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">
+            <div style="flex:1;font-size:12px;color:var(--cream)">${name}</div>
+            <input type="number" id="${sid}" value="${hIdx}" min="0" max="54"
+              style="width:48px;text-align:center;font-size:13px;padding:4px;border-radius:6px;background:var(--mid);border:1px solid var(--border);color:var(--cream)">
+          </div>`;
+        }).join('') + `</div>`;
+      }
+      hcpSection = `<div style="font-size:12px;color:var(--dim);margin-top:14px;margin-bottom:4px">Were handicaps being used?</div>${pills}${table}`;
+    }
+
+    const saveBtn = selected.size > 0
+      ? `<button id="mc-save" style="flex:1;padding:14px;border-radius:10px;background:var(--gold);border:none;color:var(--navy);font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer">Save</button>`
+      : '';
+
+    inner.innerHTML = `
+      <div style="font-size:14px;font-weight:700;color:var(--cream);margin-bottom:4px">Who did you play with?</div>
+      <div style="font-size:12px;color:var(--dim);margin-bottom:14px">Tag your playing partners to unlock match stats</div>
+      <div style="display:flex;flex-wrap:wrap;margin-bottom:4px">${chips}</div>
+      ${hcpSection}
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button id="mc-skip" style="flex:1;padding:14px;border-radius:10px;background:var(--mid);border:1px solid var(--border);color:var(--dim);font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer">Skip</button>
+        ${saveBtn}
+      </div>`;
+
+    inner.querySelectorAll('.mc-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const p = btn.dataset.player;
+        selected.has(p) ? selected.delete(p) : selected.add(p);
+        render();
+      });
+    });
+    document.getElementById('mc-hcp-yes')?.addEventListener('click', () => { handicapsUsed = true; render(); });
+    document.getElementById('mc-hcp-no')?.addEventListener('click', () => { handicapsUsed = false; render(); });
+    document.getElementById('mc-skip')?.addEventListener('click', close);
+    document.getElementById('mc-save')?.addEventListener('click', async () => {
+      const playedWith = [...selected];
+      const matchHandicaps = {};
+      if (handicapsUsed) {
+        playedWith.forEach(name => {
+          const sid = 'mc-hcp-' + name.replace(/[^a-z0-9]/gi, '-');
+          const inp = document.getElementById(sid);
+          matchHandicaps[name] = inp ? parseFloat(inp.value) || 0 : (state.gd.players[name]?.handicap || 0);
+        });
+      }
+      const playerRounds = state.gd.players[playerName]?.rounds || [];
+      const rndIdx = playerRounds.findIndex(r => r.id === roundId);
+      if (rndIdx !== -1) {
+        playerRounds[rndIdx].playedWith = playedWith;
+        playerRounds[rndIdx].handicapsUsed = handicapsUsed;
+        if (handicapsUsed && Object.keys(matchHandicaps).length) {
+          playerRounds[rndIdx].matchHandicaps = matchHandicaps;
+        }
+        await pushGist();
+      }
+      close();
+    });
+  };
+
+  render();
+  sheet.style.display = 'block';
+}
+
 // Handicap — in players module for admin panel use
 export function saveHandicapForPlayer(playerName, value) {
   if (!state.gd.players[playerName]) return;

@@ -354,6 +354,7 @@
                   <div style="flex:1"><label>Rating</label><input type="number" id="sc-rating" step="0.1" placeholder="70.2"></div>
                   <div style="flex:1"><label>Slope</label><input type="number" id="sc-slope" placeholder="121"></div>
                 </div>
+                <div id="tee-ratings-detail" style="margin-bottom:12px"></div>
                 <label style="margin-bottom:6px">Hole Pars — tap any to correct</label>
                 <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:5px;margin-bottom:4px" id="par-edit-grid"></div>
                 <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:5px;margin-bottom:4px" id="par-edit-grid-in"></div>
@@ -402,7 +403,7 @@
       <div id="wolf-order-setup" class="sec" style="display:none">
         <div class="card">
           <div class="ct">Set Playing Order</div>
-          <div style="font-size:12px;color:var(--dim);margin-bottom:16px;line-height:1.5">Throw a ball at the tee marker — closest to furthest sets the order. Drag or use the arrows to arrange players.</div>
+          <div style="font-size:12px;color:var(--dim);margin-bottom:16px;line-height:1.5">Throw a ball at the tee marker — closest to furthest sets the order. Drag to rearrange.</div>
           <div id="wolf-order-cards"></div>
           <button class="btn" id="wolf-order-confirm" style="margin-top:8px">Start Wolf Round →</button>
         </div>
@@ -1144,5 +1145,19 @@
 </div>
 
 </div>
+    <!-- Pre-round handicap confirmation modal (Fix 6) -->
+    <div id="hcp-confirm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:999">
+      <div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1000;width:min(340px,calc(100vw - 32px));background:var(--card);border-radius:16px;padding:20px;border:1px solid var(--border)">
+        <div id="hcp-confirm-inner"></div>
+      </div>
+    </div>
+
+    <!-- Match context post-save bottom sheet (Fix 7) -->
+    <div id="match-context-sheet" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000">
+      <div style="position:fixed;bottom:0;left:0;right:0;background:var(--card);border-radius:20px 20px 0 0;padding:24px 20px 40px;max-height:80vh;overflow-y:auto;max-width:480px;margin:0 auto">
+        <div id="match-context-inner"></div>
+      </div>
+    </div>
+
 <script type="module" src="js/app.js"></script>
 </html>

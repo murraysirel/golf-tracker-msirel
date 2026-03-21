@@ -182,44 +182,100 @@ export function startGroupRound() {
     state.liveState.groupGir[p] = [...state.liveState.gir];
   }
 
-  // Show hole view (or Wolf order setup)
-  const setup = document.getElementById('live-group-setup');
-  const holeView = document.getElementById('live-hole-view');
-  if (setup) setup.style.display = 'none';
+  // The actual launch: show hole view, caddie button, wake lock, GPS
+  const launchRound = () => {
+    const setup = document.getElementById('live-group-setup');
+    const holeView = document.getElementById('live-hole-view');
+    if (setup) setup.style.display = 'none';
 
-  if (state.gameMode === 'wolf') {
-    // Wolf: show order setup before hole view
-    import('./gamemodes.js').then(({ showWolfOrderSetup }) => {
-      showWolfOrderSetup(state.liveState.group);
-    });
-    // Wake lock + GPS still start
-  } else {
-    if (holeView) holeView.style.display = 'block';
-    liveRenderPips();
-    liveGoto(state.liveState.hole);
-  }
-
-  // Show floating caddie button (returns to this screen if user navigates away)
-  state.roundActive = true;
-  const _cBtn = document.getElementById('caddie-btn');
-  _cBtn?.classList.add('visible');
-  _cBtn?.classList.add('in-progress');
-
-  // Wake lock (persistent preference stored in localStorage)
-  const wlPref = localStorage.getItem('rr_wakelock');
-  if ('wakeLock' in navigator) {
-    if (wlPref === 'yes') {
-      requestWakeLock();
-    } else if (wlPref === null && confirm('Keep screen on during your round?')) {
-      localStorage.setItem('rr_wakelock', 'yes');
-      requestWakeLock();
-    } else if (wlPref === null) {
-      localStorage.setItem('rr_wakelock', 'no');
+    if (state.gameMode === 'wolf') {
+      import('./gamemodes.js').then(({ showWolfOrderSetup }) => {
+        showWolfOrderSetup(state.liveState.group);
+      });
+    } else {
+      if (holeView) holeView.style.display = 'block';
+      liveRenderPips();
+      liveGoto(state.liveState.hole);
     }
+
+    state.roundActive = true;
+    const _cBtn = document.getElementById('caddie-btn');
+    _cBtn?.classList.add('visible');
+    _cBtn?.classList.add('in-progress');
+
+    const wlPref = localStorage.getItem('rr_wakelock');
+    if ('wakeLock' in navigator) {
+      if (wlPref === 'yes') {
+        requestWakeLock();
+      } else if (wlPref === null && confirm('Keep screen on during your round?')) {
+        localStorage.setItem('rr_wakelock', 'yes');
+        requestWakeLock();
+      } else if (wlPref === null) {
+        localStorage.setItem('rr_wakelock', 'no');
+      }
+    }
+
+    import('./gps.js').then(({ startGPSWatch }) => startGPSWatch());
+  };
+
+  // For group rounds (2+ players), show handicap confirmation first
+  if (state.liveState.group.length > 1) {
+    showHcpModal(launchRound);
+  } else {
+    launchRound();
+  }
+}
+
+function showHcpModal(onConfirm) {
+  const modal = document.getElementById('hcp-confirm-modal');
+  const inner = document.getElementById('hcp-confirm-inner');
+  if (!modal || !inner) { onConfirm(); return; }
+
+  // Get slope from selected course/tee for playing handicap calculation
+  const ci = document.getElementById('course-sel')?.value;
+  let slope = 113;
+  if (ci && ci !== '') {
+    const course = getCourseByRef(ci);
+    const teeData = course?.tees?.[state.stee];
+    slope = teeData?.s || teeData?.slope || 113;
   }
 
-  // Auto-start GPS watch (distances display once green coords are available)
-  import('./gps.js').then(({ startGPSWatch }) => startGPSWatch());
+  if (!state.liveState.hcpOverrides) state.liveState.hcpOverrides = {};
+
+  const rows = state.liveState.group.map(name => {
+    const hcpIdx = state.gd.players[name]?.handicap || 0;
+    const playingHcp = Math.round(hcpIdx * (slope / 113));
+    state.liveState.hcpOverrides[name] = playingHcp;
+    const safeId = 'hcp-ov-' + name.replace(/[^a-z0-9]/gi, '-');
+    return `
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:var(--cream)">${name}</div>
+          <div style="font-size:11px;color:var(--dim);margin-top:2px">HCP index: ${hcpIdx}</div>
+        </div>
+        <div style="font-size:12px;color:var(--gold)">Gets</div>
+        <input type="number" id="${safeId}" value="${playingHcp}" min="0" max="54"
+          style="width:48px;text-align:center;font-size:14px;font-weight:600;padding:4px;border-radius:6px;background:var(--mid);border:1px solid var(--border);color:var(--cream)">
+        <div style="font-size:12px;color:var(--gold)">strokes</div>
+      </div>`;
+  }).join('');
+
+  inner.innerHTML = `
+    <div style="font-size:16px;font-weight:700;color:var(--cream);margin-bottom:12px">Stroke allocation</div>
+    ${rows}
+    <button id="hcp-go-btn" style="width:100%;padding:14px;border-radius:10px;background:var(--gold);border:none;color:var(--navy);font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:16px;display:block">Let's play →</button>`;
+
+  document.getElementById('hcp-go-btn').addEventListener('click', () => {
+    state.liveState.group.forEach(name => {
+      const safeId = 'hcp-ov-' + name.replace(/[^a-z0-9]/gi, '-');
+      const inp = document.getElementById(safeId);
+      if (inp) state.liveState.hcpOverrides[name] = parseInt(inp.value) || 0;
+    });
+    modal.style.display = 'none';
+    onConfirm();
+  });
+
+  modal.style.display = 'block';
 }
 
 // ── Pip strip ─────────────────────────────────────────────────────
@@ -626,6 +682,7 @@ export function cancelRound() {
   state.liveState.groupFir = {};
   state.liveState.groupGir = {};
   state.liveState.matchPlay = false;
+  state.liveState.hcpOverrides = {};
   const cBtn = document.getElementById('caddie-btn');
   cBtn?.classList.remove('visible');
   cBtn?.classList.remove('in-progress');
@@ -736,9 +793,14 @@ async function liveGroupSave() {
     }
   }
 
+  // Capture info before state reset for match context sheet
+  const _me = state.me;
+  const _meRoundId = state.gd.players[state.me]?.rounds?.slice(-1)[0]?.id;
+  const _groupPlayers = [...state.liveState.group];
+
   const ok = await pushGist(); // single pushGist call for all players
   const syncMsg = ok ? '\u2705 Saved & synced!' : '\u26A0\uFE0F Saved locally \u2014 will sync when online';
-  const names = state.liveState.group.join(', ');
+  const names = _groupPlayers.join(', ');
   alert(`${syncMsg}\n\nRound saved for: ${names}\n${course.name} \u00B7 ${state.stee} tees`);
 
   // Reset
@@ -746,7 +808,7 @@ async function liveGroupSave() {
     hole: 0, scores: Array(18).fill(null), putts: Array(18).fill(null),
     fir: Array(18).fill(''), gir: Array(18).fill(''), notes: Array(18).fill(''),
     group: [], groupScores: {}, groupPutts: {}, groupFir: {}, groupGir: {},
-    matchPlay: false, matchFormat: 'singles', matchResult: null
+    matchPlay: false, matchFormat: 'singles', matchResult: null, hcpOverrides: {}
   };
   state.cpars = Array(18).fill(4);
   state.stee = '';
@@ -757,6 +819,14 @@ async function liveGroupSave() {
       gt('stats');
     });
   });
+
+  // Show match context sheet for players outside this round (non-blocking)
+  if (ok && _meRoundId != null) {
+    const _otherPlayers = Object.keys(state.gd.players).filter(p => !_groupPlayers.includes(p));
+    if (_otherPlayers.length > 0) {
+      import('./players.js').then(({ showMatchContextSheet }) => showMatchContextSheet(_me, _meRoundId));
+    }
+  }
 }
 
 export function liveFinish() {
