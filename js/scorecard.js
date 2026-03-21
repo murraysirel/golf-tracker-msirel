@@ -29,7 +29,7 @@ export function buildSC(pf, pp) {
   const course = ci !== '' ? getCourseByRef(ci) : null;
   const teeData = course?.tees?.[state.stee];
   const hYards = teeData?.hy || null;
-  const siArr = teeData?.si || null;
+  const siArr = teeData?.si || (state.scannedSI?.some(v => v != null) ? state.scannedSI : null);
   let op = 0, ip = 0, oY = 0, iY = 0;
   for (let h = 0; h < 18; h++) {
     if (h === 9) {
@@ -149,6 +149,12 @@ export async function saveRound() {
   const ok = await pushGist();
   const syncMsg = ok ? '\u2705 Saved & synced!' : '\u26A0\uFE0F Saved locally \u2014 will sync when connection resumes';
   alert(`${syncMsg}\n\n${c.name} \u00B7 ${state.stee} tees\n${ts} (${d >= 0 ? '+' : ''}${d} vs Par ${tp})`);
+
+  // Show match context sheet if other players exist (non-blocking — round already saved)
+  const otherPlayers = Object.keys(state.gd.players).filter(p => p !== target);
+  if (ok && otherPlayers.length > 0) {
+    import('./players.js').then(({ showMatchContextSheet }) => showMatchContextSheet(target, rnd.id));
+  }
   // Clear form
   document.getElementById('course-sel').value = '';
   document.getElementById('tee-wrap').style.display = 'none';
@@ -165,7 +171,7 @@ export async function saveRound() {
     hole: 0, scores: Array(18).fill(null), putts: Array(18).fill(null),
     fir: Array(18).fill(''), gir: Array(18).fill(''), notes: Array(18).fill(''),
     group: [], groupScores: {}, groupPutts: {}, groupFir: {}, groupGir: {},
-    matchPlay: false, matchFormat: 'singles', matchResult: null
+    matchPlay: false, matchFormat: 'singles', matchResult: null, hcpOverrides: {}
   };
   state.cpars = Array(18).fill(4);
   state.stee = '';

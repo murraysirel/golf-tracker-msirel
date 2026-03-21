@@ -26,7 +26,8 @@ export const state = {
     // Match play (Feature 4)
     matchPlay: false,
     matchFormat: 'singles', // 'singles' | 'pairs'
-    matchResult: null
+    matchResult: null,
+    hcpOverrides: {}        // { [playerName]: number } — playing handicap per player, set in pre-round modal
   },
   // Course card scanner state
   courseCardFile: null,

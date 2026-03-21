@@ -95,6 +95,24 @@ export function buildParEditGrid(pars) {
   updateParTotal();
 }
 
+function renderTeeRatingsUI(ratings) {
+  const container = document.getElementById('tee-ratings-detail');
+  if (!container) return;
+  const found = Object.entries(ratings).filter(([, d]) => d && (d.rating || d.slope));
+  if (!found.length) { container.innerHTML = ''; return; }
+  container.innerHTML = `<div style="font-size:11px;color:var(--dim);margin-bottom:8px">Per-tee ratings (edit if needed):</div>` +
+    found.map(([tee, d]) => `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+        <div style="font-size:12px;color:var(--cream);min-width:46px;text-transform:capitalize">${tee}</div>
+        <label style="font-size:11px;color:var(--dim);display:flex;align-items:center;gap:4px">Rating
+          <input type="number" id="tr-rating-${tee}" value="${d.rating || ''}" step="0.1" style="width:52px;font-size:11px;padding:2px 4px;border-radius:5px;background:var(--mid);border:1px solid var(--border);color:var(--cream)">
+        </label>
+        <label style="font-size:11px;color:var(--dim);display:flex;align-items:center;gap:4px">Slope
+          <input type="number" id="tr-slope-${tee}" value="${d.slope || ''}" style="width:46px;font-size:11px;padding:2px 4px;border-radius:5px;background:var(--mid);border:1px solid var(--border);color:var(--cream)">
+        </label>
+      </div>`).join('');
+}
+
 function updateParTotal() {
   let tot = 0;
   for (let h = 0; h < 18; h++) {
@@ -177,7 +195,16 @@ Only include teeRatings entries that are visible on the card. Use null for any v
       document.getElementById('sc-slope').value = firstTee.slope || '';
     }
 
+    // Store per-tee ratings for saveCourse() to use
+    state._scannedTeeRatings = {};
+    Object.entries(ratings).forEach(([tee, data]) => {
+      if (data && (data.rating || data.slope)) {
+        state._scannedTeeRatings[tee] = { rating: data.rating, slope: data.slope };
+      }
+    });
+
     buildParEditGrid(state.scannedPars);
+    renderTeeRatingsUI(ratings);
 
     ['blue','yellow','white','red'].forEach(tee => {
       const cb = document.getElementById('tee-' + tee);
@@ -228,9 +255,16 @@ export function saveCourse() {
         const hy = state.scannedYards[tee] || null;
         const totalYards = hy ? hy.reduce((a, b) => a + (b || 0), 0) : 0;
         const siClean = state.scannedSI.some(v => v != null) ? [...state.scannedSI] : null;
+        // Use per-tee rating/slope from rendered inputs, then stored data, then form fallback
+        const teeRating = parseFloat(document.getElementById(`tr-rating-${tee}`)?.value)
+                       || state._scannedTeeRatings?.[tee]?.rating
+                       || rating;
+        const teeSlope  = parseInt(document.getElementById(`tr-slope-${tee}`)?.value)
+                       || state._scannedTeeRatings?.[tee]?.slope
+                       || slope;
         tees[tee] = {
           par: [...state.scannedPars],
-          rating, slope,
+          rating: teeRating, slope: teeSlope,
           yards: totalYards || 0,
           totalPar: par,
           ...(hy ? { hy } : {}),
@@ -248,6 +282,7 @@ export function saveCourse() {
   if (!state.gd.customCourses) state.gd.customCourses = {};
   state.gd.customCourses[name] = { name, loc, tees, addedBy: state.me, addedDate: new Date().toLocaleDateString('en-GB') };
 
+  state._scannedTeeRatings = null;
   pushGist().then(ok => {
     const msg = ok ? '\u2705 Course saved to group list! It\'ll now appear in the course selector.' : '\u26A0\uFE0F Saved locally \u2014 will sync when token is available.';
     document.getElementById('course-save-msg').textContent = msg;

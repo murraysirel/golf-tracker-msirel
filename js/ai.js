@@ -32,25 +32,26 @@ export async function parsePhoto() {
     });
     const prompt = `You are reading a golf scorecard photograph. ${courseInfo}
 
-Your task: extract the GROSS score (total strokes taken) for each of the 18 holes, and putts if visible.
+Your task: extract the GROSS score (total strokes taken) for each of the 18 holes, putts if visible, stroke index (SI) per hole, and all tee information shown on the card.
 
 IMPORTANT RULES:
 - Return the GROSS score — the actual number of strokes on each hole, NOT net or stableford points
 - If you see coloured circles/dots around a score (these mean birdie/eagle/bogey in some apps), read the number inside
-- If a hole shows a score like "4" with a circle meaning birdie on a par 4, the gross score is still 4 — wait, that would be a par — a birdie would show "3". Read the actual number shown
 - Count carefully — a triple bogey on a par 4 is 7, not 3
 - If the scorecard shows OUT total and IN total, use them to sanity check your reading (OUT should be sum of holes 1-9)
+- Extract stroke index (SI) for each hole — this is the number 1–18 printed in the SI row of the scorecard, indicating hole difficulty order
+- Also extract ALL tee options shown on the scorecard, each with their course rating, slope rating, and per-hole yardages
 - If a score is genuinely unclear, use null
 - Return ONLY valid JSON, no explanation:
 
-{"scores":[h1,h2,h3,h4,h5,h6,h7,h8,h9,h10,h11,h12,h13,h14,h15,h16,h17,h18],"putts":[p1,p2,...p18],"outTotal":39,"inTotal":35,"confidence":"high/medium/low"}
+{"scores":[h1,h2,h3,h4,h5,h6,h7,h8,h9,h10,h11,h12,h13,h14,h15,h16,h17,h18],"putts":[p1,p2,...p18],"si":[si1,si2,...si18],"outTotal":39,"inTotal":35,"confidence":"high/medium/low","tees":[{"name":"Yellow","rating":69.2,"slope":118,"yardages":[350,380,420,180,390,340,510,160,400,370,420,180,340,510,390,420,160,380]},{"name":"White","rating":70.5,"slope":122,"yardages":[...]}]}
 
-Use null for any value you cannot read with confidence. Putts array should be null values if putts not shown.`;
+Use null for any value you cannot read with confidence. Putts and SI arrays should have null values if those rows are not visible. Tees array should be [] if no tee rating information is shown.`;
 
     const resp = await fetch('/.netlify/functions/ai', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001', max_tokens: 600,
+        model: 'claude-haiku-4-5-20251001', max_tokens: 900,
         messages: [{ role: 'user', content: [
           { type: 'image', source: { type: 'base64', media_type: state.photoFile.type || 'image/jpeg', data: b64 } },
           { type: 'text', text: prompt }
@@ -67,6 +68,28 @@ Use null for any value you cannot read with confidence. Putts array should be nu
     const inSum = parsed.scores.slice(9).filter(Boolean).reduce((a, b) => a + b, 0);
     const outOk = !parsed.outTotal || (outSum === parsed.outTotal);
     const inOk = !parsed.inTotal || (inSum === parsed.inTotal);
+
+    // Store SI if valid: 18 values, each 1–18, all unique
+    if (Array.isArray(parsed.si) && parsed.si.length === 18) {
+      const siNums = parsed.si.filter(v => v != null && v >= 1 && v <= 18);
+      if (siNums.length === 18 && new Set(siNums).size === 18) {
+        state.scannedSI = [...parsed.si];
+      }
+    }
+
+    // Store per-tee ratings extracted from the scorecard photo
+    if (Array.isArray(parsed.tees) && parsed.tees.length > 0) {
+      state._scannedTeeRatings = {};
+      parsed.tees.forEach(t => {
+        if (!t.name) return;
+        const key = t.name.toLowerCase().trim();
+        state._scannedTeeRatings[key] = {
+          rating: t.rating || null,
+          slope: t.slope || null,
+          yardages: Array.isArray(t.yardages) ? t.yardages : null
+        };
+      });
+    }
 
     import('./scorecard.js').then(({ buildSC }) => buildSC(parsed.scores, parsed.putts));
     import('./nav.js').then(({ switchEntry }) => switchEntry('manual'));
