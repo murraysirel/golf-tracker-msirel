@@ -4,6 +4,11 @@
 import { state } from './state.js';
 import { DEFAULT_GIST, API } from './constants.js';
 
+// NOTE: This secret is visible in client-side JS — it guards against bots
+// and casual abuse, not determined attackers who can read the source.
+// Must match SYNC_SECRET env var in Netlify dashboard.
+const SYNC_SECRET = 'LOOPER_SYNC_SECRET';
+
 export function ss(status, msg) {
   const d = document.getElementById('sdot'), t = document.getElementById('stext');
   if (!d) return;
@@ -60,9 +65,13 @@ export async function pushGist() {
   try {
     const r = await fetch(API, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-sync-secret': SYNC_SECRET },
       body: JSON.stringify({ data: state.gd })
     });
+    if (r.status === 429) {
+      ss('err', 'Too many saves — wait a moment');
+      return false;
+    }
     if (!r.ok) throw new Error(r.status);
     ss('ok', 'Saved \u2713 ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
     return true;
