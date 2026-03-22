@@ -21,6 +21,7 @@ import { state } from './state.js';
 import { initCaddieButton } from './caddie.js';
 import { setGameMode, updateFormatUI, confirmWolfOrder, showWolfScoreboard } from './gamemodes.js';
 import { openCreateMatchModal, openJoinMatchModal, updateGroupMatchButtonVisibility, updateActiveMatchBadge } from './group-match.js';
+import { initMatchOverlay, hideMatchOverlay, showEndRoundConfirm } from './overlay.js';
 
 // ── Theme ─────────────────────────────────────────────────────────
 function applyTheme(theme) {
@@ -38,7 +39,8 @@ registerNavHandlers({
   renderHomeStats,
   renderPracticePage,
   initLiveRound,
-  initCompetition
+  initCompetition,
+  onPageChange: (page) => { if (page !== 'live') hideMatchOverlay(); }
 });
 
 // ── Splash screen dismiss ─────────────────────────────────────────
@@ -139,7 +141,7 @@ document.getElementById('cancel-course-btn')?.addEventListener('click', cancelCo
 document.getElementById('live-group-start-btn')?.addEventListener('click', startGroupRound);
 document.getElementById('live-matchplay-toggle')?.addEventListener('click', toggleMatchPlay);
 document.getElementById('live-cancel-setup-btn')?.addEventListener('click', cancelRound);
-document.getElementById('live-cancel-round-btn')?.addEventListener('click', cancelRound);
+document.getElementById('live-cancel-round-btn')?.addEventListener('click', showEndRoundConfirm);
 
 // ── Live round ────────────────────────────────────────────────────
 document.getElementById('live-prev')?.addEventListener('click', () => liveGoto(state.liveState.hole - 1));
@@ -246,6 +248,7 @@ document.getElementById('admin-del-player')?.addEventListener('change', adminPop
 document.getElementById('admin-del-round-btn')?.addEventListener('click', adminDeleteRound);
 
 // ── Initialise ────────────────────────────────────────────────────
+initMatchOverlay();
 loadGist().then(() => {
   renderOnboard();
   updateActiveMatchBadge();

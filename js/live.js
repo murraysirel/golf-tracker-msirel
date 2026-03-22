@@ -254,6 +254,9 @@ export function startGroupRound() {
     }
 
     import('./gps.js').then(({ startGPSWatch }) => startGPSWatch());
+
+    // Show match leaderboard overlay if player is in an active match
+    import('./overlay.js').then(({ showMatchOverlay }) => showMatchOverlay());
   };
 
   // For group rounds (2+ players), show handicap confirmation first
@@ -388,6 +391,9 @@ export function liveGoto(h) {
 
   liveUpdateRunning();
 
+  // Refresh match overlay if active
+  import('./overlay.js').then(({ refreshMatchOverlay }) => refreshMatchOverlay());
+
   // Wolf: update banner
   if (state.gameMode === 'wolf') {
     import('./gamemodes.js').then(({ updateWolfBanner }) => updateWolfBanner(h));
@@ -498,6 +504,8 @@ function liveGroupAdj(playerName, field, delta) {
     }
     // Keep group match scores in sync (persisted at round-end via pushGist)
     syncPlayerMatchScore(playerName);
+    // Refresh overlay immediately so current player's score shows live
+    import('./overlay.js').then(({ refreshMatchOverlay }) => refreshMatchOverlay());
   }
   liveUpdateRunning();
   // Sync first player's scores into liveState.scores for pip colours
@@ -707,8 +715,9 @@ export function liveNextOrFinish() {
   advance();
 }
 
-export function cancelRound() {
-  if (!confirm('Cancel this round? All progress will be lost.')) return;
+export function cancelRound(skipConfirm = false) {
+  if (!skipConfirm && !confirm('Cancel this round? All progress will be lost.')) return;
+  import('./overlay.js').then(({ hideMatchOverlay }) => hideMatchOverlay());
   state.roundActive = false;
   state.liveState.hole = 0;
   state.liveState.scores = Array(18).fill(null);
@@ -736,6 +745,7 @@ async function liveFinishAndSave() {
   _cBtn2?.classList.remove('visible');
   _cBtn2?.classList.remove('in-progress');
   releaseWakeLock();
+  import('./overlay.js').then(({ hideMatchOverlay }) => hideMatchOverlay());
   // Always save directly for all group sizes
   await liveGroupSave();
 }

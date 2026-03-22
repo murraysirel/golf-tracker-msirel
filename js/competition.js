@@ -83,6 +83,8 @@ async function pollAndUpdate() {
   _lastPollTime = Date.now();
   renderCompLeaderboard();
   updatePollStatus();
+  // Refresh match overlay with latest scores from Gist
+  import('./overlay.js').then(({ refreshMatchOverlay }) => refreshMatchOverlay());
 }
 
 export function initCompetition() {
