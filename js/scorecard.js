@@ -62,11 +62,18 @@ export function buildSC(pf, pp) {
   document.getElementById('tot-bar').style.display = 'flex';
   recalc();
 
-  // Bind score input events after building
+  // Bind score/putts input events after building
   for (let h = 0; h < 18; h++) {
-    const inp = document.getElementById('h' + h);
-    if (inp) {
-      inp.addEventListener('input', () => { recalc(); autoAdv(h); });
+    const scoreInp = document.getElementById('h' + h);
+    const puttsInp = document.getElementById('p' + h);
+    if (scoreInp) {
+      scoreInp.addEventListener('input', () => { recalc(); autoAdv(h); });
+      scoreInp.addEventListener('focus', function() { this.select(); });
+      scoreInp.addEventListener('touchstart', function() { setTimeout(() => this.select(), 0); }, { passive: true });
+    }
+    if (puttsInp) {
+      puttsInp.addEventListener('focus', function() { this.select(); });
+      puttsInp.addEventListener('touchstart', function() { setTimeout(() => this.select(), 0); }, { passive: true });
     }
   }
 }

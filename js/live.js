@@ -314,6 +314,12 @@ function showHcpModal(onConfirm) {
     ${rows}
     <button id="hcp-go-btn" style="width:100%;padding:14px;border-radius:10px;background:var(--gold);border:none;color:var(--navy);font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:16px;display:block">Let's play →</button>`;
 
+  // Select-on-focus for all number inputs (Fix 3)
+  inner.querySelectorAll('input[type="number"]').forEach(inp => {
+    inp.addEventListener('focus', function() { this.select(); });
+    inp.addEventListener('touchstart', function() { setTimeout(() => this.select(), 0); }, { passive: true });
+  });
+
   document.getElementById('hcp-go-btn').addEventListener('click', () => {
     state.liveState.group.forEach(name => {
       const safeId = 'hcp-ov-' + name.replace(/[^a-z0-9]/gi, '-');
