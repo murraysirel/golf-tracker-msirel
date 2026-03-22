@@ -9,6 +9,9 @@ import { initials } from './players.js';
 // Chart instances container
 const CH = {};
 
+// Round history expanded state
+let roundHistExpanded = false;
+
 // ── Scorecard history modal ───────────────────────────────────────
 function scoreColor(d) {
   if (d <= -2) return 'var(--eagle)';
@@ -546,7 +549,9 @@ export function renderStats() {
   const hist = document.getElementById('st-hist');
   if (!allSorted.length) { hist.innerHTML = '<div class="empty">No rounds yet</div>'; return; }
   hist.innerHTML = '';
-  [...allSorted].reverse().forEach(r => {
+  const histRounds = [...allSorted].reverse();
+  const displayRounds = roundHistExpanded ? histRounds : histRounds.slice(0, 5);
+  displayRounds.forEach(r => {
     const dv = r.diff >= 0 ? '+' + r.diff : '' + r.diff;
     const dot = TC[r.tee]?.d || '#888';
     const d = document.createElement('div');
@@ -556,6 +561,13 @@ export function renderStats() {
     d.addEventListener('click', () => openScorecardModal(r));
     hist.appendChild(d);
   });
+  if (histRounds.length > 5) {
+    const link = document.createElement('div');
+    link.style.cssText = 'font-size:13px;color:var(--gold);padding:10px 0 2px;cursor:pointer;text-decoration:none';
+    link.textContent = roundHistExpanded ? 'Show less ↑' : `See all ${histRounds.length} rounds →`;
+    link.addEventListener('click', () => { roundHistExpanded = !roundHistExpanded; renderStats(); });
+    hist.appendChild(link);
+  }
 
   // Match record
   renderMatchRecord();
