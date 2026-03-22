@@ -522,7 +522,7 @@ export function renderStats() {
       CH.putts = new Chart(document.getElementById('ch-putts'), {
         type: 'line',
         data: { labels: ptLabels, datasets: [{ data: ptData, borderColor: '#3498db', backgroundColor: 'rgba(52,152,219,.08)', pointBackgroundColor: '#c9a84c', pointRadius: 5, pointBorderWidth: 0, tension: .3, fill: true }] },
-        options: { ...co(), plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw + ' putts' } } }, scales: { x: { ticks: { color: cc('--chart-tick'), font: { size: 9 } }, grid: { color: cc('--chart-grid') } }, y: { min: 18, max: ptMax, ticks: { color: cc('--chart-tick'), font: { size: 9 }, stepSize: 1, callback: v => Number.isInteger(v) ? v : null }, grid: { color: cc('--chart-grid') } } } }
+        options: { ...co(), plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw + ' putts' } } }, scales: { x: { ticks: { color: cc('--chart-tick'), font: { size: 9 } }, grid: { color: cc('--chart-grid') } }, y: { min: 20, max: ptMax, ticks: { color: cc('--chart-tick'), font: { size: 9 }, stepSize: 1, callback: v => Number.isInteger(v) ? v : null }, grid: { color: cc('--chart-grid') } } } }
       });
       const avgPutts = Math.round(ptData.reduce((a, b) => a + b, 0) / ptData.length);
       const summaryEl = document.getElementById('putts-trend-summary');
