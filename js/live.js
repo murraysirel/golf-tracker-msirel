@@ -26,6 +26,44 @@ function updateScoreColour(element, score, par) {
   if (element && score != null) element.style.color = scoreCol(score - par);
 }
 
+// ── Group match score sync ────────────────────────────────────────
+
+function calculateNetTotal(holes, playingHcp, pars, si) {
+  let net = 0;
+  for (let i = 0; i < 18; i++) {
+    if (holes[i] == null) continue;
+    const siVal = si?.[i] ?? (i + 1); // fallback if no SI data
+    let strokes = siVal <= playingHcp ? 1 : 0;
+    if (playingHcp > 18) strokes += siVal <= (playingHcp - 18) ? 1 : 0;
+    net += (holes[i] - strokes) - pars[i];
+  }
+  return net;
+}
+
+function syncPlayerMatchScore(playerName) {
+  const matchId = state.currentMatchId;
+  if (!matchId) return;
+  const match = state.gd.matches?.[matchId];
+  if (!match || match.status !== 'active') return;
+
+  const ci = document.getElementById('course-sel')?.value;
+  const course = ci && ci !== '' ? getCourseByRef(ci) : null;
+  const teeData = course?.tees?.[state.stee];
+  const si = teeData?.si || (state.scannedSI?.some(v => v != null) ? state.scannedSI : null);
+
+  const holes = [...(state.liveState.groupScores[playerName] || Array(18).fill(null))];
+  const playingHcp = state.liveState.hcpOverrides?.[playerName] ?? state.gd.players[playerName]?.handicap ?? 0;
+  const holesPlayed = holes.filter(s => s != null).length;
+
+  if (!match.scores[playerName]) {
+    match.scores[playerName] = { holes: new Array(18).fill(null), netTotal: 0, holesPlayed: 0, lastUpdated: 0 };
+  }
+  match.scores[playerName].holes = holes;
+  match.scores[playerName].holesPlayed = holesPlayed;
+  match.scores[playerName].netTotal = calculateNetTotal(holes, playingHcp, state.cpars, si);
+  match.scores[playerName].lastUpdated = Date.now();
+}
+
 // ── Group setup ───────────────────────────────────────────────────
 
 export function initLiveRound() {
@@ -458,6 +496,8 @@ function liveGroupAdj(playerName, field, delta) {
       scoreEl.classList.add('score-bounce');
       setTimeout(() => scoreEl.classList.remove('score-bounce'), 210);
     }
+    // Keep group match scores in sync (persisted at round-end via pushGist)
+    syncPlayerMatchScore(playerName);
   }
   liveUpdateRunning();
   // Sync first player's scores into liveState.scores for pip colours
@@ -712,6 +752,9 @@ async function liveGroupSave() {
   const notes = document.getElementById('r-notes')?.value || '';
 
   const { pushGist } = await import('./api.js');
+
+  // Final match score sync for all group members before persisting
+  state.liveState.group.forEach(name => syncPlayerMatchScore(name));
 
   for (const playerName of state.liveState.group) {
     const sc = state.liveState.groupScores[playerName] || Array(18).fill(null);
