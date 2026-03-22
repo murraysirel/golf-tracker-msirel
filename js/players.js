@@ -44,7 +44,7 @@ export function enterAs(n) {
   ensureGroupCode();
   seedGreenCoords();
   goTo('home');
-  document.getElementById('r-date').value = new Date().toLocaleDateString('en-GB');
+  document.getElementById('r-date').value = new Date().toISOString().split('T')[0];
 }
 
 export function addAndEnter() {

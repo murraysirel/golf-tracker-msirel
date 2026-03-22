@@ -13,10 +13,15 @@ function generateMatchId() {
   return id;
 }
 
-function todayGB() {
-  const d = new Date();
-  return String(d.getDate()).padStart(2, '0') + '/' +
-    String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+function todayISO() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function toGBDate(isoDate) {
+  if (!isoDate) return new Date().toLocaleDateString('en-GB');
+  const [y, m, d] = isoDate.split('-');
+  if (!y || !m || !d) return isoDate;
+  return d + '/' + m + '/' + y;
 }
 
 function showMatchToast(msg) {
@@ -135,7 +140,7 @@ function _renderScreen1(modal, matchType) {
   const courseOptionsHTML = mainSel ? mainSel.innerHTML : '<option value="">— Select Course —</option>';
 
   const allPlayers = Object.keys(state.gd.players || {});
-  const today = todayGB();
+  const today = todayISO();
 
   const chipsHtml = allPlayers.map(name => {
     const isMe = name === state.me;
@@ -191,7 +196,7 @@ function _renderScreen1(modal, matchType) {
 
     <div style="margin-bottom:16px">
       <label style="font-size:10px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase">Date</label>
-      <input type="text" id="mcr-date" value="${today}" placeholder="DD/MM/YYYY"
+      <input type="date" id="mcr-date" value="${today}"
         style="width:100%;box-sizing:border-box;margin-top:5px;padding:10px;border-radius:8px;
           background:var(--mid);border:1px solid var(--border);color:var(--cream);
           font-size:14px;font-family:'DM Sans',sans-serif">
@@ -252,7 +257,7 @@ function _handleCreate(modal, inner, matchType) {
   const matchName = document.getElementById('mcr-name')?.value.trim();
   const courseSel = document.getElementById('mcr-course');
   const courseRef = courseSel?.value;
-  const date = document.getElementById('mcr-date')?.value.trim() || todayGB();
+  const date = toGBDate(document.getElementById('mcr-date')?.value.trim() || todayISO());
 
   if (!matchName) { errEl.textContent = 'Please enter a match name.'; errEl.style.display = 'block'; return; }
   if (!courseRef) { errEl.textContent = 'Please select a course.'; errEl.style.display = 'block'; return; }

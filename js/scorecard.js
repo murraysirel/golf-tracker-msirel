@@ -5,6 +5,18 @@ import { state } from './state.js';
 import { getCourseByRef } from './courses.js';
 import { pushGist } from './api.js';
 
+// Convert YYYY-MM-DD (native date input) → DD/MM/YYYY (stored format)
+function toGBDate(isoDate) {
+  if (!isoDate) return new Date().toLocaleDateString('en-GB');
+  const [y, m, d] = isoDate.split('-');
+  if (!y || !m || !d) return isoDate; // already DD/MM/YYYY or unknown
+  return d + '/' + m + '/' + y;
+}
+
+function todayISO() {
+  return new Date().toISOString().split('T')[0];
+}
+
 export function scoreClass(d) {
   if (d <= -2) return 's-eagle';
   if (d === -1) return 's-birdie';
@@ -168,7 +180,7 @@ export async function saveRound() {
   const target = state.scoringFor || state.me;
   const rnd = {
     id: Date.now(), player: target, course: c.name, loc: c.loc || c.location || '', tee: state.stee,
-    date: document.getElementById('r-date').value,
+    date: toGBDate(document.getElementById('r-date').value),
     notes: document.getElementById('r-notes').value,
     pars: [...state.cpars], scores: sc, putts: pt, fir: fi, gir: gi,
     totalScore: ts, totalPar: tp, diff: d,
@@ -211,7 +223,7 @@ export async function saveRound() {
   if (document.getElementById('r-pen')) document.getElementById('r-pen').value = '';
   if (document.getElementById('r-bun')) document.getElementById('r-bun').value = '';
   if (document.getElementById('r-chip')) document.getElementById('r-chip').value = '';
-  document.getElementById('r-date').value = new Date().toLocaleDateString('en-GB');
+  document.getElementById('r-date').value = todayISO();
   if (document.getElementById('sc-body')) document.getElementById('sc-body').innerHTML = '';
   if (document.getElementById('tot-bar')) document.getElementById('tot-bar').style.display = 'none';
   // Reset live round state

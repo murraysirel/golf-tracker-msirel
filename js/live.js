@@ -797,7 +797,10 @@ async function liveGroupSave() {
   const teeData = course.tees?.[state.stee];
   if (!teeData) { alert('Tee data not found.'); return; }
 
-  const date = document.getElementById('r-date')?.value || new Date().toLocaleDateString('en-GB');
+  const _rawDate = document.getElementById('r-date')?.value || '';
+  const date = _rawDate
+    ? (_rawDate.includes('-') ? _rawDate.split('-').reverse().join('/') : _rawDate)
+    : new Date().toLocaleDateString('en-GB');
   const notes = document.getElementById('r-notes')?.value || '';
 
   const { pushGist } = await import('./api.js');
