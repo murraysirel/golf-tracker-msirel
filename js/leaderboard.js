@@ -8,6 +8,32 @@ import { initials } from './players.js';
 import { parseDateGB, calcStableford, isBufferOrBetter } from './stats.js';
 import { pushGist } from './api.js';
 
+// Per-panel expanded state (persists across re-renders within the session)
+const leaderboardExpanded = {};
+
+function applyLBExpand(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const rows = container.querySelectorAll('.lb-row');
+  if (rows.length <= 3) return;
+  if (!leaderboardExpanded[containerId]) {
+    rows.forEach((r, i) => { r.style.display = i >= 3 ? 'none' : ''; });
+  } else {
+    rows.forEach(r => { r.style.display = ''; });
+  }
+  // Remove any existing expand link before adding a fresh one
+  container.querySelector('.lb-expand-link')?.remove();
+  const link = document.createElement('div');
+  link.className = 'lb-expand-link';
+  link.style.cssText = 'font-size:13px;color:var(--gold);padding:8px 0 2px;cursor:pointer;text-align:left';
+  link.textContent = leaderboardExpanded[containerId] ? 'Collapse ↑' : `See full board →`;
+  link.addEventListener('click', () => {
+    leaderboardExpanded[containerId] = !leaderboardExpanded[containerId];
+    renderLeaderboard();
+  });
+  container.appendChild(link);
+}
+
 export function renderLeaderboard() {
   const lb = document.getElementById('lb-list');
   const posClass = ['gold','silver','bronze'];
@@ -136,6 +162,8 @@ export function renderLeaderboard() {
     </div>`));
   });
 
+  applyLBExpand('lb-list');
+
   // 2. Scoring points
   const byPts = [...players].sort((a, b) => b.pts - a.pts);
   const bl = document.getElementById('lb-birdies'); bl.innerHTML = '';
@@ -146,6 +174,8 @@ export function renderLeaderboard() {
       <div style="font-size:9px;color:var(--dimmer);margin-top:1px">points total</div>
     </div>`));
   });
+
+  applyLBExpand('lb-birdies');
 
   // 3. Avg Stableford
   const bySt = [...players].filter(p => p.avgStab != null).sort((a, b) => b.avgStab - a.avgStab);
@@ -162,6 +192,8 @@ export function renderLeaderboard() {
     </div>`));
   });
 
+  applyLBExpand('lb-stableford');
+
   // 4. Avg Net Score
   const byNet = [...players].filter(p => p.avgNet != null).sort((a, b) => a.avgNet - b.avgNet);
   const nl = document.getElementById('lb-net'); nl.innerHTML = '';
@@ -173,6 +205,8 @@ export function renderLeaderboard() {
       <div style="font-size:9px;color:var(--dimmer);margin-top:1px">avg net</div>
     </div>`));
   });
+
+  applyLBExpand('lb-net');
 
   // 5. Buffer or Better
   const byBuf = [...players].filter(p => p.bufferCount != null).sort((a, b) => b.bufferCount - a.bufferCount);
@@ -227,6 +261,7 @@ export function renderLeaderboard() {
       </div>`;
     bsl.appendChild(d);
   });
+  applyLBExpand('lb-best-stab');
 
   // 8. Most birdies in a single round
   const bestBirdiePlayers = Object.entries(state.gd.players).map(([name, p]) => {
@@ -260,6 +295,7 @@ export function renderLeaderboard() {
       </div>`;
     bbl2.appendChild(d);
   });
+  applyLBExpand('lb-best-birdies');
 
   // 9. Best gross round
   const bestRoundPlayers = Object.entries(state.gd.players).map(([name, p]) => {
@@ -293,6 +329,7 @@ export function renderLeaderboard() {
       </div>`;
     brl.appendChild(d);
   });
+  applyLBExpand('lb-best-round');
 
   // H2H
   renderH2H(filterRounds);
@@ -307,6 +344,7 @@ export function renderLeaderboard() {
       <div style="font-size:9px;color:var(--dimmer);margin-top:1px">per round</div>
     </div>`));
   });
+  applyLBExpand('lb-doubles');
 }
 
 function renderH2H(filterRounds) {
