@@ -42,6 +42,7 @@ export async function loadGist() {
     const raw = await r.text();
     state.gd = JSON.parse(raw);
     if (!state.gd.players) state.gd.players = {};
+    if (!state.gd.matches) state.gd.matches = {};
     seedMurray();
     ss('ok', 'Synced \u2713');
   } catch (e) {
@@ -51,6 +52,7 @@ export async function loadGist() {
       try {
         state.gd = JSON.parse(cached);
         if (!state.gd.players) state.gd.players = {};
+        if (!state.gd.matches) state.gd.matches = {};
         seedMurray();
       } catch (_) {}
     } else {

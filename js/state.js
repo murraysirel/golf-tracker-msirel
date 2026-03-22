@@ -54,5 +54,6 @@ export const state = {
   roundActive: false,
   wakeLock: null,
   gameMode: 'stroke', // 'stroke' | 'wolf'
-  wolfState: null     // populated by gamemodes.js when a Wolf round starts
+  wolfState: null,    // populated by gamemodes.js when a Wolf round starts
+  currentMatchId: null // set when player creates or joins a group match
 };
