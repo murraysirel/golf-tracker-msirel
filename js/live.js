@@ -283,19 +283,27 @@ function showHcpModal(onConfirm) {
 
   if (!state.liveState.hcpOverrides) state.liveState.hcpOverrides = {};
 
-  const rows = state.liveState.group.map(name => {
+  // Calculate playing handicaps and find the minimum so the lowest-HCP player gets 0 strokes
+  const hcps = state.liveState.group.map(name => {
     const hcpIdx = state.gd.players[name]?.handicap || 0;
-    const playingHcp = Math.round(hcpIdx * (slope / 113));
-    state.liveState.hcpOverrides[name] = playingHcp;
+    return { name, hcpIdx, playingHcp: Math.round(hcpIdx * (slope / 113)) };
+  });
+  const minHcp = Math.min(...hcps.map(p => p.playingHcp));
+  hcps.forEach(p => { p.strokes = p.playingHcp - minHcp; });
+
+  // Initialise overrides with relative stroke values
+  hcps.forEach(p => { state.liveState.hcpOverrides[p.name] = p.strokes; });
+
+  const rows = hcps.map(({ name, hcpIdx, strokes }) => {
     const safeId = 'hcp-ov-' + name.replace(/[^a-z0-9]/gi, '-');
+    const desc = strokes === 0 ? 'scratch for this match' : `gets ${strokes} strokes`;
     return `
       <div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)">
         <div style="flex:1">
           <div style="font-size:13px;font-weight:600;color:var(--cream)">${name}</div>
-          <div style="font-size:11px;color:var(--dim);margin-top:2px">HCP index: ${hcpIdx}</div>
+          <div style="font-size:11px;color:var(--dim);margin-top:2px">HCP index: ${hcpIdx} — ${desc}</div>
         </div>
-        <div style="font-size:12px;color:var(--gold)">Gets</div>
-        <input type="number" id="${safeId}" value="${playingHcp}" min="0" max="54"
+        <input type="number" id="${safeId}" value="${strokes}" min="0" max="54"
           style="width:48px;text-align:center;font-size:14px;font-weight:600;padding:4px;border-radius:6px;background:var(--mid);border:1px solid var(--border);color:var(--cream)">
         <div style="font-size:12px;color:var(--gold)">strokes</div>
       </div>`;
