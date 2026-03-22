@@ -20,6 +20,7 @@ import { initCompetition } from './competition.js';
 import { state } from './state.js';
 import { initCaddieButton } from './caddie.js';
 import { setGameMode, updateFormatUI, confirmWolfOrder, showWolfScoreboard } from './gamemodes.js';
+import { openCreateMatchModal, openJoinMatchModal, updateGroupMatchButtonVisibility, updateActiveMatchBadge } from './group-match.js';
 
 // ── Theme ─────────────────────────────────────────────────────────
 function applyTheme(theme) {
@@ -206,9 +207,13 @@ document.getElementById('sign-out-btn')?.addEventListener('click', signOut);
 document.getElementById('open-admin-btn')?.addEventListener('click', openAdminSettings);
 
 // ── Wolf game format ──────────────────────────────────────────────
-document.getElementById('fmt-stroke')?.addEventListener('click', () => setGameMode('stroke'));
-document.getElementById('fmt-match')?.addEventListener('click', () => setGameMode('match'));
-document.getElementById('fmt-wolf')?.addEventListener('click', () => setGameMode('wolf'));
+document.getElementById('fmt-stroke')?.addEventListener('click', () => { setGameMode('stroke'); updateGroupMatchButtonVisibility(); });
+document.getElementById('fmt-match')?.addEventListener('click', () => { setGameMode('match'); updateGroupMatchButtonVisibility(); });
+document.getElementById('fmt-wolf')?.addEventListener('click', () => { setGameMode('wolf'); updateGroupMatchButtonVisibility(); });
+
+// ── Group Match ───────────────────────────────────────────────────
+document.getElementById('start-group-match-btn')?.addEventListener('click', openCreateMatchModal);
+document.getElementById('join-group-match-btn')?.addEventListener('click', openJoinMatchModal);
 document.getElementById('wolf-info-btn')?.addEventListener('click', () => {
   document.getElementById('wolf-rules-modal').style.display = 'flex';
 });
@@ -243,4 +248,5 @@ document.getElementById('admin-del-round-btn')?.addEventListener('click', adminD
 // ── Initialise ────────────────────────────────────────────────────
 loadGist().then(() => {
   renderOnboard();
+  updateActiveMatchBadge();
 });
