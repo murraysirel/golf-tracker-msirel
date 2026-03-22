@@ -168,6 +168,15 @@ export async function saveRound() {
   if (ok && otherPlayers.length > 0) {
     import('./players.js').then(({ showMatchContextSheet }) => showMatchContextSheet(target, rnd.id));
   }
+
+  // Post-round putts nudge (Fix 8): show banner if no putts recorded
+  const hasPutts = (rnd.putts || []).some(v => v != null && v > 0);
+  if (!hasPutts) {
+    const dismissed = JSON.parse(localStorage.getItem('rr_putts_dismissed') || '[]');
+    if (!dismissed.includes(rnd.id)) {
+      showPuttsNudge(rnd);
+    }
+  }
   // Clear form
   document.getElementById('course-sel').value = '';
   document.getElementById('tee-wrap').style.display = 'none';
@@ -194,6 +203,118 @@ export async function saveRound() {
       goTo('stats');
     });
   });
+}
+
+// ── Post-round putts nudge (Fix 8) ───────────────────────────────
+
+function showPuttsNudge(rnd) {
+  let banner = document.getElementById('putts-nudge-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'putts-nudge-banner';
+    banner.style.cssText = [
+      'position:fixed', 'bottom:0', 'left:0', 'right:0',
+      'background:var(--mid)', 'border-top:1px solid var(--gold)',
+      'padding:12px 16px', 'z-index:9000',
+      'display:flex', 'align-items:center', 'justify-content:space-between',
+      'gap:12px', 'font-family:"DM Sans",sans-serif'
+    ].join(';');
+    document.body.appendChild(banner);
+  }
+  banner.innerHTML = `
+    <span style="font-size:13px;color:var(--cream);flex:1">Add your putts for richer stats</span>
+    <button id="pn-add" style="padding:8px 16px;border-radius:20px;background:var(--gold);border:none;color:var(--navy);font-size:13px;font-weight:600;cursor:pointer">Add putts</button>
+    <button id="pn-skip" style="padding:8px 14px;border-radius:20px;background:transparent;border:1px solid var(--border);color:var(--dim);font-size:12px;cursor:pointer">Skip</button>`;
+  banner.style.display = 'flex';
+
+  document.getElementById('pn-skip').addEventListener('click', () => {
+    const dismissed = JSON.parse(localStorage.getItem('rr_putts_dismissed') || '[]');
+    dismissed.push(rnd.id);
+    localStorage.setItem('rr_putts_dismissed', JSON.stringify(dismissed));
+    banner.style.display = 'none';
+  });
+
+  document.getElementById('pn-add').addEventListener('click', () => {
+    banner.style.display = 'none';
+    showPuttsOnlyEntry(rnd);
+  });
+}
+
+function showPuttsOnlyEntry(rnd) {
+  let modal = document.getElementById('putts-entry-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'putts-entry-modal';
+    modal.style.cssText = [
+      'position:fixed', 'inset:0', 'z-index:9100',
+      'background:var(--navy)', 'overflow-y:auto',
+      'font-family:"DM Sans",sans-serif', 'padding:16px'
+    ].join(';');
+    document.body.appendChild(modal);
+  }
+
+  const pars = rnd.pars || Array(18).fill(4);
+  const rows = rnd.scores.map((sc, h) => {
+    const scCol = sc != null ? scoreCol(sc - pars[h]) : 'var(--dim)';
+    return `
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--wa-06)">
+        <span style="font-size:12px;color:var(--dim);width:44px">Hole ${h + 1}</span>
+        <span style="font-size:20px;font-weight:700;color:${scCol};width:32px;text-align:center">${sc != null ? sc : '—'}</span>
+        <span style="font-size:11px;color:var(--dimmer);flex:1">putts</span>
+        <input type="number" id="pe-p${h}" min="0" max="${sc || 6}" value="0"
+          style="width:52px;text-align:center;font-size:16px;padding:6px;border-radius:8px;
+            background:var(--mid);border:1px solid var(--border);color:var(--cream)">
+      </div>`;
+  }).join('');
+
+  modal.innerHTML = `
+    <div style="font-size:18px;font-weight:700;color:var(--cream);margin-bottom:4px">Add putts</div>
+    <div style="font-size:12px;color:var(--dim);margin-bottom:16px">${rnd.course} · ${rnd.date}</div>
+    ${rows}
+    <button id="pe-save" style="width:100%;padding:14px;border-radius:10px;background:var(--gold);border:none;
+      color:var(--navy);font-size:15px;font-weight:700;cursor:pointer;margin-top:16px">Save putts</button>
+    <button id="pe-cancel" style="width:100%;padding:10px;margin-top:8px;border-radius:10px;background:transparent;
+      border:1px solid var(--border);color:var(--dim);font-size:13px;cursor:pointer">Cancel</button>`;
+
+  // Select-on-focus + cap at score + auto-advance
+  for (let h = 0; h < 18; h++) {
+    const inp = document.getElementById('pe-p' + h);
+    if (!inp) continue;
+    inp.addEventListener('focus', function() { this.select(); });
+    inp.addEventListener('touchstart', function() { setTimeout(() => this.select(), 0); }, { passive: true });
+    inp.addEventListener('blur', function() {
+      const maxV = rnd.scores[h] || 6;
+      if (parseInt(this.value) > maxV) this.value = maxV;
+    });
+    inp.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        const next = document.getElementById('pe-p' + (h + 1));
+        if (next) { next.focus(); next.select(); }
+        else document.getElementById('pe-save')?.focus();
+      }
+    });
+  }
+
+  document.getElementById('pe-cancel').addEventListener('click', () => { modal.style.display = 'none'; });
+
+  document.getElementById('pe-save').addEventListener('click', async () => {
+    const newPutts = Array.from({ length: 18 }, (_, h) => parseInt(document.getElementById('pe-p' + h)?.value) || 0);
+    const target = rnd.player || state.me;
+    const playerRounds = state.gd.players[target]?.rounds || [];
+    const idx = playerRounds.findIndex(r => r.id === rnd.id);
+    if (idx !== -1) {
+      playerRounds[idx].putts = newPutts;
+      await pushGist();
+    }
+    modal.style.display = 'none';
+    // Clear nudge dismissed entry since putts are now added
+    const dismissed = JSON.parse(localStorage.getItem('rr_putts_dismissed') || '[]');
+    const filtered = dismissed.filter(id => id !== rnd.id);
+    localStorage.setItem('rr_putts_dismissed', JSON.stringify(filtered));
+  });
+
+  modal.style.display = 'block';
 }
 
 export function toggleSCExtras() {
