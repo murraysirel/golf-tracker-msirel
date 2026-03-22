@@ -63,13 +63,25 @@ export function buildSC(pf, pp) {
   recalc();
 
   // Bind score/putts input events after building
+  // Flow: score → putts (same hole) → next hole score → ...
+  let scoreAdvTimer = null, puttsAdvTimer = null;
   for (let h = 0; h < 18; h++) {
     const scoreInp = document.getElementById('h' + h);
     const puttsInp = document.getElementById('p' + h);
     if (scoreInp) {
-      scoreInp.addEventListener('input', () => { recalc(); autoAdv(h); });
       scoreInp.addEventListener('focus', function() { this.select(); });
       scoreInp.addEventListener('touchstart', function() { setTimeout(() => this.select(), 0); }, { passive: true });
+      scoreInp.addEventListener('input', () => {
+        recalc();
+        clearTimeout(scoreAdvTimer);
+        const v = parseInt(scoreInp.value);
+        // Only auto-advance on single-digit input (mobile style)
+        if (scoreInp.value.length === 1 && !isNaN(v) && v >= 1 && v <= 9) {
+          scoreAdvTimer = setTimeout(() => {
+            if (puttsInp) { puttsInp.focus(); puttsInp.select(); }
+          }, 300);
+        }
+      });
     }
     if (puttsInp) {
       puttsInp.addEventListener('focus', function() { this.select(); });
@@ -78,6 +90,20 @@ export function buildSC(pf, pp) {
         const scoreEl = document.getElementById('h' + h);
         const maxPutts = parseInt(scoreEl?.value);
         if (!isNaN(maxPutts) && parseInt(this.value) > maxPutts) this.value = maxPutts;
+      });
+      puttsInp.addEventListener('input', () => {
+        clearTimeout(puttsAdvTimer);
+        const v = parseInt(puttsInp.value);
+        if (puttsInp.value.length === 1 && !isNaN(v) && v >= 0 && v <= 9) {
+          puttsAdvTimer = setTimeout(() => {
+            if (h < 17) {
+              const nextScore = document.getElementById('h' + (h + 1));
+              if (nextScore) { nextScore.focus(); nextScore.select(); }
+            } else {
+              document.getElementById('save-round-btn')?.focus();
+            }
+          }, 300);
+        }
       });
     }
   }
