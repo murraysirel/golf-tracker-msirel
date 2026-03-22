@@ -506,7 +506,8 @@ function liveGroupAdj(playerName, field, delta) {
   } else {
     const cur = state.liveState.groupPutts[playerName]?.[h] ?? 0;
     if (!state.liveState.groupPutts[playerName]) state.liveState.groupPutts[playerName] = Array(18).fill(null);
-    state.liveState.groupPutts[playerName][h] = Math.max(0, Math.min(6, cur + delta));
+    const maxPutts = state.liveState.groupScores[playerName]?.[h] ?? 6;
+    state.liveState.groupPutts[playerName][h] = Math.max(0, Math.min(maxPutts, cur + delta));
   }
   liveRenderGroupHole(h);
   // Bounce animation on updated score value

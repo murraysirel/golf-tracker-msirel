@@ -74,6 +74,11 @@ export function buildSC(pf, pp) {
     if (puttsInp) {
       puttsInp.addEventListener('focus', function() { this.select(); });
       puttsInp.addEventListener('touchstart', function() { setTimeout(() => this.select(), 0); }, { passive: true });
+      puttsInp.addEventListener('blur', function() {
+        const scoreEl = document.getElementById('h' + h);
+        const maxPutts = parseInt(scoreEl?.value);
+        if (!isNaN(maxPutts) && parseInt(this.value) > maxPutts) this.value = maxPutts;
+      });
     }
   }
 }
