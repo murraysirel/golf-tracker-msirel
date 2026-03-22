@@ -4,7 +4,7 @@
 import { PAGES } from './constants.js';
 
 // These are imported lazily to avoid circular deps — resolved at call time
-let _renderStats, _renderLeaderboard, _renderAllPlayers, _renderHomeStats, _renderPracticePage, _initLiveRound, _initCompetition, _onPageChange;
+let _renderStats, _renderLeaderboard, _renderAllPlayers, _renderHomeStats, _renderPracticePage, _initLiveRound, _initCompetition, _onPageChange, _closeProfilePanel;
 
 export function registerNavHandlers(handlers) {
   _renderStats = handlers.renderStats;
@@ -15,9 +15,11 @@ export function registerNavHandlers(handlers) {
   _initLiveRound = handlers.initLiveRound;
   _initCompetition = handlers.initCompetition;
   _onPageChange = handlers.onPageChange || null;
+  _closeProfilePanel = handlers.closeProfilePanel || null;
 }
 
 export function goTo(p) {
+  if (_closeProfilePanel) _closeProfilePanel();
   // Find the currently visible page for fade-out
   let outgoing = null;
   PAGES.forEach(pg => {

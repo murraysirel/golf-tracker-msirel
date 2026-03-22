@@ -40,7 +40,8 @@ registerNavHandlers({
   renderPracticePage,
   initLiveRound,
   initCompetition,
-  onPageChange: (page) => { if (page !== 'live') hideMatchOverlay(); }
+  onPageChange: (page) => { if (page !== 'live') hideMatchOverlay(); },
+  closeProfilePanel
 });
 
 // ── Splash screen dismiss ─────────────────────────────────────────
