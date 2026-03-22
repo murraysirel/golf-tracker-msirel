@@ -75,16 +75,58 @@ export function updateActiveMatchBadge() {
   }
 }
 
-// ── Create match — Screen 1 ───────────────────────────────────────
+// ── Create match — Screen 0 (type selection) ──────────────────────
 
 export function openCreateMatchModal() {
   const modal = document.getElementById('create-match-modal');
   if (!modal) return;
-  _renderScreen1(modal);
+  _renderScreen0(modal);
   modal.style.display = 'flex';
 }
 
-function _renderScreen1(modal) {
+function _renderScreen0(modal) {
+  const inner = document.getElementById('create-match-inner');
+  if (!inner) return;
+
+  inner.innerHTML = `
+    <div style="font-size:19px;font-weight:700;color:var(--cream);margin-bottom:6px;
+      font-family:'Cormorant Garamond',serif">Start a Group Match</div>
+    <div style="font-size:12px;color:var(--dim);margin-bottom:20px">Choose your format</div>
+
+    <div style="display:flex;gap:12px;margin-bottom:20px">
+      <button id="ms-4ball" style="flex:1;padding:16px 8px;border-radius:12px;
+        border:1.5px solid var(--border);background:var(--mid);cursor:pointer;
+        text-align:center;font-family:'DM Sans',sans-serif;
+        -webkit-tap-highlight-color:transparent">
+        <div style="font-size:28px;margin-bottom:6px">⛳</div>
+        <div style="font-size:14px;font-weight:700;color:var(--cream);margin-bottom:4px">4-Ball</div>
+        <div style="font-size:11px;color:var(--dim);line-height:1.4">Up to 4 players,<br>one tee time</div>
+      </button>
+      <button id="ms-multigroup" style="flex:1;padding:16px 8px;border-radius:12px;
+        border:1.5px solid var(--border);background:var(--mid);cursor:pointer;
+        text-align:center;font-family:'DM Sans',sans-serif;
+        -webkit-tap-highlight-color:transparent">
+        <div style="font-size:28px;margin-bottom:6px">🏆</div>
+        <div style="font-size:14px;font-weight:700;color:var(--cream);margin-bottom:4px">Multi-group</div>
+        <div style="font-size:11px;color:var(--dim);line-height:1.4">5+ players across<br>multiple tee times</div>
+      </button>
+    </div>
+
+    <button id="ms-cancel-btn"
+      style="width:100%;padding:10px;border-radius:10px;background:transparent;
+        border:1px solid var(--border);color:var(--dim);font-size:13px;
+        font-family:'DM Sans',sans-serif;cursor:pointer">
+      Cancel
+    </button>`;
+
+  document.getElementById('ms-4ball').addEventListener('click', () => _renderScreen1(modal, '4ball'));
+  document.getElementById('ms-multigroup').addEventListener('click', () => _renderScreen1(modal, 'multigroup'));
+  document.getElementById('ms-cancel-btn').addEventListener('click', () => { modal.style.display = 'none'; });
+}
+
+// ── Create match — Screen 1 ───────────────────────────────────────
+
+function _renderScreen1(modal, matchType) {
   const inner = document.getElementById('create-match-inner');
   if (!inner) return;
 
@@ -158,6 +200,7 @@ function _renderScreen1(modal) {
     <div style="margin-bottom:18px">
       <label style="font-size:10px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase">
         Players &amp; Playing Handicaps
+        ${matchType === '4ball' ? '<span style="font-size:10px;color:var(--dimmer);font-weight:400;text-transform:none;letter-spacing:0;margin-left:6px">max 4</span>' : ''}
       </label>
       <div style="margin-top:8px" id="mcr-chips">${chipsHtml}</div>
     </div>
@@ -166,22 +209,26 @@ function _renderScreen1(modal) {
     <button id="mcr-create-btn"
       style="width:100%;padding:14px;border-radius:10px;background:var(--gold);border:none;
         color:var(--navy);font-size:15px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer">
-      Create match →
+      ${matchType === 'multigroup' ? 'Next — Assign Tee Times →' : 'Create match →'}
     </button>
-    <button id="mcr-cancel-btn"
+    <button id="mcr-back-btn"
       style="width:100%;padding:10px;margin-top:8px;border-radius:10px;background:transparent;
         border:1px solid var(--border);color:var(--dim);font-size:13px;
         font-family:'DM Sans',sans-serif;cursor:pointer">
-      Cancel
+      ← Back
     </button>`;
 
-  // Track selected players
+  // Track selected players (enforce max 4 for 4ball)
   inner.querySelectorAll('.mcr-chip').forEach(chip => {
     chip.addEventListener('click', () => {
       const name = chip.dataset.player;
       const currently = chip.dataset.selected === '1';
-      if (currently && name === state.me) return; // can't deselect yourself
+      if (currently && name === state.me) return;
       const next = !currently;
+      if (next && matchType === '4ball') {
+        const selectedCount = inner.querySelectorAll('.mcr-chip[data-selected="1"]').length;
+        if (selectedCount >= 4) return; // enforce 4-ball limit
+      }
       chip.dataset.selected = next ? '1' : '';
       const gold = 'var(--gold)', border = 'var(--border)';
       chip.style.borderColor = next ? gold : border;
@@ -193,16 +240,14 @@ function _renderScreen1(modal) {
     });
   });
 
-  document.getElementById('mcr-cancel-btn').addEventListener('click', () => {
-    modal.style.display = 'none';
-  });
+  document.getElementById('mcr-back-btn').addEventListener('click', () => _renderScreen0(modal));
 
   document.getElementById('mcr-create-btn').addEventListener('click', () => {
-    _handleCreate(modal, inner);
+    _handleCreate(modal, inner, matchType);
   });
 }
 
-function _handleCreate(modal, inner) {
+function _handleCreate(modal, inner, matchType) {
   const errEl = document.getElementById('mcr-err');
   const matchName = document.getElementById('mcr-name')?.value.trim();
   const courseSel = document.getElementById('mcr-course');
@@ -223,6 +268,7 @@ function _handleCreate(modal, inner) {
     players.push({ name, handicap: hcp, enrolled: name === state.me });
   });
   if (!players.length) { errEl.textContent = 'Select at least one player.'; errEl.style.display = 'block'; return; }
+  if (matchType === '4ball' && players.length > 4) { errEl.textContent = 'Max 4 players for 4-Ball.'; errEl.style.display = 'block'; return; }
 
   // Resolve course name (strip parenthetical location suffix added by populateCourses)
   const selOpt = courseSel.options[courseSel.selectedIndex];
@@ -236,6 +282,7 @@ function _handleCreate(modal, inner) {
     course: courseName,
     date,
     format: 'stroke',
+    type: matchType || '4ball',
     createdBy: state.me,
     players,
     status: 'setup',
@@ -243,7 +290,97 @@ function _handleCreate(modal, inner) {
   };
   state.currentMatchId = matchId;
 
-  _renderScreen2(modal, matchId, matchName);
+  if (matchType === 'multigroup') {
+    _renderScreen1b(modal, matchId, matchName, players);
+  } else {
+    _renderScreen2(modal, matchId, matchName);
+  }
+}
+
+// ── Create match — Screen 1b (tee time grouping, multigroup only) ─
+
+function _renderScreen1b(modal, matchId, matchName, players) {
+  const inner = document.getElementById('create-match-inner');
+  if (!inner) return;
+
+  // Default all players to tee time 1
+  const teeAssignment = {};
+  players.forEach(p => { teeAssignment[p.name] = 1; });
+
+  const renderRows = () => {
+    const rowsHtml = players.map(p => {
+      const tee = teeAssignment[p.name];
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;
+          border-bottom:1px solid var(--border)">
+          <div style="flex:1;font-size:13px;color:var(--cream)">${p.name}</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <button class="tg-minus" data-player="${p.name}"
+              style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);
+                background:var(--mid);color:var(--cream);font-size:16px;cursor:pointer;
+                display:flex;align-items:center;justify-content:center;line-height:1">−</button>
+            <span style="font-size:13px;color:var(--gold);min-width:60px;text-align:center">
+              Tee ${tee}</span>
+            <button class="tg-plus" data-player="${p.name}"
+              style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);
+                background:var(--mid);color:var(--cream);font-size:16px;cursor:pointer;
+                display:flex;align-items:center;justify-content:center;line-height:1">+</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    document.getElementById('tg-rows').innerHTML = rowsHtml;
+
+    document.querySelectorAll('.tg-minus').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const n = btn.dataset.player;
+        if (teeAssignment[n] > 1) { teeAssignment[n]--; renderRows(); }
+      });
+    });
+    document.querySelectorAll('.tg-plus').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const n = btn.dataset.player;
+        teeAssignment[n]++;
+        renderRows();
+      });
+    });
+  };
+
+  inner.innerHTML = `
+    <div style="font-size:19px;font-weight:700;color:var(--cream);margin-bottom:4px;
+      font-family:'Cormorant Garamond',serif">Assign Tee Times</div>
+    <div style="font-size:12px;color:var(--dim);margin-bottom:16px">${matchName}</div>
+    <div id="tg-rows"></div>
+    <button id="tg-confirm-btn"
+      style="width:100%;padding:14px;border-radius:10px;background:var(--gold);border:none;
+        color:var(--navy);font-size:15px;font-weight:700;font-family:'DM Sans',sans-serif;
+        cursor:pointer;margin-top:16px">
+      Create match →
+    </button>
+    <button id="tg-back-btn"
+      style="width:100%;padding:10px;margin-top:8px;border-radius:10px;background:transparent;
+        border:1px solid var(--border);color:var(--dim);font-size:13px;
+        font-family:'DM Sans',sans-serif;cursor:pointer">
+      ← Back
+    </button>`;
+
+  renderRows();
+
+  document.getElementById('tg-back-btn').addEventListener('click', () => _renderScreen1(modal, 'multigroup'));
+
+  document.getElementById('tg-confirm-btn').addEventListener('click', () => {
+    // Build teeGroups: { '1': [...names], '2': [...names], ... }
+    const teeGroups = {};
+    players.forEach(p => {
+      const t = String(teeAssignment[p.name]);
+      if (!teeGroups[t]) teeGroups[t] = [];
+      teeGroups[t].push(p.name);
+    });
+    if (state.gd.matches?.[matchId]) {
+      state.gd.matches[matchId].teeGroups = teeGroups;
+    }
+    _renderScreen2(modal, matchId, matchName);
+  });
 }
 
 // ── Create match — Screen 2 ───────────────────────────────────────
