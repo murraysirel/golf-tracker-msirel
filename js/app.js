@@ -247,9 +247,57 @@ document.getElementById('admin-verify-btn')?.addEventListener('click', verifyAdm
 document.getElementById('admin-del-player')?.addEventListener('change', adminPopulateRounds);
 document.getElementById('admin-del-round-btn')?.addEventListener('click', adminDeleteRound);
 
+// ── Round recovery after crash/timeout ────────────────────────────
+function showRoundRecoveryPrompt(backup) {
+  const modal = document.getElementById('round-recovery-modal');
+  if (!modal) return;
+  const holeNum = backup.hole + 1;
+  const courseText = backup.course ? ` at ${backup.course}` : '';
+  document.getElementById('rr-hole-text').textContent =
+    `You were on hole ${holeNum}${courseText}. Restore your progress?`;
+  modal.style.display = 'flex';
+
+  document.getElementById('rr-resume-btn').onclick = () => {
+    modal.style.display = 'none';
+    state.liveState.hole = backup.hole;
+    state.liveState.scores = backup.scores || Array(18).fill(null);
+    state.liveState.putts = backup.putts || Array(18).fill(null);
+    state.liveState.fir = backup.fir || Array(18).fill('');
+    state.liveState.gir = backup.gir || Array(18).fill('');
+    state.liveState.notes = backup.notes || Array(18).fill('');
+    state.liveState.group = backup.group || [];
+    state.liveState.groupScores = backup.groupScores || {};
+    state.liveState.groupPutts = backup.groupPutts || {};
+    state.liveState.groupFir = backup.groupFir || {};
+    state.liveState.groupGir = backup.groupGir || {};
+    state.gameMode = backup.gameMode || 'stroke';
+    state.wolfState = backup.wolfState || null;
+    state.roundActive = true;
+    if (backup.course) {
+      const courseSel = document.getElementById('course-sel');
+      if (courseSel) { courseSel.value = backup.course; onCourseChange(); }
+    }
+    localStorage.removeItem('rr_live_backup');
+    goTo('live');
+  };
+
+  document.getElementById('rr-discard-btn').onclick = () => {
+    localStorage.removeItem('rr_live_backup');
+    modal.style.display = 'none';
+  };
+}
+
 // ── Initialise ────────────────────────────────────────────────────
 initMatchOverlay();
 loadGist().then(() => {
   renderOnboard();
   updateActiveMatchBadge();
+  const backup = localStorage.getItem('rr_live_backup');
+  if (backup) {
+    try {
+      const b = JSON.parse(backup);
+      const ageMinutes = (Date.now() - b.savedAt) / 60000;
+      if (ageMinutes < 480 && b.hole > 0) showRoundRecoveryPrompt(b);
+    } catch (_) {}
+  }
 });

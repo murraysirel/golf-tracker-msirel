@@ -147,6 +147,7 @@ export async function saveRound() {
   if (!state.gd.players[target]) state.gd.players[target] = { handicap: 0, rounds: [] };
   state.gd.players[target].rounds.push(rnd);
   const ok = await pushGist();
+  if (ok) localStorage.removeItem('rr_live_backup');
   const syncMsg = ok ? '\u2705 Saved & synced!' : '\u26A0\uFE0F Saved locally \u2014 will sync when connection resumes';
   alert(`${syncMsg}\n\n${c.name} \u00B7 ${state.stee} tees\n${ts} (${d >= 0 ? '+' : ''}${d} vs Par ${tp})`);
 

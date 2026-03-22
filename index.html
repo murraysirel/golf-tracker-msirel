@@ -43,6 +43,18 @@
   </div>
 </div>
 
+<!-- ══════════════ ROUND RECOVERY MODAL ══════════════ -->
+<div id="round-recovery-modal" style="display:none;position:fixed;inset:0;z-index:9998;align-items:center;justify-content:center;background:rgba(10,22,40,.85);backdrop-filter:blur(4px)">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:320px;width:90%;margin:0 16px;box-shadow:0 8px 40px rgba(0,0,0,.5)">
+    <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:var(--cream);margin-bottom:10px">Unfinished round found</div>
+    <div id="rr-hole-text" style="font-size:13px;color:var(--dim);line-height:1.5;margin-bottom:20px"></div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button id="rr-resume-btn" style="padding:14px;border-radius:10px;background:var(--gold);border:none;color:var(--navy);font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer">Resume round</button>
+      <button id="rr-discard-btn" style="padding:12px;border-radius:10px;background:transparent;border:1px solid var(--border);color:var(--dim);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer">Discard</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════ SCORECARD HISTORY MODAL ══════════════ -->
 <div id="sc-hist-modal">
   <div id="sc-hist-backdrop"></div>

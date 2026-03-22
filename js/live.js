@@ -694,7 +694,30 @@ function liveSyncToManual(h) {
 
 export function liveNextOrFinish() {
   const h = state.liveState.hole;
-  const advance = () => { if (h < 17) liveGoto(h + 1); else liveFinishAndSave(); };
+  const advance = () => {
+    if (h < 17) {
+      liveGoto(h + 1);
+      localStorage.setItem('rr_live_backup', JSON.stringify({
+        savedAt: Date.now(),
+        hole: state.liveState.hole,
+        scores: state.liveState.scores,
+        putts: state.liveState.putts,
+        fir: state.liveState.fir,
+        gir: state.liveState.gir,
+        notes: state.liveState.notes,
+        group: state.liveState.group,
+        groupScores: state.liveState.groupScores,
+        groupPutts: state.liveState.groupPutts,
+        groupFir: state.liveState.groupFir,
+        groupGir: state.liveState.groupGir,
+        course: document.getElementById('course-sel')?.value || '',
+        gameMode: state.gameMode,
+        wolfState: state.wolfState
+      }));
+    } else {
+      liveFinishAndSave();
+    }
+  };
 
   // Wolf: calculate hole points then show result before advancing
   if (state.gameMode === 'wolf') {
@@ -717,6 +740,7 @@ export function liveNextOrFinish() {
 
 export function cancelRound(skipConfirm = false) {
   if (!skipConfirm && !confirm('Cancel this round? All progress will be lost.')) return;
+  localStorage.removeItem('rr_live_backup');
   import('./overlay.js').then(({ hideMatchOverlay }) => hideMatchOverlay());
   state.roundActive = false;
   state.liveState.hole = 0;
@@ -852,6 +876,7 @@ async function liveGroupSave() {
   const _groupPlayers = [...state.liveState.group];
 
   const ok = await pushGist(); // single pushGist call for all players
+  if (ok) localStorage.removeItem('rr_live_backup');
   const syncMsg = ok ? '\u2705 Saved & synced!' : '\u26A0\uFE0F Saved locally \u2014 will sync when online';
   const names = _groupPlayers.join(', ');
   alert(`${syncMsg}\n\nRound saved for: ${names}\n${course.name} \u00B7 ${state.stee} tees`);
