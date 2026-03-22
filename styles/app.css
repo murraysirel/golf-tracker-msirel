@@ -1009,6 +1009,69 @@ details[open] summary::after{content:' ▾'}
   .card:nth-child(5){animation-delay:160ms}
 }
 
+/* ── Match leaderboard overlay ────────────────────────────────── */
+.match-overlay {
+  position: fixed;
+  bottom: calc(var(--safe-bot) + 72px);
+  right: 12px;
+  width: 148px;
+  background: rgba(10, 22, 40, 0.82);
+  border: 1px solid rgba(201, 168, 76, 0.3);
+  border-radius: 14px;
+  padding: 10px 12px;
+  z-index: 500;
+}
+.match-overlay.frosted {
+  background: rgba(17, 30, 53, 0.55);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.match-min-pill {
+  position: fixed;
+  bottom: calc(var(--safe-bot) + 72px);
+  right: 12px;
+  background: rgba(10, 22, 40, 0.82);
+  border: 1px solid rgba(201, 168, 76, 0.4);
+  border-radius: 20px;
+  padding: 6px 12px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--cream);
+  z-index: 500;
+  cursor: pointer;
+}
+.match-overlay-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  font-size: 12px;
+  color: var(--cream);
+  border-bottom: 0.5px solid rgba(255,255,255,0.06);
+}
+.match-overlay-row:last-child { border-bottom: none; }
+.match-overlay-row.is-me { color: var(--gold); font-weight: 600; }
+.match-pos { width: 16px; color: var(--dim); font-size: 11px; flex-shrink: 0; }
+.match-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.match-score { font-size: 13px; font-weight: 700; min-width: 32px; text-align: right; flex-shrink: 0; }
+
+[data-theme="light"] .match-overlay {
+  background: rgba(240, 232, 208, 0.92);
+  border: 1px solid rgba(201, 168, 76, 0.5);
+}
+[data-theme="light"] .match-overlay.frosted {
+  background: rgba(255, 252, 243, 0.75);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+[data-theme="light"] .match-min-pill {
+  background: rgba(240, 232, 208, 0.92);
+  border: 1px solid rgba(201, 168, 76, 0.5);
+}
+[data-theme="light"] .match-overlay-row { border-bottom-color: rgba(0,0,0,0.06); }
+
 /* ── Light mode tokens (Schoolhouse White) ────────────────────── */
 [data-theme="light"]{
     --wa-015:rgba(0,0,0,.02);

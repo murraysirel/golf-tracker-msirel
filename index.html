@@ -438,11 +438,11 @@
             </div>
           </div>
           <button id="live-cancel-round-btn" title="End round"
-            style="display:inline-block;padding:8px 20px;border-radius:20px;
-              background:rgba(231,76,60,0.15);color:#e88080;
-              border:1px solid rgba(231,76,60,0.3);font-size:12px;font-weight:600;
+            style="display:inline-block;padding:6px 14px;border-radius:20px;
+              background:rgba(231,76,60,0.18);color:#e8a09a;
+              border:1px solid rgba(231,76,60,0.35);font-size:12px;font-weight:600;
               letter-spacing:0.04em;cursor:pointer;font-family:'DM Sans',sans-serif;
-              margin-top:8px;-webkit-tap-highlight-color:transparent">End round</button>
+              margin-top:4px;-webkit-tap-highlight-color:transparent">End round</button>
         </div>
 
         <!-- GPS distance block -->
@@ -1158,6 +1158,63 @@
 </div>
 
 </div>
+    <!-- Match leaderboard overlay (shown during active group match round) -->
+    <div id="match-overlay" style="display:none">
+      <!-- Header: match name + controls -->
+      <div style="display:flex;align-items:center;gap:4px;margin-bottom:8px">
+        <span id="match-overlay-name"
+          style="flex:1;font-size:11px;font-weight:600;color:var(--gold);
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+            font-family:'Cormorant Garamond',serif;letter-spacing:.5px">
+          Match
+        </span>
+        <button id="match-overlay-style-btn"
+          title="Toggle style"
+          style="background:none;border:none;color:var(--dim);font-size:14px;
+            cursor:pointer;padding:0 2px;line-height:1;-webkit-tap-highlight-color:transparent">
+          ◑
+        </button>
+        <button id="match-overlay-min-btn"
+          title="Minimise"
+          style="background:none;border:none;color:var(--dim);font-size:16px;font-weight:300;
+            cursor:pointer;padding:0 2px;line-height:1;-webkit-tap-highlight-color:transparent">
+          −
+        </button>
+      </div>
+      <!-- Format tabs: Net / Stableford -->
+      <div style="display:flex;gap:4px;margin-bottom:8px">
+        <button id="match-fmt-net"
+          style="flex:1;padding:3px 0;border-radius:6px;font-size:10px;font-weight:600;
+            letter-spacing:.5px;text-transform:uppercase;cursor:pointer;
+            background:rgba(201,168,76,.18);border:none;color:var(--gold);
+            font-family:'DM Sans',sans-serif;-webkit-tap-highlight-color:transparent">
+          Net
+        </button>
+        <button id="match-fmt-stab"
+          style="flex:1;padding:3px 0;border-radius:6px;font-size:10px;font-weight:500;
+            letter-spacing:.5px;text-transform:uppercase;cursor:pointer;
+            background:transparent;border:none;color:var(--dimmer);
+            font-family:'DM Sans',sans-serif;-webkit-tap-highlight-color:transparent">
+          Stableford
+        </button>
+      </div>
+      <!-- Player rows -->
+      <div id="match-overlay-rows"></div>
+      <!-- Show me / Top 3 toggle -->
+      <button id="match-overlay-toggle-btn"
+        style="width:100%;margin-top:7px;padding:4px 0;background:none;border:none;
+          font-size:10px;color:var(--dim);cursor:pointer;font-family:'DM Sans',sans-serif;
+          text-align:center;letter-spacing:.5px;-webkit-tap-highlight-color:transparent">
+        Show me
+      </button>
+    </div>
+
+    <!-- Minimised match pill (shown when overlay is collapsed) -->
+    <div id="match-min-pill" style="display:none">
+      <span style="font-size:13px;line-height:1">🏆</span>
+      <span id="match-pill-text" style="font-size:12px;font-weight:600;color:var(--gold)">—</span>
+    </div>
+
     <!-- Create Group Match modal -->
     <div id="create-match-modal"
       style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:1002;
