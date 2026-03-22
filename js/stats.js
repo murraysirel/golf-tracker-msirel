@@ -463,7 +463,7 @@ export function renderStats() {
       }
     }
   }
-  document.getElementById('c-putts').style.display = fullR.length > 0 ? 'block' : 'none';
+  // c-putts visibility controlled within the chart block below (puttsRounds check)
   document.getElementById('c-fg').style.display = fullR.length > 0 ? 'block' : 'none';
 
   if (has) {
@@ -504,15 +504,26 @@ export function renderStats() {
       options: { ...co(), plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.raw >= 0 ? '+' : ''}${c.raw} avg` } } }, scales: { x: { ticks: { color: cc('--chart-tick'), font: { size: 9 } }, grid: { color: cc('--chart-grid') } }, y: { ticks: { color: cc('--chart-tick'), font: { size: 9 }, stepSize: 0.5, callback: v => { if (Math.round(v * 2) !== v * 2) return null; const f = parseFloat(v.toFixed(1)); return (v > 0 ? '+' : '') + f; } }, grid: { color: cc('--chart-grid') } } } }
     });
 
-    const pR = fullR.filter(r => (r.putts || []).filter(Boolean).length >= 9);
-    if (pR.length) {
-      const pA = Array.from({ length: 18 }, (_, h) => { const vs = pR.map(r => r.putts[h]).filter(Boolean); return vs.length ? +(vs.reduce((a, b) => a + b, 0) / vs.length).toFixed(2) : null; });
+    // Putting trend chart — total putts per round (last 10 rounds with any putts data)
+    const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const puttsRounds = allSorted.filter(r => (r.putts || []).some(v => v != null && v > 0)).slice(-10);
+    document.getElementById('c-putts').style.display = puttsRounds.length > 0 ? 'block' : 'none';
+    if (puttsRounds.length > 0) {
+      const ptLabels = puttsRounds.map(r => {
+        const dp = r.date?.split('/');
+        return dp && dp.length === 3 ? MONTHS_SHORT[parseInt(dp[1], 10) - 1] + ' ' + parseInt(dp[0], 10) : r.date?.slice(0, 5) || '';
+      });
+      const ptData = puttsRounds.map(r => (r.putts || []).reduce((a, v) => a + (v || 0), 0));
+      const ptMax = Math.max(...ptData) + 2;
       dc('putts');
       CH.putts = new Chart(document.getElementById('ch-putts'), {
-        type: 'bar',
-        data: { labels: Array.from({ length: 18 }, (_, i) => i + 1), datasets: [{ data: pA, backgroundColor: 'rgba(201,168,76,.6)', borderRadius: 3 }] },
-        options: { ...co(), scales: { x: { ticks: { color: cc('--chart-tick'), font: { size: 9 } }, grid: { color: cc('--chart-grid') } }, y: { min: 0, ticks: { color: cc('--chart-tick'), font: { size: 9 }, stepSize: 0.5, callback: v => Math.round(v * 2) === v * 2 ? parseFloat(v.toFixed(1)) : null }, grid: { color: cc('--chart-grid') } } } }
+        type: 'line',
+        data: { labels: ptLabels, datasets: [{ data: ptData, borderColor: '#3498db', backgroundColor: 'rgba(52,152,219,.08)', pointBackgroundColor: '#c9a84c', pointRadius: 5, pointBorderWidth: 0, tension: .3, fill: true }] },
+        options: { ...co(), plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw + ' putts' } } }, scales: { x: { ticks: { color: cc('--chart-tick'), font: { size: 9 } }, grid: { color: cc('--chart-grid') } }, y: { min: 18, max: ptMax, ticks: { color: cc('--chart-tick'), font: { size: 9 }, stepSize: 1, callback: v => Number.isInteger(v) ? v : null }, grid: { color: cc('--chart-grid') } } } }
       });
+      const avgPutts = Math.round(ptData.reduce((a, b) => a + b, 0) / ptData.length);
+      const summaryEl = document.getElementById('putts-trend-summary');
+      if (summaryEl) summaryEl.textContent = `Avg ${avgPutts} putts · last ${puttsRounds.length} rounds tracked`;
     }
 
     const firP = Array.from({ length: 18 }, (_, h) => {
