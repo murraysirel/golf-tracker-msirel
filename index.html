@@ -236,6 +236,14 @@
           <div id="match-need-2" style="display:none;font-size:11px;color:var(--dimmer);margin-top:6px">Match play requires exactly 2 players</div>
         </div>
 
+        <!-- Group Match buttons (stroke mode only) -->
+        <div id="group-match-btns" style="display:flex;gap:8px;margin-bottom:14px">
+          <button id="start-group-match-btn" class="btn-o" style="flex:1;font-size:13px;padding:10px 8px">🏆 Start Group Match</button>
+          <button id="join-group-match-btn" class="btn-ghost" style="flex:1;font-size:13px;padding:10px 8px">Join Match</button>
+        </div>
+        <!-- Active match indicator -->
+        <div id="active-match-badge" style="display:none;padding:8px 12px;border-radius:8px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);font-size:12px;color:var(--gold);margin-bottom:14px;text-align:center"></div>
+
         <!-- Primary CTA: Play with the Caddie -->
         <button id="caddie-play-btn" class="btn" style="border-radius:40px;font-size:16px;padding:18px;letter-spacing:.2px;margin-bottom:8px">Play with the Caddie 🏌️</button>
         <div id="caddie-inline-setup" style="display:none;margin-bottom:16px">
@@ -429,7 +437,12 @@
               <span id="live-run-vp" style="font-size:12px;color:var(--dim);margin-left:8px">vs par</span>
             </div>
           </div>
-          <button id="live-cancel-round-btn" title="Cancel round" style="background:none;border:none;color:var(--dimmer);font-size:11px;cursor:pointer;padding:4px 2px;font-family:'DM Sans',sans-serif;white-space:nowrap;line-height:1">✕ End</button>
+          <button id="live-cancel-round-btn" title="End round"
+            style="display:inline-block;padding:8px 20px;border-radius:20px;
+              background:rgba(231,76,60,0.15);color:#e88080;
+              border:1px solid rgba(231,76,60,0.3);font-size:12px;font-weight:600;
+              letter-spacing:0.04em;cursor:pointer;font-family:'DM Sans',sans-serif;
+              margin-top:8px;-webkit-tap-highlight-color:transparent">End round</button>
         </div>
 
         <!-- GPS distance block -->
@@ -1145,6 +1158,26 @@
 </div>
 
 </div>
+    <!-- Create Group Match modal -->
+    <div id="create-match-modal"
+      style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:1002;
+        align-items:center;justify-content:center;padding:16px;box-sizing:border-box">
+      <div style="width:min(400px,100%);background:var(--card);border-radius:16px;
+          padding:20px;border:1px solid var(--border);max-height:90vh;overflow-y:auto">
+        <div id="create-match-inner"></div>
+      </div>
+    </div>
+
+    <!-- Join Group Match modal -->
+    <div id="join-match-modal"
+      style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:1002;
+        align-items:center;justify-content:center;padding:16px;box-sizing:border-box">
+      <div style="width:min(360px,100%);background:var(--card);border-radius:16px;
+          padding:20px;border:1px solid var(--border)">
+        <div id="join-match-inner"></div>
+      </div>
+    </div>
+
     <!-- Pre-round handicap confirmation modal (Fix 6) -->
     <div id="hcp-confirm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:999">
       <div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1000;width:min(340px,calc(100vw - 32px));background:var(--card);border-radius:16px;padding:20px;border:1px solid var(--border)">
