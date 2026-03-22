@@ -1,5 +1,6 @@
 // ─────────────────────────────────────────────────────────────────
 // COMPETITION MODE — Live activity feed + today's leaderboard
+// Also exports getMatchLeaderboard for group match standings
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
 import { loadGist } from './api.js';
@@ -143,6 +144,48 @@ function renderActivityFeed() {
       <div style="font-size:10px;color:var(--dimmer);flex-shrink:0">${timeAgo(evt.ts)}</div>
     </div>`;
   }).join('');
+}
+
+// ── Group Match Leaderboard ───────────────────────────────────────
+
+export function getMatchLeaderboard(matchId) {
+  const match = state.gd.matches?.[matchId];
+  if (!match) return [];
+
+  const entries = (match.players || []).map(p => {
+    const scoreData = match.scores?.[p.name];
+    return {
+      name: p.name,
+      netTotal: scoreData?.holesPlayed > 0 ? scoreData.netTotal : null,
+      holesPlayed: scoreData?.holesPlayed ?? 0,
+      isMe: p.name === state.me
+    };
+  });
+
+  // Sort: players with holes played first (by netTotal asc), 0-holes at bottom
+  entries.sort((a, b) => {
+    if (a.holesPlayed === 0 && b.holesPlayed === 0) return 0;
+    if (a.holesPlayed === 0) return 1;
+    if (b.holesPlayed === 0) return -1;
+    return (a.netTotal ?? 999) - (b.netTotal ?? 999);
+  });
+
+  // Assign positions; ties share the same number
+  let pos = 1;
+  for (let i = 0; i < entries.length; i++) {
+    if (entries[i].holesPlayed === 0) {
+      entries[i].position = null;
+    } else {
+      if (i > 0 && entries[i - 1].holesPlayed > 0 && entries[i].netTotal === entries[i - 1].netTotal) {
+        entries[i].position = entries[i - 1].position;
+      } else {
+        entries[i].position = pos;
+      }
+      pos++;
+    }
+  }
+
+  return entries;
 }
 
 function renderCompLeaderboard() {
