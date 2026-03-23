@@ -80,11 +80,25 @@ export function buildSC(pf, pp) {
   for (let h = 0; h < 18; h++) {
     const scoreInp = document.getElementById('h' + h);
     const puttsInp = document.getElementById('p' + h);
+    const girSel   = document.getElementById('gir' + h);
+
+    // Auto-populate GIR when score and putts are both known.
+    // GIR = on green in (par - 2) strokes or fewer → (score - putts) <= (par - 2)
+    function autoGir() {
+      if (!girSel) return;
+      const score = parseInt(scoreInp?.value);
+      const putts = parseInt(puttsInp?.value);
+      if (isNaN(score) || isNaN(putts)) return;
+      const par = state.cpars[h];
+      girSel.value = (score - putts) <= (par - 2) ? 'Yes' : 'No';
+    }
+
     if (scoreInp) {
       scoreInp.addEventListener('focus', function() { this.select(); });
       scoreInp.addEventListener('touchstart', function() { setTimeout(() => this.select(), 0); }, { passive: true });
       scoreInp.addEventListener('input', () => {
         recalc();
+        autoGir();
         clearTimeout(scoreAdvTimer);
         const v = parseInt(scoreInp.value);
         // Only auto-advance on single-digit input (mobile style)
@@ -104,6 +118,7 @@ export function buildSC(pf, pp) {
         if (!isNaN(maxPutts) && parseInt(this.value) > maxPutts) this.value = maxPutts;
       });
       puttsInp.addEventListener('input', () => {
+        autoGir();
         clearTimeout(puttsAdvTimer);
         const v = parseInt(puttsInp.value);
         if (puttsInp.value.length === 1 && !isNaN(v) && v >= 0 && v <= 9) {
