@@ -12,7 +12,7 @@ const SYNC_SECRET = 'LOOPER_SYNC_SECRET';
 export function ss(status, msg) {
   const d = document.getElementById('sdot'), t = document.getElementById('stext');
   if (!d) return;
-  d.className = 'sdot' + (status === 'syncing' ? ' syncing' : status === 'err' ? ' err' : '');
+  d.className = 'sdot' + (status === 'syncing' ? ' syncing' : status === 'err' ? ' err' : status === 'warn' ? ' warn' : '');
   if (t) t.textContent = msg;
 }
 
@@ -63,6 +63,90 @@ export async function loadGist() {
       seedMurray();
     }
   }
+  // Merge Supabase data on top — parallel phase: Supabase wins on conflict
+  await loadSupabase();
+}
+
+// ── Supabase parallel sync ────────────────────────────────────────
+
+export async function pushSupabase(action, data) {
+  try {
+    const res = await fetch('/.netlify/functions/supabase', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-sync-secret': SYNC_SECRET
+      },
+      body: JSON.stringify({
+        action,
+        groupCode: state.gd?.groupCode || '',
+        data
+      })
+    });
+    if (!res.ok) throw new Error('Supabase write failed: ' + res.status);
+    return true;
+  } catch (err) {
+    console.warn('Supabase write failed (non-critical during parallel phase):', err);
+    return false;
+  }
+}
+
+async function loadSupabase() {
+  try {
+    const res = await fetch('/.netlify/functions/supabase', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-sync-secret': SYNC_SECRET
+      },
+      body: JSON.stringify({
+        action: 'read',
+        groupCode: state.gd?.groupCode || ''
+      })
+    });
+    if (!res.ok) return false;
+    const { players, rounds } = await res.json();
+    mergeSupabaseData(players, rounds);
+    return true;
+  } catch (err) {
+    console.warn('Supabase read failed (falling back to Gist):', err);
+    return false;
+  }
+}
+
+function mergeSupabaseData(players, rounds) {
+  if (!players || !rounds) return;
+  players.forEach(p => {
+    if (!state.gd.players[p.name]) {
+      state.gd.players[p.name] = { handicap: p.handicap, rounds: [] };
+    }
+    state.gd.players[p.name].handicap = p.handicap;
+    if (p.email) state.gd.players[p.name].email = p.email;
+  });
+  rounds.forEach(r => {
+    const player = state.gd.players[r.player_name];
+    if (!player) return;
+    const exists = player.rounds.some(ex => ex.id === r.id);
+    if (!exists) {
+      player.rounds.push(supabaseRoundToApp(r));
+    }
+  });
+}
+
+function supabaseRoundToApp(r) {
+  return {
+    id: r.id, player: r.player_name, course: r.course,
+    loc: r.loc, tee: r.tee, date: r.date,
+    scores: r.scores, putts: r.putts, fir: r.fir, gir: r.gir,
+    pars: r.pars, notes: r.notes,
+    totalScore: r.total_score, totalPar: r.total_par,
+    diff: r.diff, birdies: r.birdies, parsCount: r.pars_count,
+    bogeys: r.bogeys, doubles: r.doubles, eagles: r.eagles,
+    penalties: r.penalties, bunkers: r.bunkers, chips: r.chips,
+    rating: r.rating, slope: r.slope,
+    aiReview: r.ai_review, wolfResult: r.wolf_result,
+    matchResult: r.match_result
+  };
 }
 
 export function updateUnsyncedBadge() {
