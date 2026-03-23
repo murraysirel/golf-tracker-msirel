@@ -803,7 +803,7 @@ async function liveGroupSave() {
     : new Date().toLocaleDateString('en-GB');
   const notes = document.getElementById('r-notes')?.value || '';
 
-  const { pushGist, updateUnsyncedBadge } = await import('./api.js');
+  const { pushGist, pushSupabase, updateUnsyncedBadge, ss } = await import('./api.js');
 
   // Final match score sync for all group members before persisting
   state.liveState.group.forEach(name => syncPlayerMatchScore(name));
@@ -907,6 +907,25 @@ async function liveGroupSave() {
     localStorage.setItem('rr_unsynced_rounds', JSON.stringify(unsynced));
     updateUnsyncedBadge();
   }
+
+  // Parallel write to Supabase for each saved round — fire and forget
+  Promise.all(savedRounds.map(item => {
+    const playerData = {
+      name: item.player,
+      email: state.gd.players[item.player]?.email || null,
+      handicap: state.gd.players[item.player]?.handicap || 0,
+      matchCode: state.gd.players[item.player]?.matchCode || null
+    };
+    return pushSupabase('saveRound', { round: item.round, playerData });
+  })).then(results => {
+    const allSbOk = results.every(Boolean);
+    if (ok && allSbOk) {
+      ss('ok', 'Synced \u2713');
+    } else if (ok && !allSbOk) {
+      ss('warn', '\u26A0 Gist only');
+    }
+  });
+
   const syncMsg = ok ? '\u2705 Saved & synced!' : '\u26A0\uFE0F Saved locally \u2014 will sync when online';
   const names = _groupPlayers.join(', ');
   alert(`${syncMsg}\n\nRound saved for: ${names}\n${course.name} \u00B7 ${state.stee} tees`);

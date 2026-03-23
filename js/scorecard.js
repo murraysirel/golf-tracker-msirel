@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
 import { getCourseByRef } from './courses.js';
-import { pushGist, updateUnsyncedBadge } from './api.js';
+import { pushGist, pushSupabase, updateUnsyncedBadge, ss } from './api.js';
 
 // Convert YYYY-MM-DD (native date input) → DD/MM/YYYY (stored format)
 function toGBDate(isoDate) {
@@ -206,6 +206,23 @@ export async function saveRound() {
     localStorage.setItem('rr_unsynced_rounds', JSON.stringify(unsynced));
     updateUnsyncedBadge();
   }
+
+  // Parallel write to Supabase — fire and forget, never blocks user
+  const playerData = {
+    name: target,
+    email: state.gd.players[target]?.email || null,
+    handicap: state.gd.players[target]?.handicap || 0,
+    matchCode: state.gd.players[target]?.matchCode || null
+  };
+  pushSupabase('saveRound', { round: rnd, playerData }).then(sbOk => {
+    if (ok && sbOk) {
+      ss('ok', 'Synced \u2713');
+    } else if (ok && !sbOk) {
+      ss('warn', '\u26A0 Gist only');
+    }
+    // If Gist also failed, the existing error message stays — don't overwrite
+  });
+
   const syncMsg = ok ? '\u2705 Saved & synced!' : '\u26A0\uFE0F Saved locally \u2014 will sync when connection resumes';
   alert(`${syncMsg}\n\n${c.name} \u00B7 ${state.stee} tees\n${ts} (${d >= 0 ? '+' : ''}${d} vs Par ${tp})`);
 
