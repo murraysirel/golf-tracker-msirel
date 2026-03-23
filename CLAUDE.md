@@ -1,1 +1,1 @@
-7
+| 2026-03-23 | **GIR/FIR charts** — GIR % by hole type: three trend lines (par 3/4/5) across last 10 rounds with GIR data; FIR % single trend line across last 10 rounds; home KPI split card updated to show par 4 GIR% with "GIR (par 4)" label; both charts skip rounds with no recorded data silently; dc() called before each render |

@@ -241,6 +241,16 @@ export function renderHomeStats() {
     rounds.forEach(r => { (r.fir || []).forEach((v, h) => { if ((r.pars?.[h]) !== 3) { poss++; if (v === 'Yes') hits++; } }); });
     return poss ? hits / poss * 100 : null;
   }
+  function par4GIRRaw(rounds) {
+    let hits = 0, poss = 0;
+    rounds.forEach(r => {
+      (r.pars || []).forEach((p, i) => {
+        const g = (r.gir || [])[i];
+        if (p === 4 && (g === 'Yes' || g === 'No')) { poss++; if (g === 'Yes') hits++; }
+      });
+    });
+    return poss ? hits / poss * 100 : null;
+  }
 
   // ── Card 1: Avg vs par — delta vs season avg ─────────────────
   const avgParEl = document.getElementById('h-avg-par');
@@ -328,9 +338,9 @@ export function renderHomeStats() {
   const girDeltaEl = document.getElementById('h-gir-delta');
   const firDeltaEl = document.getElementById('h-fir-delta');
 
-  const last5GIR   = girRaw(last5);
+  const last5GIR   = par4GIRRaw(last5);
   const last5FIR   = firRaw(last5);
-  const seasonGIR  = girRaw(seasonRounds);
+  const seasonGIR  = par4GIRRaw(seasonRounds);
   const seasonFIR  = firRaw(seasonRounds);
 
   if (girPctEl) girPctEl.textContent = last5GIR !== null ? Math.round(last5GIR) + '%' : '—';
@@ -420,6 +430,7 @@ export function renderStats() {
 
   const rs = getFilteredRounds(allRounds);
   const allSorted = [...allRounds].sort((a, b) => parseDateGB(a.date) - parseDateGB(b.date));
+  const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
   const sc = rs.map(r => r.totalScore).filter(Boolean);
   const diffs = rs.map(r => r.diff).filter(v => v != null);
@@ -467,7 +478,7 @@ export function renderStats() {
     }
   }
   // c-putts visibility controlled within the chart block below (puttsRounds check)
-  document.getElementById('c-fg').style.display = fullR.length > 0 ? 'block' : 'none';
+  // c-gir and c-fir visibility is set inside their respective chart blocks below
 
   if (has) {
     const tE = rs.reduce((a, r) => a + (r.eagles || 0), 0);
@@ -508,7 +519,6 @@ export function renderStats() {
     });
 
     // Putting trend chart — total putts per round (last 10 rounds with any putts data)
-    const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const puttsRounds = allSorted.filter(r => (r.putts || []).some(v => v != null && v > 0)).slice(-10);
     document.getElementById('c-putts').style.display = puttsRounds.length > 0 ? 'block' : 'none';
     if (puttsRounds.length > 0) {
@@ -529,21 +539,77 @@ export function renderStats() {
       if (summaryEl) summaryEl.textContent = `Avg ${avgPutts} putts · last ${puttsRounds.length} rounds tracked`;
     }
 
-    const firP = Array.from({ length: 18 }, (_, h) => {
-      if (fullR[0]?.pars[h] === 3) return null;
-      const y = fullR.filter(r => r.fir && r.fir[h] === 'Yes').length;
-      return Math.round(y / fullR.length * 100);
-    });
-    const girP = Array.from({ length: 18 }, (_, h) => {
-      const y = fullR.filter(r => r.gir && r.gir[h] === 'Yes').length;
-      return Math.round(y / fullR.length * 100);
-    });
-    dc('fg');
-    CH.fg = new Chart(document.getElementById('ch-fg'), {
-      type: 'bar',
-      data: { labels: Array.from({ length: 18 }, (_, i) => i + 1), datasets: [{ label: 'FIR%', data: firP, backgroundColor: 'rgba(46,204,113,.6)', borderRadius: 2 }, { label: 'GIR%', data: girP, backgroundColor: 'rgba(52,152,219,.6)', borderRadius: 2 }] },
-      options: { ...co(), plugins: { legend: { display: true, position: 'top', labels: { color: cc('--chart-tick'), font: { size: 10 }, boxWidth: 10, padding: 8 } } }, scales: { x: { ticks: { color: cc('--chart-tick'), font: { size: 9 } }, grid: { color: cc('--chart-grid') } }, y: { min: 0, max: 100, ticks: { color: cc('--chart-tick'), font: { size: 9 }, callback: v => v + '%' }, grid: { color: cc('--chart-grid') } } } }
-    });
+  }
+
+  // ── GIR % by hole type — three trend lines (last 10 rounds with GIR data) ──
+  {
+    const girRoundsAll = allSorted.filter(r => (r.gir || []).some(v => v === 'Yes' || v === 'No')).slice(-10);
+    const cGir = document.getElementById('c-gir');
+    if (cGir) cGir.style.display = girRoundsAll.length > 0 ? 'block' : 'none';
+    dc('gir');
+    if (girRoundsAll.length > 0) {
+      const girLabels = girRoundsAll.map(r => {
+        const dp = r.date?.split('/');
+        return dp && dp.length === 3 ? MONTHS_SHORT[parseInt(dp[1], 10) - 1] + ' ' + parseInt(dp[0], 10) : r.date?.slice(0, 5) || '';
+      });
+      function girPctByPar(rounds, par) {
+        return rounds.map(r => {
+          const pars = r.pars || [];
+          const gir = r.gir || [];
+          let hits = 0, total = 0;
+          pars.forEach((p, i) => { if (p === par && (gir[i] === 'Yes' || gir[i] === 'No')) { total++; if (gir[i] === 'Yes') hits++; } });
+          return total ? +(hits / total * 100).toFixed(1) : null;
+        });
+      }
+      const par3Data = girPctByPar(girRoundsAll, 3);
+      const par4Data = girPctByPar(girRoundsAll, 4);
+      const par5Data = girPctByPar(girRoundsAll, 5);
+      CH.gir = new Chart(document.getElementById('gir-chart'), {
+        type: 'line',
+        data: {
+          labels: girLabels,
+          datasets: [
+            { label: 'Par 3', data: par3Data, borderColor: '#3498db', backgroundColor: 'transparent', tension: 0.3, pointRadius: 4, pointBackgroundColor: '#3498db', spanGaps: false },
+            { label: 'Par 4', data: par4Data, borderColor: '#c9a84c', backgroundColor: 'transparent', tension: 0.3, pointRadius: 4, pointBackgroundColor: '#c9a84c', spanGaps: false },
+            { label: 'Par 5', data: par5Data, borderColor: '#2ecc71', backgroundColor: 'transparent', tension: 0.3, pointRadius: 4, pointBackgroundColor: '#2ecc71', spanGaps: false }
+          ]
+        },
+        options: { ...co(), plugins: { legend: { display: true, position: 'top', labels: { color: cc('--chart-tick'), font: { size: 10 }, boxWidth: 10, padding: 8 } }, tooltip: { callbacks: { title: () => '', label: c => c.dataset.label + ': ' + c.raw + '%' } } }, scales: { x: { ticks: { color: cc('--chart-tick'), font: { size: 9 } }, grid: { color: cc('--chart-grid') } }, y: { min: 0, max: 100, ticks: { color: cc('--chart-tick'), font: { size: 9 }, stepSize: 25, callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,0.06)' } } } }
+      });
+      function avgOf(data) { const v = data.filter(x => x != null); return v.length ? (v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : '—'; }
+      const girSummary = document.getElementById('gir-trend-summary');
+      if (girSummary) girSummary.textContent = `Par 3: ${avgOf(par3Data)}% \u00B7 Par 4: ${avgOf(par4Data)}% \u00B7 Par 5: ${avgOf(par5Data)}%`;
+    }
+  }
+
+  // ── FIR % trend line (last 10 rounds with FIR data) ──────────────
+  {
+    const firRoundsAll = allSorted.filter(r => (r.fir || []).some(v => v === 'Yes' || v === 'No')).slice(-10);
+    const cFir = document.getElementById('c-fir');
+    if (cFir) cFir.style.display = firRoundsAll.length > 0 ? 'block' : 'none';
+    dc('fir');
+    if (firRoundsAll.length > 0) {
+      const firLabels = firRoundsAll.map(r => {
+        const dp = r.date?.split('/');
+        return dp && dp.length === 3 ? MONTHS_SHORT[parseInt(dp[1], 10) - 1] + ' ' + parseInt(dp[0], 10) : r.date?.slice(0, 5) || '';
+      });
+      const firData = firRoundsAll.map(r => {
+        const fir = r.fir || [];
+        const poss = fir.filter(v => v === 'Yes' || v === 'No').length;
+        if (!poss) return null;
+        const hits = fir.filter(v => v === 'Yes').length;
+        return +(hits / poss * 100).toFixed(1);
+      });
+      CH.fir = new Chart(document.getElementById('fir-chart'), {
+        type: 'line',
+        data: { labels: firLabels, datasets: [{ label: 'FIR %', data: firData, borderColor: '#e67e22', backgroundColor: 'rgba(230,126,34,0.08)', fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#e67e22' }] },
+        options: { ...co(), plugins: { legend: { display: false }, tooltip: { callbacks: { title: () => '', label: c => 'FIR %: ' + c.raw + '%' } } }, scales: { x: { ticks: { color: cc('--chart-tick'), font: { size: 9 } }, grid: { color: cc('--chart-grid') } }, y: { min: 0, max: 100, ticks: { color: cc('--chart-tick'), font: { size: 9 }, stepSize: 25, callback: v => v + '%' }, grid: { color: cc('--chart-grid') } } } }
+      });
+      const validFir = firData.filter(v => v != null);
+      const avgFir = validFir.length ? (validFir.reduce((a, b) => a + b, 0) / validFir.length).toFixed(1) : '—';
+      const firSummary = document.getElementById('fir-trend-summary');
+      if (firSummary) firSummary.textContent = `Avg ${avgFir}% FIR \u00B7 last ${firRoundsAll.length} rounds tracked`;
+    }
   }
 
   const hist = document.getElementById('st-hist');
