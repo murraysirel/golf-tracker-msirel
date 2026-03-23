@@ -2,7 +2,7 @@
 // APP ENTRY POINT
 // Imports all modules, sets up event listeners, initialises app
 // ─────────────────────────────────────────────────────────────────
-import { loadGist } from './api.js';
+import { loadGist, pushGist, ss, retrySyncUnsynced, updateUnsyncedBadge } from './api.js';
 import { goTo, switchEntry, registerNavHandlers } from './nav.js';
 import { onCourseChange, scanCourseCard, saveCourse, cancelCourseScan, handleCoursePhoto, searchCourseAPI } from './courses.js';
 import { buildSC, recalc, saveRound, toggleSCExtras } from './scorecard.js';
@@ -248,6 +248,72 @@ document.getElementById('admin-verify-btn')?.addEventListener('click', verifyAdm
 document.getElementById('admin-del-player')?.addEventListener('change', adminPopulateRounds);
 document.getElementById('admin-del-round-btn')?.addEventListener('click', adminDeleteRound);
 
+// ── Unsynced rounds recovery prompt ───────────────────────────────
+function showUnsyncedRoundsPrompt(unsynced) {
+  const overlay = document.createElement('div');
+  overlay.id = 'unsynced-overlay';
+  overlay.style.cssText = [
+    'position:fixed', 'inset:0', 'background:rgba(0,0,0,0.75)',
+    'z-index:2000', 'display:flex', 'align-items:center',
+    'justify-content:center', 'font-family:"DM Sans",sans-serif'
+  ].join(';');
+
+  const roundRows = unsynced.map(item => {
+    const r = item.round;
+    const score = r.totalScore != null ? r.totalScore : '\u2014';
+    return '<div style="font-size:14px;color:var(--cream);padding:4px 0">' +
+      (item.player || '\u2014') + ' \u2014 ' + (r.course || '\u2014') +
+      ' \u2014 ' + (r.date || '\u2014') + ' \u2014 ' + score + '</div>';
+  }).join('');
+
+  overlay.innerHTML =
+    '<div style="background:var(--card);border:2px solid var(--gold);border-radius:16px;' +
+    'padding:24px;width:min(340px,calc(100vw - 32px))">' +
+    '<div style="font-size:17px;font-weight:700;color:var(--gold);margin-bottom:12px">' +
+    'You have unsynced rounds</div>' +
+    roundRows +
+    '<div style="font-size:13px;color:var(--dim);margin-top:8px">' +
+    "These rounds saved on your device but did not sync to the server. " +
+    "Tap \u2018Sync now\u2019 to upload them.</div>" +
+    '<button id="us-sync-btn" style="width:100%;padding:14px;border-radius:10px;' +
+    'background:var(--gold);border:none;color:var(--navy);font-size:14px;' +
+    'font-weight:600;cursor:pointer;margin-top:16px">Sync now</button>' +
+    '<button id="us-later-btn" style="width:100%;padding:14px;border-radius:10px;' +
+    'background:var(--mid);border:none;color:var(--dim);font-size:14px;' +
+    'cursor:pointer;margin-top:8px">Remind me later</button></div>';
+
+  document.body.appendChild(overlay);
+
+  document.getElementById('us-later-btn').addEventListener('click', () => overlay.remove());
+
+  document.getElementById('us-sync-btn').addEventListener('click', async () => {
+    const raw = localStorage.getItem('rr_unsynced_rounds');
+    if (!raw) { overlay.remove(); return; }
+    let items;
+    try { items = JSON.parse(raw); } catch (_) { overlay.remove(); return; }
+    let merged = false;
+    for (const item of items) {
+      if (!state.gd.players[item.player]) state.gd.players[item.player] = { handicap: 0, rounds: [] };
+      const exists = state.gd.players[item.player].rounds.some(r => r.id === item.round.id);
+      if (!exists) { state.gd.players[item.player].rounds.push(item.round); merged = true; }
+    }
+    overlay.remove();
+    if (merged) {
+      try {
+        await pushGist();
+        localStorage.removeItem('rr_unsynced_rounds');
+        updateUnsyncedBadge();
+        ss('ok', 'Rounds synced successfully');
+      } catch (e) {
+        ss('err', 'Sync failed \u2014 will try again next time you open the app');
+      }
+    } else {
+      localStorage.removeItem('rr_unsynced_rounds');
+      updateUnsyncedBadge();
+    }
+  });
+}
+
 // ── Round recovery after crash/timeout ────────────────────────────
 function showRoundRecoveryPrompt(backup) {
   const modal = document.getElementById('round-recovery-modal');
@@ -290,9 +356,26 @@ function showRoundRecoveryPrompt(backup) {
 
 // ── Initialise ────────────────────────────────────────────────────
 initMatchOverlay();
-loadGist().then(() => {
+loadGist().then(async () => {
   renderOnboard();
   updateActiveMatchBadge();
+  updateUnsyncedBadge();
+
+  // Silent retry — merge any unsynced rounds into Gist without prompting
+  const syncedOk = await retrySyncUnsynced();
+
+  // Only show modal if silent retry failed and rounds still remain
+  if (!syncedOk) {
+    const raw = localStorage.getItem('rr_unsynced_rounds');
+    if (raw) {
+      try {
+        const unsynced = JSON.parse(raw);
+        if (unsynced.length > 0) showUnsyncedRoundsPrompt(unsynced);
+      } catch (_) {}
+    }
+  }
+
+  // Live round recovery
   const backup = localStorage.getItem('rr_live_backup');
   if (backup) {
     try {

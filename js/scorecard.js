@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
 import { getCourseByRef } from './courses.js';
-import { pushGist } from './api.js';
+import { pushGist, updateUnsyncedBadge } from './api.js';
 
 // Convert YYYY-MM-DD (native date input) → DD/MM/YYYY (stored format)
 function toGBDate(isoDate) {
@@ -197,7 +197,15 @@ export async function saveRound() {
   if (!state.gd.players[target]) state.gd.players[target] = { handicap: 0, rounds: [] };
   state.gd.players[target].rounds.push(rnd);
   const ok = await pushGist();
-  if (ok) localStorage.removeItem('rr_live_backup');
+  if (ok) {
+    localStorage.removeItem('rr_live_backup');
+  } else {
+    // Protect this round in a key loadGist() never overwrites
+    const unsynced = JSON.parse(localStorage.getItem('rr_unsynced_rounds') || '[]');
+    unsynced.push({ savedAt: Date.now(), player: target, round: rnd });
+    localStorage.setItem('rr_unsynced_rounds', JSON.stringify(unsynced));
+    updateUnsyncedBadge();
+  }
   const syncMsg = ok ? '\u2705 Saved & synced!' : '\u26A0\uFE0F Saved locally \u2014 will sync when connection resumes';
   alert(`${syncMsg}\n\n${c.name} \u00B7 ${state.stee} tees\n${ts} (${d >= 0 ? '+' : ''}${d} vs Par ${tp})`);
 

@@ -40,10 +40,14 @@ export async function loadGist() {
     const r = await fetch(API);
     if (!r.ok) throw new Error(r.status);
     const raw = await r.text();
+    // Preserve unsynced rounds — loadGist must never destroy them
+    const unsynced = localStorage.getItem('rr_unsynced_rounds');
     state.gd = JSON.parse(raw);
     if (!state.gd.players) state.gd.players = {};
     if (!state.gd.matches) state.gd.matches = {};
     seedMurray();
+    localStorage.setItem('gt_localdata', JSON.stringify(state.gd));
+    if (unsynced) localStorage.setItem('rr_unsynced_rounds', unsynced);
     ss('ok', 'Synced \u2713');
   } catch (e) {
     ss('err', 'Could not load \u2014 check connection');
@@ -61,6 +65,58 @@ export async function loadGist() {
   }
 }
 
+export function updateUnsyncedBadge() {
+  const badge = document.getElementById('unsynced-badge');
+  if (!badge) return;
+  const raw = localStorage.getItem('rr_unsynced_rounds');
+  let count = 0;
+  if (raw) { try { count = JSON.parse(raw).length; } catch (_) {} }
+  if (count > 0) {
+    badge.textContent = '\u26A0 ' + count + ' round' + (count > 1 ? 's' : '') + ' unsynced';
+    badge.style.display = 'inline';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// Silent retry: merge unsynced rounds into state.gd and push once.
+// Returns true if no unsynced rounds remain, false if sync failed.
+export async function retrySyncUnsynced() {
+  const raw = localStorage.getItem('rr_unsynced_rounds');
+  if (!raw) return true;
+  let unsynced;
+  try { unsynced = JSON.parse(raw); } catch (_) { return true; }
+  if (unsynced.length === 0) return true;
+
+  let merged = false;
+  for (const item of unsynced) {
+    if (!state.gd.players[item.player]) continue;
+    const exists = state.gd.players[item.player].rounds.some(r => r.id === item.round.id);
+    if (!exists) {
+      state.gd.players[item.player].rounds.push(item.round);
+      merged = true;
+    }
+  }
+
+  if (merged) {
+    try {
+      const ok = await pushGist();
+      if (!ok) return false;
+      localStorage.removeItem('rr_unsynced_rounds');
+      updateUnsyncedBadge();
+      ss('ok', 'Unsynced rounds uploaded');
+      return true;
+    } catch (e) {
+      return false; // silent fail — will try again next load
+    }
+  } else {
+    // All rounds already in Gist — safe to clear
+    localStorage.removeItem('rr_unsynced_rounds');
+    updateUnsyncedBadge();
+    return true;
+  }
+}
+
 export async function pushGist() {
   ss('syncing', 'Saving...');
   localStorage.setItem('gt_localdata', JSON.stringify(state.gd));
@@ -75,10 +131,12 @@ export async function pushGist() {
       return false;
     }
     if (!r.ok) throw new Error(r.status);
+    updateUnsyncedBadge();
     ss('ok', 'Saved \u2713 ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
     return true;
   } catch (e) {
     ss('err', 'Sync failed \u2014 saved locally, will retry');
+    updateUnsyncedBadge();
     return false;
   }
 }

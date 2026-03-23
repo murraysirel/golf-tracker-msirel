@@ -803,10 +803,12 @@ async function liveGroupSave() {
     : new Date().toLocaleDateString('en-GB');
   const notes = document.getElementById('r-notes')?.value || '';
 
-  const { pushGist } = await import('./api.js');
+  const { pushGist, updateUnsyncedBadge } = await import('./api.js');
 
   // Final match score sync for all group members before persisting
   state.liveState.group.forEach(name => syncPlayerMatchScore(name));
+
+  const savedRounds = []; // collect rounds to protect if pushGist fails
 
   for (const playerName of state.liveState.group) {
     const sc = state.liveState.groupScores[playerName] || Array(18).fill(null);
@@ -844,6 +846,7 @@ async function liveGroupSave() {
     };
     if (!state.gd.players[playerName]) state.gd.players[playerName] = { handicap: 0, rounds: [] };
     state.gd.players[playerName].rounds.push(rnd);
+    savedRounds.push({ savedAt: Date.now(), player: playerName, round: rnd });
   }
 
   // Fix 4: for Wolf rounds, ensure every player in wolfState.order is saved
@@ -885,6 +888,7 @@ async function liveGroupSave() {
       };
       if (!state.gd.players[playerName]) state.gd.players[playerName] = { handicap: 0, rounds: [] };
       state.gd.players[playerName].rounds.push(rnd);
+      savedRounds.push({ savedAt: Date.now(), player: playerName, round: rnd });
     }
   }
 
@@ -894,7 +898,15 @@ async function liveGroupSave() {
   const _groupPlayers = [...state.liveState.group];
 
   const ok = await pushGist(); // single pushGist call for all players
-  if (ok) localStorage.removeItem('rr_live_backup');
+  if (ok) {
+    localStorage.removeItem('rr_live_backup');
+  } else {
+    // Protect rounds in a key loadGist() never overwrites
+    const unsynced = JSON.parse(localStorage.getItem('rr_unsynced_rounds') || '[]');
+    for (const item of savedRounds) unsynced.push(item);
+    localStorage.setItem('rr_unsynced_rounds', JSON.stringify(unsynced));
+    updateUnsyncedBadge();
+  }
   const syncMsg = ok ? '\u2705 Saved & synced!' : '\u26A0\uFE0F Saved locally \u2014 will sync when online';
   const names = _groupPlayers.join(', ');
   alert(`${syncMsg}\n\nRound saved for: ${names}\n${course.name} \u00B7 ${state.stee} tees`);
