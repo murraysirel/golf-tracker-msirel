@@ -7,7 +7,7 @@ import { DEFAULT_GIST, API } from './constants.js';
 // NOTE: This secret is visible in client-side JS — it guards against bots
 // and casual abuse, not determined attackers who can read the source.
 // Must match SYNC_SECRET env var in Netlify dashboard.
-const SYNC_SECRET = 'LOOPER_SYNC_SECRET';
+const SYNC_SECRET = 'plWE28irTT50Lllmsit9SACT624sP0TR';
 
 export function ss(status, msg) {
   const d = document.getElementById('sdot'), t = document.getElementById('stext');
