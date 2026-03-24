@@ -176,7 +176,8 @@ export async function saveRound() {
   const c = getCourseByRef();
   if (!c) { alert('Please select a course.'); return; }
   if (!state.stee) { alert('Please select a tee colour.'); return; }
-  const t = c.tees[state.stee];
+  const tees = Array.isArray(c.tees) ? c.tees : [];
+  const t = tees.find(tee => tee.colour === state.stee) || tees[0] || {};
   const sc = [], pt = [], fi = [], gi = [];
   for (let h = 0; h < 18; h++) {
     sc.push(parseInt(document.getElementById('h' + h)?.value) || null);
@@ -203,7 +204,7 @@ export async function saveRound() {
     penalties: parseInt(document.getElementById('r-pen')?.value) || 0,
     bunkers: parseInt(document.getElementById('r-bun')?.value) || 0,
     chips: parseInt(document.getElementById('r-chip')?.value) || 0,
-    rating: t.r, slope: t.s
+    rating: t.rating || t.r, slope: t.slope || t.s
   };
   if (!state.gd.players[target]) state.gd.players[target] = { handicap: 0, rounds: [] };
   state.gd.players[target].rounds.push(rnd);

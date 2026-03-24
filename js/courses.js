@@ -199,19 +199,18 @@ function _applyCourse(course) {
 function _applyTee(tee) {
   state.stee = tee.colour || tee.name?.toLowerCase() || 'white';
  
-  // Per-hole yardages for scorecard display
-  if (tee.yards_per_hole?.length === 18) {
-    state.activeHoleYards = tee.yards_per_hole;
-  }
+  // Per-hole yardages — check both new (yards_per_hole) and old (hy) field names
+  const yards = tee.yards_per_hole || tee.hy;
+  if (yards?.length === 18) state.activeHoleYards = yards;
  
-  // Per-tee pars (some courses vary par by tee — rare but handled)
-  if (tee.pars_per_hole?.length === 18) {
-    state.cpars = tee.pars_per_hole;
-  }
- 
-  // Stroke indexes per tee if available, fallback to course-level SI
-  if (tee.si_per_hole?.length === 18) {
-    state.scannedSI = tee.si_per_hole;
+  // Per-tee pars — check both new (pars_per_hole) and old (par) field names
+  const pars = tee.pars_per_hole || tee.par;
+  if (pars?.length === 18) state.cpars = pars;
+
+  // Stroke indexes — check both new (si_per_hole) and old (si) field names
+  const siArr = tee.si_per_hole || tee.si;
+  if (siArr?.length === 18) {
+    state.scannedSI = siArr;
   } else if (_selectedCourse?.stroke_indexes?.length === 18) {
     state.scannedSI = _selectedCourse.stroke_indexes;
   }
