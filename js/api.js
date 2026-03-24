@@ -65,9 +65,7 @@ export async function loadGist() {
 // ── Supabase parallel sync ────────────────────────────────────────
 
 export async function pushSupabase(action, data) {
-  console.log('DEBUG: pushSupabase fired', action);
   try {
-    console.log('DEBUG: fetch firing to supabase function');
     const res = await fetch('/.netlify/functions/supabase', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
