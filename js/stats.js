@@ -128,13 +128,40 @@ export function co() {
     responsive: true, maintainAspectRatio: false,
     plugins: { legend: { display: false } },
     scales: {
-      x: { ticks: { color: tick, font: { size: 9, family: "'DM Sans',sans-serif" } }, grid: { color: grid } },
-      y: { ticks: { color: tick, font: { size: 9, family: "'DM Sans',sans-serif" } }, grid: { color: grid } }
+      x: { ticks: { color: tick, font: { size: 11, family: "'DM Sans',sans-serif" } }, grid: { color: grid } },
+      y: { ticks: { color: tick, font: { size: 11, family: "'DM Sans',sans-serif" } }, grid: { color: grid } }
     }
   };
 }
 // Legacy alias kept for any external spread usage (resolved at call time)
 export const CO = {};
+
+// ── Insight card helpers ──────────────────────────────────────────
+function rateInsight(type, value) {
+  if (value === null || isNaN(value)) return 'avg';
+  if (type === 'fir')   return value >= 50 ? 'good' : value >= 35 ? 'avg' : 'bad';
+  if (type === 'gir')   return value >= 40 ? 'good' : value >= 25 ? 'avg' : 'bad';
+  if (type === 'putts') return value <= 1.8 ? 'good' : value <= 2.0 ? 'avg' : 'bad';
+  if (type === 'score') return value <= 0  ? 'good' : value <= 5   ? 'avg' : 'bad';
+  return 'avg';
+}
+function insightBorder(rating) {
+  if (rating === 'good') return 'var(--par)';
+  if (rating === 'avg')  return 'var(--bogey)';
+  return 'var(--double)';
+}
+function renderInsightGrid(el, cards) {
+  if (!el) return;
+  el.className = 'insight-grid';
+  el.innerHTML = cards.map(({ val, label, type, fmt }) => {
+    const rating = rateInsight(type, val);
+    const display = val !== null && !isNaN(val) ? fmt(val) : '—';
+    return `<div class="insight-card" style="border-left-color:${insightBorder(rating)}">
+      <div class="insight-val">${display}</div>
+      <div class="insight-lbl">${label}</div>
+    </div>`;
+  }).join('');
+}
 
 export function setFilter(f) {
   state.statsFilter = f;
@@ -477,8 +504,7 @@ export function renderStats() {
       }
     }
   }
-  // c-putts visibility controlled within the chart block below (puttsRounds check)
-  // c-gir and c-fir visibility is set inside their respective chart blocks below
+  // c-putts and c-fg visibility controlled within their respective chart blocks below
 
   if (has) {
     const tE = rs.reduce((a, r) => a + (r.eagles || 0), 0);
@@ -502,20 +528,64 @@ export function renderStats() {
 
   if (rs.length > 1) {
     dc('trend');
+    const trendGrid = cc('--chart-grid');
     CH.trend = new Chart(document.getElementById('ch-trend'), {
       type: 'line',
-      data: { labels: rs.map(r => r.date.slice(0, 5)), datasets: [{ data: rs.map(r => r.diff), borderColor: '#c9a84c', backgroundColor: 'rgba(201,168,76,.08)', tension: .35, pointBackgroundColor: rs.map(r => r.diff < 0 ? '#3498db' : r.diff === 0 ? '#2ecc71' : '#e67e22'), pointRadius: 5, pointBorderWidth: 0, fill: true }] },
-      options: { ...co(), plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.raw >= 0 ? '+' : ''}${c.raw} vs par` } } }, scales: { x: { ticks: { color: cc('--chart-tick'), font: { size: 9 } }, grid: { color: cc('--chart-grid') } }, y: { ticks: { color: cc('--chart-tick'), font: { size: 9 }, stepSize: 1, callback: v => { if (!Number.isInteger(v)) return null; return (v > 0 ? '+' : '') + v; } }, grid: { color: cc('--chart-grid') } } } }
+      data: {
+        labels: rs.map(r => { const dp = r.date?.split('/'); return dp ? dp[0] + '/' + dp[1] : r.date?.slice(0, 5); }),
+        datasets: [{
+          data: rs.map(r => r.diff),
+          borderColor: '#c9a84c',
+          backgroundColor: 'rgba(201,168,76,.08)',
+          tension: .35,
+          pointBackgroundColor: rs.map(r => r.diff < 0 ? '#3498db' : r.diff === 0 ? '#2ecc71' : '#e67e22'),
+          pointRadius: 5, pointHoverRadius: 8, hitRadius: 20, pointBorderWidth: 0, fill: true
+        }]
+      },
+      options: {
+        ...co(),
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: {
+            title: items => { const r = rs[items[0].dataIndex]; return [r.date, r.course || '']; },
+            label: c => `${c.raw >= 0 ? '+' : ''}${c.raw} vs par`
+          }}
+        },
+        scales: {
+          x: { ticks: { color: cc('--chart-tick'), font: { size: 11 } }, grid: { color: trendGrid } },
+          y: { ticks: { color: cc('--chart-tick'), font: { size: 11 }, stepSize: 1, callback: v => { if (!Number.isInteger(v)) return null; return (v > 0 ? '+' : '') + v; } }, grid: { color: trendGrid } }
+        }
+      }
     });
+    const avgDiffRaw = diffs.length ? diffs.reduce((a, b) => a + b, 0) / diffs.length : null;
+    const bestDiff = diffs.length ? Math.min(...diffs) : null;
+    renderInsightGrid(document.getElementById('trend-insight-grid'), [
+      { val: avgDiffRaw, label: `Avg score vs par (${rs.length} rounds)`, type: 'score', fmt: v => (v >= 0 ? '+' : '') + v.toFixed(1) },
+      { val: bestDiff,   label: 'Best score vs par (this period)', type: 'score', fmt: v => (v >= 0 ? '+' : '') + v }
+    ]);
   }
 
   if (fullR.length) {
     const hA = Array.from({ length: 18 }, (_, h) => { const vs = fullR.map(r => r.scores[h] - r.pars[h]); return +(vs.reduce((a, b) => a + b, 0) / vs.length).toFixed(2); });
     dc('holes');
+    const holesGrid = cc('--chart-grid');
     CH.holes = new Chart(document.getElementById('ch-holes'), {
       type: 'bar',
       data: { labels: Array.from({ length: 18 }, (_, i) => i + 1), datasets: [{ data: hA, backgroundColor: hA.map(v => v <= -2 ? '#f1c40f' : v < 0 ? '#3498db' : v === 0 ? '#2ecc71' : v <= 1 ? '#e67e22' : '#e74c3c'), borderRadius: 3 }] },
-      options: { ...co(), plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.raw >= 0 ? '+' : ''}${c.raw} avg` } } }, scales: { x: { ticks: { color: cc('--chart-tick'), font: { size: 9 } }, grid: { color: cc('--chart-grid') } }, y: { ticks: { color: cc('--chart-tick'), font: { size: 9 }, stepSize: 0.5, callback: v => { if (Math.round(v * 2) !== v * 2) return null; const f = parseFloat(v.toFixed(1)); return (v > 0 ? '+' : '') + f; } }, grid: { color: cc('--chart-grid') } } } }
+      options: {
+        ...co(),
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: {
+            title: items => `Hole ${items[0].label}`,
+            label: c => `Avg: ${c.raw >= 0 ? '+' : ''}${c.raw} vs par (${fullR.length} rounds)`
+          }}
+        },
+        scales: {
+          x: { ticks: { color: cc('--chart-tick'), font: { size: 11 } }, grid: { color: holesGrid } },
+          y: { ticks: { color: cc('--chart-tick'), font: { size: 11 }, stepSize: 0.5, callback: v => { if (Math.round(v * 2) !== v * 2) return null; const f = parseFloat(v.toFixed(1)); return (v > 0 ? '+' : '') + f; } }, grid: { color: holesGrid } }
+        }
+      }
     });
 
     // Putting trend chart — total putts per round (last 10 rounds with any putts data)
@@ -529,86 +599,119 @@ export function renderStats() {
       const ptData = puttsRounds.map(r => (r.putts || []).reduce((a, v) => a + (v || 0), 0));
       const ptMax = Math.max(...ptData) + 2;
       dc('putts');
+      const puttsGrid = cc('--chart-grid');
       CH.putts = new Chart(document.getElementById('ch-putts'), {
         type: 'line',
-        data: { labels: ptLabels, datasets: [{ data: ptData, borderColor: '#3498db', backgroundColor: 'rgba(52,152,219,.08)', pointBackgroundColor: '#c9a84c', pointRadius: 5, pointBorderWidth: 0, tension: .3, fill: true }] },
-        options: { ...co(), plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw + ' putts' } } }, scales: { x: { ticks: { color: cc('--chart-tick'), font: { size: 9 } }, grid: { color: cc('--chart-grid') } }, y: { min: 20, max: ptMax, ticks: { color: cc('--chart-tick'), font: { size: 9 }, stepSize: 1, callback: v => Number.isInteger(v) ? v : null }, grid: { color: cc('--chart-grid') } } } }
-      });
-      const avgPutts = Math.round(ptData.reduce((a, b) => a + b, 0) / ptData.length);
-      const summaryEl = document.getElementById('putts-trend-summary');
-      if (summaryEl) summaryEl.textContent = `Avg ${avgPutts} putts · last ${puttsRounds.length} rounds tracked`;
-    }
-
-  }
-
-  // ── GIR % by hole type — three trend lines (last 10 rounds with GIR data) ──
-  {
-    const girRoundsAll = allSorted.filter(r => (r.gir || []).some(v => v === 'Yes' || v === 'No')).slice(-10);
-    const cGir = document.getElementById('c-gir');
-    if (cGir) cGir.style.display = girRoundsAll.length > 0 ? 'block' : 'none';
-    dc('gir');
-    if (girRoundsAll.length > 0) {
-      const girLabels = girRoundsAll.map(r => {
-        const dp = r.date?.split('/');
-        return dp && dp.length === 3 ? MONTHS_SHORT[parseInt(dp[1], 10) - 1] + ' ' + parseInt(dp[0], 10) : r.date?.slice(0, 5) || '';
-      });
-      function girPctByPar(rounds, par) {
-        return rounds.map(r => {
-          const pars = r.pars || [];
-          const gir = r.gir || [];
-          let hits = 0, total = 0;
-          pars.forEach((p, i) => { if (p === par && (gir[i] === 'Yes' || gir[i] === 'No')) { total++; if (gir[i] === 'Yes') hits++; } });
-          return total ? +(hits / total * 100).toFixed(1) : null;
-        });
-      }
-      const par3Data = girPctByPar(girRoundsAll, 3);
-      const par4Data = girPctByPar(girRoundsAll, 4);
-      const par5Data = girPctByPar(girRoundsAll, 5);
-      CH.gir = new Chart(document.getElementById('gir-chart'), {
-        type: 'line',
         data: {
-          labels: girLabels,
-          datasets: [
-            { label: 'Par 3', data: par3Data, borderColor: '#3498db', backgroundColor: 'transparent', tension: 0.3, pointRadius: 4, pointBackgroundColor: '#3498db', spanGaps: false },
-            { label: 'Par 4', data: par4Data, borderColor: '#c9a84c', backgroundColor: 'transparent', tension: 0.3, pointRadius: 4, pointBackgroundColor: '#c9a84c', spanGaps: false },
-            { label: 'Par 5', data: par5Data, borderColor: '#2ecc71', backgroundColor: 'transparent', tension: 0.3, pointRadius: 4, pointBackgroundColor: '#2ecc71', spanGaps: false }
-          ]
+          labels: ptLabels,
+          datasets: [{
+            data: ptData,
+            borderColor: '#3498db',
+            backgroundColor: 'rgba(52,152,219,.08)',
+            pointBackgroundColor: '#c9a84c',
+            pointRadius: 5, pointHoverRadius: 8, hitRadius: 20, pointBorderWidth: 0,
+            tension: .3, fill: true
+          }]
         },
-        options: { ...co(), plugins: { legend: { display: true, position: 'top', labels: { color: cc('--chart-tick'), font: { size: 10 }, boxWidth: 10, padding: 8 } }, tooltip: { callbacks: { title: () => '', label: c => c.dataset.label + ': ' + c.raw + '%' } } }, scales: { x: { ticks: { color: cc('--chart-tick'), font: { size: 9 } }, grid: { color: cc('--chart-grid') } }, y: { min: 0, max: 100, ticks: { color: cc('--chart-tick'), font: { size: 9 }, stepSize: 25, callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,0.06)' } } } }
+        options: {
+          ...co(),
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: {
+              title: items => { const r = puttsRounds[items[0].dataIndex]; return [r.date, r.course || '']; },
+              label: c => c.raw + ' putts'
+            }}
+          },
+          scales: {
+            x: { ticks: { color: cc('--chart-tick'), font: { size: 11 } }, grid: { color: puttsGrid } },
+            y: { min: 20, max: ptMax, ticks: { color: cc('--chart-tick'), font: { size: 11 }, stepSize: 1, callback: v => Number.isInteger(v) ? v : null }, grid: { color: puttsGrid } }
+          }
+        }
       });
-      function avgOf(data) { const v = data.filter(x => x != null); return v.length ? (v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : '—'; }
-      const girSummary = document.getElementById('gir-trend-summary');
-      if (girSummary) girSummary.textContent = `Par 3: ${avgOf(par3Data)}% \u00B7 Par 4: ${avgOf(par4Data)}% \u00B7 Par 5: ${avgOf(par5Data)}%`;
+      const totalPuttsSum = ptData.reduce((a, b) => a + b, 0);
+      const avgPuttsRound = totalPuttsSum / ptData.length;
+      const avgPuttsHole = avgPuttsRound / 18;
+      renderInsightGrid(document.getElementById('putts-insight-grid'), [
+        { val: avgPuttsHole,  label: `Avg putts per hole (${puttsRounds.length} rounds)`, type: 'putts', fmt: v => v.toFixed(2) },
+        { val: avgPuttsRound, label: `Avg total putts per round`,                          type: null,    fmt: v => v.toFixed(1) }
+      ]);
     }
+
   }
 
-  // ── FIR % trend line (last 10 rounds with FIR data) ──────────────
+  // ── Combined FIR & GIR dual trend line chart (ch-fg) ─────────────
   {
-    const firRoundsAll = allSorted.filter(r => (r.fir || []).some(v => v === 'Yes' || v === 'No')).slice(-10);
-    const cFir = document.getElementById('c-fir');
-    if (cFir) cFir.style.display = firRoundsAll.length > 0 ? 'block' : 'none';
-    dc('fir');
-    if (firRoundsAll.length > 0) {
-      const firLabels = firRoundsAll.map(r => {
+    const fgRounds = allSorted.filter(r =>
+      (r.fir || []).some(v => v === 'Yes' || v === 'No') ||
+      (r.gir || []).some(v => v === 'Yes' || v === 'No')
+    ).slice(-10);
+    const cFg = document.getElementById('c-fg');
+    if (cFg) cFg.style.display = fgRounds.length > 0 ? 'block' : 'none';
+    dc('fg');
+    if (fgRounds.length > 0) {
+      const fgLabels = fgRounds.map(r => {
         const dp = r.date?.split('/');
-        return dp && dp.length === 3 ? MONTHS_SHORT[parseInt(dp[1], 10) - 1] + ' ' + parseInt(dp[0], 10) : r.date?.slice(0, 5) || '';
+        return dp && dp.length === 3 ? dp[0] + '/' + dp[1] : r.date?.slice(0, 5) || '';
       });
-      const firData = firRoundsAll.map(r => {
+      const firData = fgRounds.map(r => {
         const fir = r.fir || [];
         const poss = fir.filter(v => v === 'Yes' || v === 'No').length;
         if (!poss) return null;
-        const hits = fir.filter(v => v === 'Yes').length;
-        return +(hits / poss * 100).toFixed(1);
+        return +(fir.filter(v => v === 'Yes').length / poss * 100).toFixed(1);
       });
-      CH.fir = new Chart(document.getElementById('fir-chart'), {
+      const girData = fgRounds.map(r => {
+        const gir = r.gir || [];
+        const poss = gir.filter(v => v === 'Yes' || v === 'No').length;
+        if (!poss) return null;
+        return +(gir.filter(v => v === 'Yes').length / poss * 100).toFixed(1);
+      });
+      const fgGrid = cc('--chart-grid');
+      CH.fg = new Chart(document.getElementById('ch-fg'), {
         type: 'line',
-        data: { labels: firLabels, datasets: [{ label: 'FIR %', data: firData, borderColor: '#e67e22', backgroundColor: 'rgba(230,126,34,0.08)', fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#e67e22' }] },
-        options: { ...co(), plugins: { legend: { display: false }, tooltip: { callbacks: { title: () => '', label: c => 'FIR %: ' + c.raw + '%' } } }, scales: { x: { ticks: { color: cc('--chart-tick'), font: { size: 9 } }, grid: { color: cc('--chart-grid') } }, y: { min: 0, max: 100, ticks: { color: cc('--chart-tick'), font: { size: 9 }, stepSize: 25, callback: v => v + '%' }, grid: { color: cc('--chart-grid') } } } }
+        data: {
+          labels: fgLabels,
+          datasets: [
+            {
+              label: 'FIR %',
+              data: firData,
+              borderColor: '#3498db', backgroundColor: 'transparent',
+              tension: 0.3, pointRadius: 5, pointHoverRadius: 8, hitRadius: 20,
+              pointBackgroundColor: '#3498db', pointBorderWidth: 0,
+              fill: false, spanGaps: false
+            },
+            {
+              label: 'GIR %',
+              data: girData,
+              borderColor: '#2ecc71', backgroundColor: 'transparent',
+              tension: 0.3, pointRadius: 5, pointHoverRadius: 8, hitRadius: 20,
+              pointBackgroundColor: '#2ecc71', pointBorderWidth: 0,
+              fill: false, spanGaps: false
+            }
+          ]
+        },
+        options: {
+          ...co(),
+          plugins: {
+            legend: { display: true, position: 'top', labels: { color: cc('--chart-tick'), font: { size: 10 }, boxWidth: 10, padding: 8 } },
+            tooltip: { callbacks: {
+              title: items => { const r = fgRounds[items[0].dataIndex]; return [r.date, r.course || '']; },
+              label: c => c.dataset.label + ': ' + (c.raw !== null ? c.raw + '%' : '—')
+            }}
+          },
+          scales: {
+            x: { ticks: { color: cc('--chart-tick'), font: { size: 11 } }, grid: { color: fgGrid } },
+            y: { min: 0, max: 100, ticks: { color: cc('--chart-tick'), font: { size: 11 }, stepSize: 25, callback: v => v + '%' }, grid: { color: fgGrid } }
+          }
+        }
       });
-      const validFir = firData.filter(v => v != null);
-      const avgFir = validFir.length ? (validFir.reduce((a, b) => a + b, 0) / validFir.length).toFixed(1) : '—';
-      const firSummary = document.getElementById('fir-trend-summary');
-      if (firSummary) firSummary.textContent = `Avg ${avgFir}% FIR \u00B7 last ${firRoundsAll.length} rounds tracked`;
+      const validFir = firData.filter(v => v !== null);
+      const validGir = girData.filter(v => v !== null);
+      const avgFir = validFir.length ? validFir.reduce((a, b) => a + b, 0) / validFir.length : null;
+      const avgGir = validGir.length ? validGir.reduce((a, b) => a + b, 0) / validGir.length : null;
+      renderInsightGrid(document.getElementById('fg-insight-grid'), [
+        { val: avgFir, label: 'Avg FIR % — fairways hit',      type: 'fir', fmt: v => Math.round(v) + '%' },
+        { val: avgGir, label: 'Avg GIR % — greens in reg.',     type: 'gir', fmt: v => Math.round(v) + '%' }
+      ]);
     }
   }
 
