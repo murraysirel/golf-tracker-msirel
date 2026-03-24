@@ -529,27 +529,62 @@ export function renderStats() {
   if (rs.length > 1) {
     dc('trend');
     const trendGrid = cc('--chart-grid');
+
+    // Season average (precise float for line + point colouring)
+    const avgDiffPrecise = diffs.length ? diffs.reduce((a, b) => a + b, 0) / diffs.length : null;
+
+    // Colour each point: below avg = good (green), above avg = bad (red), on avg = gold
+    const ptColors = rs.map(r => {
+      if (avgDiffPrecise === null || r.diff == null) return '#c9a84c';
+      if (r.diff < avgDiffPrecise) return '#2ecc71';   // var(--par)
+      if (r.diff > avgDiffPrecise) return '#e74c3c';   // var(--double)
+      return '#c9a84c';                                  // var(--gold) — exactly on avg
+    });
+
     CH.trend = new Chart(document.getElementById('ch-trend'), {
       type: 'line',
       data: {
         labels: rs.map(r => { const dp = r.date?.split('/'); return dp ? dp[0] + '/' + dp[1] : r.date?.slice(0, 5); }),
-        datasets: [{
-          data: rs.map(r => r.diff),
-          borderColor: '#c9a84c',
-          backgroundColor: 'rgba(201,168,76,.08)',
-          tension: .35,
-          pointBackgroundColor: rs.map(r => r.diff < 0 ? '#3498db' : r.diff === 0 ? '#2ecc71' : '#e67e22'),
-          pointRadius: 5, pointHoverRadius: 8, hitRadius: 20, pointBorderWidth: 0, fill: true
-        }]
+        datasets: [
+          {
+            label: 'Score',
+            data: rs.map(r => r.diff),
+            borderColor: '#c9a84c',
+            backgroundColor: 'rgba(201,168,76,.08)',
+            tension: .35,
+            pointBackgroundColor: ptColors,
+            pointRadius: 5, pointHoverRadius: 8, hitRadius: 25, pointBorderWidth: 0, fill: true
+          },
+          {
+            label: 'Season avg',
+            data: avgDiffPrecise !== null ? rs.map(() => avgDiffPrecise) : [],
+            borderColor: cc('--gold'),
+            borderDash: [6, 4],
+            backgroundColor: 'transparent',
+            pointRadius: 0, pointHoverRadius: 0, hitRadius: 0,
+            tension: 0, fill: false
+          }
+        ]
       },
       options: {
         ...co(),
         plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: {
-            title: items => { const r = rs[items[0].dataIndex]; return [r.date, r.course || '']; },
-            label: c => `${c.raw >= 0 ? '+' : ''}${c.raw} vs par`
-          }}
+          legend: { display: true, position: 'top', labels: { color: cc('--chart-tick'), font: { size: 10 }, boxWidth: 10, padding: 8 } },
+          tooltip: {
+            filter: item => item.datasetIndex === 0,
+            callbacks: {
+              title: items => rs[items[0].dataIndex]?.course || '',
+              label: c => {
+                const r = rs[c.dataIndex];
+                const sign = r.diff >= 0 ? '+' : '';
+                return [`Score: ${r.totalScore ?? '—'}`, `${sign}${r.diff} vs par`];
+              },
+              labelTextColor: c => {
+                const d = rs[c.dataIndex]?.diff;
+                return d < 0 ? '#2ecc71' : d > 0 ? '#e74c3c' : '#c9a84c';
+              }
+            }
+          }
         },
         scales: {
           x: { ticks: { color: cc('--chart-tick'), font: { size: 11 } }, grid: { color: trendGrid } },
@@ -557,6 +592,7 @@ export function renderStats() {
         }
       }
     });
+
     const avgDiffRaw = diffs.length ? diffs.reduce((a, b) => a + b, 0) / diffs.length : null;
     const bestDiff = diffs.length ? Math.min(...diffs) : null;
     renderInsightGrid(document.getElementById('trend-insight-grid'), [
