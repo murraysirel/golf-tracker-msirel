@@ -240,8 +240,20 @@ export async function saveRound() {
     // If Gist also failed, the existing error message stays — don't overwrite
   });
 
-  const syncMsg = ok ? '\u2705 Saved & synced!' : '\u26A0\uFE0F Saved locally \u2014 will sync when connection resumes';
-  alert(`${syncMsg}\n\n${c.name} \u00B7 ${state.stee} tees\n${ts} (${d >= 0 ? '+' : ''}${d} vs Par ${tp})`);
+  // Non-blocking round-saved banner (replaces alert — alert blocks microtask queue,
+  // preventing pushSupabase .then() from firing before the user dismisses it)
+  {
+    const banner = document.createElement('div');
+    banner.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);' +
+      'background:var(--card,#1e2530);color:var(--text,#fff);border:1px solid var(--gold,#c9a84c);' +
+      'border-radius:10px;padding:14px 22px;z-index:9999;text-align:center;' +
+      'box-shadow:0 4px 20px rgba(0,0,0,.5);max-width:90vw;font-size:15px;line-height:1.5';
+    const icon = ok ? '\u2705' : '\u26A0\uFE0F';
+    const msg  = ok ? 'Saved &amp; synced!' : 'Saved locally \u2014 will sync when connection resumes';
+    banner.innerHTML = `<strong>${icon} ${msg}</strong><br>${c.name} \u00B7 ${state.stee} tees<br>${ts} (${d >= 0 ? '+' : ''}${d} vs Par ${tp})`;
+    document.body.appendChild(banner);
+    setTimeout(() => banner.remove(), 4000);
+  }
 
   // Show match context sheet if other players exist (non-blocking — round already saved)
   const otherPlayers = Object.keys(state.gd.players).filter(p => p !== target);
