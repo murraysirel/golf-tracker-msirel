@@ -229,7 +229,9 @@ export async function saveRound() {
     handicap: state.gd.players[target]?.handicap || 0,
     matchCode: state.gd.players[target]?.matchCode || null
   };
+  console.log('DEBUG: calling pushSupabase', { round: rnd, playerData });
   pushSupabase('saveRound', { round: rnd, playerData }).then(sbOk => {
+    console.log('DEBUG: pushSupabase result', sbOk);
     if (ok && sbOk) {
       ss('ok', 'Synced \u2713');
     } else if (ok && !sbOk) {
