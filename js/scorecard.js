@@ -382,7 +382,16 @@ function showPuttsOnlyEntry(rnd) {
     const playerRounds = state.gd.players[target]?.rounds || [];
     const idx = playerRounds.findIndex(r => r.id === rnd.id);
     if (idx !== -1) {
-      playerRounds[idx].putts = newPutts;
+      const r = playerRounds[idx];
+      r.putts = newPutts;
+      // Derive GIR from the now-known putts + existing scores/pars
+      r.gir = Array.from({ length: 18 }, (_, h) => {
+        const sc = r.scores?.[h];
+        const pt = newPutts[h];
+        const par = (r.pars?.[h]) ?? 4;
+        if (sc == null || pt == null) return r.gir?.[h] || '';
+        return (sc - pt) <= (par - 2) ? 'Yes' : 'No';
+      });
       await pushGist();
     }
     modal.style.display = 'none';
