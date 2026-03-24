@@ -12,19 +12,13 @@ const supabase = createClient(
 const headers = {
   'Content-Type': 'application/json',
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type, x-sync-secret',
+  'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
 };
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
-  }
-
-  // Verify sync secret
-  const secret = event.headers['x-sync-secret'];
-  if (secret !== process.env.SYNC_SECRET) {
-    return { statusCode: 401, headers, body: JSON.stringify({ error: 'Unauthorised' }) };
   }
 
   let action, groupCode, data;

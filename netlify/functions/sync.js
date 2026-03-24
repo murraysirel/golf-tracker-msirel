@@ -8,18 +8,9 @@
 // Last rotated: [DATE — update this when you rotate]
 // To rotate: GitHub → Settings → Developer settings → Personal access
 // tokens → Tokens (classic) → regenerate → update in Netlify env vars
-//
-// SYNC_SECRET rotation: rotate annually or if suspected compromised
-// To rotate: generate new 32-char string → update in Netlify env vars
-//            AND update the SYNC_SECRET constant in js/api.js
 // ────────────────────────────────────────────────────────────────────
 
-// SETUP: Add SYNC_SECRET environment variable in Netlify dashboard
-// Site configuration → Environment variables → Add: SYNC_SECRET
-// Value: generate a random 32-character alphanumeric string
-// Never commit the actual secret value to the repo
-
-console.warn('[Looper] sync.js loaded — ensure GITHUB_TOKEN and SYNC_SECRET are set in Netlify env vars');
+console.warn('[Looper] sync.js loaded — ensure GITHUB_TOKEN is set in Netlify env vars');
 
 const https = require('https');
 
@@ -27,7 +18,7 @@ const GIST_ID = '089c0ed169b5c67dbd8846002b3def45';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type, x-sync-secret',
+  'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Content-Type': 'application/json',
 };
@@ -131,23 +122,7 @@ exports.handler = async (event) => {
   // ── POST — save all data ───────────────────────────────────────
   if (event.httpMethod === 'POST') {
 
-    // Part 1: SYNC_SECRET check
-    // NOTE: The secret is also present in client-side JS (js/api.js) so it is
-    // visible to anyone who reads the source. This guards against casual abuse
-    // and bots, not determined attackers with access to the source code.
-    const syncSecret = process.env.SYNC_SECRET;
-    if (syncSecret) {
-      const clientSecret = event.headers['x-sync-secret'];
-      if (!clientSecret || clientSecret !== syncSecret) {
-        return {
-          statusCode: 401,
-          headers: CORS_HEADERS,
-          body: JSON.stringify({ error: 'Unauthorised' }),
-        };
-      }
-    }
-
-    // Part 3: Rate limiting — 60 writes per hour per IP
+    // Rate limiting — 60 writes per hour per IP
     const ip = event.headers['x-forwarded-for']?.split(',')[0]?.trim()
               || event.headers['client-ip']
               || 'unknown';

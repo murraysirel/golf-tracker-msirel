@@ -4,11 +4,6 @@
 import { state } from './state.js';
 import { DEFAULT_GIST, API } from './constants.js';
 
-// NOTE: This secret is visible in client-side JS — it guards against bots
-// and casual abuse, not determined attackers who can read the source.
-// Must match SYNC_SECRET env var in Netlify dashboard.
-const SYNC_SECRET = 'plWE28irTT50Lllmsit9SACT624sP0TR';
-
 export function ss(status, msg) {
   const d = document.getElementById('sdot'), t = document.getElementById('stext');
   if (!d) return;
@@ -73,10 +68,7 @@ export async function pushSupabase(action, data) {
   try {
     const res = await fetch('/.netlify/functions/supabase', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-sync-secret': SYNC_SECRET
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action,
         groupCode: state.gd?.groupCode || '',
@@ -95,10 +87,7 @@ async function loadSupabase() {
   try {
     const res = await fetch('/.netlify/functions/supabase', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-sync-secret': SYNC_SECRET
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'read',
         groupCode: state.gd?.groupCode || ''
@@ -207,7 +196,7 @@ export async function pushGist() {
   try {
     const r = await fetch(API, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-sync-secret': SYNC_SECRET },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ data: state.gd })
     });
     if (r.status === 429) {
