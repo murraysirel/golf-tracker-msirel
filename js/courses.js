@@ -160,11 +160,26 @@ function _applyCourse(course) {
   state.cpars      = pars.length === 18 ? pars : Array(18).fill(4);
   state.activeCourse = course;
  
-  // Store green coords in state for gps.js to consume
-  // Format: { 1: { front:{lat,lng}, middle:{lat,lng}, back:{lat,lng} }, 2: ... }
+  // Store green coords in state for gps.js to consume.
+  // Backend returns: { "1": { green: { front, middle, back }, tee: {lat,lng} }, "2": ... }
+  // gps.js expects:  { 0: { front, mid, back }, 1: ... }  (0-indexed, 'mid' not 'middle')
   if (course.green_coords && Object.keys(course.green_coords).length > 0) {
     if (!state.gd.greenCoords) state.gd.greenCoords = {};
-    state.gd.greenCoords[course.name] = course.green_coords;
+    if (!state.gd.teeCoords)   state.gd.teeCoords   = {};
+    const greenMap = {};
+    const teeMap   = {};
+    Object.entries(course.green_coords).forEach(([holeNum, data]) => {
+      const h0 = parseInt(holeNum) - 1;   // 1-indexed string → 0-indexed int
+      const g  = data.green || {};
+      greenMap[h0] = {
+        front: g.front  || null,
+        mid:   g.middle || g.mid || null, // API uses 'middle', gps.js reads 'mid'
+        back:  g.back   || null,
+      };
+      if (data.tee) teeMap[h0] = data.tee;
+    });
+    state.gd.greenCoords[course.name] = greenMap;
+    if (Object.keys(teeMap).length) state.gd.teeCoords[course.name] = teeMap;
   }
  
   // Apply first tee by default

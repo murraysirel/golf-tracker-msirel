@@ -30,12 +30,8 @@ function getTeeCoords(hole0) {
   return tees[hole0];
 }
 
-export function hasGreenCoords(hole0) {
-  return getGreenCoords(hole0) !== null;
-}
-
 // startGPSWatch: always starts position watching for the unified live screen.
-// Distances show once green coords exist; no alert if they're missing.
+// Distances show once green coords exist; shows — if missing.
 export function startGPSWatch() {
   if (!navigator.geolocation || state.gpsState.watching) return;
   state.gpsState.watching = true;
@@ -52,17 +48,10 @@ export function startGPSWatch() {
 export function startGPS() {
   if (!navigator.geolocation) { alert('GPS not available on this device or browser.'); return; }
   const h = state.liveState?.hole || 0;
-  const green = getGreenCoords(h);
-  if (!green) {
-    const yn = confirm(`No green coordinates for hole ${h+1}.\n\nWalk to the green centre and tap Pin to save the position — it only needs to be done once per hole and will be used for all future rounds.`);
-    if (yn) { showPinGreenPrompt(h); }
-    return;
-  }
-  const isApprox = green._approx === true;
   const bar = document.getElementById('gps-bar');
   bar.style.display = 'flex';
   document.getElementById('gps-hole-name').textContent = `Hole ${h+1}`;
-  document.getElementById('gps-course-name').textContent = isApprox ? 'Approx position — pin green for accuracy' : (getCourseByRef()?.name || '');
+  document.getElementById('gps-course-name').textContent = getCourseByRef()?.name || '';
 
   // Show "Pin tee" button if no tee coords yet
   const teePinBtn = document.getElementById('gps-btn-pin-tee');
@@ -78,7 +67,6 @@ export function startGPS() {
     err => { document.getElementById('gps-dist').textContent = '—'; console.warn('GPS error:', err.message); },
     { enableHighAccuracy: true, maximumAge: 3000, timeout: 15000 }
   );
-  updateLiveGPSPill();
 }
 
 export function stopGPS() {
@@ -123,7 +111,7 @@ export function updateGPSDisplay(hole0) {
     if (el) el.textContent = y !== null ? y : '—';
   });
 
-  // Show tee distance if tee is pinned
+  // Show tee distance if tee coords available
   const tee = getTeeCoords(hole0);
   const teeWrap = document.getElementById('gps-tee-wrap');
   if (tee && teeWrap) {
@@ -135,52 +123,6 @@ export function updateGPSDisplay(hole0) {
     const td = document.getElementById('gps-tee-dist');
     if (td) td.textContent = teeYards;
   }
-}
-
-function showPinGreenPrompt(hole0) {
-  const bar = document.getElementById('gps-bar');
-  bar.style.display = 'flex';
-  document.getElementById('gps-hole-name').textContent = `Pin Hole ${hole0+1}`;
-  document.getElementById('gps-course-name').textContent = 'Stand at the green centre and tap Pin';
-  document.getElementById('gps-dist').textContent = '\uD83D\uDCCD';
-  const btns = bar.querySelectorAll('.gps-btn');
-  btns.forEach(b => b.style.display = 'none');
-  const pinBtn = document.createElement('button');
-  pinBtn.className = 'gps-btn active';
-  pinBtn.textContent = 'Pin green';
-  pinBtn.style.fontSize = '13px';
-  pinBtn.addEventListener('click', () => pinGreenPosition(hole0, pinBtn, btns));
-  bar.insertBefore(pinBtn, bar.lastElementChild);
-}
-
-export function pinGreenPosition(hole0, pinBtn, btns) {
-  if (!navigator.geolocation) { alert('GPS not available.'); return; }
-  pinBtn.textContent = 'Getting GPS...';
-  pinBtn.disabled = true;
-  navigator.geolocation.getCurrentPosition(pos => {
-    const lat = pos.coords.latitude, lng = pos.coords.longitude;
-    const courseName = getCourseName();
-    if (!state.gd.greenCoords) state.gd.greenCoords = {};
-    if (!state.gd.greenCoords[courseName]) state.gd.greenCoords[courseName] = {};
-    state.gd.greenCoords[courseName][hole0] = {
-      front: { lat: lat - 0.00015, lng },
-      mid: { lat, lng },
-      back: { lat: lat + 0.00015, lng }
-    };
-    pushGist();
-    pinBtn.remove();
-    btns.forEach(b => b.style.display = '');
-    document.getElementById('gps-hole-name').textContent = `Hole ${hole0+1} pinned!`;
-    document.getElementById('gps-dist').textContent = '\u2713';
-    setTimeout(() => {
-      stopGPS();
-      alert(`Hole ${hole0+1} green pinned!\n\nDistances will now show when you tap the GPS button during a round on this course.`);
-    }, 1200);
-  }, err => {
-    pinBtn.textContent = 'Retry';
-    pinBtn.disabled = false;
-    alert('Could not get GPS position — make sure you have location permission enabled for this site.');
-  }, { enableHighAccuracy: true, timeout: 15000 });
 }
 
 export function pinTeePosition(hole0) {

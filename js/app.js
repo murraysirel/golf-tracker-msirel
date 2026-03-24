@@ -12,7 +12,7 @@ import { renderOnboard, enterAs, addAndEnter, signOut, addPlayer, renderAllPlaye
 import { renderPracticePage, selectPracticeArea, startPracticeSession, regeneratePlan, logPracticeShots, completePracticeSession } from './practice.js';
 import { initLiveRound, liveGoto, liveSaveNote, liveNextOrFinish, toggleGroupPlayer, startGroupRound, toggleMatchPlay, openCorrectionModal, submitCorrectionReport, cancelRound } from './live.js';
 import { generateAIReview, generateStatsAnalysis, clearStatsAnalysis, parsePhoto, handlePhoto } from './ai.js';
-import { stopGPS, gpsSetTarget, pinGreenPosition, pinTeePosition } from './gps.js';
+import { stopGPS, gpsSetTarget, pinTeePosition } from './gps.js';
 import { exportXlsx } from './export.js';
 import { openAdminSettings, closeAdminSettings, verifyAdminPw, adminPopulateRounds, adminDeleteRound } from './admin.js';
 import { copyGroupCode, leaveGroup, toggleGroupCodeRequired, addSeason, deleteSeason, confirmDeleteMyData, deleteMyData, copyAppUrl, rebuildSeasonSelector } from './group.js';
@@ -147,10 +147,6 @@ document.getElementById('live-next')?.addEventListener('click', () => liveGoto(s
 document.getElementById('live-btn-prev2')?.addEventListener('click', () => liveGoto(state.liveState.hole - 1));
 document.getElementById('live-btn-next2')?.addEventListener('click', liveNextOrFinish);
 document.getElementById('live-note')?.addEventListener('input', liveSaveNote);
-document.getElementById('live-pin-green-btn')?.addEventListener('click', () => {
-  const h = state.liveState?.hole || 0;
-  pinGreenPosition(h, document.getElementById('live-pin-green-btn'), []);
-});
 document.getElementById('live-flag-btn')?.addEventListener('click', openCorrectionModal);
 document.getElementById('correction-close-btn')?.addEventListener('click', () => { document.getElementById('correction-modal').style.display = 'none'; });
 document.getElementById('correction-submit-btn')?.addEventListener('click', submitCorrectionReport);

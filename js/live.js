@@ -386,11 +386,9 @@ export function liveGoto(h) {
 
   document.getElementById('live-note').value = state.liveState.notes[h] || '';
 
-  // Update GPS display and pin-green button
-  import('./gps.js').then(({ updateGPSDisplay, hasGreenCoords }) => {
+  // Update GPS display for new hole
+  import('./gps.js').then(({ updateGPSDisplay }) => {
     if (state.gpsState.watching) updateGPSDisplay(h);
-    const pinBtn = document.getElementById('live-pin-green-btn');
-    if (pinBtn) pinBtn.style.display = hasGreenCoords(h) ? 'none' : 'block';
   });
 
   document.getElementById('live-prev').disabled = h === 0;
