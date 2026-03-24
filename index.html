@@ -1073,6 +1073,13 @@
             <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:8px">Course Corrections</div>
             <div id="admin-corrections" style="font-size:11px;color:var(--dim)"></div>
           </div>
+          <!-- Gist → Supabase migration -->
+          <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+            <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:8px">Supabase Migration</div>
+            <div style="font-size:11px;color:var(--dim);margin-bottom:10px">One-time: copies all Gist data into Supabase. Safe to re-run (upsert). Secret is injected server-side — never sent from the browser.</div>
+            <button class="btn btn-o" id="admin-migrate-btn" onclick="window._adminRunMigration()">Run Gist → Supabase Migration</button>
+            <div id="admin-migrate-msg" style="margin-top:8px;font-size:11px;color:var(--dim)"></div>
+          </div>
         </div>
       </div>
     </div>

@@ -203,3 +203,34 @@ async function adminDismissCorrection(origIdx) {
   await pushGist();
   renderAdminCorrections();
 }
+
+export async function adminRunMigration() {
+  const btn = document.getElementById('admin-migrate-btn');
+  const msg = document.getElementById('admin-migrate-msg');
+  if (!msg) return;
+  btn.disabled = true;
+  msg.style.color = 'var(--dim)';
+  msg.textContent = 'Running migration\u2026';
+  try {
+    const res = await fetch('/.netlify/functions/run-migration', { method: 'POST' });
+    const json = await res.json();
+    if (res.ok && json.migrated != null) {
+      msg.style.color = '#2ecc71';
+      msg.textContent = `\u2705 Done \u2014 ${json.migrated} round(s) migrated, ${json.skipped ?? 0} skipped.`;
+    } else if (res.ok) {
+      msg.style.color = '#2ecc71';
+      msg.textContent = '\u2705 Migration complete.';
+    } else {
+      msg.style.color = '#e74c3c';
+      msg.textContent = `\u274C Error ${res.status}: ${json.error || 'unknown'}`;
+    }
+  } catch (err) {
+    msg.style.color = '#e74c3c';
+    msg.textContent = '\u274C Network error \u2014 check connection.';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// Expose for inline onclick in admin panel HTML
+window._adminRunMigration = adminRunMigration;
