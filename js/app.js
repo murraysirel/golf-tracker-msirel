@@ -64,6 +64,7 @@ document.getElementById('nb-practice')?.addEventListener('click', () => goTo('pr
 // ── Profile panel ─────────────────────────────────────────────────
 function openProfilePanel() {
   import('./players.js').then(({ renderAllPlayers }) => renderAllPlayers());
+  import('./courses.js').then(({ renderScannedCourses }) => renderScannedCourses());
   document.getElementById('profile-panel')?.classList.add('open');
   document.getElementById('profile-backdrop')?.classList.add('open');
   document.getElementById('profile-icon-btn')?.classList.add('panel-open');
