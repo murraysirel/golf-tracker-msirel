@@ -444,6 +444,83 @@ function populateRoundSelector() {
   sel.innerHTML = roundOpts + incompleteNote + (has5 ? '<option value="last5">\u2014 Analyse last 5 qualifying rounds \u2014</option>' : '');
 }
 
+// ── Self-service round deletion ───────────────────────────────────
+// Deletion only removes the round from the deleting player's own profile.
+// Other players' round objects are completely untouched — do not search or
+// modify any other player's rounds array.
+
+const TRASH_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V6"/><path d="M8 6V4c0-1.1.9-2 2-2h4c1.1 0 2 .9 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
+
+function bindDeleteZone(delZone, r) {
+  delZone.innerHTML = `<button class="btn btn-ghost" style="width:auto;padding:6px 8px" title="Delete round">${TRASH_SVG}</button>`;
+  delZone.querySelector('button').addEventListener('click', e => {
+    e.stopPropagation();
+    showDeleteConfirmInline(delZone, r);
+  });
+}
+
+function showDeleteConfirmInline(delZone, r) {
+  delZone.innerHTML = `
+    <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end">
+      <span style="font-size:11px;color:var(--dim);white-space:nowrap">Delete this round?</span>
+      <button class="btn btn-ghost" style="width:auto;padding:4px 10px;font-size:11px;border-color:rgba(231,76,60,.4);color:var(--double)" data-del-yes>Yes, delete</button>
+      <button class="btn btn-ghost" style="width:auto;padding:4px 10px;font-size:11px" data-del-no>Cancel</button>
+    </div>`;
+  delZone.querySelector('[data-del-yes]').addEventListener('click', e => {
+    e.stopPropagation();
+    showDeleteRoundModal(r);
+  });
+  delZone.querySelector('[data-del-no]').addEventListener('click', e => {
+    e.stopPropagation();
+    bindDeleteZone(delZone, r);
+  });
+}
+
+function showDeleteRoundModal(r) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.65)';
+  const sheet = document.createElement('div');
+  sheet.style.cssText = 'background:var(--mid);border-radius:16px;padding:24px;max-width:340px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.5)';
+  sheet.innerHTML = `
+    <div style="font-size:9px;letter-spacing:2px;color:var(--double);text-transform:uppercase;margin-bottom:12px">Delete Round</div>
+    <div style="font-size:13px;color:var(--dim);line-height:1.6;margin-bottom:20px">
+      Permanently delete your <strong style="color:var(--cream)">${r.course}</strong> round on <strong style="color:var(--cream)">${r.date}</strong>?
+      <br><br>This cannot be undone and only affects your data — other players who played that day keep their own rounds.
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-ghost" data-cancel style="flex:1">Cancel</button>
+      <button class="btn" data-confirm style="flex:1;background:var(--double);color:#fff;border-color:var(--double)">Delete permanently</button>
+    </div>`;
+  overlay.appendChild(sheet);
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  sheet.querySelector('[data-cancel]').addEventListener('click', () => overlay.remove());
+  sheet.querySelector('[data-confirm]').addEventListener('click', () => {
+    overlay.remove();
+    deletePlayerRound(r);
+  });
+}
+
+function deletePlayerRound(r) {
+  const player = state.gd.players[state.me];
+  if (!player) return;
+  const idx = player.rounds.findIndex(round => round.id === r.id);
+  if (idx === -1) return;
+  if (!state.gd.deletionLog) state.gd.deletionLog = [];
+  state.gd.deletionLog.push({
+    deletedBy: state.me,
+    player: state.me,
+    course: r.course,
+    date: r.date,
+    score: r.totalScore,
+    diff: r.diff,
+    deletedAt: new Date().toLocaleDateString('en-GB') + ' ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  });
+  player.rounds.splice(idx, 1);
+  pushGist(); // single call per deletion
+  renderStats();
+}
+
 export function renderStats() {
   const p = state.gd.players[state.me];
   if (!p) return;
@@ -761,9 +838,30 @@ export function renderStats() {
     const dot = TC[r.tee]?.d || '#888';
     const d = document.createElement('div');
     d.className = 'hi';
-    d.style.cursor = 'pointer';
-    d.innerHTML = `<div><div class="hc">${r.course}</div><div class="hm"><span class="tdot" style="background:${dot}"></span>${(r.tee || '').charAt(0).toUpperCase() + (r.tee || '').slice(1)} \u00B7 ${r.date} \u00B7 ${r.parsCount || 0}P \u00B7 ${r.bogeys || 0}Bog${r.birdies > 0 ? ` \u00B7 <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg>${r.birdies}` : ''}</div></div><div style="text-align:right"><div class="hs">${r.totalScore}</div><div class="hd">${dv} (Par ${r.totalPar})</div></div>`;
-    d.addEventListener('click', () => openScorecardModal(r));
+
+    // Clickable section — info left, score right — opens scorecard modal
+    const clickable = document.createElement('div');
+    clickable.style.cssText = 'display:flex;align-items:center;justify-content:space-between;flex:1;cursor:pointer;min-width:0';
+    clickable.innerHTML = `
+      <div style="min-width:0">
+        <div class="hc">${r.course}</div>
+        <div class="hm"><span class="tdot" style="background:${dot}"></span>${(r.tee || '').charAt(0).toUpperCase() + (r.tee || '').slice(1)} \u00B7 ${r.date} \u00B7 ${r.parsCount || 0}P \u00B7 ${r.bogeys || 0}Bog${r.birdies > 0 ? ` \u00B7 <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg>${r.birdies}` : ''}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;padding-left:8px">
+        <div class="hs">${r.totalScore}</div>
+        <div class="hd">${dv} (Par ${r.totalPar})</div>
+      </div>`;
+    clickable.addEventListener('click', () => openScorecardModal(r));
+    d.appendChild(clickable);
+
+    // Delete zone — only shown for state.me's own rounds
+    if (r.player === state.me) {
+      const delZone = document.createElement('div');
+      delZone.style.cssText = 'flex-shrink:0;padding-left:8px';
+      bindDeleteZone(delZone, r);
+      d.appendChild(delZone);
+    }
+
     hist.appendChild(d);
   });
   if (histRounds.length > 5) {
