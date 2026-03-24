@@ -42,7 +42,7 @@ Netlify hosts both the static frontend and the two serverless functions. No buil
 | `stats.js` | KPI cards, five Chart.js charts, Stableford calculator, handicap edit, round history list |
 | `leaderboard.js` | Nine season-filtered ranking panels; imports `calcStableford` and `isBufferOrBetter` from `stats.js` |
 | `players.js` | Onboarding/sign-in, player management, initials generation, "who's playing today" selector |
-| `courses.js` | Course selector, AI course-card scanner, golfcourseapi.com search/import, custom course CRUD |
+| `courses.js` | Course search UI (`initCourseSearch()` mounts into `#course-search-container`), `getCourseByRef()` returns the active course object, `clearCourseSelection()` resets it; AI course-card scanner; custom course CRUD; `_applyCourse()` sets `state.cpars`/`state.activeCourse` and rebuilds the scorecard |
 | `gps.js` | `watchPosition` GPS, Haversine distance-to-green, tee/green coord pinning stored in `state.gd` |
 | `ai.js` | Scorecard photo parsing, post-round coaching review, multi-round stats analysis — all via `/.netlify/functions/ai` |
 | `practice.js` | AI practice-plan generation (Claude), session logging with drill-by-drill shot counting |
@@ -235,7 +235,29 @@ Home screen KPI grid classes: `.home-kpi-grid` (2×2 CSS grid, `padding:12px 16p
 
 They are accessed as `window.Chart` / `window.XLSX` (bare global names in the code). **Do not attempt to `import` them** — there is no bundler and no `node_modules`.
 
-### 3. `saveRound()` in `scorecard.js` is the single source of truth for persisting rounds
+### 3. Course selection — always use `getCourseByRef()`, never read `#course-sel`
+
+The static `<select id="course-sel">` has been removed. Course selection is now driven by `initCourseSearch()` (mounted into `<div id="course-search-container">`), which calls `_applyCourse()` internally when the user picks a result. All modules must use:
+
+- `getCourseByRef()` — returns the currently active course object (or `null` if none selected), imported from `courses.js`
+- `clearCourseSelection()` — resets the selection and clears the search UI, imported from `courses.js`
+
+**Never** use `document.getElementById('course-sel')` — the element no longer exists.
+
+The course object shape from `getCourseByRef()`:
+```js
+{
+  name: string,
+  location: string,
+  pars: number[18],
+  tees: { [colour]: { colour, name, yardage, rating, slope, yards_per_hole, pars_per_hole, si_per_hole } },
+  stroke_indexes: number[18],   // course-level fallback SI
+  green_coords: { [hole1]: { front, middle, back } },
+  has_gps: boolean
+}
+```
+
+### 4. `saveRound()` in `scorecard.js` is the single source of truth for persisting rounds
 
 Every path that saves a round — manual entry, photo parse, live scoring — ultimately calls `scorecard.saveRound()`. It reads the 18 hole inputs directly from the DOM (`#h0`–`#h17`, `#p0`–`#p17`, `#fir0`–`#fir17`, `#gir0`–`#gir17`), constructs the full Round object, appends it to `state.gd.players[target].rounds`, and calls `pushGist()` then `pushSupabase()` fire-and-forget.
 
@@ -256,6 +278,7 @@ All variables are set in the Netlify dashboard. None are ever sent to the browse
 | `SUPABASE_URL` | `netlify/functions/supabase.js` | Supabase project URL |
 | `SUPABASE_SERVICE_KEY` | `netlify/functions/supabase.js` | Supabase service-role key (never in browser JS) |
 | `SYNC_SECRET` | `netlify/functions/sync.js` (rate-limit bypass), `netlify/functions/migrate-gist-to-supabase.js` (x-admin-key), `netlify/functions/run-migration.js` (injected server-to-server) | Server-side only — never sent from browser |
+| `GOLFAPI_KEY` | `netlify/functions/courses.js` | GolfAPI.io key for course search, detail fetch, and result caching via Supabase |
 
 ---
 
@@ -265,6 +288,7 @@ All variables are set in the Netlify dashboard. None are ever sent to the browse
 
 | Date | Change |
 |---|---|
+| 2026-03-24 | **Course search UI** — `<select id="course-sel">` removed from `index.html`; replaced with `<div id="course-search-container">` populated by `initCourseSearch()` from `courses.js`; `populateCourses()` removed, `players.js` now calls `initCourseSearch()` on sign-in; all `getElementById('course-sel')` reads across `live.js`, `scorecard.js`, `gps.js`, `ai.js`, `app.js` replaced with `getCourseByRef()`; `clearCourseSelection()` added to `courses.js` and called by `scorecard.js` after saving a round; `onCourseChange` removed (logic now internal to `_applyCourse()`); `.cs-*` CSS classes moved from comment block in `courses.js` into `styles/app.css`; `netlify/functions/courses.js` rewritten for GolfAPI.io with Supabase caching; `GOLFAPI_KEY` env var required |
 | 2026-03-24 | **Admin migration trigger** — new `netlify/functions/run-migration.js` proxies `migrate-gist-to-supabase` server-to-server, injecting `SYNC_SECRET` from `process.env` so it never reaches the browser; admin panel gains a "Supabase Migration" section with a Run button and inline result display; `adminRunMigration()` exported from `admin.js` and exposed as `window._adminRunMigration` |
 | 2026-03-24 | **Non-blocking save banner** — `alert()` after `saveRound()` in scorecard.js replaced with a self-removing DOM banner (4 s timeout); `alert()` was blocking the JS microtask queue and preventing `pushSupabase().then()` from firing |
 | 2026-03-24 | **Remove SYNC_SECRET from browser** — hardcoded `SYNC_SECRET` constant removed from `js/api.js` entirely; all `x-sync-secret` fetch headers removed; secret check removed from `netlify/functions/sync.js` POST handler (rate limiting + schema validation remain); secret check removed from `netlify/functions/supabase.js`; `CORS Allow-Headers` updated to drop `x-sync-secret` in both functions; `migrate-gist-to-supabase.js` still reads `process.env.SYNC_SECRET` server-side via `x-admin-key` |
