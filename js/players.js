@@ -5,7 +5,7 @@ import { state } from './state.js';
 import { DEFAULT_GIST } from './constants.js';
 import { loadGist, pushGist } from './api.js';
 import { goTo } from './nav.js';
-import { renderScannedCourses, initCourseSearch } from './courses.js';
+import { initCourseSearch } from './courses.js';
 import { renderHomeStats } from './stats.js';
 
 export function initials(n) {
@@ -89,7 +89,6 @@ export function renderAllPlayers() {
     if (n !== state.me) { div.addEventListener('click', () => { enterAs(n); goTo('home'); }); }
     list.appendChild(div);
   });
-  renderScannedCourses();
 }
 
 export function addPlayer() {
