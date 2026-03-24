@@ -5,7 +5,7 @@ import { state } from './state.js';
 import { DEFAULT_GIST } from './constants.js';
 import { loadGist, pushGist } from './api.js';
 import { goTo } from './nav.js';
-import { renderScannedCourses, populateCourses } from './courses.js';
+import { renderScannedCourses, initCourseSearch } from './courses.js';
 import { renderHomeStats } from './stats.js';
 
 export function initials(n) {
@@ -39,7 +39,7 @@ export function enterAs(n) {
   const pm = document.getElementById('pg-main');
   pm.style.display = 'flex';
   document.getElementById('s-gistid').textContent = 'gist.github.com/murraysirel/' + DEFAULT_GIST;
-  populateCourses();
+  initCourseSearch();
   renderHomeStats();
   ensureGroupCode();
   seedGreenCoords();

@@ -46,8 +46,7 @@ function syncPlayerMatchScore(playerName) {
   const match = state.gd.matches?.[matchId];
   if (!match || match.status !== 'active') return;
 
-  const ci = document.getElementById('course-sel')?.value;
-  const course = ci && ci !== '' ? getCourseByRef(ci) : null;
+  const course = getCourseByRef();
   const teeData = course?.tees?.[state.stee];
   const si = teeData?.si || (state.scannedSI?.some(v => v != null) ? state.scannedSI : null);
 
@@ -78,8 +77,7 @@ export function initLiveRound() {
     return;
   }
 
-  const ci = document.getElementById('course-sel')?.value;
-  const course = ci !== '' ? getCourseByRef(ci) : null;
+  const course = getCourseByRef();
   if (!course) {
     alert('Please select a course first in the Round tab.');
     goTo('round');
@@ -273,10 +271,9 @@ function showHcpModal(onConfirm) {
   if (!modal || !inner) { onConfirm(); return; }
 
   // Get slope from selected course/tee for playing handicap calculation
-  const ci = document.getElementById('course-sel')?.value;
   let slope = 113;
-  if (ci && ci !== '') {
-    const course = getCourseByRef(ci);
+  {
+    const course = getCourseByRef();
     const teeData = course?.tees?.[state.stee];
     slope = teeData?.s || teeData?.slope || 113;
   }
@@ -374,8 +371,7 @@ export function liveGoto(h) {
   });
   liveRenderPips();
   const par = state.cpars[h];
-  const ci = document.getElementById('course-sel')?.value;
-  const course = ci !== '' ? getCourseByRef(ci) : null;
+  const course = getCourseByRef();
   const teeData = course?.tees?.[state.stee];
   const hYards = teeData?.hy;
   const si = teeData?.si;
@@ -725,7 +721,7 @@ export function liveNextOrFinish() {
         groupPutts: state.liveState.groupPutts,
         groupFir: state.liveState.groupFir,
         groupGir: state.liveState.groupGir,
-        course: document.getElementById('course-sel')?.value || '',
+        course: getCourseByRef()?.name || '',
         gameMode: state.gameMode,
         wolfState: state.wolfState
       }));
@@ -790,10 +786,8 @@ async function liveFinishAndSave() {
 }
 
 async function liveGroupSave() {
-  const ci = document.getElementById('course-sel')?.value;
-  if (!ci) { alert('No course selected.'); return; }
-  const course = getCourseByRef(ci);
-  if (!course) { alert('Course not found.'); return; }
+  const course = getCourseByRef();
+  if (!course) { alert('No course selected.'); return; }
   const teeData = course.tees?.[state.stee];
   if (!teeData) { alert('Tee data not found.'); return; }
 
@@ -968,8 +962,7 @@ export function openCorrectionModal() {
 
   const h = state.liveState.hole;
   const par = state.cpars[h];
-  const ci = document.getElementById('course-sel')?.value;
-  const course = ci !== '' ? getCourseByRef(ci) : null;
+  const course = getCourseByRef();
   const teeData = course?.tees?.[state.stee];
   const yards = teeData?.hy?.[h] || '—';
   const si = teeData?.si?.[h] || '—';
@@ -995,8 +988,7 @@ export async function submitCorrectionReport() {
 
   const h = state.liveState.hole;
   const par = state.cpars[h];
-  const ci = document.getElementById('course-sel')?.value;
-  const course = ci !== '' ? getCourseByRef(ci) : null;
+  const course = getCourseByRef();
   const teeData = course?.tees?.[state.stee];
 
   if (!state.gd.courseCorrections) state.gd.courseCorrections = [];

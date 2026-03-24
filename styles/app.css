@@ -1142,3 +1142,30 @@ details[open] summary::after{content:' ▾'}
   background:var(--card);color:var(--cream);
   box-shadow:0 1px 3px rgba(0,0,0,.15);
 }
+
+/* ── Course search (initCourseSearch) ──────────────────────────── */
+.cs-wrap          { display:flex; flex-direction:column; gap:0; }
+.cs-country       { width:100%; padding:10px 12px; background:var(--mid); color:var(--cream); border:1px solid var(--border); border-radius:10px 10px 0 0; font-size:14px; }
+.cs-input-row     { position:relative; }
+.cs-input         { width:100%; padding:10px 36px 10px 12px; background:var(--mid); color:var(--cream); border:1px solid var(--border); border-top:none; border-radius:0; font-size:14px; box-sizing:border-box; }
+.cs-input:focus   { outline:none; border-color:var(--gold); }
+.cs-spinner       { position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:16px; }
+.cs-results       { background:var(--card); border:1px solid var(--border); border-top:none; border-radius:0 0 10px 10px; max-height:260px; overflow-y:auto; }
+.cs-result        { padding:10px 12px; cursor:pointer; border-bottom:1px solid var(--border); }
+.cs-result:last-child { border-bottom:none; }
+.cs-result:active { background:var(--mid); }
+.cs-result-name   { font-size:14px; color:var(--cream); font-weight:600; }
+.cs-result-club   { font-weight:400; color:var(--dim); }
+.cs-result-meta   { font-size:11px; color:var(--dim); margin-top:2px; }
+.cs-gps-badge     { color:var(--gold); }
+.cs-cached-badge  { color:var(--par); }
+.cs-empty         { padding:12px; font-size:13px; color:var(--dim); text-align:center; }
+.cs-selected      { margin-top:12px; }
+.cs-card          { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px; }
+.cs-card-name     { font-size:16px; font-weight:700; color:var(--cream); }
+.cs-card-loc      { font-size:12px; color:var(--dim); margin-top:2px; }
+.cs-gps-confirmed { font-size:12px; color:var(--gold); margin-top:6px; }
+.cs-gps-none      { font-size:12px; color:var(--dim); margin-top:6px; }
+.cs-tee-row       { display:flex; align-items:center; gap:8px; margin-top:10px; }
+.cs-tee-lbl       { font-size:12px; color:var(--dim); white-space:nowrap; }
+.cs-tee-sel       { flex:1; padding:6px 8px; background:var(--mid); color:var(--cream); border:1px solid var(--border); border-radius:8px; font-size:13px; }

@@ -17,8 +17,8 @@ export function handlePhoto(input) {
 
 export async function parsePhoto() {
   if (!state.photoFile) return;
-  const ci = document.getElementById('course-sel').value;
-  const courseInfo = ci !== '' ? `The course is ${getCourseByRef(ci)?.name || 'unknown'}, played from ${state.stee} tees. The par for each hole in order is: ${state.cpars.join(', ')}.` : 'Unknown course — try to identify it from the scorecard.';
+  const course = getCourseByRef();
+  const courseInfo = course ? `The course is ${course.name}, played from ${state.stee} tees. The par for each hole in order is: ${state.cpars.join(', ')}.` : 'Unknown course — try to identify it from the scorecard.';
 
   document.getElementById('photo-msg').innerHTML = '<div class="alert"><span class="spin"></span> Reading scorecard with AI — this takes a few seconds...</div>';
   document.getElementById('parse-btn').disabled = true;
@@ -103,7 +103,7 @@ Use null for any value you cannot read with confidence. Putts and SI arrays shou
 
   } catch (e) {
     document.getElementById('photo-msg').innerHTML = '<div class="alert alert-err">\u26A0\uFE0F Couldn\'t read the scorecard — try a clearer, well-lit photo. Enter scores manually below.</div>';
-    if (document.getElementById('course-sel').value !== '') {
+    if (getCourseByRef()) {
       import('./scorecard.js').then(({ buildSC }) => buildSC());
     }
   }

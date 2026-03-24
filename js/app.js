@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────────────────────────
 import { loadGist, pushGist, ss, retrySyncUnsynced, updateUnsyncedBadge } from './api.js';
 import { goTo, switchEntry, registerNavHandlers } from './nav.js';
-import { onCourseChange, scanCourseCard, saveCourse, cancelCourseScan, handleCoursePhoto, searchCourseAPI } from './courses.js';
+import { getCourseByRef, scanCourseCard, saveCourse, cancelCourseScan, handleCoursePhoto, searchCourseAPI } from './courses.js';
 import { buildSC, recalc, saveRound, toggleSCExtras } from './scorecard.js';
 import { renderStats, setFilter, toggleHcpEdit, saveHandicap, renderHomeStats, openScorecardModal } from './stats.js';
 import { renderLeaderboard } from './leaderboard.js';
@@ -109,16 +109,13 @@ document.getElementById('home-caddie-cta')?.addEventListener('click', () => goTo
 
 // Play with the Caddie CTA
 document.getElementById('caddie-play-btn')?.addEventListener('click', () => {
-  const courseVal = document.getElementById('course-sel')?.value;
-  if (!courseVal) {
+  if (!getCourseByRef()) {
     document.getElementById('caddie-inline-setup')?.style && (document.getElementById('caddie-inline-setup').style.display = 'block');
   } else {
     goTo('live');
   }
 });
 document.getElementById('caddie-letsgo-btn')?.addEventListener('click', () => goTo('live'));
-
-document.getElementById('course-sel')?.addEventListener('change', onCourseChange);
 document.getElementById('save-round-btn')?.addEventListener('click', saveRound);
 document.getElementById('sc-extras-toggle')?.addEventListener('click', toggleSCExtras);
 
@@ -340,10 +337,8 @@ function showRoundRecoveryPrompt(backup) {
     state.gameMode = backup.gameMode || 'stroke';
     state.wolfState = backup.wolfState || null;
     state.roundActive = true;
-    if (backup.course) {
-      const courseSel = document.getElementById('course-sel');
-      if (courseSel) { courseSel.value = backup.course; onCourseChange(); }
-    }
+    // Note: course selection cannot be restored programmatically with the
+    // search UI — the user will need to re-select their course after resuming.
     localStorage.removeItem('rr_live_backup');
     goTo('live');
   };

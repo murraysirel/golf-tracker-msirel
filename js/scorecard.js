@@ -2,7 +2,7 @@
 // SCORECARD
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
-import { getCourseByRef } from './courses.js';
+import { getCourseByRef, clearCourseSelection } from './courses.js';
 import { pushGist, pushSupabase, updateUnsyncedBadge, ss } from './api.js';
 
 // Convert YYYY-MM-DD (native date input) → DD/MM/YYYY (stored format)
@@ -37,8 +37,7 @@ export function scoreCol(d) {
 export function buildSC(pf, pp) {
   const tb = document.getElementById('sc-body');
   tb.innerHTML = '';
-  const ci = document.getElementById('course-sel')?.value;
-  const course = ci !== '' ? getCourseByRef(ci) : null;
+  const course = getCourseByRef();
   const teeData = course?.tees?.[state.stee];
   const hYards = teeData?.hy || null;
   const siArr = teeData?.si || (state.scannedSI?.some(v => v != null) ? state.scannedSI : null);
@@ -176,10 +175,9 @@ export function autoAdv(h) {
 }
 
 export async function saveRound() {
-  const ci = document.getElementById('course-sel').value;
-  if (!ci) { alert('Please select a course.'); return; }
+  const c = getCourseByRef();
+  if (!c) { alert('Please select a course.'); return; }
   if (!state.stee) { alert('Please select a tee colour.'); return; }
-  const c = getCourseByRef(ci);
   const t = c.tees[state.stee];
   const sc = [], pt = [], fi = [], gi = [];
   for (let h = 0; h < 18; h++) {
@@ -268,7 +266,7 @@ export async function saveRound() {
     }
   }
   // Clear form
-  document.getElementById('course-sel').value = '';
+  clearCourseSelection();
   document.getElementById('tee-wrap').style.display = 'none';
   if (document.getElementById('tee-info')) document.getElementById('tee-info').textContent = '';
   if (document.getElementById('r-notes')) document.getElementById('r-notes').value = '';

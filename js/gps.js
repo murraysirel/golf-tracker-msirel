@@ -15,9 +15,7 @@ function haversineYards(lat1, lng1, lat2, lng2) {
 }
 
 function getCourseName() {
-  const ci = document.getElementById('course-sel')?.value || '';
-  const course = ci ? getCourseByRef(ci) : null;
-  return course?.name || ci;
+  return getCourseByRef()?.name || '';
 }
 
 function getGreenCoords(hole0) {
@@ -64,9 +62,7 @@ export function startGPS() {
   const bar = document.getElementById('gps-bar');
   bar.style.display = 'flex';
   document.getElementById('gps-hole-name').textContent = `Hole ${h+1}`;
-  const ci = document.getElementById('course-sel')?.value || '';
-  const course = ci ? getCourseByRef(ci) : null;
-  document.getElementById('gps-course-name').textContent = isApprox ? 'Approx position — pin green for accuracy' : (course?.name || '');
+  document.getElementById('gps-course-name').textContent = isApprox ? 'Approx position — pin green for accuracy' : (getCourseByRef()?.name || '');
 
   // Show "Pin tee" button if no tee coords yet
   const teePinBtn = document.getElementById('gps-btn-pin-tee');
