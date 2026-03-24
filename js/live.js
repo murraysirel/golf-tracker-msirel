@@ -370,11 +370,9 @@ export function liveGoto(h) {
     }
   });
   liveRenderPips();
-  const par = state.cpars[h];
-  const course = getCourseByRef();
-  const teeData = course?.tees?.[state.stee];
-  const hYards = teeData?.hy;
-  const si = teeData?.si;
+  const par    = state.cpars[h];
+  const hYards = state.activeHoleYards?.length === 18 ? state.activeHoleYards : null;
+  const si     = state.scannedSI?.some(v => v != null) ? state.scannedSI : null;
 
   document.getElementById('live-hole-num').textContent = h + 1;
   document.getElementById('live-par').textContent = par;

@@ -37,10 +37,8 @@ export function scoreCol(d) {
 export function buildSC(pf, pp) {
   const tb = document.getElementById('sc-body');
   tb.innerHTML = '';
-  const course = getCourseByRef();
-  const teeData = course?.tees?.[state.stee];
-  const hYards = teeData?.hy || null;
-  const siArr = teeData?.si || (state.scannedSI?.some(v => v != null) ? state.scannedSI : null);
+  const hYards = state.activeHoleYards?.length === 18 ? state.activeHoleYards : null;
+  const siArr  = state.scannedSI?.some(v => v != null) ? state.scannedSI : null;
   let op = 0, ip = 0, oY = 0, iY = 0;
   for (let h = 0; h < 18; h++) {
     if (h === 9) {
