@@ -91,6 +91,7 @@ document.getElementById('onb-join-btn')?.addEventListener('click', addAndEnter);
 
 // ── Home page ─────────────────────────────────────────────────────
 document.getElementById('home-go-stats-link')?.addEventListener('click', () => goTo('stats'));
+document.getElementById('home-kpis')?.addEventListener('click', () => goTo('stats'));
 
 // ── GPS bar ───────────────────────────────────────────────────────
 document.getElementById('gps-btn-mid')?.addEventListener('click', () => gpsSetTarget('mid'));

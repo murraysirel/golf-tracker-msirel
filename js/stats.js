@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
 import { TC } from './constants.js';
-import { pushGist } from './api.js';
+import { pushGist, pushSupabase } from './api.js';
 import { initials } from './players.js';
 
 // Chart instances container
@@ -518,6 +518,7 @@ function deletePlayerRound(r) {
   });
   player.rounds.splice(idx, 1);
   pushGist(); // single call per deletion
+  pushSupabase('deleteRound', { roundId: r.id }); // fire-and-forget Supabase sync
   renderStats();
 }
 

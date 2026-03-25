@@ -359,6 +359,7 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
 .home-kpi-card{
   background:var(--mid);border-radius:12px;
   padding:14px 16px;display:flex;flex-direction:column;gap:4px;
+  cursor:pointer;
 }
 .home-kpi-val{
   font-family:'Cormorant Garamond',serif;
