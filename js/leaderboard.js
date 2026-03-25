@@ -4,7 +4,7 @@
 import { state } from './state.js';
 import { COURSES } from './constants.js';
 import { getCourseByRef } from './courses.js';
-import { initials } from './players.js';
+import { initials, avatarHtml } from './players.js';
 import { parseDateGB, calcStableford, isBufferOrBetter } from './stats.js';
 import { pushGist } from './api.js';
 
@@ -134,11 +134,8 @@ export function renderLeaderboard() {
     const isMe = p.name === state.me;
     d.className = 'lb-row' + (isMe ? ' lb-me' : '');
     const pc = posClass[i] || '';
-    const avatarHtml = isMe
-      ? `<div class="lb-avatar-me">${initials(p.name)}</div>`
-      : `<div class="avatar" style="width:36px;height:36px;font-size:13px;border:1px solid rgba(255,255,255,.1)">${initials(p.name)}</div>`;
     d.innerHTML = `<div class="lb-pos ${pc}">${i+1}</div>
-      ${avatarHtml}
+      ${avatarHtml(p.name, 36, isMe)}
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:7px">
           <span class="lb-name" style="${isMe ? 'color:var(--gold)' : ''}">${p.name}</span>
@@ -247,7 +244,7 @@ export function renderLeaderboard() {
     d.className = 'lb-row' + (isMe ? ' lb-me' : '');
     const pc = posClass[i] || '';
     d.innerHTML = `<div class="lb-pos ${pc}">${i+1}</div>
-      ${isMe ? `<div class="lb-avatar-me">${initials(p.name)}</div>` : `<div class="avatar" style="width:36px;height:36px;font-size:13px;border:1px solid rgba(255,255,255,.1)">${initials(p.name)}</div>`}
+      ${avatarHtml(p.name, 36, isMe)}
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:7px">
           <span class="lb-name" style="${isMe ? 'color:var(--gold)' : ''}">${p.name}</span>
@@ -281,7 +278,7 @@ export function renderLeaderboard() {
     d.className = 'lb-row' + (isMe ? ' lb-me' : '');
     const pc = posClass[i] || '';
     d.innerHTML = `<div class="lb-pos ${pc}">${i+1}</div>
-      ${isMe ? `<div class="lb-avatar-me">${initials(p.name)}</div>` : `<div class="avatar" style="width:36px;height:36px;font-size:13px;border:1px solid rgba(255,255,255,.1)">${initials(p.name)}</div>`}
+      ${avatarHtml(p.name, 36, isMe)}
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:7px">
           <span class="lb-name" style="${isMe ? 'color:var(--gold)' : ''}">${p.name}</span>
@@ -315,7 +312,7 @@ export function renderLeaderboard() {
     const dStr = p.diff >= 0 ? '+' + p.diff : '' + p.diff;
     const dCol = p.diff < 0 ? 'var(--birdie)' : p.diff === 0 ? 'var(--par)' : p.diff <= 3 ? 'var(--bogey)' : 'var(--double)';
     d.innerHTML = `<div class="lb-pos ${pc}">${i+1}</div>
-      ${isMe ? `<div class="lb-avatar-me">${initials(p.name)}</div>` : `<div class="avatar" style="width:36px;height:36px;font-size:13px;border:1px solid rgba(255,255,255,.1)">${initials(p.name)}</div>`}
+      ${avatarHtml(p.name, 36, isMe)}
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:7px">
           <span class="lb-name" style="${isMe ? 'color:var(--gold)' : ''}">${p.name}</span>

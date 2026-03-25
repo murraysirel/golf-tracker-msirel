@@ -5,7 +5,7 @@
 import { state } from './state.js';
 import { loadGist } from './api.js';
 import { calcStableford, parseDateGB } from './stats.js';
-import { initials } from './players.js';
+import { initials, avatarHtml } from './players.js';
 import { getCourseByRef } from './courses.js';
 
 let _lastSnapshot = null;
@@ -224,10 +224,6 @@ function renderCompLeaderboard() {
   el.innerHTML = entries.map((e, i) => {
     const isMe = e.name === state.me;
     const pc = posClass[i] || '';
-    const avatarHtml = isMe
-      ? `<div class="lb-avatar-me">${initials(e.name)}</div>`
-      : `<div class="avatar" style="width:36px;height:36px;font-size:13px;border:1px solid rgba(255,255,255,.1)">${initials(e.name)}</div>`;
-
     let metricHtml;
     if (_format === 'stableford') {
       const diff36 = e.stab != null ? e.stab - 36 : null;
@@ -249,7 +245,7 @@ function renderCompLeaderboard() {
     const birdieNote = e.birdies > 0 ? ` · ${e.birdies} birdie${e.birdies !== 1 ? 's' : ''}` : '';
     return `<div class="lb-row${isMe ? ' lb-me' : ''}">
       <div class="lb-pos ${pc}">${i + 1}</div>
-      ${avatarHtml}
+      ${avatarHtml(e.name, 36, isMe)}
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:7px">
           <span class="lb-name" style="${isMe ? 'color:var(--gold)' : ''}">${e.name}</span>

@@ -4,7 +4,7 @@
 import { state } from './state.js';
 import { TC } from './constants.js';
 import { pushGist, pushSupabase } from './api.js';
-import { initials } from './players.js';
+import { initials, refreshAvatarUI } from './players.js';
 
 // Chart instances container
 const CH = {};
@@ -250,8 +250,7 @@ export function renderHomeStats() {
   const seasonCount = seasonRounds.length;
   if (greetEl) greetEl.textContent = greeting + ', ' + firstName;
   if (metaEl) metaEl.textContent = `HCP ${hcpVal} · ${seasonCount} round${seasonCount !== 1 ? 's' : ''} this season`;
-  const avatarEl = document.getElementById('hdr-avatar-initials');
-  if (avatarEl) avatarEl.textContent = initials(state.me);
+  refreshAvatarUI();
 
   // ── Sorted rounds, last 5 ────────────────────────────────────
   const sorted = [...rs].sort((a, b) => parseDateGB(a.date) - parseDateGB(b.date));

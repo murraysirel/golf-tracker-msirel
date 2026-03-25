@@ -8,7 +8,7 @@ import { getCourseByRef, scanCourseCard, saveCourse, cancelCourseScan, handleCou
 import { buildSC, recalc, saveRound, toggleSCExtras } from './scorecard.js';
 import { renderStats, setFilter, toggleHcpEdit, saveHandicap, renderHomeStats, openScorecardModal } from './stats.js';
 import { renderLeaderboard } from './leaderboard.js';
-import { renderOnboard, enterAs, addAndEnter, signOut, addPlayer, renderAllPlayers, renderPlayersToday, showSignupStep, submitProfile, agreePrivacy, showGroupFork, goBackToFork, forkNotNow, forkJoinGroup, forkCreateGroup } from './players.js';
+import { renderOnboard, enterAs, addAndEnter, signOut, addPlayer, renderAllPlayers, renderPlayersToday, showSignupStep, submitProfile, agreePrivacy, showGroupFork, goBackToFork, forkNotNow, forkJoinGroup, forkCreateGroup, refreshAvatarUI, uploadAvatar } from './players.js';
 import { renderPracticePage, selectPracticeArea, startPracticeSession, regeneratePlan, logPracticeShots, completePracticeSession } from './practice.js';
 import { initLiveRound, liveGoto, liveSaveNote, liveNextOrFinish, toggleGroupPlayer, startGroupRound, toggleMatchPlay, openCorrectionModal, submitCorrectionReport, cancelRound } from './live.js';
 import { generateAIReview, generateStatsAnalysis, clearStatsAnalysis, parsePhoto, handlePhoto } from './ai.js';
@@ -74,6 +74,7 @@ document.getElementById('nb-practice')?.addEventListener('click', () => goTo('pr
 
 // ── Profile panel ─────────────────────────────────────────────────
 function openProfilePanel() {
+  refreshAvatarUI();
   import('./players.js').then(({ renderAllPlayers }) => renderAllPlayers());
   import('./courses.js').then(({ renderScannedCourses }) => renderScannedCourses());
   document.getElementById('profile-panel')?.classList.add('open');
@@ -109,6 +110,19 @@ document.getElementById('create-group-continue-btn')?.addEventListener('click', 
 // Group fork entry points from within the main app
 document.getElementById('lb-group-fork-btn')?.addEventListener('click', () => showGroupFork(false));
 document.getElementById('panel-group-fork-btn')?.addEventListener('click', () => showGroupFork(false));
+// Avatar upload
+document.getElementById('avatar-file-input')?.addEventListener('change', e => {
+  if (e.target.files[0]) uploadAvatar(e.target.files[0]);
+  e.target.value = '';
+});
+document.getElementById('avatar-upload-btn')?.addEventListener('click', () => document.getElementById('avatar-file-input')?.click());
+document.getElementById('profile-avatar-display')?.addEventListener('click', () => document.getElementById('avatar-file-input')?.click());
+document.getElementById('avatar-remove-btn')?.addEventListener('click', () => {
+  if (state.gd.players[state.me]) delete state.gd.players[state.me].avatarImg;
+  refreshAvatarUI();
+  pushGist();
+});
+
 // Demo mode
 document.getElementById('demo-entry-btn')?.addEventListener('click', enterDemoMode);
 document.getElementById('demo-exit-btn')?.addEventListener('click', exitDemoMode);

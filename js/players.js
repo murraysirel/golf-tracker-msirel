@@ -11,6 +11,71 @@ export function initials(n) {
   return n.split(' ').map(p => p[0] || '').join('').toUpperCase().slice(0, 2);
 }
 
+export function avatarHtml(name, size = 36, isMe = false) {
+  const img = state.gd.players?.[name]?.avatarImg;
+  if (img) {
+    const border = isMe ? '2px solid var(--gold)' : '1px solid rgba(255,255,255,.1)';
+    return `<img src="${img}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;border:${border};flex-shrink:0">`;
+  }
+  const cls = isMe ? 'lb-avatar-me' : 'avatar';
+  const extra = !isMe ? `style="width:${size}px;height:${size}px;font-size:13px;border:1px solid rgba(255,255,255,.1)"` : '';
+  return `<div class="${cls}" ${extra}>${initials(name)}</div>`;
+}
+
+export function refreshAvatarUI() {
+  if (!state.me) return;
+  const img = state.gd.players?.[state.me]?.avatarImg;
+  // Header button
+  const el = document.getElementById('hdr-avatar-initials');
+  if (el) {
+    if (img) {
+      el.innerHTML = `<img src="${img}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+      el.style.cssText = 'width:100%;height:100%;display:block;overflow:hidden;border-radius:50%';
+    } else {
+      el.textContent = initials(state.me);
+      el.style.cssText = "font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;color:var(--gold)";
+    }
+  }
+  // Profile panel circle
+  const disp = document.getElementById('profile-avatar-display');
+  if (disp) {
+    disp.innerHTML = img
+      ? `<img src="${img}" style="width:100%;height:100%;object-fit:cover">`
+      : `<span style="font-family:'DM Sans',sans-serif;font-size:18px;font-weight:700;color:var(--gold)">${initials(state.me)}</span>`;
+  }
+  const removeBtn = document.getElementById('avatar-remove-btn');
+  if (removeBtn) removeBtn.style.display = img ? 'inline' : 'none';
+  const nameEl = document.getElementById('profile-name-display');
+  if (nameEl) nameEl.textContent = state.me;
+}
+
+function resizeToDataURL(file, size = 64) {
+  return new Promise(resolve => {
+    const imgEl = new Image();
+    const url = URL.createObjectURL(file);
+    imgEl.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const min = Math.min(imgEl.width, imgEl.height);
+      const sx = (imgEl.width - min) / 2;
+      const sy = (imgEl.height - min) / 2;
+      ctx.drawImage(imgEl, sx, sy, min, min, 0, 0, size, size);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg', 0.8));
+    };
+    imgEl.src = url;
+  });
+}
+
+export async function uploadAvatar(file) {
+  const dataUrl = await resizeToDataURL(file);
+  if (!state.gd.players[state.me]) return;
+  state.gd.players[state.me].avatarImg = dataUrl;
+  refreshAvatarUI();
+  pushGist();
+}
+
 export function renderOnboard() {
   const list = document.getElementById('onb-player-list');
   const names = Object.keys(state.gd.players);
@@ -25,7 +90,7 @@ export function renderOnboard() {
     const sc = rs.map(r => r.totalScore).filter(Boolean);
     const div = document.createElement('div');
     div.className = 'player-card';
-    div.innerHTML = `<div class="avatar">${initials(n)}</div><div><div class="pname">${n}</div><div class="pmeta">${rs.length} round${rs.length !== 1 ? 's' : ''} \u00B7 Best: ${sc.length ? Math.min(...sc) : '—'}</div></div>`;
+    div.innerHTML = `${avatarHtml(n, 36, false)}<div><div class="pname">${n}</div><div class="pmeta">${rs.length} round${rs.length !== 1 ? 's' : ''} \u00B7 Best: ${sc.length ? Math.min(...sc) : '—'}</div></div>`;
     div.addEventListener('click', () => enterAs(n));
     list.appendChild(div);
   });
@@ -175,7 +240,7 @@ export function renderAllPlayers() {
     const sc = rs.map(r => r.totalScore).filter(Boolean);
     const div = document.createElement('div');
     div.className = 'player-card' + (n === state.me ? ' me' : '');
-    div.innerHTML = `<div class="avatar">${initials(n)}</div><div style="flex:1"><div class="pname">${n}${n === state.me ? ' <span style="font-size:10px;color:var(--gold)">\u25B6 you</span>' : ''}</div><div class="pmeta">${rs.length} round${rs.length !== 1 ? 's' : ''} \u00B7 Best: ${sc.length ? Math.min(...sc) : '—'}</div></div>`;
+    div.innerHTML = `${avatarHtml(n, 36, n === state.me)}<div style="flex:1"><div class="pname">${n}${n === state.me ? ' <span style="font-size:10px;color:var(--gold)">\u25B6 you</span>' : ''}</div><div class="pmeta">${rs.length} round${rs.length !== 1 ? 's' : ''} \u00B7 Best: ${sc.length ? Math.min(...sc) : '—'}</div></div>`;
     if (n !== state.me) { div.addEventListener('click', () => { enterAs(n); goTo('home'); }); }
     list.appendChild(div);
   });
