@@ -681,9 +681,9 @@ details[open] summary::after{content:' ▾'}
 /* Ball outer — translates left→centre, carries shadow + inner ball */
 #splash-ball-track{
   position:absolute;
-  /* Sit just above grass (10vh) with half-ball clearance */
-  bottom:calc(10vh + 4px);
+  bottom:1vh;
   left:0;width:96px;height:96px;
+  z-index:3;
   animation:splashBallMove 1.6s cubic-bezier(.25,.46,.45,.94) forwards;
 }
 
@@ -709,9 +709,10 @@ details[open] summary::after{content:' ▾'}
 /* Flag stick — wooden pole fading out toward top */
 #splash-flag-wrap{
   position:absolute;
-  bottom:10vh;
+  bottom:-10px;
   left:calc(50vw + 58px);
   display:flex;flex-direction:column;align-items:center;
+  z-index:1;
 }
 #splash-flag-pole{
   width:9px;
@@ -740,16 +741,19 @@ details[open] summary::after{content:' ▾'}
 /* Grass strip — irregular SVG curve across bottom */
 #splash-grass{
   position:absolute;bottom:0;left:0;
-  width:100%;height:10vh;
+  width:100%;height:4vh;
   display:block;
+  z-index:2;
 }
 
 /* ── Keyframes ── */
 
 /* Ball travels from off-screen left to just left of flag stick */
 @keyframes splashBallMove{
-  from{transform:translateX(-110px)}
-  to  {transform:translateX(calc(50vw - 48px))}
+  0%  {transform:translateX(-110px)              translateY(0px);  animation-timing-function:cubic-bezier(.4,0,.6,1)}
+  39% {transform:translateX(calc(19.5vw - 86px)) translateY(-4px); animation-timing-function:ease-in-out}
+  70% {transform:translateX(calc(35vw - 67px))   translateY(3px);  animation-timing-function:ease-in-out}
+  100%{transform:translateX(calc(50vw - 48px))   translateY(0px)}
 }
 
 /* Ball/logo rotates exactly 720° (2 full turns) — lands naturally upright */
