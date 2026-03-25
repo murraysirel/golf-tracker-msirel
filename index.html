@@ -246,6 +246,7 @@
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
               <button class="fpill active" id="fmt-stroke" data-fmt="stroke">Stroke / Stableford</button>
               <button class="fpill" id="fmt-match" data-fmt="match">Match Play</button>
+              <button class="fpill" id="fmt-sixes" data-fmt="sixes">Sixes</button>
               <span style="display:inline-flex;align-items:center;gap:5px">
                 <button class="fpill" id="fmt-wolf" data-fmt="wolf">Wolf</button>
                 <button id="wolf-info-btn" title="Wolf rules" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--wa-1);background:var(--wa-04);color:var(--dim);font-size:12px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;padding:0;flex-shrink:0">ⓘ</button>
@@ -253,14 +254,8 @@
             </div>
             <div id="wolf-need-4" style="display:none;font-size:11px;color:var(--dimmer);margin-top:6px">Wolf requires exactly 4 players</div>
             <div id="match-need-2" style="display:none;font-size:11px;color:var(--dimmer);margin-top:6px">Match play requires exactly 2 players</div>
+            <div id="sixes-need-3" style="display:none;font-size:11px;color:var(--dimmer);margin-top:6px">Sixes requires exactly 3 players</div>
           </div>
-
-          <!-- Group Match (stroke mode) -->
-          <div id="group-match-btns" style="display:flex;gap:8px;margin-bottom:16px">
-            <button id="start-group-match-btn" class="btn-o" style="flex:1;font-size:13px;padding:10px 8px">🏆 Start Group Match</button>
-            <button id="join-group-match-btn" class="btn-ghost" style="flex:1;font-size:13px;padding:10px 8px">Join Match</button>
-          </div>
-          <div id="active-match-badge" style="display:none;padding:8px 12px;border-radius:8px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);font-size:12px;color:var(--gold);margin-bottom:16px;text-align:center"></div>
 
           <!-- Play with the Caddie CTA -->
           <button id="caddie-play-btn" class="btn" style="border-radius:40px;font-size:16px;padding:18px;letter-spacing:.2px;margin-bottom:8px">Play with the Caddie 🏌️</button>
@@ -415,20 +410,6 @@
             <div id="setup-competition-soon" style="display:none;margin-top:10px;padding:14px 16px;border-radius:10px;background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.2);font-size:12px;color:var(--dim);line-height:1.7">
               Competition mode is on the way. You'll be able to run strokeplay and Stableford comps for your group with a live leaderboard and prizes.
             </div>
-          </div>
-
-          <!-- Sixes -->
-          <div style="border-top:1px solid var(--border);padding-top:18px;margin-bottom:18px">
-            <div style="font-size:10px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--dim);margin-bottom:10px">Sixes — 3-Ball Points Game</div>
-            <div style="font-size:12px;color:var(--dim);margin-bottom:14px;line-height:1.7">
-              A net points-based format for exactly 3 players. 6 points per hole shared by position:
-              <span style="color:var(--cream)">4-2-0</span> (all different),
-              <span style="color:var(--cream)">3-3-0</span> (two tie first),
-              <span style="color:var(--cream)">4-1-1</span> (two tie second),
-              <span style="color:var(--cream)">2-2-2</span> (all tie).
-            </div>
-            <button id="play-sixes-btn" class="btn-o" style="width:100%;padding:14px;border-radius:12px;font-size:14px;font-weight:600;opacity:0.45;cursor:not-allowed" disabled>⛳ Play Sixes</button>
-            <div id="sixes-need-3" style="font-size:11px;color:var(--dimmer);margin-top:8px;text-align:center">Select exactly 3 players in "Who's playing today" above</div>
           </div>
 
           <!-- Join -->

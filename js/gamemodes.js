@@ -14,9 +14,9 @@ export function updateFormatUI() {
   const wolfBtn = document.getElementById('fmt-wolf');
   const strokeBtn = document.getElementById('fmt-stroke');
   const matchBtn = document.getElementById('fmt-match');
+  const sixesBtn = document.getElementById('fmt-sixes');
   const wolfHint = document.getElementById('wolf-need-4');
   const matchHint = document.getElementById('match-need-2');
-  const sixesBtn = document.getElementById('play-sixes-btn');
   const sixesHint = document.getElementById('sixes-need-3');
   if (!wolfBtn || !strokeBtn) return;
 
@@ -29,6 +29,13 @@ export function updateFormatUI() {
   wolfBtn.style.cursor = canWolf ? '' : 'not-allowed';
   wolfBtn.title = canWolf ? '' : 'Wolf requires exactly 4 players';
 
+  if (sixesBtn) {
+    sixesBtn.disabled = !canSixes;
+    sixesBtn.style.opacity = canSixes ? '' : '0.45';
+    sixesBtn.style.cursor = canSixes ? '' : 'not-allowed';
+    sixesBtn.title = canSixes ? '' : 'Sixes requires exactly 3 players';
+  }
+
   const isWolf = state.gameMode === 'wolf';
   const isMatch = state.gameMode === 'match';
   const isSixes = state.gameMode === 'sixes';
@@ -36,19 +43,14 @@ export function updateFormatUI() {
   strokeBtn.classList.toggle('active', !isWolf && !isMatch && !isSixes);
   wolfBtn.classList.toggle('active', isWolf && canWolf);
   if (matchBtn) matchBtn.classList.toggle('active', isMatch);
+  if (sixesBtn) sixesBtn.classList.toggle('active', isSixes && canSixes);
 
   if (wolfHint) wolfHint.style.display = !canWolf ? 'block' : 'none';
   if (matchHint) matchHint.style.display = isMatch ? 'block' : 'none';
+  if (sixesHint) sixesHint.style.display = (isSixes && !canSixes) ? 'block' : 'none';
 
   if (!canWolf && isWolf) state.gameMode = 'stroke';
-
-  // Sixes button — enabled only when exactly 3 players registered
-  if (sixesBtn) {
-    sixesBtn.disabled = !canSixes;
-    sixesBtn.style.opacity = canSixes ? '' : '0.45';
-    sixesBtn.style.cursor = canSixes ? '' : 'not-allowed';
-  }
-  if (sixesHint) sixesHint.style.display = canSixes ? 'none' : 'block';
+  if (!canSixes && isSixes) state.gameMode = 'stroke';
 }
 
 // ── State Init ────────────────────────────────────────────────────

@@ -136,12 +136,6 @@ document.getElementById('join-competition-btn')?.addEventListener('click', () =>
   if (!code) { if (msg) { msg.style.color = 'var(--double)'; msg.textContent = 'Please enter a competition code.'; } return; }
   if (msg) { msg.style.color = 'var(--dim)'; msg.textContent = 'Competition joining is coming soon.'; }
 });
-document.getElementById('play-sixes-btn')?.addEventListener('click', () => {
-  import('./gamemodes.js').then(({ setGameMode }) => {
-    setGameMode('sixes');
-    goTo('live');
-  });
-});
 
 // Course API search
 document.getElementById('api-search-btn')?.addEventListener('click', searchCourseAPI);
@@ -224,6 +218,7 @@ document.getElementById('open-admin-btn')?.addEventListener('click', openAdminSe
 // ── Wolf game format ──────────────────────────────────────────────
 document.getElementById('fmt-stroke')?.addEventListener('click', () => { setGameMode('stroke'); updateGroupMatchButtonVisibility(); });
 document.getElementById('fmt-match')?.addEventListener('click', () => { setGameMode('match'); updateGroupMatchButtonVisibility(); });
+document.getElementById('fmt-sixes')?.addEventListener('click', () => { setGameMode('sixes'); updateGroupMatchButtonVisibility(); });
 document.getElementById('fmt-wolf')?.addEventListener('click', () => { setGameMode('wolf'); updateGroupMatchButtonVisibility(); });
 
 // ── Group Match ───────────────────────────────────────────────────
