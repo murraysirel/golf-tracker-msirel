@@ -151,6 +151,11 @@
     <div style="font-size:11px;color:var(--dimmer)">Use Looper solo for now</div>
   </button>
 
+  <!-- Demo entry -->
+  <button id="demo-entry-btn" style="display:block;width:100%;margin-top:20px;padding:12px;border-radius:40px;background:transparent;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;-webkit-tap-highlight-color:transparent;text-align:center">
+    <span style="font-size:12px;color:var(--dimmer)">Just browsing? </span><span style="font-size:12px;color:var(--gold);text-decoration:underline;text-underline-offset:2px">Try the demo →</span>
+  </button>
+
 </div>
 </div>
 
@@ -191,6 +196,11 @@
     <div style="display:flex;flex-direction:column;gap:2px">
       <div id="home-greeting" style="font-size:17px;font-weight:600;color:var(--cream)">Welcome</div>
       <div id="home-hdr-meta" style="font-size:12px;color:var(--dim)">HCP — · — rounds this season</div>
+    </div>
+    <!-- Demo mode badge — hidden by default, shown via demo.js -->
+    <div id="demo-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.4)">
+      <span style="font-size:9px;letter-spacing:2px;font-weight:700;color:var(--gold);text-transform:uppercase">Demo</span>
+      <button id="demo-exit-btn" style="display:none;background:none;border:none;color:var(--dim);font-size:11px;cursor:pointer;padding:0 0 0 4px;line-height:1" title="Exit demo">✕</button>
     </div>
     <button class="profile-icon-btn avatar-btn" id="profile-icon-btn" title="Players &amp; Settings">
       <span class="avatar-initials" id="hdr-avatar-initials" style="font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;color:var(--gold)">?</span>
@@ -1156,6 +1166,10 @@
         <div class="setting-row">
           <div><div class="setting-label">Sign Out</div><div class="setting-sub">Switch to a different player</div></div>
           <button class="btn btn-ghost" id="sign-out-btn" style="width:auto;padding:6px 12px;font-size:11px">Sign Out</button>
+        </div>
+        <div id="demo-exit-row" class="setting-row" style="display:none;border-top:1px solid rgba(201,168,76,.15);margin-top:8px;padding-top:8px">
+          <div><div class="setting-label" style="color:var(--gold)">Demo mode active</div><div class="setting-sub">You are browsing demo data</div></div>
+          <button id="demo-exit-panel-btn" class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px;color:var(--gold);border-color:rgba(201,168,76,.4)">Exit demo</button>
         </div>
         <div class="setting-row" style="border-top:1px solid rgba(255,255,255,.04);margin-top:8px;padding-top:8px">
           <div><div class="setting-label" style="font-size:11px;color:var(--dimmer)">Admin</div><div class="setting-sub">Restricted access</div></div>

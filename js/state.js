@@ -52,6 +52,7 @@ export const state = {
     target: 'mid',
     coords: null
   },
+  demoMode: false,
   roundActive: false,
   wakeLock: null,
   gameMode: 'stroke', // 'stroke' | 'wolf'

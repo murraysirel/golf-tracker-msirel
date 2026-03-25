@@ -23,6 +23,7 @@ import { setGameMode, updateFormatUI, confirmWolfOrder, showWolfScoreboard } fro
 import { openCreateMatchModal, openJoinMatchModal, updateGroupMatchButtonVisibility, updateActiveMatchBadge } from './group-match.js';
 import { initMatchOverlay, hideMatchOverlay, showEndRoundConfirm } from './overlay.js';
 import { startInvitePolling, dismissInviteToast, joinLiveRound, minimiseLiveView, restoreLiveView, leaveLiveView, liveViewScoreAdj, submitEditorScore, toggleEditMode } from './live-invite.js';
+import { enterDemoMode, exitDemoMode } from './demo.js';
 
 // ── Theme ─────────────────────────────────────────────────────────
 function applyTheme(theme) {
@@ -105,6 +106,10 @@ document.getElementById('create-group-continue-btn')?.addEventListener('click', 
 // Group fork entry points from within the main app
 document.getElementById('lb-group-fork-btn')?.addEventListener('click', () => showGroupFork(false));
 document.getElementById('panel-group-fork-btn')?.addEventListener('click', () => showGroupFork(false));
+// Demo mode
+document.getElementById('demo-entry-btn')?.addEventListener('click', enterDemoMode);
+document.getElementById('demo-exit-btn')?.addEventListener('click', exitDemoMode);
+document.getElementById('demo-exit-panel-btn')?.addEventListener('click', exitDemoMode);
 
 // ── Home page ─────────────────────────────────────────────────────
 document.getElementById('home-go-stats-link')?.addEventListener('click', () => goTo('stats'));

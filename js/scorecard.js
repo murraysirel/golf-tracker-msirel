@@ -173,6 +173,7 @@ export function autoAdv(h) {
 }
 
 export async function saveRound() {
+  if (state.demoMode) { alert('Round saving is disabled in demo mode.'); return; }
   const c = getCourseByRef();
   if (!c) { alert('Please select a course.'); return; }
   if (!state.stee) { alert('Please select a tee colour.'); return; }
