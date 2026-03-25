@@ -22,6 +22,7 @@ import { initCaddieButton } from './caddie.js';
 import { setGameMode, updateFormatUI, confirmWolfOrder, showWolfScoreboard } from './gamemodes.js';
 import { openCreateMatchModal, openJoinMatchModal, updateGroupMatchButtonVisibility, updateActiveMatchBadge } from './group-match.js';
 import { initMatchOverlay, hideMatchOverlay, showEndRoundConfirm } from './overlay.js';
+import { startInvitePolling, dismissInviteToast, joinLiveRound, minimiseLiveView, restoreLiveView, leaveLiveView, liveViewScoreAdj, submitEditorScore, toggleEditMode } from './live-invite.js';
 
 // ── Theme ─────────────────────────────────────────────────────────
 function applyTheme(theme) {
@@ -101,6 +102,17 @@ document.getElementById('gps-stop-btn')?.addEventListener('click', stopGPS);
 document.getElementById('gps-btn-pin-tee')?.addEventListener('click', () => pinTeePosition(state.liveState?.hole || 0));
 document.getElementById('mark-drive-btn')?.addEventListener('click', markDriveTap);
 document.getElementById('drive-log-btn')?.addEventListener('click', () => logDrive(state.liveState?.hole || 0));
+// ── Live invite & viewer ──────────────────────────────────────────
+document.getElementById('live-invite-dismiss')?.addEventListener('click', dismissInviteToast);
+document.getElementById('live-invite-view-btn')?.addEventListener('click', () => joinLiveRound('view'));
+document.getElementById('live-invite-edit-btn')?.addEventListener('click', () => joinLiveRound('edit'));
+document.getElementById('lv-minimise-btn')?.addEventListener('click', minimiseLiveView);
+document.getElementById('lv-leave-btn')?.addEventListener('click', leaveLiveView);
+document.getElementById('lv-restore-btn')?.addEventListener('click', restoreLiveView);
+document.getElementById('lv-score-dec')?.addEventListener('click', () => liveViewScoreAdj(-1));
+document.getElementById('lv-score-inc')?.addEventListener('click', () => liveViewScoreAdj(1));
+document.getElementById('lv-submit-score-btn')?.addEventListener('click', submitEditorScore);
+document.getElementById('lv-toggle-edit-btn')?.addEventListener('click', toggleEditMode);
 // ── Round / scorecard tab ─────────────────────────────────────────
 // Entry card buttons
 document.getElementById('entry-btn-manual')?.addEventListener('click', () => switchEntry('manual'));
@@ -367,6 +379,7 @@ loadGist().then(async () => {
   renderOnboard();
   updateActiveMatchBadge();
   updateUnsyncedBadge();
+  startInvitePolling(); // begin checking for live round invites once data loaded
 
   // Silent retry — merge any unsynced rounds into Gist without prompting
   const syncedOk = await retrySyncUnsynced();

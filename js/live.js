@@ -7,6 +7,36 @@ import { recalc, scoreCol } from './scorecard.js';
 import { goTo } from './nav.js';
 // Wolf hooks loaded via dynamic import to avoid circular deps
 
+// ── Live publish helpers ──────────────────────────────────────────
+
+export function publishLiveState() {
+  // Only publish for multi-player group rounds
+  if (!state.liveInvite.liveRoundId || state.liveState.group.length < 2) return;
+  import('./api.js').then(({ pushSupabase }) => {
+    pushSupabase('publishLiveRound', {
+      round: {
+        id: state.liveInvite.liveRoundId,
+        host: state.me,
+        players: [...state.liveState.group],
+        course: getCourseByRef()?.name || '',
+        tee: state.stee || '',
+        hole: state.liveState.hole,
+        scores: { ...state.liveState.groupScores },
+        putts: { ...state.liveState.groupPutts },
+        pars: [...state.cpars]
+      }
+    });
+  });
+}
+
+export function endLivePublish() {
+  if (!state.liveInvite.liveRoundId) return;
+  import('./api.js').then(({ pushSupabase }) => {
+    pushSupabase('endLiveRound', { roundId: state.liveInvite.liveRoundId });
+  });
+  state.liveInvite.liveRoundId = null;
+}
+
 
 // ── Wake Lock ─────────────────────────────────────────────────────
 async function requestWakeLock() {
@@ -243,6 +273,11 @@ export function startGroupRound() {
     }
 
     state.roundActive = true;
+    // Publish live state for multi-player rounds so other players get an invite
+    if (state.liveState.group.length > 1) {
+      state.liveInvite.liveRoundId = Date.now();
+      publishLiveState();
+    }
     const _cBtn = document.getElementById('caddie-btn');
     _cBtn?.classList.add('visible');
     _cBtn?.classList.add('in-progress');
@@ -397,6 +432,9 @@ export function liveGoto(h) {
     if (state.gpsState.watching) updateGPSDisplay(h);
     updateDriveBtn(h, true);
   });
+
+  // Push live state update for remote viewers
+  publishLiveState();
 
   document.getElementById('live-prev').disabled = h === 0;
   document.getElementById('live-btn-prev2').disabled = h === 0;
@@ -788,6 +826,7 @@ export function liveNextOrFinish() {
 
 export function cancelRound(skipConfirm = false) {
   if (!skipConfirm && !confirm('Cancel this round? All progress will be lost.')) return;
+  endLivePublish();
   localStorage.removeItem('rr_live_backup');
   import('./overlay.js').then(({ hideMatchOverlay }) => hideMatchOverlay());
   state.roundActive = false;
@@ -819,7 +858,23 @@ async function liveFinishAndSave() {
   _cBtn2?.classList.remove('in-progress');
   releaseWakeLock();
   import('./overlay.js').then(({ hideMatchOverlay }) => hideMatchOverlay());
-  // Always save directly for all group sizes
+
+  // Pull any remote editor score updates before saving
+  if (state.liveInvite.liveRoundId && state.liveState.group.length > 1) {
+    try {
+      const { querySupabase } = await import('./api.js');
+      const res = await querySupabase('fetchLiveRound', { roundId: state.liveInvite.liveRoundId });
+      if (res?.round?.scores) {
+        state.liveState.group.forEach(name => {
+          if (name === state.me) return; // don't overwrite host's own scores
+          const remote = res.round.scores[name];
+          if (remote?.some(s => s != null)) state.liveState.groupScores[name] = remote;
+        });
+      }
+    } catch (e) { /* non-critical — save local data */ }
+  }
+
+  endLivePublish();
   await liveGroupSave();
 }
 

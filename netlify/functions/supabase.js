@@ -144,6 +144,73 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     }
 
+    // ── publishLiveRound ─────────────────────────────────────────────
+    if (action === 'publishLiveRound') {
+      const { round } = data;
+      await supabase.from('active_rounds').upsert({
+        id: round.id,
+        group_code: groupCode,
+        host: round.host,
+        players: round.players,
+        course: round.course || '',
+        tee: round.tee || '',
+        hole: round.hole || 0,
+        scores: round.scores || {},
+        putts: round.putts || {},
+        pars: round.pars || [],
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'id' });
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+    }
+
+    // ── pollGroupInvites ─────────────────────────────────────────────
+    if (action === 'pollGroupInvites') {
+      const { data: rows, error } = await supabase
+        .from('active_rounds')
+        .select('*')
+        .eq('group_code', groupCode)
+        .order('updated_at', { ascending: false });
+      if (error) throw error;
+      return { statusCode: 200, headers, body: JSON.stringify({ rounds: rows || [] }) };
+    }
+
+    // ── fetchLiveRound ───────────────────────────────────────────────
+    if (action === 'fetchLiveRound') {
+      const { roundId } = data;
+      const { data: row } = await supabase
+        .from('active_rounds')
+        .select('*')
+        .eq('id', roundId)
+        .maybeSingle();
+      return { statusCode: 200, headers, body: JSON.stringify({ round: row || null }) };
+    }
+
+    // ── updateEditorScores ───────────────────────────────────────────
+    if (action === 'updateEditorScores') {
+      const { roundId, player, hole, score } = data;
+      // Fetch current scores, update the one hole, write back
+      const { data: row } = await supabase
+        .from('active_rounds')
+        .select('scores')
+        .eq('id', roundId)
+        .maybeSingle();
+      if (!row) return { statusCode: 404, headers, body: JSON.stringify({ error: 'Round not found' }) };
+      const scores = row.scores || {};
+      if (!scores[player]) scores[player] = Array(18).fill(null);
+      scores[player][hole] = score;
+      await supabase.from('active_rounds')
+        .update({ scores, updated_at: new Date().toISOString() })
+        .eq('id', roundId);
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+    }
+
+    // ── endLiveRound ─────────────────────────────────────────────────
+    if (action === 'endLiveRound') {
+      const { roundId } = data;
+      await supabase.from('active_rounds').delete().eq('id', roundId);
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+    }
+
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Unknown action' }) };
 
   } catch (err) {

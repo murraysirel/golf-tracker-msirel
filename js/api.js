@@ -64,6 +64,21 @@ export async function loadGist() {
 
 // ── Supabase parallel sync ────────────────────────────────────────
 
+// querySupabase — like pushSupabase but returns the parsed JSON body (for read-type calls)
+export async function querySupabase(action, data) {
+  try {
+    const res = await fetch('/.netlify/functions/supabase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, groupCode: state.gd?.groupCode || '', data })
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    return null;
+  }
+}
+
 export async function pushSupabase(action, data) {
   try {
     const res = await fetch('/.netlify/functions/supabase', {

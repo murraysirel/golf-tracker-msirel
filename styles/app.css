@@ -73,6 +73,7 @@ body{
 .sdot.err{background:var(--double)}
 .sdot.warn{background:var(--bogey)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
+@keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
 
 /* ── Nav ──────────────────────────────────────────────────────── */
 .nav{

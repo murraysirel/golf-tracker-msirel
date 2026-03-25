@@ -55,5 +55,13 @@ export const state = {
   wakeLock: null,
   gameMode: 'stroke', // 'stroke' | 'wolf'
   wolfState: null,    // populated by gamemodes.js when a Wolf round starts
-  currentMatchId: null // set when player creates or joins a group match
+  currentMatchId: null, // set when player creates or joins a group match
+  liveInvite: {
+    liveRoundId: null,    // set by host — the ID being published
+    currentRoundId: null, // set by viewer — the ID being watched
+    mode: null,           // 'view' | 'edit'
+    data: null,           // latest fetched round data
+    minimised: false,
+    seenIds: new Set()    // dismissed invite IDs — don't re-show in this session
+  }
 };
