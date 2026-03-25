@@ -72,12 +72,6 @@ function openProfilePanel() {
   document.getElementById('profile-icon-btn')?.classList.add('panel-open');
   const gc = document.getElementById('players-group-code');
   if (gc && state.gd?.groupCode) gc.textContent = state.gd.groupCode;
-  const admin = document.getElementById('admin-gistid');
-  if (admin) admin.textContent = 'gist.github.com/murraysirel/' + (state.gd?.groupCode || '');
-  const gistRow = document.getElementById('gist-row');
-  if (gistRow) gistRow.style.display = '';
-  const sgistid = document.getElementById('s-gistid');
-  import('./constants.js').then(({ DEFAULT_GIST }) => { if (sgistid) sgistid.textContent = 'gist.github.com/murraysirel/' + DEFAULT_GIST; });
 }
 function closeProfilePanel() {
   document.getElementById('profile-panel')?.classList.remove('open');

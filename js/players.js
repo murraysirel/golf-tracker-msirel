@@ -2,7 +2,6 @@
 // PLAYERS
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
-import { DEFAULT_GIST } from './constants.js';
 import { loadGist, pushGist } from './api.js';
 import { goTo } from './nav.js';
 import { initCourseSearch, renderScannedCourses } from './courses.js';
@@ -41,7 +40,6 @@ export function enterAs(n) {
   });
   const pm = document.getElementById('pg-main');
   pm.style.display = 'flex';
-  document.getElementById('s-gistid').textContent = 'gist.github.com/murraysirel/' + DEFAULT_GIST;
   initCourseSearch();
   renderHomeStats();
   ensureGroupCode();

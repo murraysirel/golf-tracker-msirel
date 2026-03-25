@@ -1160,9 +1160,6 @@
           <div><div class="setting-label">App URL</div><div class="setting-sub">Share this with friends to join</div></div>
           <button class="btn btn-ghost" id="copy-app-url-btn" style="width:auto;padding:6px 12px;font-size:11px">Copy</button>
         </div>
-        <div class="setting-row" id="gist-row" style="display:none">
-          <div><div class="setting-label">Data store</div><div class="setting-sub" id="s-gistid" style="font-family:monospace;font-size:9px;color:var(--gold)"></div></div>
-        </div>
         <div class="setting-row">
           <div><div class="setting-label">Sign Out</div><div class="setting-sub">Switch to a different player</div></div>
           <button class="btn btn-ghost" id="sign-out-btn" style="width:auto;padding:6px 12px;font-size:11px">Sign Out</button>
@@ -1210,10 +1207,6 @@
         </div>
         <div id="admin-panel" style="display:none">
           <div style="font-size:12px;color:var(--dim);margin-bottom:14px;line-height:1.5">Admin access granted. You can manage advanced settings below.</div>
-          <!-- Data Store row -->
-          <div class="setting-row">
-            <div><div class="setting-label">Data Store (Gist)</div><div class="setting-sub" id="admin-gistid" style="font-family:monospace;font-size:9px;color:var(--gold)"></div></div>
-          </div>
           <!-- Delete a specific round -->
           <div style="margin-top:14px">
             <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:8px">Delete a Round</div>
@@ -1235,11 +1228,11 @@
             <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:8px">Course Corrections</div>
             <div id="admin-corrections" style="font-size:11px;color:var(--dim)"></div>
           </div>
-          <!-- Gist → Supabase migration -->
+          <!-- Data migration (admin only, no user-facing storage tech labels) -->
           <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
-            <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:8px">Supabase Migration</div>
-            <div style="font-size:11px;color:var(--dim);margin-bottom:10px">One-time: copies all Gist data into Supabase. Safe to re-run (upsert). Secret is injected server-side — never sent from the browser.</div>
-            <button class="btn btn-o" id="admin-migrate-btn" onclick="window._adminRunMigration()">Run Gist → Supabase Migration</button>
+            <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:8px">Data Migration</div>
+            <div style="font-size:11px;color:var(--dim);margin-bottom:10px">One-time data migration. Safe to re-run.</div>
+            <button class="btn btn-o" id="admin-migrate-btn" onclick="window._adminRunMigration()">Run Migration</button>
             <div id="admin-migrate-msg" style="margin-top:8px;font-size:11px;color:var(--dim)"></div>
           </div>
         </div>

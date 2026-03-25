@@ -2,7 +2,6 @@
 // ADMIN SETTINGS
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
-import { DEFAULT_GIST } from './constants.js';
 import { pushGist } from './api.js';
 import { renderHomeStats } from './stats.js';
 
@@ -16,8 +15,6 @@ export function openAdminSettings() {
   document.getElementById('admin-panel').style.display = 'none';
   document.getElementById('admin-pw-input').value = '';
   document.getElementById('admin-pw-err').style.display = 'none';
-  const ag = document.getElementById('admin-gistid');
-  if (ag) ag.textContent = 'gist.github.com/murraysirel/' + DEFAULT_GIST;
 }
 
 export function closeAdminSettings() {
