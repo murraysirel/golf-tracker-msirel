@@ -80,35 +80,106 @@
     <div class="onb-sub" style="margin-top:8px">Your caddie in your pocket</div>
   </div>
 
-  <div class="card mb12">
+  <!-- STEP 0: Select existing player or start sign-up -->
+  <div id="onb-step-select" class="card mb12">
     <div class="ct">Who are you?</div>
     <div id="onb-player-list"><div class="empty"><div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></div>Loading players...</div></div>
-    <div class="divider"><span>first time?</span></div>
-    <div style="background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.25);border-radius:9px;padding:10px 12px;margin-bottom:10px">
-      <div style="font-size:10px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:3px"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Beta Version</div>
-      <div style="font-size:11px;color:var(--dim);line-height:1.5">You'll need the group code from an existing member to join. Ask your group admin.</div>
-    </div>
-    <div style="display:flex;gap:8px;margin-bottom:8px">
-      <input type="text" id="new-fname" placeholder="First name" autocomplete="given-name" style="flex:1">
-      <input type="text" id="new-lname" placeholder="Last name" autocomplete="family-name" style="flex:1">
-    </div>
-    <input type="text" id="new-username" placeholder="Username (optional)" autocomplete="username" class="mb8">
-    <div id="group-code-field" style="display:block;margin-bottom:8px">
-      <label style="font-size:11px;color:var(--dim)">Group code (ask your group admin)</label>
-      <input type="text" id="new-group-code" placeholder="e.g. RR4XK2" style="text-transform:uppercase;letter-spacing:3px;font-size:16px;text-align:center" maxlength="6">
-      <div id="group-code-err" style="font-size:11px;color:#f1948a;margin-top:4px;display:none">Incorrect group code — check with your group admin.</div>
-    </div>
-    <button class="btn" id="onb-join-btn">Join &amp; Start Playing</button>
-    <div style="margin-top:12px;padding:10px 12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:9px">
-      <div style="font-size:10px;color:var(--dim);line-height:1.6">
-        <strong style="color:var(--cream);display:block;margin-bottom:3px">Privacy notice</strong>
-        This app stores your name and golf scores in a private group data store. No financial data, location or photos are stored. Your data is used only for scoring and stats within this group. You can export or delete your data at any time from the Players tab. By joining you consent to this use.
-      </div>
-    </div>
+    <div class="divider"><span>New to Looper?</span></div>
+    <button class="btn" id="onb-create-profile-btn" style="border-radius:40px">Create your profile →</button>
+  </div>
 
-    <div style="margin-top:10px;font-size:11px;color:var(--dimmer);text-align:center;line-height:1.6">
-      Welcome to Looper — scoring, stats and AI coaching for your group.
+  <!-- STEP 1: Profile creation -->
+  <div id="onb-step-profile" class="card mb12" style="display:none">
+    <div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px">Step 1 of 2</div>
+    <div class="ct" style="margin-bottom:4px">Create your profile</div>
+    <div style="font-size:12px;color:var(--dim);margin-bottom:20px;line-height:1.5">Tell us who you are so we can track your game.</div>
+    <label style="font-size:11px;color:var(--dim);margin-bottom:4px;display:block">Full name <span style="color:#e74c3c">*</span></label>
+    <input type="text" id="new-fullname" placeholder="e.g. Jamie Wilson" autocomplete="name" class="mb12">
+    <label style="font-size:11px;color:var(--dim);margin-bottom:4px;display:block">Handicap Index <span style="color:#e74c3c">*</span></label>
+    <input type="number" id="new-handicap" placeholder="e.g. 12.4" min="0" max="54" step="0.1" class="mb4" inputmode="decimal">
+    <div style="font-size:10px;color:var(--dimmer);margin-bottom:14px">Enter 0 if you don't have an official handicap yet</div>
+    <label style="font-size:11px;color:var(--dim);margin-bottom:2px;display:block">Email</label>
+    <div style="font-size:10px;color:var(--dimmer);margin-bottom:5px">Recommended for cross-device sync</div>
+    <input type="email" id="new-email" placeholder="e.g. jamie@example.com" autocomplete="email" class="mb16" inputmode="email">
+    <div id="onb-profile-err" style="display:none;font-size:12px;color:#f1948a;margin-bottom:10px;padding:8px 12px;background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.2);border-radius:8px"></div>
+    <button class="btn" id="onb-profile-submit-btn" style="border-radius:40px">Create my profile →</button>
+    <button class="btn btn-ghost" id="onb-back-to-select-btn" style="margin-top:8px">← Back</button>
+  </div>
+
+  <!-- STEP 2: Privacy notice — must tap to proceed, cannot skip -->
+  <div id="onb-step-privacy" class="card mb12" style="display:none">
+    <div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px">Step 2 of 2</div>
+    <div class="ct" style="margin-bottom:4px">Privacy notice</div>
+    <div style="font-size:12px;color:var(--dim);margin-bottom:18px;line-height:1.5">Please read before continuing.</div>
+    <div style="font-size:12px;color:var(--dim);line-height:1.75;padding:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;margin-bottom:20px">
+      This app stores your name and golf scores in a private group data store. No financial data, location or photos are stored. Your data is used only for scoring and stats within this group. You can export or delete your data at any time from the Players tab.
     </div>
+    <button class="btn" id="onb-privacy-agree-btn" style="border-radius:40px">I understand — continue →</button>
+    <button class="btn btn-ghost" id="onb-back-to-profile-btn" style="margin-top:8px">← Back</button>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════════ GROUP FORK ══════════════ -->
+<div id="pg-group-fork" style="display:none;height:100%;overflow-y:auto">
+<div class="app-inner" style="display:flex;flex-direction:column;justify-content:center;padding-top:40px;padding-bottom:40px;min-height:100%">
+
+  <div style="text-align:center;margin-bottom:32px">
+    <div style="width:60px;height:60px;border-radius:50%;overflow:hidden;margin:0 auto 14px;background:var(--mid);box-shadow:0 4px 20px rgba(201,168,76,.2)">
+      <img src="/assets/looper_caddie.png" alt="Looper" style="width:100%;height:100%;object-fit:cover">
+    </div>
+    <div style="font-size:26px;font-weight:700;color:var(--cream);font-family:'DM Sans',sans-serif;margin-bottom:6px">Play with your mates?</div>
+    <div style="font-size:13px;color:var(--dim);line-height:1.5">Track scores, stats and leaderboards as a group.</div>
+  </div>
+
+  <!-- Option A: Join a group -->
+  <button id="fork-join-btn" style="display:block;width:100%;padding:20px;border-radius:14px;background:var(--gold);color:var(--navy);border:none;cursor:pointer;text-align:left;margin-bottom:12px;-webkit-tap-highlight-color:transparent;font-family:'DM Sans',sans-serif">
+    <div style="font-size:17px;font-weight:700;margin-bottom:4px">Join a group</div>
+    <div style="font-size:12px;opacity:0.7">Enter an invite code or tap a WhatsApp link</div>
+  </button>
+
+  <!-- Option B: Create a group -->
+  <button id="fork-create-btn" style="display:block;width:100%;padding:20px;border-radius:14px;background:var(--card);border:1.5px solid var(--border);color:var(--cream);cursor:pointer;text-align:left;margin-bottom:24px;-webkit-tap-highlight-color:transparent;font-family:'DM Sans',sans-serif">
+    <div style="font-size:17px;font-weight:700;margin-bottom:4px">Create a group</div>
+    <div style="font-size:12px;color:var(--dim)">Set up your group and invite your mates</div>
+  </button>
+
+  <!-- Option C: Not now (ghost/muted, visually smaller) -->
+  <button id="fork-solo-btn" style="display:block;width:100%;padding:14px 20px;border-radius:40px;background:transparent;border:1px solid rgba(255,255,255,.12);cursor:pointer;font-family:'DM Sans',sans-serif;-webkit-tap-highlight-color:transparent;text-align:center">
+    <div style="font-size:13px;font-weight:500;color:var(--dim);margin-bottom:2px">Not now</div>
+    <div style="font-size:11px;color:var(--dimmer)">Use Looper solo for now</div>
+  </button>
+
+</div>
+</div>
+
+<!-- ══════════════ JOIN GROUP (placeholder — Prompt 3) ══════════════ -->
+<div id="pg-join-group" style="display:none;height:100%;overflow-y:auto">
+<div class="app-inner">
+  <div class="card" style="margin-top:32px">
+    <div class="ct">Join a group</div>
+    <div style="font-size:12px;color:var(--dim);margin-bottom:18px;line-height:1.6">Enter the invite code shared by your group admin, or tap a WhatsApp invite link.</div>
+    <div style="background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.2);border-radius:10px;padding:18px;text-align:center;font-size:13px;color:var(--dim);margin-bottom:18px">
+      Full group-join flow coming soon.
+    </div>
+    <button class="btn btn-ghost" id="join-group-back-btn" style="margin-bottom:8px">← Back</button>
+    <button class="btn" id="join-group-continue-btn">Continue to Looper →</button>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════ CREATE GROUP (placeholder — Prompt 4) ══════════════ -->
+<div id="pg-create-group" style="display:none;height:100%;overflow-y:auto">
+<div class="app-inner">
+  <div class="card" style="margin-top:32px">
+    <div class="ct">Create a group</div>
+    <div style="font-size:12px;color:var(--dim);margin-bottom:18px;line-height:1.6">Set up a group and invite your mates with a shareable code or WhatsApp link.</div>
+    <div style="background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.2);border-radius:10px;padding:18px;text-align:center;font-size:13px;color:var(--dim);margin-bottom:18px">
+      Full group-creation flow coming soon.
+    </div>
+    <button class="btn btn-ghost" id="create-group-back-btn" style="margin-bottom:8px">← Back</button>
+    <button class="btn" id="create-group-continue-btn">Continue to Looper →</button>
   </div>
 </div>
 </div>
@@ -855,6 +926,18 @@
     <!-- LEADERBOARD -->
     <div id="pg-leaderboard" style="display:none" class="sec">
 
+      <!-- Solo prompt — tap to open group fork from Board tab -->
+      <div class="card" id="lb-solo-prompt" style="margin-bottom:14px;background:rgba(201,168,76,.05);border:1px solid rgba(201,168,76,.2)">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+          <div style="font-size:30px;line-height:1">⛳</div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:600;color:var(--cream);margin-bottom:3px">Playing solo?</div>
+            <div style="font-size:12px;color:var(--dim);line-height:1.4">Join or create a group to compare your scores with your mates.</div>
+          </div>
+        </div>
+        <button id="lb-group-fork-btn" class="btn" style="border-radius:40px">Join or create a group →</button>
+      </div>
+
       <!-- Season filter -->
       <div style="margin-bottom:14px">
         <label style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:2px;display:block;margin-bottom:5px">Season</label>
@@ -1006,6 +1089,13 @@
           </div>
         </div>
       </div>
+      <!-- Group access — join or create a group from the Players panel -->
+      <div class="card" style="margin-bottom:13px">
+        <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase;margin-bottom:10px">Find a Group</div>
+        <div style="font-size:12px;color:var(--dim);margin-bottom:12px;line-height:1.5">Join a friend's group or create your own to compare scores and unlock leaderboards.</div>
+        <button class="btn" id="panel-group-fork-btn" style="border-radius:40px">Join or create a group →</button>
+      </div>
+
       <!-- Season management -->
       <div class="card" style="margin-bottom:13px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">

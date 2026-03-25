@@ -8,7 +8,7 @@ import { getCourseByRef, scanCourseCard, saveCourse, cancelCourseScan, handleCou
 import { buildSC, recalc, saveRound, toggleSCExtras } from './scorecard.js';
 import { renderStats, setFilter, toggleHcpEdit, saveHandicap, renderHomeStats, openScorecardModal } from './stats.js';
 import { renderLeaderboard } from './leaderboard.js';
-import { renderOnboard, enterAs, addAndEnter, signOut, addPlayer, renderAllPlayers, renderPlayersToday } from './players.js';
+import { renderOnboard, enterAs, addAndEnter, signOut, addPlayer, renderAllPlayers, renderPlayersToday, showSignupStep, submitProfile, agreePrivacy, showGroupFork, goBackToFork, forkNotNow, forkJoinGroup, forkCreateGroup } from './players.js';
 import { renderPracticePage, selectPracticeArea, startPracticeSession, regeneratePlan, logPracticeShots, completePracticeSession } from './practice.js';
 import { initLiveRound, liveGoto, liveSaveNote, liveNextOrFinish, toggleGroupPlayer, startGroupRound, toggleMatchPlay, openCorrectionModal, submitCorrectionReport, cancelRound } from './live.js';
 import { generateAIReview, generateStatsAnalysis, clearStatsAnalysis, parsePhoto, handlePhoto } from './ai.js';
@@ -87,8 +87,24 @@ document.getElementById('profile-icon-btn')?.addEventListener('click', openProfi
 document.getElementById('profile-panel-close')?.addEventListener('click', closeProfilePanel);
 document.getElementById('profile-backdrop')?.addEventListener('click', closeProfilePanel);
 
-// ── Onboard ───────────────────────────────────────────────────────
-document.getElementById('onb-join-btn')?.addEventListener('click', addAndEnter);
+// ── Onboard — 3-step sign-up flow ────────────────────────────────
+document.getElementById('onb-create-profile-btn')?.addEventListener('click', () => showSignupStep(1));
+document.getElementById('onb-back-to-select-btn')?.addEventListener('click', () => showSignupStep(0));
+document.getElementById('onb-profile-submit-btn')?.addEventListener('click', submitProfile);
+document.getElementById('onb-back-to-profile-btn')?.addEventListener('click', () => showSignupStep(1));
+document.getElementById('onb-privacy-agree-btn')?.addEventListener('click', agreePrivacy);
+// Group fork screen
+document.getElementById('fork-join-btn')?.addEventListener('click', forkJoinGroup);
+document.getElementById('fork-create-btn')?.addEventListener('click', forkCreateGroup);
+document.getElementById('fork-solo-btn')?.addEventListener('click', forkNotNow);
+// Placeholder back / continue buttons
+document.getElementById('join-group-back-btn')?.addEventListener('click', goBackToFork);
+document.getElementById('join-group-continue-btn')?.addEventListener('click', forkNotNow);
+document.getElementById('create-group-back-btn')?.addEventListener('click', goBackToFork);
+document.getElementById('create-group-continue-btn')?.addEventListener('click', forkNotNow);
+// Group fork entry points from within the main app
+document.getElementById('lb-group-fork-btn')?.addEventListener('click', () => showGroupFork(false));
+document.getElementById('panel-group-fork-btn')?.addEventListener('click', () => showGroupFork(false));
 
 // ── Home page ─────────────────────────────────────────────────────
 document.getElementById('home-go-stats-link')?.addEventListener('click', () => goTo('stats'));

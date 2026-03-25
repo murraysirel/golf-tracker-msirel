@@ -121,6 +121,19 @@ export async function deleteMyData() {
   }
 }
 
+// Ambiguous characters excluded: 0, O, I, 1
+const GROUP_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+export function generateGroupCode() {
+  let code = '';
+  const randomValues = new Uint8Array(6);
+  crypto.getRandomValues(randomValues);
+  for (let i = 0; i < 6; i++) {
+    code += GROUP_CODE_CHARS[randomValues[i] % GROUP_CODE_CHARS.length];
+  }
+  return code;
+}
+
 export function copyAppUrl() {
   const url = window.location.origin + window.location.pathname;
   navigator.clipboard?.writeText(url)

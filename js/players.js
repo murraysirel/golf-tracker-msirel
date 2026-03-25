@@ -35,7 +35,10 @@ export function renderOnboard() {
 export function enterAs(n) {
   state.me = n;
   if (!state.gd.players[n]) state.gd.players[n] = { handicap: 0, rounds: [] };
-  document.getElementById('pg-onboard').style.display = 'none';
+  ['pg-onboard', 'pg-group-fork', 'pg-join-group', 'pg-create-group'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
   const pm = document.getElementById('pg-main');
   pm.style.display = 'flex';
   document.getElementById('s-gistid').textContent = 'gist.github.com/murraysirel/' + DEFAULT_GIST;
@@ -73,9 +76,91 @@ export function addAndEnter() {
 
 export function signOut() {
   state.me = '';
-  document.getElementById('pg-main').style.display = 'none';
-  document.getElementById('pg-onboard').style.display = 'block';
+  ['pg-main', 'pg-group-fork', 'pg-join-group', 'pg-create-group'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  const po = document.getElementById('pg-onboard');
+  if (po) po.style.display = 'block';
+  showSignupStep(0);
   renderOnboard();
+}
+
+// ── New-user sign-up flow (3 steps) ──────────────────────────────
+
+let _pendingProfile = null; // { name, handicap, email } — held between steps 1 and 2
+let _forkFromOnboarding = false;
+
+export function showSignupStep(n) {
+  document.getElementById('onb-step-select').style.display = n === 0 ? 'block' : 'none';
+  document.getElementById('onb-step-profile').style.display = n === 1 ? 'block' : 'none';
+  document.getElementById('onb-step-privacy').style.display = n === 2 ? 'block' : 'none';
+  const pg = document.getElementById('pg-onboard');
+  if (pg) pg.scrollTop = 0;
+}
+
+export function submitProfile() {
+  const fullName = (document.getElementById('new-fullname')?.value || '').trim();
+  const hcpRaw = document.getElementById('new-handicap')?.value ?? '';
+  const email = (document.getElementById('new-email')?.value || '').trim();
+  const errEl = document.getElementById('onb-profile-err');
+  const showErr = msg => { if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; } };
+
+  if (!fullName) { showErr('Please enter your full name.'); return; }
+  const hcp = parseFloat(hcpRaw);
+  if (hcpRaw === '' || isNaN(hcp) || hcp < 0 || hcp > 54) {
+    showErr('Please enter a valid Handicap Index between 0 and 54.');
+    return;
+  }
+  if (errEl) errEl.style.display = 'none';
+  _pendingProfile = { name: fullName, handicap: parseFloat(hcp.toFixed(1)), email };
+  showSignupStep(2);
+}
+
+export function agreePrivacy() {
+  if (!_pendingProfile) return;
+  const { name, handicap, email } = _pendingProfile;
+  if (!state.gd.players[name]) {
+    state.gd.players[name] = { handicap, rounds: [], ...(email ? { email } : {}) };
+  }
+  state.me = name;
+  _pendingProfile = null;
+  pushGist();
+  showGroupFork(true);
+}
+
+export function showGroupFork(fromOnboarding = false) {
+  _forkFromOnboarding = fromOnboarding;
+  ['pg-onboard', 'pg-main', 'pg-join-group', 'pg-create-group'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  const fork = document.getElementById('pg-group-fork');
+  if (fork) fork.style.display = 'block';
+}
+
+export function goBackToFork() {
+  ['pg-join-group', 'pg-create-group'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  const fork = document.getElementById('pg-group-fork');
+  if (fork) fork.style.display = 'block';
+}
+
+export function forkNotNow() {
+  document.getElementById('pg-group-fork').style.display = 'none';
+  enterAs(state.me);
+}
+
+export function forkJoinGroup() {
+  document.getElementById('pg-group-fork').style.display = 'none';
+  document.getElementById('pg-join-group').style.display = 'block';
+}
+
+export function forkCreateGroup() {
+  document.getElementById('pg-group-fork').style.display = 'none';
+  document.getElementById('pg-create-group').style.display = 'block';
 }
 
 export function renderAllPlayers() {
