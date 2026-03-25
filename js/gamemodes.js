@@ -20,37 +20,18 @@ export function updateFormatUI() {
   const sixesHint = document.getElementById('sixes-need-3');
   if (!wolfBtn || !strokeBtn) return;
 
-  const playerCount = Object.keys(state.gd?.players || {}).length;
-  const canWolf = playerCount >= 4;
-  const canSixes = playerCount === 3;
-
-  wolfBtn.disabled = !canWolf;
-  wolfBtn.style.opacity = canWolf ? '' : '0.45';
-  wolfBtn.style.cursor = canWolf ? '' : 'not-allowed';
-  wolfBtn.title = canWolf ? '' : 'Wolf requires exactly 4 players';
-
-  if (sixesBtn) {
-    sixesBtn.disabled = !canSixes;
-    sixesBtn.style.opacity = canSixes ? '' : '0.45';
-    sixesBtn.style.cursor = canSixes ? '' : 'not-allowed';
-    sixesBtn.title = canSixes ? '' : 'Sixes requires exactly 3 players';
-  }
-
   const isWolf = state.gameMode === 'wolf';
   const isMatch = state.gameMode === 'match';
   const isSixes = state.gameMode === 'sixes';
 
   strokeBtn.classList.toggle('active', !isWolf && !isMatch && !isSixes);
-  wolfBtn.classList.toggle('active', isWolf && canWolf);
+  wolfBtn.classList.toggle('active', isWolf);
   if (matchBtn) matchBtn.classList.toggle('active', isMatch);
-  if (sixesBtn) sixesBtn.classList.toggle('active', isSixes && canSixes);
+  if (sixesBtn) sixesBtn.classList.toggle('active', isSixes);
 
-  if (wolfHint) wolfHint.style.display = !canWolf ? 'block' : 'none';
+  if (wolfHint) wolfHint.style.display = isWolf ? 'block' : 'none';
   if (matchHint) matchHint.style.display = isMatch ? 'block' : 'none';
-  if (sixesHint) sixesHint.style.display = (isSixes && !canSixes) ? 'block' : 'none';
-
-  if (!canWolf && isWolf) state.gameMode = 'stroke';
-  if (!canSixes && isSixes) state.gameMode = 'stroke';
+  if (sixesHint) sixesHint.style.display = isSixes ? 'block' : 'none';
 }
 
 // ── State Init ────────────────────────────────────────────────────

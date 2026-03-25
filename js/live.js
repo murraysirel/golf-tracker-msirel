@@ -165,6 +165,7 @@ export function toggleGroupPlayer(name) {
   const idx = state.liveState.group.indexOf(name);
   if (idx === -1) {
     if (state.liveState.group.length >= 4) return; // max 4
+    if (state.gameMode === 'sixes' && state.liveState.group.length >= 3) return; // max 3 for sixes
     state.liveState.group.push(name);
   } else {
     state.liveState.group.splice(idx, 1);

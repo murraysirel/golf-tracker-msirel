@@ -417,8 +417,9 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
   transition:all .15s;white-space:nowrap;min-height:34px;
 }
 .fpill.active,.fpill:active{
-  background:var(--gold);border-color:var(--gold);color:var(--navy);font-weight:600;
+  background:var(--gold);border:2px solid var(--cream);color:var(--navy);font-weight:600;
 }
+[data-theme="light"] .fpill.active{border-color:var(--navy);}
 /* hcp edit row flex */
 #hcp-edit-row{display:flex;}
 

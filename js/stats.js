@@ -375,8 +375,8 @@ export function renderHomeStats() {
     if (!el) return;
     if (last5Val !== null && seasonVal !== null) {
       const delta = last5Val - seasonVal;
-      if (delta > 0) { el.textContent = '↑ ' + Math.abs(delta).toFixed(1) + '%'; el.style.color = 'var(--par)'; }
-      else if (delta < 0) { el.textContent = '↓ ' + Math.abs(delta).toFixed(1) + '%'; el.style.color = 'var(--bogey)'; }
+      if (delta > 0) { el.textContent = '↑ ' + Math.abs(delta).toFixed(1) + ' pp'; el.style.color = 'var(--par)'; }
+      else if (delta < 0) { el.textContent = '↓ ' + Math.abs(delta).toFixed(1) + ' pp'; el.style.color = 'var(--bogey)'; }
       else { el.textContent = '→ avg'; el.style.color = 'var(--dim)'; }
     } else { el.textContent = ''; }
   }
@@ -418,28 +418,55 @@ export function renderHomeStats() {
   });
 }
 
+function isRoundComplete(r) {
+  const puttsOk = (r.putts || []).some(v => v != null && v !== '' && !isNaN(v));
+  const firOk = (r.fir || []).some(v => v === 'Yes' || v === 'No' || v === 'N/A');
+  const girOk = (r.gir || []).some(v => v === 'Yes' || v === 'No');
+  return puttsOk && firOk && girOk;
+}
+
 function populateRoundSelector() {
   const sel = document.getElementById('ai-round-sel');
   if (!sel) return;
   const rs = (state.gd.players[state.me]?.rounds || []);
   if (!rs.length) { sel.innerHTML = '<option>No rounds yet</option>'; return; }
-  const sorted = [...rs.map((r, i) => ({ r, i }))].sort((a, b) => parseDateGB(b.r.date) - parseDateGB(a.r.date)).slice(0, 5);
-  const complete = sorted.filter(({ r }) => {
-    const puttsOk = (r.putts || []).some(v => v != null && v !== '' && !isNaN(v));
-    const firOk = (r.fir || []).some(v => v === 'Yes' || v === 'No' || v === 'N/A');
-    const girOk = (r.gir || []).some(v => v === 'Yes' || v === 'No');
-    return puttsOk && firOk && girOk;
-  });
-  const roundOpts = complete.map(({ r, i }) => `<option value="${i}">${r.date} \u2014 ${r.course} (${r.diff >= 0 ? '+' : ''}${r.diff})</option>`).join('');
-  const incompleteNote = complete.length < sorted.length ? `<option disabled value="">\u2014 ${sorted.length - complete.length} round(s) incomplete (missing putts/FIR/GIR) \u2014</option>` : '';
-  const qualifyingRounds = (state.gd.players[state.me]?.rounds || []).filter(r => {
-    const puttsOk = (r.putts || []).some(v => v != null && v !== '' && !isNaN(v));
-    const firOk = (r.fir || []).some(v => v === 'Yes' || v === 'No' || v === 'N/A');
-    const girOk = (r.gir || []).some(v => v === 'Yes' || v === 'No');
-    return puttsOk && firOk && girOk;
-  });
+  const sorted = [...rs.map((r, i) => ({ r, i }))].sort((a, b) => parseDateGB(b.r.date) - parseDateGB(a.r.date)).slice(0, 10);
+  const roundOpts = sorted.map(({ r, i }) => {
+    const complete = isRoundComplete(r);
+    const label = `${r.date} \u2014 ${r.course} (${r.diff >= 0 ? '+' : ''}${r.diff})${complete ? '' : ' \u26a0 limited data'}`;
+    return `<option value="${i}">${label}</option>`;
+  }).join('');
+  const qualifyingRounds = rs.filter(isRoundComplete);
   const has5 = qualifyingRounds.length >= 5;
-  sel.innerHTML = roundOpts + incompleteNote + (has5 ? '<option value="last5">\u2014 Analyse last 5 qualifying rounds \u2014</option>' : '');
+  sel.innerHTML = roundOpts + (has5 ? '<option value="last5">\u2014 Analyse last 5 qualifying rounds \u2014</option>' : '');
+}
+
+function renderPastAIReviews() {
+  const wrap = document.getElementById('ai-past-reviews');
+  const list = document.getElementById('ai-past-list');
+  if (!wrap || !list) return;
+  const rs = (state.gd.players[state.me]?.rounds || []);
+  const withReviews = [...rs]
+    .filter(r => r.aiReview && (r.aiReview.positive || r.aiReview.negative || r.aiReview.drill))
+    .sort((a, b) => parseDateGB(b.date) - parseDateGB(a.date))
+    .slice(0, 5);
+  if (!withReviews.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  list.innerHTML = withReviews.map((r, idx) => {
+    const shortCourse = (r.course || '').replace(' Golf Club', '').replace(' Golf Course', '').replace(' Golf Links', '');
+    const id = `apr-${idx}`;
+    return `<div style="border:1px solid var(--wa-07);border-radius:10px;overflow:hidden;margin-bottom:8px">
+      <div onclick="document.getElementById('${id}').style.display=document.getElementById('${id}').style.display==='none'?'block':'none'" style="padding:10px 12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:var(--wa-03)">
+        <span style="font-size:12px;font-weight:500;color:var(--cream)">${shortCourse}</span>
+        <span style="font-size:11px;color:var(--dim)">${r.date}</span>
+      </div>
+      <div id="${id}" style="display:none;padding:12px;background:rgba(201,168,76,.04)">
+        ${r.aiReview.positive ? `<div style="margin-bottom:8px"><div style="font-size:9px;letter-spacing:1.8px;text-transform:uppercase;color:var(--par);margin-bottom:4px">What you did well</div><div style="font-size:12px;color:var(--cream);line-height:1.6">${r.aiReview.positive}</div></div>` : ''}
+        ${r.aiReview.negative ? `<div style="margin-bottom:8px;border-top:1px solid var(--wa-07);padding-top:8px"><div style="font-size:9px;letter-spacing:1.8px;text-transform:uppercase;color:var(--bogey);margin-bottom:4px">Area to improve</div><div style="font-size:12px;color:var(--cream);line-height:1.6">${r.aiReview.negative}</div></div>` : ''}
+        ${r.aiReview.drill ? `<div style="border-top:1px solid var(--wa-07);padding-top:8px"><div style="font-size:9px;letter-spacing:1.8px;text-transform:uppercase;color:var(--birdie);margin-bottom:4px">Practice drill</div><div style="font-size:12px;color:var(--cream);line-height:1.6">${r.aiReview.drill}</div></div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ── Self-service round deletion ───────────────────────────────────
@@ -559,7 +586,7 @@ export function renderStats() {
   document.getElementById('c-holes').style.display = fullR.length > 0 ? 'block' : 'none';
   const aiCard = document.getElementById('c-ai-review');
   if (aiCard) { aiCard.style.display = allRounds.length > 0 ? 'block' : 'none'; }
-  if (allRounds.length > 0) populateRoundSelector();
+  if (allRounds.length > 0) { populateRoundSelector(); renderPastAIReviews(); }
 
   const statsCard = document.getElementById('c-ai-stats');
   if (statsCard) {
