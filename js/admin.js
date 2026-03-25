@@ -229,5 +229,32 @@ export async function adminRunMigration() {
   }
 }
 
+export async function adminSeedDemo(reset = false) {
+  const btn = document.getElementById('admin-seed-btn');
+  const msg = document.getElementById('admin-seed-msg');
+  if (!msg) return;
+  if (btn) btn.disabled = true;
+  msg.style.color = 'var(--dim)';
+  msg.textContent = reset ? 'Re-seeding demo data\u2026' : 'Seeding demo data\u2026';
+  try {
+    const url = '/.netlify/functions/run-seed-demo' + (reset ? '?reset=true' : '');
+    const res = await fetch(url, { method: 'POST' });
+    const json = await res.json();
+    if (res.ok) {
+      msg.style.color = '#2ecc71';
+      msg.textContent = '\u2705 ' + (json.message || 'Demo data seeded.');
+    } else {
+      msg.style.color = '#e74c3c';
+      msg.textContent = `\u274C Error ${res.status}: ${json.error || 'unknown'}`;
+    }
+  } catch (err) {
+    msg.style.color = '#e74c3c';
+    msg.textContent = '\u274C Network error \u2014 check connection.';
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 // Expose for inline onclick in admin panel HTML
 window._adminRunMigration = adminRunMigration;
+window._adminSeedDemo = adminSeedDemo;

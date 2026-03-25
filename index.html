@@ -1250,6 +1250,16 @@
             <button class="btn btn-o" id="admin-migrate-btn" onclick="window._adminRunMigration()">Run Migration</button>
             <div id="admin-migrate-msg" style="margin-top:8px;font-size:11px;color:var(--dim)"></div>
           </div>
+          <!-- Demo data seeding -->
+          <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+            <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:8px">Demo Data</div>
+            <div style="font-size:11px;color:var(--dim);margin-bottom:10px">Seed DEMO01 group in Supabase. First run skips if data exists.</div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-o" id="admin-seed-btn" onclick="window._adminSeedDemo(false)" style="flex:1">Seed Demo</button>
+              <button class="btn btn-ghost" onclick="window._adminSeedDemo(true)" style="width:auto;padding:8px 12px;font-size:11px;color:#e74c3c;border-color:rgba(231,76,60,.3)">Re-seed</button>
+            </div>
+            <div id="admin-seed-msg" style="margin-top:8px;font-size:11px;color:var(--dim)"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -1560,7 +1570,7 @@
 <!-- ══════════════ DEV: DESIGN VARIANT TOGGLE ══════════════ -->
 <!-- Remove this block (or set display:none on #design-toggle)
      before sharing the app with end users. -->
-<div id="design-toggle" style="position:fixed;bottom:calc(var(--safe-bot) + 68px);right:10px;z-index:1500;display:flex;gap:4px;font-family:'DM Sans',sans-serif">
+<div id="design-toggle" style="position:fixed;bottom:calc(var(--safe-bot) + 68px);right:10px;z-index:1500;display:none;gap:4px;font-family:'DM Sans',sans-serif">
   <button id="design-v1-btn" class="dv-btn dv-active">Original</button>
   <button id="design-v2-btn" class="dv-btn">V2</button>
 </div>

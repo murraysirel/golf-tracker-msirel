@@ -14,7 +14,7 @@ import { initLiveRound, liveGoto, liveSaveNote, liveNextOrFinish, toggleGroupPla
 import { generateAIReview, generateStatsAnalysis, clearStatsAnalysis, parsePhoto, handlePhoto } from './ai.js';
 import { stopGPS, gpsSetTarget, pinTeePosition, markDriveTap, logDrive } from './gps.js';
 import { exportXlsx } from './export.js';
-import { openAdminSettings, closeAdminSettings, verifyAdminPw, adminPopulateRounds, adminDeleteRound } from './admin.js';
+import { openAdminSettings, closeAdminSettings, verifyAdminPw, adminPopulateRounds, adminDeleteRound, adminSeedDemo } from './admin.js';
 import { copyGroupCode, leaveGroup, toggleGroupCodeRequired, addSeason, deleteSeason, confirmDeleteMyData, deleteMyData, copyAppUrl, rebuildSeasonSelector } from './group.js';
 import { initCompetition } from './competition.js';
 import { state } from './state.js';
