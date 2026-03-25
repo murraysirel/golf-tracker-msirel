@@ -327,9 +327,9 @@
                 <button id="wolf-info-btn" title="Wolf rules" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--wa-1);background:var(--wa-04);color:var(--dim);font-size:12px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;padding:0;flex-shrink:0">ⓘ</button>
               </span>
             </div>
-            <div id="wolf-need-4" style="display:none;font-size:11px;color:var(--gold);margin-top:6px">Wolf requires exactly 4 players — select them below</div>
-            <div id="match-need-2" style="display:none;font-size:11px;color:var(--gold);margin-top:6px">Match play requires exactly 2 players — select them below</div>
-            <div id="sixes-need-3" style="display:none;font-size:11px;color:var(--gold);margin-top:6px">Sixes requires exactly 3 players — select them below</div>
+            <div id="wolf-need-4" style="display:none;font-size:11px;color:var(--gold);margin-top:6px">Wolf requires exactly 4 players — select on the next screen</div>
+            <div id="match-need-2" style="display:none;font-size:11px;color:var(--gold);margin-top:6px">Match play: 2–4 players in any team split — assign teams on the next screen</div>
+            <div id="sixes-need-3" style="display:none;font-size:11px;color:var(--gold);margin-top:6px">Sixes requires exactly 3 players — select on the next screen</div>
           </div>
 
           <!-- Play with the Caddie CTA -->
@@ -512,6 +512,8 @@
           <div class="ct" style="margin-bottom:14px">Who is playing today?</div>
           <div style="font-size:11px;color:var(--dim);margin-bottom:12px">Tap to select players for this round. You can score 1–4 players simultaneously.</div>
           <div id="live-group-chips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px"></div>
+          <!-- Match play team assignment — rendered by live.js when match mode is active -->
+          <div id="live-match-teams" style="display:none;padding-top:14px;border-top:1px solid var(--border);margin-bottom:4px"></div>
           <div id="live-matchplay-row" style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--wa-06);margin-top:4px">
             <div>
               <div style="font-size:13px;color:var(--cream)">Match play</div>
@@ -1263,13 +1265,51 @@
       </div>
     </div>
 
-    <!-- Wolf Rules Modal -->
+    <!-- Game Modes Modal (ⓘ button) — covers Match Play, Sixes, Wolf -->
     <div id="wolf-rules-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9100;align-items:flex-end;justify-content:center">
       <div style="background:var(--mid);border:1px solid var(--wa-08);border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
-          <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase">Wolf — How to Play</div>
+          <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase">Game Modes — How to Play</div>
           <button id="wolf-rules-close" style="background:none;border:none;color:var(--dim);font-size:20px;cursor:pointer;line-height:1">✕</button>
         </div>
+
+        <!-- ── MATCH PLAY ── -->
+        <div style="font-size:14px;font-weight:700;color:var(--cream);margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)">Match Play</div>
+        <div style="font-size:13px;color:var(--cream);line-height:1.7;margin-bottom:20px">
+          <div style="color:var(--gold);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">Players &amp; Teams</div>
+          <p style="margin-bottom:14px">Any number from 2–4 players. Select your format on the next screen: singles (1v1), pairs (2v2), or an uneven 2v1. Assign players to Team A and Team B before the round starts.</p>
+          <div style="color:var(--gold);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">Winning Holes</div>
+          <p style="margin-bottom:14px">Each hole is won, lost, or halved. In pairs or 2v1, the <strong>best net score</strong> from each side wins the hole. Net score = gross score minus any handicap strokes received on that hole based on stroke index.</p>
+          <div style="color:var(--gold);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">Winning the Match</div>
+          <div style="background:var(--wa-03);border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px">
+            <div style="margin-bottom:6px">Win a hole → go 1UP</div>
+            <div style="margin-bottom:6px">Lose a hole → go 1DOWN</div>
+            <div style="margin-bottom:6px">Halve a hole → no change</div>
+            <div style="margin-bottom:6px">Lead by more holes than remain → win by X&amp;Y</div>
+            <div>After 18 holes still tied → match halved</div>
+          </div>
+          <div style="color:var(--gold);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">Dormie</div>
+          <p>When one side leads by the same number of holes that remain, they are dormie — the trailing side must win every remaining hole just to halve.</p>
+        </div>
+
+        <!-- ── SIXES ── -->
+        <div style="font-size:14px;font-weight:700;color:var(--cream);margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)">Sixes (3-ball)</div>
+        <div style="font-size:13px;color:var(--cream);line-height:1.7;margin-bottom:20px">
+          <div style="color:var(--gold);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">The Format</div>
+          <p style="margin-bottom:14px">Exactly 3 players. The round is split into three 6-hole matches — holes 1–6, 7–12, and 13–18. In each block the pairings rotate so each player partners with each other player once.</p>
+          <div style="color:var(--gold);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">Points Per Hole</div>
+          <div style="background:var(--wa-03);border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px">
+            <div style="margin-bottom:6px">Pair wins hole → <strong>4 pts</strong> to pair, <strong>0</strong> to solo</div>
+            <div style="margin-bottom:6px">Solo wins hole → <strong>2 pts</strong> to solo, <strong>0 each</strong> to pair</div>
+            <div style="margin-bottom:6px">Pair wins &amp; one halves → <strong>4–1–1</strong></div>
+            <div>All tie → <strong>2–2–2</strong></div>
+          </div>
+          <div style="color:var(--gold);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">Winner</div>
+          <p>Most points after 18 holes wins. Played on net scores (handicap strokes applied).</p>
+        </div>
+
+        <!-- ── WOLF ── -->
+        <div style="font-size:14px;font-weight:700;color:var(--cream);margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)">Wolf (4-player)</div>
         <div style="font-size:13px;color:var(--cream);line-height:1.7">
           <div style="color:var(--gold);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">The Order</div>
           <p style="margin-bottom:14px">Throw a ball at the tee marker — closest to furthest sets playing order. Enter it in the app before play starts.</p>

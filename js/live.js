@@ -157,6 +157,17 @@ function showGroupSetup() {
   // Match play is now a format pill — hide the old toggle row
   const mpRow = document.getElementById('live-matchplay-row');
   if (mpRow) mpRow.style.display = 'none';
+
+  // Show team assignment when match play mode is selected and 2+ players chosen
+  const teamsDiv = document.getElementById('live-match-teams');
+  if (teamsDiv) {
+    if (state.gameMode === 'match' && state.liveState.group.length >= 2) {
+      renderMatchTeams();
+      teamsDiv.style.display = 'block';
+    } else {
+      teamsDiv.style.display = 'none';
+    }
+  }
   // Update match play toggle
   updateMatchPlayToggle();
 }
@@ -170,27 +181,12 @@ export function toggleGroupPlayer(name) {
   } else {
     state.liveState.group.splice(idx, 1);
   }
-  // Disable match play if no longer 2 players
-  if (state.liveState.group.length !== 2) {
-    state.liveState.matchPlay = false;
-  }
   showGroupSetup();
 }
 
 export function toggleMatchPlay() {
-  if (state.liveState.group.length !== 2) {
-    alert('Match play requires exactly 2 players selected.');
-    return;
-  }
-  state.liveState.matchPlay = !state.liveState.matchPlay;
-  state.liveState.matchResult = state.liveState.matchPlay ? {
-    format: 'singles',
-    players: [...state.liveState.group],
-    holesUp: 0,
-    leader: null,
-    holesPlayed: 0,
-    result: 'ongoing'
-  } : null;
+  // Legacy toggle — match play is now set via the format pill (state.gameMode = 'match').
+  // This function is kept for the hidden #live-matchplay-toggle button wired in app.js.
   updateMatchPlayToggle();
 }
 
@@ -215,14 +211,22 @@ export function startGroupRound() {
   }
   // Match play validation + init
   if (state.gameMode === 'match') {
-    if (state.liveState.group.length !== 2) {
-      alert('Match play requires exactly 2 players. Please select 2 players above.');
+    const n = state.liveState.group.length;
+    if (n < 2 || n > 4) {
+      alert('Match play requires 2–4 players. Please select your players above.');
+      return;
+    }
+    const { a, b } = state.liveState.matchTeams;
+    if (!a.length || !b.length) {
+      alert('Please assign at least one player to each team before starting.');
       return;
     }
     state.liveState.matchPlay = true;
     state.liveState.matchResult = {
-      format: 'singles',
-      players: [...state.liveState.group],
+      teamA: [...a],
+      teamB: [...b],
+      labelA: teamLabel(a),
+      labelB: teamLabel(b),
       holesUp: 0,
       leader: null,
       holesPlayed: 0,
@@ -595,28 +599,93 @@ function liveGroupToggle(playerName, field, val) {
 
 // ── Match play ────────────────────────────────────────────────────
 
+function renderMatchTeams() {
+  const container = document.getElementById('live-match-teams');
+  if (!container) return;
+  const group = state.liveState.group;
+
+  // Re-initialise teams if the player list has changed
+  const mt = state.liveState.matchTeams;
+  const allAssigned = [...mt.a, ...mt.b];
+  const stale = !group.every(p => allAssigned.includes(p)) || allAssigned.some(p => !group.includes(p));
+  if (stale || (!mt.a.length && !mt.b.length)) {
+    state.liveState.matchTeams = { a: [], b: [] };
+    group.forEach((p, i) => {
+      if (i % 2 === 0) state.liveState.matchTeams.a.push(p);
+      else state.liveState.matchTeams.b.push(p);
+    });
+  }
+
+  const { a, b } = state.liveState.matchTeams;
+  const chipSt = team => `padding:7px 14px;border-radius:20px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;border:1.5px solid ${team === 'a' ? 'var(--gold)' : '#5dade2'};background:${team === 'a' ? 'rgba(201,168,76,.15)' : 'rgba(93,173,226,.12)'};color:${team === 'a' ? 'var(--gold)' : '#5dade2'};display:block;width:100%;text-align:left;margin-bottom:6px`;
+
+  container.innerHTML = `<div style="font-size:10px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--dim);margin-bottom:10px">Teams — tap a player to swap sides</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><div style="font-size:9px;color:var(--gold);text-transform:uppercase;letter-spacing:2px;margin-bottom:6px">Team A</div><div id="live-team-a-chips"></div></div><div><div style="font-size:9px;color:#5dade2;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px">Team B</div><div id="live-team-b-chips"></div></div></div>`;
+
+  const aEl = container.querySelector('#live-team-a-chips');
+  const bEl = container.querySelector('#live-team-b-chips');
+
+  const addChip = (name, team, targetEl) => {
+    const btn = document.createElement('button');
+    btn.style.cssText = chipSt(team);
+    btn.textContent = name === state.me ? name + ' (you)' : name;
+    btn.title = 'Tap to move to other team';
+    btn.addEventListener('click', () => {
+      if (team === 'a') {
+        state.liveState.matchTeams.a = state.liveState.matchTeams.a.filter(p => p !== name);
+        state.liveState.matchTeams.b.push(name);
+      } else {
+        state.liveState.matchTeams.b = state.liveState.matchTeams.b.filter(p => p !== name);
+        state.liveState.matchTeams.a.push(name);
+      }
+      renderMatchTeams();
+    });
+    targetEl?.appendChild(btn);
+  };
+
+  a.forEach(n => addChip(n, 'a', aEl));
+  b.forEach(n => addChip(n, 'b', bEl));
+}
+
+function getHcpStrokesOnHole(playerName, holeIdx) {
+  const hcp = Math.round(state.liveState.hcpOverrides[playerName] ?? (state.gd.players[playerName]?.handicap || 0));
+  if (hcp <= 0) return 0;
+  const course = getCourseByRef();
+  const si = course?.stroke_indexes?.[holeIdx] ?? (holeIdx + 1);
+  return Math.floor(hcp / 18) + (si <= (hcp % 18) ? 1 : 0);
+}
+
+function teamLabel(players) {
+  return players.length > 1
+    ? players.map(n => n.split(' ')[0]).join(' & ')
+    : players[0] || '?';
+}
+
 function updateMatchBanner(h) {
   const banner = document.getElementById('live-match-banner');
   const statusEl = document.getElementById('live-match-status');
   const holeEl = document.getElementById('live-match-hole-result');
-  if (!banner || !state.liveState.matchPlay || state.liveState.group.length !== 2) {
+  if (!banner || !state.liveState.matchPlay) {
     if (banner) banner.style.display = 'none';
     return;
   }
 
   computeMatchResult();
   const mr = state.liveState.matchResult;
-  if (!mr) { banner.style.display = 'none'; return; }
+  if (!mr || !mr.teamA) { banner.style.display = 'none'; return; }
 
   banner.style.display = '';
 
-  // Hole result for current hole
-  const [p1, p2] = state.liveState.group;
-  const s1 = state.liveState.groupScores[p1]?.[h];
-  const s2 = state.liveState.groupScores[p2]?.[h];
-  if (s1 != null && s2 != null) {
-    const diff = s1 - s2;
-    const holeResult = diff < 0 ? `${p1} wins hole` : diff > 0 ? `${p2} wins hole` : 'Hole halved';
+  // Hole result for current hole — best net score per team
+  const bestNet = team => {
+    const nets = team.map(p => {
+      const g = state.liveState.groupScores[p]?.[h];
+      return g != null ? g - getHcpStrokesOnHole(p, h) : null;
+    }).filter(s => s != null);
+    return nets.length ? Math.min(...nets) : null;
+  };
+  const netA = bestNet(mr.teamA), netB = bestNet(mr.teamB);
+  if (netA != null && netB != null) {
+    const holeResult = netA < netB ? `${mr.labelA} wins hole` : netA > netB ? `${mr.labelB} wins hole` : 'Hole halved';
     if (holeEl) holeEl.textContent = holeResult;
   } else {
     if (holeEl) holeEl.textContent = 'Scores not entered yet';
@@ -625,54 +694,50 @@ function updateMatchBanner(h) {
   // Running match status
   if (mr.result === 'won') {
     const holesLeft = 17 - mr.holesPlayed;
-    statusEl.textContent = `🏆 ${mr.leader} wins ${mr.holesUp}&${holesLeft}`;
+    if (statusEl) statusEl.textContent = `🏆 ${mr.leader} wins ${mr.holesUp}&${holesLeft}`;
     banner.style.background = 'rgba(201,168,76,.18)';
   } else if (mr.result === 'halved') {
-    statusEl.textContent = 'Match all square after 18 — halved';
+    if (statusEl) statusEl.textContent = 'Match halved after 18';
   } else if (mr.holesPlayed === 0) {
-    statusEl.textContent = 'Match play — all square';
+    if (statusEl) statusEl.textContent = `${mr.labelA} vs ${mr.labelB} — all square`;
   } else {
     const upStr = mr.holesUp > 0 ? `${mr.leader} ${mr.holesUp}UP` : 'All square';
     const remaining = 17 - mr.holesPlayed;
-    // Dormie check
     if (mr.holesUp > 0 && mr.holesUp >= remaining) {
-      statusEl.textContent = `${mr.leader} DORMIE — ${upStr} with ${remaining} to play`;
+      if (statusEl) statusEl.textContent = `${mr.leader} DORMIE — ${upStr} with ${remaining} to play`;
     } else {
-      statusEl.textContent = `${upStr} through ${mr.holesPlayed}`;
+      if (statusEl) statusEl.textContent = `${upStr} through ${mr.holesPlayed}`;
     }
   }
 }
 
 function computeMatchResult() {
-  if (!state.liveState.matchPlay || state.liveState.group.length !== 2) return;
-  const [p1, p2] = state.liveState.group;
-  let holesUp = 0; // positive = p1 leads
+  if (!state.liveState.matchPlay) return;
+  const mr = state.liveState.matchResult;
+  if (!mr?.teamA || !mr?.teamB) return;
+
+  const { teamA, teamB } = mr;
+  let holesUp = 0; // positive = team A leads
   let holesPlayed = 0;
   let matchWon = false;
 
   for (let h = 0; h < 18; h++) {
-    const s1 = state.liveState.groupScores[p1]?.[h];
-    const s2 = state.liveState.groupScores[p2]?.[h];
-    if (s1 == null || s2 == null) continue;
+    const netA = teamA.map(p => { const g = state.liveState.groupScores[p]?.[h]; return g != null ? g - getHcpStrokesOnHole(p, h) : null; }).filter(s => s != null);
+    const netB = teamB.map(p => { const g = state.liveState.groupScores[p]?.[h]; return g != null ? g - getHcpStrokesOnHole(p, h) : null; }).filter(s => s != null);
+    if (!netA.length || !netB.length) continue;
+    const bestA = Math.min(...netA), bestB = Math.min(...netB);
     holesPlayed++;
-    if (s1 < s2) holesUp++;
-    else if (s2 < s1) holesUp--;
+    if (bestA < bestB) holesUp++;
+    else if (bestB < bestA) holesUp--;
     const remaining = 18 - holesPlayed;
-    // Match won check
     if (Math.abs(holesUp) > remaining) { matchWon = true; break; }
   }
 
-  const leader = holesUp > 0 ? p1 : holesUp < 0 ? p2 : null;
+  const labelA = teamLabel(teamA), labelB = teamLabel(teamB);
+  const leader = holesUp > 0 ? labelA : holesUp < 0 ? labelB : null;
   const result = matchWon ? 'won' : (holesPlayed === 18 && holesUp === 0) ? 'halved' : 'ongoing';
 
-  state.liveState.matchResult = {
-    format: 'singles',
-    players: [p1, p2],
-    holesUp: Math.abs(holesUp),
-    leader,
-    holesPlayed,
-    result
-  };
+  state.liveState.matchResult = { ...mr, labelA, labelB, holesUp: Math.abs(holesUp), leader, holesPlayed, result };
 }
 
 // ── Running totals ────────────────────────────────────────────────
@@ -843,6 +908,7 @@ export function cancelRound(skipConfirm = false) {
   state.liveState.groupFir = {};
   state.liveState.groupGir = {};
   state.liveState.matchPlay = false;
+  state.liveState.matchTeams = { a: [], b: [] };
   state.liveState.hcpOverrides = {};
   state.sixesState = null;
   const cBtn = document.getElementById('caddie-btn');
@@ -1039,7 +1105,7 @@ async function liveGroupSave() {
     hole: 0, scores: Array(18).fill(null), putts: Array(18).fill(null),
     fir: Array(18).fill(''), gir: Array(18).fill(''), notes: Array(18).fill(''),
     group: [], groupScores: {}, groupPutts: {}, groupFir: {}, groupGir: {},
-    matchPlay: false, matchFormat: 'singles', matchResult: null, hcpOverrides: {}
+    matchPlay: false, matchFormat: 'singles', matchResult: null, matchTeams: { a: [], b: [] }, hcpOverrides: {}
   };
   state.cpars = Array(18).fill(4);
   state.stee = '';

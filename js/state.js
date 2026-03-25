@@ -27,6 +27,7 @@ export const state = {
     matchPlay: false,
     matchFormat: 'singles', // 'singles' | 'pairs'
     matchResult: null,
+    matchTeams: { a: [], b: [] }, // team assignment for match play — populated in group setup
     hcpOverrides: {}        // { [playerName]: number } — playing handicap per player, set in pre-round modal
   },
   // Course card scanner state
