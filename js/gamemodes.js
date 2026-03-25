@@ -16,10 +16,13 @@ export function updateFormatUI() {
   const matchBtn = document.getElementById('fmt-match');
   const wolfHint = document.getElementById('wolf-need-4');
   const matchHint = document.getElementById('match-need-2');
+  const sixesBtn = document.getElementById('play-sixes-btn');
+  const sixesHint = document.getElementById('sixes-need-3');
   if (!wolfBtn || !strokeBtn) return;
 
   const playerCount = Object.keys(state.gd?.players || {}).length;
   const canWolf = playerCount >= 4;
+  const canSixes = playerCount === 3;
 
   wolfBtn.disabled = !canWolf;
   wolfBtn.style.opacity = canWolf ? '' : '0.45';
@@ -28,8 +31,9 @@ export function updateFormatUI() {
 
   const isWolf = state.gameMode === 'wolf';
   const isMatch = state.gameMode === 'match';
+  const isSixes = state.gameMode === 'sixes';
 
-  strokeBtn.classList.toggle('active', !isWolf && !isMatch);
+  strokeBtn.classList.toggle('active', !isWolf && !isMatch && !isSixes);
   wolfBtn.classList.toggle('active', isWolf && canWolf);
   if (matchBtn) matchBtn.classList.toggle('active', isMatch);
 
@@ -37,6 +41,14 @@ export function updateFormatUI() {
   if (matchHint) matchHint.style.display = isMatch ? 'block' : 'none';
 
   if (!canWolf && isWolf) state.gameMode = 'stroke';
+
+  // Sixes button — enabled only when exactly 3 players registered
+  if (sixesBtn) {
+    sixesBtn.disabled = !canSixes;
+    sixesBtn.style.opacity = canSixes ? '' : '0.45';
+    sixesBtn.style.cursor = canSixes ? '' : 'not-allowed';
+  }
+  if (sixesHint) sixesHint.style.display = canSixes ? 'none' : 'block';
 }
 
 // ── State Init ────────────────────────────────────────────────────
@@ -507,4 +519,135 @@ export function wolfGetSaveData() {
 
 export function isWolfRound() {
   return state.gameMode === 'wolf' && !!(state.wolfState?.order?.length);
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SIXES GAME MODE ENGINE
+// ─────────────────────────────────────────────────────────────────
+
+export function initSixesState(group) {
+  state.sixesState = {
+    players: [...group],
+  };
+}
+
+// How many handicap strokes a player receives on a given hole
+function _sixesStrokesOnHole(hcp, siVal) {
+  const base = Math.floor(hcp / 18);
+  // Extra stroke on holes up to (hcp % 18) — SI is 1-based, so SI ≤ remainder
+  const remainder = hcp % 18;
+  const extra = remainder > 0 && siVal <= remainder ? 1 : 0;
+  return base + extra;
+}
+
+// Calculate the points distribution for one hole from current state.
+// Returns { playerName: pts } or null if any player's score is missing.
+function _sixesHolePts(h, groupScores, hcpOverrides, si) {
+  const ws = state.sixesState;
+  if (!ws) return null;
+  const siVal = si?.[h] ?? (h + 1);
+
+  const netScores = ws.players.map(name => {
+    const gross = groupScores[name]?.[h];
+    if (gross == null) return null;
+    const hcp = hcpOverrides?.[name] ?? 0;
+    return { name, net: gross - _sixesStrokesOnHole(hcp, siVal) };
+  });
+
+  if (netScores.some(x => x === null)) return null; // incomplete hole
+
+  const sorted = [...netScores].sort((a, b) => a.net - b.net);
+  const [n0, n1, n2] = sorted.map(x => x.net);
+
+  let ptsArr;
+  if (n0 === n1 && n1 === n2)   ptsArr = [2, 2, 2];  // all tie
+  else if (n0 === n1)           ptsArr = [3, 3, 0];  // two tie for first
+  else if (n1 === n2)           ptsArr = [4, 1, 1];  // two tie for second
+  else                          ptsArr = [4, 2, 0];  // all different
+
+  return Object.fromEntries(sorted.map((x, i) => [x.name, ptsArr[i]]));
+}
+
+// Compute running standings across all 18 holes from current live state.
+export function getSixesStandings() {
+  const ws = state.sixesState;
+  if (!ws) return [];
+  const si = state.scannedSI?.some(v => v != null) ? state.scannedSI : null;
+  const totals = Object.fromEntries(ws.players.map(p => [p, 0]));
+
+  for (let h = 0; h < 18; h++) {
+    const pts = _sixesHolePts(h, state.liveState.groupScores, state.liveState.hcpOverrides, si);
+    if (pts) {
+      for (const [name, p] of Object.entries(pts)) totals[name] += p;
+    }
+  }
+
+  return [...ws.players]
+    .map(name => ({ name, points: totals[name] }))
+    .sort((a, b) => b.points - a.points);
+}
+
+// Return the points breakdown for a single hole (for current-hole display).
+export function getSixesHolePts(h) {
+  const si = state.scannedSI?.some(v => v != null) ? state.scannedSI : null;
+  return _sixesHolePts(h, state.liveState.groupScores, state.liveState.hcpOverrides, si);
+}
+
+// Update the sixes live bar and inline player pts.
+export function updateSixesBanner(h) {
+  const bar = document.getElementById('sixes-live-bar');
+  if (!bar || state.gameMode !== 'sixes') { if (bar) bar.style.display = 'none'; return; }
+  const ws = state.sixesState;
+  if (!ws) { bar.style.display = 'none'; return; }
+
+  bar.style.display = 'block';
+
+  const standings = getSixesStandings();
+  const medals = ['🥇', '🥈', '🥉'];
+  const standingsEl = document.getElementById('sixes-standings');
+  if (standingsEl) {
+    standingsEl.innerHTML = standings.map((p, i) =>
+      `<span style="margin-right:14px">${medals[i] || ''} <strong>${p.name.split(' ')[0]}</strong> <span style="color:var(--gold)">${p.points}</span>pts</span>`
+    ).join('');
+  }
+
+  const holePts = getSixesHolePts(h);
+  const holeEl = document.getElementById('sixes-hole-pts');
+  if (holeEl) {
+    if (holePts) {
+      const parts = Object.entries(holePts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([name, pts]) => `${name.split(' ')[0]}: ${pts}pts`);
+      holeEl.textContent = 'This hole — ' + parts.join(' · ');
+    } else {
+      holeEl.textContent = 'Enter all three scores to see hole result';
+    }
+  }
+
+  // Update inline pts labels inside each player row
+  standings.forEach(p => {
+    const el = document.querySelector(`.sixes-player-pts[data-player="${p.name}"]`);
+    if (el) el.textContent = `${p.points}pts`;
+  });
+}
+
+export function isSixesRound() {
+  return state.gameMode === 'sixes' && !!(state.sixesState?.players?.length);
+}
+
+// Produce a save-friendly summary of the Sixes result.
+export function sixesGetSaveData() {
+  const standings = getSixesStandings();
+  const ws = state.sixesState;
+  if (!ws || !standings.length) return null;
+  const si = state.scannedSI?.some(v => v != null) ? state.scannedSI : null;
+  const holeBreakdown = Array.from({ length: 18 }, (_, h) =>
+    _sixesHolePts(h, state.liveState.groupScores, state.liveState.hcpOverrides, si)
+  );
+  return {
+    players: ws.players,
+    standings,
+    holeBreakdown,
+    winner: standings[0]?.name || ''
+  };
 }

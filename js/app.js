@@ -125,6 +125,24 @@ document.getElementById('photo-drop')?.addEventListener('click', () => document.
 document.getElementById('photo-inp')?.addEventListener('change', function () { handlePhoto(this); });
 document.getElementById('parse-btn')?.addEventListener('click', parsePhoto);
 
+// Competitions section
+document.getElementById('setup-competition-btn')?.addEventListener('click', () => {
+  const panel = document.getElementById('setup-competition-soon');
+  if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+});
+document.getElementById('join-competition-btn')?.addEventListener('click', () => {
+  const code = document.getElementById('comp-join-code')?.value?.trim().toUpperCase();
+  const msg = document.getElementById('comp-join-msg');
+  if (!code) { if (msg) { msg.style.color = 'var(--double)'; msg.textContent = 'Please enter a competition code.'; } return; }
+  if (msg) { msg.style.color = 'var(--dim)'; msg.textContent = 'Competition joining is coming soon.'; }
+});
+document.getElementById('play-sixes-btn')?.addEventListener('click', () => {
+  import('./gamemodes.js').then(({ setGameMode }) => {
+    setGameMode('sixes');
+    goTo('live');
+  });
+});
+
 // Course API search
 document.getElementById('api-search-btn')?.addEventListener('click', searchCourseAPI);
 document.getElementById('api-course-search')?.addEventListener('keydown', e => { if (e.key === 'Enter') searchCourseAPI(); });

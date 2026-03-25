@@ -198,6 +198,14 @@ export function startGroupRound() {
       result: 'ongoing'
     };
   }
+  // Sixes validation + init
+  if (state.gameMode === 'sixes') {
+    if (state.liveState.group.length !== 3) {
+      alert('Sixes requires exactly 3 players. Please select 3 players above.');
+      return;
+    }
+    import('./gamemodes.js').then(({ initSixesState }) => initSixesState(state.liveState.group));
+  }
   // Initialise per-player arrays
   state.liveState.groupScores = {};
   state.liveState.groupPutts = {};
@@ -407,6 +415,14 @@ export function liveGoto(h) {
     const wolfBar = document.getElementById('wolf-live-bar');
     if (wolfBar) wolfBar.style.display = 'none';
   }
+
+  // Sixes: update banner
+  if (state.gameMode === 'sixes') {
+    import('./gamemodes.js').then(({ updateSixesBanner }) => updateSixesBanner(h));
+  } else {
+    const sixesBar = document.getElementById('sixes-live-bar');
+    if (sixesBar) sixesBar.style.display = 'none';
+  }
 }
 
 // ── Group hole rendering ──────────────────────────────────────────
@@ -425,11 +441,15 @@ function liveRenderGroupHole(h) {
 
     const scColor = sc != null ? scoreCol(sc - par) : 'var(--gold)';
 
+    const sixesPtsHtml = state.gameMode === 'sixes'
+      ? `<span class="sixes-player-pts" data-player="${name}" style="font-size:11px;color:var(--par);font-weight:600;margin-left:6px">—pts</span>`
+      : '';
+
     const row = document.createElement('div');
     row.style.cssText = 'padding:10px 0;border-bottom:1px solid var(--wa-06);margin-bottom:6px';
     row.innerHTML = `
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <span style="font-size:13px;font-weight:600;color:${name === state.me ? 'var(--gold)' : 'var(--cream)'}">${name}</span>
+        <span style="font-size:13px;font-weight:600;color:${name === state.me ? 'var(--gold)' : 'var(--cream)'}">${name}${sixesPtsHtml}</span>
         <span style="font-size:11px;color:var(--dim)">${sc != null ? (sc - par >= 0 ? '+' + (sc - par) : '' + (sc - par)) + ' this hole' : 'no score'}</span>
       </div>
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
@@ -513,6 +533,10 @@ function liveGroupAdj(playerName, field, delta) {
     syncPlayerMatchScore(playerName);
     // Refresh overlay immediately so current player's score shows live
     import('./overlay.js').then(({ refreshMatchOverlay }) => refreshMatchOverlay());
+    // Sixes: recalculate and redisplay standings
+    if (state.gameMode === 'sixes') {
+      import('./gamemodes.js').then(({ updateSixesBanner }) => updateSixesBanner(h));
+    }
   }
   liveUpdateRunning();
   // Sync first player's scores into liveState.scores for pip colours
@@ -617,6 +641,22 @@ export function liveUpdateRunning() {
   const el = document.getElementById('live-run-score');
   const vp = document.getElementById('live-run-vp');
   const isGroup = state.liveState.group.length > 1;
+
+  // Sixes: show live standings in the header bar
+  if (state.gameMode === 'sixes' && isGroup) {
+    import('./gamemodes.js').then(({ getSixesStandings }) => {
+      const standings = getSixesStandings();
+      if (el) {
+        const top = standings[0];
+        el.textContent = top ? `${top.name.split(' ')[0]}: ${top.points}pts` : '—';
+        el.style.color = 'var(--par)';
+      }
+      if (vp) {
+        vp.textContent = standings.slice(1).map(p => `${p.name.split(' ')[0]}: ${p.points}pts`).join(' · ');
+      }
+    });
+    return;
+  }
 
   if (isGroup) {
     // Show all players' running totals (compact)
@@ -763,6 +803,7 @@ export function cancelRound(skipConfirm = false) {
   state.liveState.groupGir = {};
   state.liveState.matchPlay = false;
   state.liveState.hcpOverrides = {};
+  state.sixesState = null;
   const cBtn = document.getElementById('caddie-btn');
   cBtn?.classList.remove('visible');
   cBtn?.classList.remove('in-progress');
@@ -798,6 +839,13 @@ async function liveGroupSave() {
   // Final match score sync for all group members before persisting
   state.liveState.group.forEach(name => syncPlayerMatchScore(name));
 
+  // Pre-compute Sixes result once (shared across all player round objects)
+  let sixesResult = null;
+  if (state.gameMode === 'sixes' && state.sixesState) {
+    const { sixesGetSaveData } = await import('./gamemodes.js');
+    sixesResult = sixesGetSaveData();
+  }
+
   const savedRounds = []; // collect rounds to protect if pushGist fails
 
   for (const playerName of state.liveState.group) {
@@ -832,7 +880,9 @@ async function liveGroupSave() {
       // Include Wolf result if Wolf round
       ...(state.gameMode === 'wolf' && state.wolfState?.order?.length
         ? { wolfResult: { order: state.wolfState.order, finalScores: { ...state.wolfState.scores }, holeResults: state.wolfState.holeResults, winner: [...state.wolfState.order].sort((a, b) => (state.wolfState.scores[b] || 0) - (state.wolfState.scores[a] || 0))[0] || '' } }
-        : {})
+        : {}),
+      // Include Sixes result if Sixes round
+      ...(sixesResult ? { sixesResult } : {})
     };
     if (!state.gd.players[playerName]) state.gd.players[playerName] = { handicap: 0, rounds: [] };
     state.gd.players[playerName].rounds.push(rnd);
@@ -918,9 +968,16 @@ async function liveGroupSave() {
 
   const syncMsg = ok ? '\u2705 Saved & synced!' : '\u26A0\uFE0F Saved locally \u2014 will sync when online';
   const names = _groupPlayers.join(', ');
-  alert(`${syncMsg}\n\nRound saved for: ${names}\n${course.name} \u00B7 ${state.stee} tees`);
+  let finalMsg = `${syncMsg}\n\nRound saved for: ${names}\n${course.name} \u00B7 ${state.stee} tees`;
+  if (sixesResult?.standings?.length) {
+    const medals = ['\uD83E\uDD47', '\uD83E\uDD48', '\uD83E\uDD49'];
+    const standingLines = sixesResult.standings.map((p, i) => `  ${medals[i] || ' '} ${p.name}: ${p.points}pts`).join('\n');
+    finalMsg += `\n\n\u26F3 Sixes Result:\n${standingLines}`;
+  }
+  alert(finalMsg);
 
   // Reset
+  state.sixesState = null;
   state.liveState = {
     hole: 0, scores: Array(18).fill(null), putts: Array(18).fill(null),
     fir: Array(18).fill(''), gir: Array(18).fill(''), notes: Array(18).fill(''),

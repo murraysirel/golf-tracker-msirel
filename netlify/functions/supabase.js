@@ -94,7 +94,8 @@ exports.handler = async (event) => {
         slope: round.slope,
         ai_review: round.aiReview || null,
         wolf_result: round.wolfResult || null,
-        match_result: round.matchResult || null
+        match_result: round.matchResult || null,
+        ...(round.sixesResult != null ? { sixes_result: round.sixesResult } : {})
       }, { onConflict: 'id' });
 
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
