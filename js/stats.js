@@ -79,7 +79,7 @@ function buildScorecardTable(primaryRound, group) {
     const tot = r.totalScore || r.scores?.reduce((a, b) => a + (b || 0), 0) || 0;
     const diff = tot - totalPar;
     const dStr = diff === 0 ? 'E' : (diff > 0 ? '+' + diff : '' + diff);
-    totCells += `<td><span style="color:var(--gold);font-weight:700">${tot}</span> <span style="font-size:10px;color:${scoreColor(diff)}">${dStr}</span></td>`;
+    totCells += `<td><span style="color:var(--gold);font-weight:700;font-family:'Cormorant Garamond',serif">${tot}</span> <span style="font-size:10px;color:${scoreColor(diff)}">${dStr}</span></td>`;
   }
   if (hasWolf) {
     const w = primaryRound.wolfResult.winner || '';
@@ -411,7 +411,7 @@ export function renderHomeStats() {
         <div style="font-size:11px;color:var(--dim);margin-top:3px">${r.date} \u00B7 Par ${r.totalPar}</div>
       </div>
       <div style="text-align:right;flex-shrink:0">
-        <div style="font-size:26px;font-weight:700;color:var(--gold);line-height:1">${r.totalScore}</div>
+        <div style="font-size:26px;font-weight:700;color:var(--gold);line-height:1;font-family:'Cormorant Garamond',serif">${r.totalScore}</div>
         <div style="font-size:12px;font-weight:600;color:${diffColor}">${dv}</div>
       </div>`;
     recent.appendChild(d);

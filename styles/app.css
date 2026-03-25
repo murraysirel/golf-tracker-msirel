@@ -493,6 +493,7 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
 }
 .tv{
   font-size:28px;font-weight:700;color:var(--gold);
+  font-family:'Cormorant Garamond',serif;
 }
 .tl{font-size:10px;color:var(--dim);margin-bottom:2px}
 
@@ -518,6 +519,7 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
 .hm{font-size:10px;color:var(--dim);margin-top:2px}
 .hs{
   font-size:24px;font-weight:700;color:var(--gold);
+  font-family:'Cormorant Garamond',serif;
 }
 .hd{font-size:10px;color:var(--dim);text-align:right;margin-top:2px}
 .tdot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:3px;vertical-align:middle}
