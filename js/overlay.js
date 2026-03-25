@@ -175,7 +175,7 @@ export function showEndRoundConfirm() {
       <div style="background:var(--card);border-radius:16px;padding:24px 20px;
         border:1px solid var(--border);width:min(300px,100%);text-align:center">
         <div style="font-size:17px;font-weight:700;color:var(--cream);margin-bottom:6px;
-          font-family:'Cormorant Garamond',serif">End this round?</div>
+">End this round?</div>
         <div style="font-size:13px;color:var(--dim);margin-bottom:20px;line-height:1.5">
           Your progress will not be saved.
         </div>

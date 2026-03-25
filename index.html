@@ -23,7 +23,7 @@
   <!-- Title text: fades in after ball stops -->
   <div id="splash-text">
     <div id="splash-app-name">Looper</div>
-    <div id="splash-tagline">Your AI caddie</div>
+    <div id="splash-tagline">Your caddie in your pocket</div>
   </div>
   <!-- Ball: translates left→centre, logo rotates then settles upright -->
   <div id="splash-ball-track">
@@ -46,7 +46,7 @@
 <!-- ══════════════ ROUND RECOVERY MODAL ══════════════ -->
 <div id="round-recovery-modal" style="display:none;position:fixed;inset:0;z-index:9998;align-items:center;justify-content:center;background:rgba(10,22,40,.85);backdrop-filter:blur(4px)">
   <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:320px;width:90%;margin:0 16px;box-shadow:0 8px 40px rgba(0,0,0,.5)">
-    <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:var(--cream);margin-bottom:10px">Unfinished round found</div>
+    <div style="font-size:20px;font-weight:700;color:var(--cream);margin-bottom:10px">Unfinished round found</div>
     <div id="rr-hole-text" style="font-size:13px;color:var(--dim);line-height:1.5;margin-bottom:20px"></div>
     <div style="display:flex;flex-direction:column;gap:10px">
       <button id="rr-resume-btn" style="padding:14px;border-radius:10px;background:var(--gold);border:none;color:var(--navy);font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer">Resume round</button>
@@ -61,7 +61,7 @@
   <div id="sc-hist-sheet">
     <div id="sc-hist-header">
       <div style="min-width:0">
-        <div id="sc-hist-course" style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+        <div id="sc-hist-course" style="font-size:18px;font-weight:700;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
         <div id="sc-hist-meta" style="font-size:11px;color:var(--dim);margin-top:2px"></div>
       </div>
       <button id="sc-hist-close" aria-label="Close">✕</button>
@@ -78,7 +78,7 @@
       <img src="/assets/looper_caddie.png" alt="Looper" style="width:100%;height:100%;object-fit:cover">
     </div>
     <div class="onb-title">Looper</div>
-    <div class="onb-sub" style="margin-top:8px">Your AI caddie</div>
+    <div class="onb-sub" style="margin-top:8px">Your caddie in your pocket</div>
   </div>
 
   <div class="card mb12">
@@ -187,7 +187,7 @@
             </svg>
             <div class="home-kpi-split-top">
               <div class="home-kpi-val" id="h-gir-pct">—</div>
-              <div class="home-kpi-lbl" style="font-size:8px">GIR (par 4)</div>
+              <div class="home-kpi-lbl">GIR</div>
               <div class="home-kpi-delta" id="h-gir-delta"></div>
             </div>
             <div class="home-kpi-split-bot">
@@ -446,7 +446,7 @@
           <div style="flex:1;margin:0 12px;min-width:0">
             <div class="live-progress" id="live-pips"></div>
             <div id="live-running" class="live-running-score" style="margin:8px 0 0">
-              <span id="live-run-score" style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--gold)">—</span>
+              <span id="live-run-score" style="font-size:22px;font-weight:700;color:var(--gold)">—</span>
               <span id="live-run-vp" style="font-size:12px;color:var(--dim);margin-left:8px">vs par</span>
             </div>
           </div>
@@ -521,7 +521,7 @@
         <div style="display:flex;align-items:center;justify-content:space-between">
           <div>
             <div style="font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase;margin-bottom:2px">Live</div>
-            <div style="font-size:18px;font-weight:700;color:var(--cream);font-family:'Cormorant Garamond',serif">Competition</div>
+            <div style="font-size:18px;font-weight:700;color:var(--cream)">Competition</div>
           </div>
           <div id="comp-poll-status" style="font-size:10px;color:var(--dimmer);text-align:right"></div>
         </div>
@@ -769,7 +769,7 @@
       <div class="card" id="c-practice-active" style="display:none">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
           <div class="ct" style="margin:0">Session in Progress</div>
-          <div style="font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--gold)" id="practice-shot-count">0 / 50</div>
+          <div style="font-size:24px;color:var(--gold)" id="practice-shot-count">0 / 50</div>
         </div>
         <div style="background:rgba(255,255,255,.05);border-radius:6px;height:6px;margin-bottom:14px;overflow:hidden">
           <div id="practice-progress-bar" style="height:100%;background:var(--gold);border-radius:6px;width:0%;transition:width .3s"></div>
@@ -885,7 +885,7 @@
         <div style="display:flex;align-items:center;justify-content:space-between">
           <div>
             <div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:4px">Group Code</div>
-            <div id="lb-group-code" style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:var(--gold);letter-spacing:4px;cursor:pointer" title="Tap to copy">—</div>
+            <div id="lb-group-code" style="font-size:28px;font-weight:700;color:var(--gold);letter-spacing:4px;cursor:pointer" title="Tap to copy">—</div>
             <div style="font-size:10px;color:var(--dimmer);margin-top:3px">Tap to copy · Share with friends</div>
           </div>
           <button class="btn btn-ghost" id="leave-group-btn" style="width:auto;padding:8px 14px;font-size:12px;border-color:rgba(231,76,60,.3);color:#e74c3c">Leave group</button>
@@ -932,7 +932,7 @@
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <div>
             <div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:3px">Your Group Code</div>
-            <div id="players-group-code" style="font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:700;color:var(--gold);letter-spacing:4px">—</div>
+            <div id="players-group-code" style="font-size:32px;font-weight:700;color:var(--gold);letter-spacing:4px">—</div>
           </div>
           <button class="btn btn-ghost" id="lb-copy-group-code" style="width:auto;padding:8px 14px;font-size:12px">Copy</button>
         </div>
@@ -1148,7 +1148,6 @@
   <div style="
     position:fixed;bottom:calc(56px + var(--safe-bot));left:0;right:0;
     text-align:center;
-    font-family:'Cormorant Garamond',serif;
     font-size:7px;letter-spacing:1.5px;
     color:var(--dimmer);
     background:var(--navy);
@@ -1188,7 +1187,7 @@
         <span id="match-overlay-name"
           style="flex:1;font-size:11px;font-weight:600;color:var(--gold);
             white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-            font-family:'Cormorant Garamond',serif;letter-spacing:.5px">
+            letter-spacing:.5px">
           Match
         </span>
         <button id="match-overlay-style-btn"

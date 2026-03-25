@@ -328,7 +328,7 @@ export function showWolfScoreboard() {
         <div style="font-size:13px;font-weight:500;color:${s.name === state.me ? 'var(--gold)' : 'var(--cream)'}">${s.name}</div>
         ${s.usedSix ? '<div style="font-size:10px;color:var(--dimmer)">6-pointer used</div>' : ''}
       </div>
-      <div style="font-family:\'Cormorant Garamond\',serif;font-size:28px;font-weight:700;color:${posColors[i]}">${s.points}</div>
+      <div style="font-size:28px;font-weight:700;color:${posColors[i]}">${s.points}</div>
     </div>`).join('');
   modal.style.display = 'flex';
 }
@@ -350,7 +350,7 @@ export function showHoleResult(result, holeIdx, onClose) {
       <span style="font-size:13px;color:${n === state.me ? 'var(--gold)' : 'var(--cream)'}">${n}</span>
       <span>
         <span style="font-size:13px;color:${pts > 0 ? 'var(--par)' : 'var(--dimmer)'};margin-right:10px">${pts > 0 ? '+' + pts : '—'}</span>
-        <span style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:var(--gold)">${total}</span>
+        <span style="font-size:20px;font-weight:700;color:var(--gold)">${total}</span>
       </span>
     </div>`;
   }).join('');

@@ -279,30 +279,28 @@ export function renderHomeStats() {
     return poss ? hits / poss * 100 : null;
   }
 
-  // ── Card 1: Avg vs par — delta vs season avg ─────────────────
+  // ── Card 1: Avg vs par — last 30 days ────────────────────────
   const avgParEl = document.getElementById('h-avg-par');
   const avgParDeltaEl = document.getElementById('h-avg-par-delta');
   const validDiff = d => d !== undefined && d !== null && !isNaN(d);
-  const last5Diffs = last5.map(r => r.diff).filter(validDiff);
-  const N = last5Diffs.length; // actual rounds used (up to 5)
-  const avgVsPar = N ? last5Diffs.reduce((a, b) => a + b, 0) / N : null;
+  const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - 30);
+  const last30Rounds = rs.filter(r => {
+    const dp = r.date?.split('/');
+    if (!dp || dp.length !== 3) return false;
+    const d = new Date(parseInt(dp[2]), parseInt(dp[1]) - 1, parseInt(dp[0]));
+    return d >= cutoff;
+  });
+  const last30Diffs = last30Rounds.map(r => r.diff).filter(validDiff);
+  const N30 = last30Diffs.length;
+  const avgVsPar = N30 ? last30Diffs.reduce((a, b) => a + b, 0) / N30 : null;
   if (avgParEl) avgParEl.textContent = avgVsPar !== null ? (avgVsPar >= 0 ? '+' : '') + avgVsPar.toFixed(1) : '—';
   if (avgParDeltaEl) {
-    if (N === 0) {
-      avgParDeltaEl.textContent = '';
-    } else if (N < 5) {
-      // Fewer than 5 rounds — show value but label clearly
-      avgParDeltaEl.textContent = `last ${N} round${N !== 1 ? 's' : ''}`;
+    if (N30 === 0) {
+      avgParDeltaEl.textContent = 'no rounds in 30 days';
       avgParDeltaEl.style.color = 'var(--dim)';
     } else {
-      const seasonDiffs = seasonRounds.map(r => r.diff).filter(validDiff);
-      const seasonAvg = seasonDiffs.length ? seasonDiffs.reduce((a, b) => a + b, 0) / seasonDiffs.length : null;
-      if (avgVsPar !== null && seasonAvg !== null) {
-        const delta = avgVsPar - seasonAvg;
-        if (delta < 0) { avgParDeltaEl.textContent = '↓ ' + Math.abs(delta).toFixed(1) + ' vs season'; avgParDeltaEl.style.color = 'var(--par)'; }
-        else if (delta > 0) { avgParDeltaEl.textContent = '↑ ' + delta.toFixed(1) + ' vs season'; avgParDeltaEl.style.color = 'var(--bogey)'; }
-        else { avgParDeltaEl.textContent = '→ on season avg'; avgParDeltaEl.style.color = 'var(--dim)'; }
-      } else { avgParDeltaEl.textContent = ''; }
+      avgParDeltaEl.textContent = `last ${N30} round${N30 !== 1 ? 's' : ''} · 30d`;
+      avgParDeltaEl.style.color = 'var(--dim)';
     }
   }
 
@@ -365,9 +363,9 @@ export function renderHomeStats() {
   const girDeltaEl = document.getElementById('h-gir-delta');
   const firDeltaEl = document.getElementById('h-fir-delta');
 
-  const last5GIR   = par4GIRRaw(last5);
+  const last5GIR   = girRaw(last5);
   const last5FIR   = firRaw(last5);
-  const seasonGIR  = par4GIRRaw(seasonRounds);
+  const seasonGIR  = girRaw(seasonRounds);
   const seasonFIR  = firRaw(seasonRounds);
 
   if (girPctEl) girPctEl.textContent = last5GIR !== null ? Math.round(last5GIR) + '%' : '—';
@@ -413,7 +411,7 @@ export function renderHomeStats() {
         <div style="font-size:11px;color:var(--dim);margin-top:3px">${r.date} \u00B7 Par ${r.totalPar}</div>
       </div>
       <div style="text-align:right;flex-shrink:0">
-        <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:var(--gold);line-height:1">${r.totalScore}</div>
+        <div style="font-size:26px;font-weight:700;color:var(--gold);line-height:1">${r.totalScore}</div>
         <div style="font-size:12px;font-weight:600;color:${diffColor}">${dv}</div>
       </div>`;
     recent.appendChild(d);

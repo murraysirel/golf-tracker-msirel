@@ -95,7 +95,7 @@ function _renderScreen0(modal) {
 
   inner.innerHTML = `
     <div style="font-size:19px;font-weight:700;color:var(--cream);margin-bottom:6px;
-      font-family:'Cormorant Garamond',serif">Start a Group Match</div>
+">Start a Group Match</div>
     <div style="font-size:12px;color:var(--dim);margin-bottom:20px">Choose your format</div>
 
     <div style="display:flex;gap:12px;margin-bottom:20px">
@@ -174,8 +174,7 @@ function _renderScreen1(modal, matchType) {
   }).join('');
 
   inner.innerHTML = `
-    <div style="font-size:19px;font-weight:700;color:var(--cream);margin-bottom:18px;
-      font-family:'Cormorant Garamond',serif">Start a Group Match</div>
+    <div style="font-size:19px;font-weight:700;color:var(--cream);margin-bottom:18px">Start a Group Match</div>
 
     <div style="margin-bottom:12px">
       <label style="font-size:10px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase">Match Name</label>
@@ -353,7 +352,7 @@ function _renderScreen1b(modal, matchId, matchName, players) {
 
   inner.innerHTML = `
     <div style="font-size:19px;font-weight:700;color:var(--cream);margin-bottom:4px;
-      font-family:'Cormorant Garamond',serif">Assign Tee Times</div>
+">Assign Tee Times</div>
     <div style="font-size:12px;color:var(--dim);margin-bottom:16px">${matchName}</div>
     <div id="tg-rows"></div>
     <button id="tg-confirm-btn"
@@ -400,7 +399,7 @@ function _renderScreen2(modal, matchId, matchName) {
         Share this code with other players to join
       </div>
       <div id="mcr-code-display"
-        style="font-size:40px;font-family:'Cormorant Garamond',serif;color:var(--gold);
+        style="font-size:40px;color:var(--gold);
           font-weight:700;letter-spacing:6px;margin-bottom:6px">
         ${matchId}
       </div>
@@ -453,13 +452,13 @@ export function openJoinMatchModal() {
 
   inner.innerHTML = `
     <div style="font-size:19px;font-weight:700;color:var(--cream);margin-bottom:16px;
-      font-family:'Cormorant Garamond',serif">Join a match</div>
+">Join a match</div>
     <input type="text" id="jm-code-inp" placeholder="XXXXXX" maxlength="6"
       autocapitalize="characters" autocomplete="off" spellcheck="false"
       style="width:100%;box-sizing:border-box;padding:14px;border-radius:8px;
         background:var(--mid);border:1px solid var(--border);color:var(--gold);
         font-size:28px;text-align:center;letter-spacing:6px;
-        font-family:'Cormorant Garamond',serif;text-transform:uppercase;font-weight:700">
+        text-transform:uppercase;font-weight:700">
     <div id="jm-err" style="display:none;font-size:12px;color:var(--double);margin-top:8px"></div>
     <div id="jm-info"
       style="display:none;margin-top:12px;padding:12px;border-radius:8px;

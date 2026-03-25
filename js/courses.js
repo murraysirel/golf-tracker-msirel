@@ -248,12 +248,8 @@ function _renderSelectedCard(course) {
         </div>
       ` : ''}
  
-      <button id="cs-change-btn" class="btn-ghost" style="font-size:12px; margin-top:8px">
-        ← Change course
-      </button>
-      <button id="cs-report-btn" class="btn-ghost" style="font-size:11px; margin-top:4px; color:var(--dim)">
-        ⚑ Report incorrect data
-      </button>
+      <button id="cs-change-btn" style="display:block;width:100%;margin-top:10px;padding:9px 16px;border-radius:20px;background:var(--mid);border:1px solid var(--border);color:var(--cream);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent">← Change course</button>
+      <button id="cs-report-btn" style="display:block;width:100%;margin-top:6px;padding:8px 16px;border-radius:20px;background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.35);color:var(--double);font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent">⚑ Report incorrect data</button>
     </div>
   `;
  

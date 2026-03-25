@@ -439,7 +439,7 @@ function liveRenderGroupHole(h) {
         <button class="live-score-btn lg-score-plus" data-player="${name}">+</button>
         <span style="font-size:10px;color:var(--dim);margin-left:6px;width:34px">Putts</span>
         <button class="live-putt-btn lg-putts-minus" data-player="${name}">−</button>
-        <span style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--cream);width:28px;text-align:center">${pt != null ? pt : '—'}</span>
+        <span style="font-size:22px;font-weight:700;color:var(--cream);width:28px;text-align:center">${pt != null ? pt : '—'}</span>
         <button class="live-putt-btn lg-putts-plus" data-player="${name}">+</button>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">

@@ -170,7 +170,7 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
 }
 .live-hole-nav{display:flex;align-items:center;gap:10px}
 .live-hole-num{
-  font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:700;
+  font-size:36px;font-weight:700;
   color:var(--gold);line-height:1;min-width:32px;text-align:center;
 }
 .live-nav-btn{
@@ -205,7 +205,7 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
   border-radius:12px;padding:12px 8px;text-align:center;
 }
 .live-info-val{
-  font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;
+  font-size:26px;font-weight:700;
   color:var(--gold);line-height:1;display:block;
 }
 .live-info-lbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px;margin-top:4px;display:block}
@@ -221,12 +221,11 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
   color:var(--cream);font-size:24px;font-weight:300;
   cursor:pointer;transition:transform 80ms ease;
   display:flex;align-items:center;justify-content:center;
-  font-family:'Cormorant Garamond',serif;
   -webkit-tap-highlight-color:transparent;
 }
 .live-score-btn:active{transform:scale(0.93)}
 .live-score-val{
-  font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;
+  font-size:26px;font-weight:700;
   color:var(--gold);min-width:52px;text-align:center;line-height:1;
 }
 .live-toggle-pill{
@@ -266,7 +265,7 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
   transition:background .15s;
 }
 .live-putt-val{
-  font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:700;
+  font-size:36px;font-weight:700;
   color:var(--cream);width:48px;text-align:center;line-height:1;
 }
 .live-footer{
@@ -290,7 +289,7 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
   backdrop-filter:blur(10px);
 }
 .gps-dist{
-  font-family:'Cormorant Garamond',serif;font-size:34px;font-weight:700;
+  font-size:34px;font-weight:700;
   color:var(--gold);line-height:1;
 }
 .gps-unit{font-size:12px;color:var(--dim);margin-top:2px}
@@ -344,7 +343,6 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
   border-radius:11px;padding:12px 8px;text-align:center;
 }
 .kv{
-  font-family:'Cormorant Garamond',serif;
   font-size:26px;font-weight:700;color:var(--gold);
   display:block;line-height:1;
 }
@@ -494,7 +492,6 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
   border:1px solid var(--wa-06);
 }
 .tv{
-  font-family:'Cormorant Garamond',serif;
   font-size:28px;font-weight:700;color:var(--gold);
 }
 .tl{font-size:10px;color:var(--dim);margin-bottom:2px}
@@ -520,7 +517,6 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
 .hc{font-size:13px;font-weight:500;color:var(--cream)}
 .hm{font-size:10px;color:var(--dim);margin-top:2px}
 .hs{
-  font-family:'Cormorant Garamond',serif;
   font-size:24px;font-weight:700;color:var(--gold);
 }
 .hd{font-size:10px;color:var(--dim);text-align:right;margin-top:2px}
@@ -908,11 +904,9 @@ details[open] summary::after{content:' ▾'}
 .caddie-dist-row{display:flex;gap:28px;align-items:flex-end}
 .caddie-dist-item{display:flex;flex-direction:column;align-items:center;gap:2px}
 .caddie-dist-main{
-  font-family:'Cormorant Garamond',serif;
   font-size:72px;font-weight:700;color:var(--gold);line-height:1;
 }
 .caddie-dist-secondary{
-  font-family:'Cormorant Garamond',serif;
   font-size:40px;font-weight:700;color:var(--dim);line-height:1;
 }
 .caddie-dist-lbl{font-size:9px;color:var(--dimmer);text-transform:uppercase;letter-spacing:1.5px}
@@ -933,7 +927,6 @@ details[open] summary::after{content:' ▾'}
 .caddie-adj-btn-sm{width:44px;height:44px;font-size:22px}
 .caddie-adj-btn:active{background:var(--wa-14)}
 .caddie-adj-val{
-  font-family:'Cormorant Garamond',serif;
   font-size:54px;font-weight:700;color:var(--gold);
   width:60px;text-align:center;line-height:1;
 }
@@ -985,11 +978,9 @@ details[open] summary::after{content:' ▾'}
 .live-dist-row{display:flex;gap:24px;align-items:flex-end}
 .live-dist-item{display:flex;flex-direction:column;align-items:center;gap:2px}
 .live-dist-main{
-  font-family:'Cormorant Garamond',serif;
   font-size:60px;font-weight:700;color:var(--gold);line-height:1;
 }
 .live-dist-secondary{
-  font-family:'Cormorant Garamond',serif;
   font-size:34px;font-weight:700;color:var(--dim);line-height:1;
 }
 .live-dist-lbl{font-size:9px;color:var(--dimmer);text-transform:uppercase;letter-spacing:1.5px}

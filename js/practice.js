@@ -61,7 +61,7 @@ function renderPracticeHistory() {
           <div style="font-size:13px;font-weight:500;color:var(--cream)">${AREA_LABELS[s.area] || s.area}</div>
           <div style="font-size:10px;color:var(--dim);margin-top:2px">${s.date} \u00B7 ${s.shotsLogged || 0} shots${s.note ? ` \u00B7 "${s.note}"` : ''}</div>
         </div>
-        <div style="font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--gold)">${s.shotsLogged || 0}</div>
+        <div style="font-size:20px;color:var(--gold)">${s.shotsLogged || 0}</div>
       </div>`;
     list.appendChild(div);
   });
@@ -164,7 +164,7 @@ export function renderPracticePlan(plan) {
       <div style="border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:12px;margin-bottom:10px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
           <div style="font-size:13px;font-weight:600;color:var(--cream)">Drill ${i+1}: ${d.name}</div>
-          <div style="font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--gold)">${d.shots} shots</div>
+          <div style="font-size:18px;color:var(--gold)">${d.shots} shots</div>
         </div>
         <div style="font-size:12px;color:var(--cream);line-height:1.6;margin-bottom:8px">${d.instruction}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
