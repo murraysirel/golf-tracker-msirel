@@ -125,6 +125,7 @@ document.getElementById('avatar-remove-btn')?.addEventListener('click', () => {
 
 // Demo mode
 document.getElementById('demo-entry-btn')?.addEventListener('click', enterDemoMode);
+document.getElementById('demo-entry-btn-fork')?.addEventListener('click', enterDemoMode);
 document.getElementById('demo-exit-btn')?.addEventListener('click', exitDemoMode);
 document.getElementById('demo-exit-panel-btn')?.addEventListener('click', exitDemoMode);
 
