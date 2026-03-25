@@ -33,6 +33,15 @@ function applyTheme(theme) {
 }
 applyTheme(localStorage.getItem('rr_theme') || 'dark');
 
+// ── Design variant toggle (dev/testing) ───────────────────────────
+function applyDesign(variant) {
+  document.documentElement.dataset.design = variant || '';
+  localStorage.setItem('rr_design', variant || '');
+  document.getElementById('design-v1-btn')?.classList.toggle('dv-active', !variant);
+  document.getElementById('design-v2-btn')?.classList.toggle('dv-active', variant === 'v2');
+}
+applyDesign(localStorage.getItem('rr_design') || '');
+
 // ── Register nav handlers (to avoid circular imports) ─────────────
 registerNavHandlers({
   renderStats,
@@ -200,6 +209,9 @@ document.getElementById('theme-dark-btn')?.addEventListener('click', () => {
 document.getElementById('theme-light-btn')?.addEventListener('click', () => {
   applyTheme('light'); localStorage.setItem('rr_theme', 'light');
 });
+// Design variant buttons
+document.getElementById('design-v1-btn')?.addEventListener('click', () => applyDesign(''));
+document.getElementById('design-v2-btn')?.addEventListener('click', () => applyDesign('v2'));
 
 // ── Caddie floating button ─────────────────────────────────────────
 document.getElementById('caddie-btn')?.addEventListener('click', () => goTo('live'));
