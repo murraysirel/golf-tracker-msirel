@@ -128,6 +128,22 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     }
 
+    // ── saveDrive ────────────────────────────────────────────────────
+    if (action === 'saveDrive') {
+      const { drive } = data;
+      await supabase.from('drives').insert({
+        group_code: groupCode,
+        player_name: drive.player,
+        course: drive.course,
+        tee: drive.tee,
+        hole: drive.hole,
+        club: drive.club,
+        yards: drive.yards,
+        date: drive.date
+      });
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+    }
+
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Unknown action' }) };
 
   } catch (err) {

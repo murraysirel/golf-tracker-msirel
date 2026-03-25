@@ -393,8 +393,9 @@ export function liveGoto(h) {
   document.getElementById('live-note').value = state.liveState.notes[h] || '';
 
   // Update GPS display for new hole
-  import('./gps.js').then(({ updateGPSDisplay }) => {
+  import('./gps.js').then(({ updateGPSDisplay, updateDriveBtn }) => {
     if (state.gpsState.watching) updateGPSDisplay(h);
+    updateDriveBtn(h, true);
   });
 
   document.getElementById('live-prev').disabled = h === 0;

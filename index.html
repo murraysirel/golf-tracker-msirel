@@ -506,6 +506,22 @@
           <div class="live-hole-meta">
             Par <strong id="live-par">4</strong>&nbsp;·&nbsp;SI <span id="live-si">—</span>&nbsp;·&nbsp;<span id="live-yards">—</span> yds
           </div>
+          <!-- Drive tracker — hidden until tee pinned + GPS active -->
+          <div id="drive-log-wrap" style="display:none;padding:6px 0 0">
+            <div id="drive-confirm-msg" style="font-size:11px;color:var(--par);text-align:center;min-height:14px;margin-bottom:4px"></div>
+            <div id="drive-club-row" style="display:none;align-items:center;justify-content:center;gap:8px;margin-bottom:6px">
+              <select id="drive-club-sel" style="font-family:'DM Sans',sans-serif;font-size:13px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--mid);color:var(--cream)">
+                <option>Driver</option>
+                <option>3-wood</option>
+                <option>5-wood</option>
+                <option>Hybrid</option>
+                <option>5-iron</option>
+                <option>Other</option>
+              </select>
+              <button id="drive-log-btn" class="btn" style="width:auto;padding:7px 18px;font-size:13px;border-radius:8px">Log it</button>
+            </div>
+            <button id="mark-drive-btn" style="width:100%;padding:7px;background:none;border:1px dashed rgba(201,168,76,.3);border-radius:8px;color:var(--dim);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent">🏌️ Mark drive</button>
+          </div>
         </div>
 
         <!-- Wolf live bar (shown only in Wolf rounds) -->

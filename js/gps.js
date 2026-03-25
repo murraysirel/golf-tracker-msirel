@@ -2,7 +2,7 @@
 // GPS DISTANCE TO GREEN
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
-import { pushGist } from './api.js';
+import { pushGist, pushSupabase } from './api.js';
 import { getCourseByRef } from './courses.js';
 
 function haversineYards(lat1, lng1, lat2, lng2) {
@@ -80,6 +80,8 @@ export function stopGPS() {
     const el = document.getElementById('live-dist-' + t);
     if (el) el.textContent = '—';
   });
+  const driveWrap = document.getElementById('drive-log-wrap');
+  if (driveWrap) driveWrap.style.display = 'none';
 }
 
 export function gpsSetTarget(t) {
@@ -123,6 +125,8 @@ export function updateGPSDisplay(hole0) {
     const td = document.getElementById('gps-tee-dist');
     if (td) td.textContent = teeYards;
   }
+
+  updateDriveBtn(hole0);
 }
 
 export function pinTeePosition(hole0) {
@@ -144,4 +148,70 @@ export function pinTeePosition(hole0) {
     if (btn) { btn.textContent = 'Pin tee'; btn.disabled = false; }
     alert('Could not get GPS position — make sure location permission is enabled.');
   }, { enableHighAccuracy: true, timeout: 15000 });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// DRIVE TRACKING
+// Feature toggle — set to false to hide drive tracking UI entirely
+// ─────────────────────────────────────────────────────────────────
+export const DRIVE_TRACKING = true;
+
+export function updateDriveBtn(hole0, reset = false) {
+  const wrap = document.getElementById('drive-log-wrap');
+  if (!wrap) return;
+  if (!DRIVE_TRACKING) { wrap.style.display = 'none'; return; }
+  const hasTee = !!getTeeCoords(hole0);
+  const hasGPS = !!state.gpsState.coords;
+  wrap.style.display = (hasTee && hasGPS) ? '' : 'none';
+  if (reset) {
+    const clubRow = document.getElementById('drive-club-row');
+    const confirmMsg = document.getElementById('drive-confirm-msg');
+    const markBtn = document.getElementById('mark-drive-btn');
+    if (clubRow) clubRow.style.display = 'none';
+    if (confirmMsg) confirmMsg.textContent = '';
+    if (markBtn) markBtn.style.display = '';
+  }
+}
+
+export function markDriveTap() {
+  const clubRow = document.getElementById('drive-club-row');
+  const markBtn = document.getElementById('mark-drive-btn');
+  if (!clubRow) return;
+  const open = clubRow.style.display !== 'none';
+  clubRow.style.display = open ? 'none' : 'flex';
+  if (markBtn) markBtn.style.display = open ? '' : 'none';
+}
+
+export function logDrive(hole0) {
+  const tee = getTeeCoords(hole0);
+  const msg = document.getElementById('drive-confirm-msg');
+  if (!tee || !state.gpsState.coords) {
+    if (msg) { msg.style.color = 'var(--double)'; msg.textContent = 'GPS not ready'; }
+    return;
+  }
+  const yards = haversineYards(
+    state.gpsState.coords.latitude, state.gpsState.coords.longitude,
+    tee.lat, tee.lng
+  );
+  const club = document.getElementById('drive-club-sel')?.value || 'Driver';
+  const drive = {
+    player: state.me,
+    course: getCourseByRef()?.name || '',
+    tee: state.stee || '',
+    hole: hole0 + 1,
+    club,
+    yards,
+    date: new Date().toLocaleDateString('en-GB')
+  };
+  pushSupabase('saveDrive', { drive });
+
+  // Cache on liveState for potential round attachment later
+  if (!state.liveState.drives) state.liveState.drives = {};
+  state.liveState.drives[hole0] = { club, yards };
+
+  if (msg) { msg.style.color = 'var(--par)'; msg.textContent = `${club} · ${yards} yds ✓`; }
+  const clubRow = document.getElementById('drive-club-row');
+  const markBtn = document.getElementById('mark-drive-btn');
+  if (clubRow) clubRow.style.display = 'none';
+  if (markBtn) markBtn.style.display = '';
 }

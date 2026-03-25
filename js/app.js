@@ -12,7 +12,7 @@ import { renderOnboard, enterAs, addAndEnter, signOut, addPlayer, renderAllPlaye
 import { renderPracticePage, selectPracticeArea, startPracticeSession, regeneratePlan, logPracticeShots, completePracticeSession } from './practice.js';
 import { initLiveRound, liveGoto, liveSaveNote, liveNextOrFinish, toggleGroupPlayer, startGroupRound, toggleMatchPlay, openCorrectionModal, submitCorrectionReport, cancelRound } from './live.js';
 import { generateAIReview, generateStatsAnalysis, clearStatsAnalysis, parsePhoto, handlePhoto } from './ai.js';
-import { stopGPS, gpsSetTarget, pinTeePosition } from './gps.js';
+import { stopGPS, gpsSetTarget, pinTeePosition, markDriveTap, logDrive } from './gps.js';
 import { exportXlsx } from './export.js';
 import { openAdminSettings, closeAdminSettings, verifyAdminPw, adminPopulateRounds, adminDeleteRound } from './admin.js';
 import { copyGroupCode, leaveGroup, toggleGroupCodeRequired, addSeason, deleteSeason, confirmDeleteMyData, deleteMyData, copyAppUrl, rebuildSeasonSelector } from './group.js';
@@ -99,6 +99,8 @@ document.getElementById('gps-btn-front')?.addEventListener('click', () => gpsSet
 document.getElementById('gps-btn-back')?.addEventListener('click', () => gpsSetTarget('back'));
 document.getElementById('gps-stop-btn')?.addEventListener('click', stopGPS);
 document.getElementById('gps-btn-pin-tee')?.addEventListener('click', () => pinTeePosition(state.liveState?.hole || 0));
+document.getElementById('mark-drive-btn')?.addEventListener('click', markDriveTap);
+document.getElementById('drive-log-btn')?.addEventListener('click', () => logDrive(state.liveState?.hole || 0));
 // ── Round / scorecard tab ─────────────────────────────────────────
 // Entry card buttons
 document.getElementById('entry-btn-manual')?.addEventListener('click', () => switchEntry('manual'));
