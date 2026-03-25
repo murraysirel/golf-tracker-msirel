@@ -88,7 +88,11 @@
       <div style="font-size:10px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:3px"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Beta Version</div>
       <div style="font-size:11px;color:var(--dim);line-height:1.5">You'll need the group code from an existing member to join. Ask your group admin.</div>
     </div>
-    <input type="text" id="new-name" placeholder="Enter your full name" class="mb8">
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <input type="text" id="new-fname" placeholder="First name" autocomplete="given-name" style="flex:1">
+      <input type="text" id="new-lname" placeholder="Last name" autocomplete="family-name" style="flex:1">
+    </div>
+    <input type="text" id="new-username" placeholder="Username (optional)" autocomplete="username" class="mb8">
     <div id="group-code-field" style="display:block;margin-bottom:8px">
       <label style="font-size:11px;color:var(--dim)">Group code (ask your group admin)</label>
       <input type="text" id="new-group-code" placeholder="e.g. RR4XK2" style="text-transform:uppercase;letter-spacing:3px;font-size:16px;text-align:center" maxlength="6">
@@ -1024,7 +1028,11 @@
       </div>
       <div class="card">
         <div class="ct">Add New Player</div>
-        <input type="text" id="add-name" placeholder="Full name" class="mb8">
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input type="text" id="add-fname" placeholder="First name" style="flex:1">
+          <input type="text" id="add-lname" placeholder="Last name" style="flex:1">
+        </div>
+        <input type="text" id="add-username" placeholder="Username (optional)" class="mb8">
         <button class="btn" id="add-player-btn">Add Player</button>
         <div id="add-msg" style="margin-top:7px;font-size:11px;color:var(--dim)"></div>
       </div>

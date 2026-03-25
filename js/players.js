@@ -48,18 +48,25 @@ export function enterAs(n) {
 }
 
 export function addAndEnter() {
-  const n = document.getElementById('new-name').value.trim();
-  if (!n) { alert('Please enter your name.'); return; }
+  const fname = document.getElementById('new-fname')?.value.trim();
+  const lname = document.getElementById('new-lname')?.value.trim();
+  const username = document.getElementById('new-username')?.value.trim() || '';
+  const errEl = document.getElementById('group-code-err');
+  if (!fname || !lname) {
+    if (errEl) { errEl.textContent = 'Please enter your first and last name.'; errEl.style.display = 'block'; setTimeout(() => { errEl.style.display = 'none'; errEl.textContent = 'Incorrect group code — check with your group admin.'; }, 3000); }
+    else alert('Please enter your first and last name.');
+    return;
+  }
+  const n = fname + ' ' + lname;
   if (state.gd.requireGroupCode && state.gd.groupCode) {
     const entered = (document.getElementById('new-group-code')?.value || '').trim().toUpperCase();
-    const errEl = document.getElementById('group-code-err');
     if (entered !== state.gd.groupCode) {
-      if (errEl) { errEl.style.display = 'block'; setTimeout(() => errEl.style.display = 'none', 4000); }
+      if (errEl) { errEl.textContent = 'Incorrect group code — check with your group admin.'; errEl.style.display = 'block'; setTimeout(() => errEl.style.display = 'none', 4000); }
       document.getElementById('group-code-field').style.display = 'block';
       return;
     }
   }
-  if (!state.gd.players[n]) state.gd.players[n] = { handicap: 0, rounds: [] };
+  if (!state.gd.players[n]) state.gd.players[n] = { handicap: 0, rounds: [], ...(username ? { username } : {}) };
   pushGist();
   enterAs(n);
 }
@@ -93,13 +100,19 @@ export function renderAllPlayers() {
 }
 
 export function addPlayer() {
-  const n = document.getElementById('add-name').value.trim();
-  if (!n) { document.getElementById('add-msg').textContent = 'Please enter a name.'; return; }
-  if (state.gd.players[n]) { document.getElementById('add-msg').textContent = 'Already exists!'; return; }
-  state.gd.players[n] = { handicap: 0, rounds: [] };
+  const fname = document.getElementById('add-fname')?.value.trim();
+  const lname = document.getElementById('add-lname')?.value.trim();
+  const username = document.getElementById('add-username')?.value.trim() || '';
+  const msg = document.getElementById('add-msg');
+  if (!fname || !lname) { if (msg) msg.textContent = 'Please enter first and last name.'; return; }
+  const n = fname + ' ' + lname;
+  if (state.gd.players[n]) { if (msg) msg.textContent = 'Already exists!'; return; }
+  state.gd.players[n] = { handicap: 0, rounds: [], ...(username ? { username } : {}) };
   pushGist();
-  document.getElementById('add-msg').textContent = '\u2705 ' + n + ' added! They can now select themselves on the home screen.';
-  document.getElementById('add-name').value = '';
+  if (msg) msg.textContent = '\u2705 ' + n + ' added!';
+  document.getElementById('add-fname').value = '';
+  document.getElementById('add-lname').value = '';
+  document.getElementById('add-username').value = '';
   renderAllPlayers();
 }
 
