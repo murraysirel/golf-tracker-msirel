@@ -4,7 +4,7 @@
 import { state } from './state.js';
 import { TC } from './constants.js';
 import { pushGist, pushSupabase } from './api.js';
-import { initials, refreshAvatarUI } from './players.js';
+import { initials, refreshAvatarUI, avatarHtml } from './players.js';
 
 // Chart instances container
 const CH = {};
@@ -208,6 +208,14 @@ export function populateCourseFilter(allRounds) {
   sel.innerHTML = courses.map(c => `<option value="${c}"${c === cur ? ' selected' : ''}>${c}</option>`).join('');
 }
 
+// ── Handicap display helper ───────────────────────────────────────
+// Plus handicaps are stored as negative numbers (e.g. +1.2 = −1.2).
+// fmtHcp() converts: −1.2 → "+1.2", 9.8 → "9.8", 0/null → "—"
+function fmtHcp(h) {
+  if (h == null || h === 0) return '—';
+  return h < 0 ? '+' + Math.abs(h) : String(h);
+}
+
 export function toggleHcpEdit() {
   const row = document.getElementById('hcp-edit-row');
   const showing = row.style.display !== 'none' && row.style.display !== '';
@@ -215,19 +223,317 @@ export function toggleHcpEdit() {
   if (!showing) {
     const inp = document.getElementById('hcp-input');
     const cur = state.gd.players[state.me]?.handicap;
-    if (cur) inp.value = cur;
+    if (cur != null) inp.value = cur;
     inp.focus();
   }
 }
 
 export function saveHandicap() {
   const v = parseFloat(document.getElementById('hcp-input').value);
-  if (isNaN(v) || v < 0 || v > 54) { alert('Please enter a valid handicap between 0 and 54.'); return; }
+  if (isNaN(v) || v < -10 || v > 54) { alert('Please enter a valid handicap between −10 and 54. Use a negative number for a plus handicap (e.g. −1.2 = +1.2).'); return; }
   if (!state.gd.players[state.me]) state.gd.players[state.me] = { handicap: v, rounds: [] };
   else state.gd.players[state.me].handicap = v;
   pushGist();
   document.getElementById('hcp-edit-row').style.display = 'none';
   renderStats();
+}
+
+// ── KPI Tile System ───────────────────────────────────────────────
+const KPI_TILE_LS = 'rr_kpi_tiles';
+const KPI_TILE_DEFAULT = ['avgPar', 'bestRound', 'birdies', 'girFir'];
+const TILE_META = {
+  avgPar:       'AVG VS PAR',
+  bestRound:    'BEST ROUND',
+  birdies:      'BIRDIES',
+  girFir:       'GIR / FIR',
+  stableford:   'STABLEFORD',
+  eagles:       'EAGLES',
+  roundsPlayed: 'ROUNDS',
+  bufferBetter: 'BUFFER %',
+};
+
+function getKpiTiles() {
+  try {
+    const s = JSON.parse(localStorage.getItem(KPI_TILE_LS));
+    if (Array.isArray(s) && s.length === 4 && s.every(id => TILE_META[id])) return s;
+  } catch (_) {}
+  return [...KPI_TILE_DEFAULT];
+}
+
+export function saveKpiTiles(tiles) {
+  localStorage.setItem(KPI_TILE_LS, JSON.stringify(tiles));
+}
+
+// ── Tile builder functions ────────────────────────────────────────
+// Each receives ctx and returns { val, lbl, deltaHtml, iconHtml? }
+// or { split:true, top:{val,lbl,deltaHtml}, bot:{val,lbl,deltaHtml} }
+
+const BIRDIE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--birdie)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg>`;
+const EAGLE_SVG  = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--eagle)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M18 16.98h-5.99c-1.1 0-1.95.94-2.48 1.9A4 4 0 0 1 2 17c.01-.7.2-1.4.57-2"/><path d="m6 17 3.13-5.78c.53-.97.1-2.18-.5-3.1a4 4 0 1 1 6.89-4.06"/><path d="m12 6 3.13 5.73C15.66 12.7 16.9 13 18 13a4 4 0 0 1 0 8"/></svg>`;
+
+function buildTile_avgPar(ctx) {
+  const { rs, now } = ctx;
+  const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - 30);
+  const last30 = rs.filter(r => {
+    const dp = r.date?.split('/');
+    if (!dp || dp.length !== 3) return false;
+    return new Date(+dp[2], +dp[1] - 1, +dp[0]) >= cutoff;
+  });
+  const diffs = last30.map(r => r.diff).filter(v => v != null && !isNaN(v));
+  const avg = diffs.length ? diffs.reduce((a, b) => a + b, 0) / diffs.length : null;
+  const val = avg !== null ? (avg >= 0 ? '+' : '') + avg.toFixed(1) : '—';
+  const delta = diffs.length === 0
+    ? `<span style="color:var(--dim)">no rounds in 30 days</span>`
+    : `<span style="color:var(--dim)">last ${diffs.length} round${diffs.length !== 1 ? 's' : ''} · 30d</span>`;
+  return { val, lbl: 'AVG VS PAR', deltaHtml: delta };
+}
+
+function buildTile_bestRound(ctx) {
+  const { seasonRounds } = ctx;
+  const withScore = seasonRounds.filter(r => r.totalScore);
+  const best = withScore.length ? withScore.reduce((m, r) => r.totalScore < m.totalScore ? r : m) : null;
+  let deltaHtml = '';
+  if (best) {
+    const fullName = (best.course || '').replace(/ Golf Club| Golf Course| Golf Links/g, '');
+    const shortC = fullName.length > 16 ? fullName.slice(0, 16) + '…' : fullName;
+    const dp = best.date?.split('/');
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const dateStr = dp?.length === 3 ? MONTHS[+dp[1] - 1] + ' ' + +dp[0] : '';
+    deltaHtml = `<span style="display:block;font-size:11px;color:var(--dim)">${shortC}</span><span style="display:block;font-size:11px;color:var(--dim)">${dateStr}</span>`;
+  }
+  return { val: best ? String(best.totalScore) : '—', lbl: 'BEST ROUND', deltaHtml };
+}
+
+function buildTile_birdies(ctx) {
+  const { seasonRounds, rs, currentMonth, currentYear, now } = ctx;
+  const seasonBirdies = seasonRounds.reduce((a, r) => a + (r.birdies || 0), 0);
+  const lastMonthNum = now.getMonth() === 0 ? 12 : now.getMonth();
+  const lastMonthStr = String(lastMonthNum).padStart(2, '0');
+  const lastMonthYear = now.getMonth() === 0 ? String(now.getFullYear() - 1) : currentYear;
+  const thisMonthB = rs.filter(r => { const dp = r.date?.split('/'); return dp && dp[1] === currentMonth && dp[2] === currentYear; }).reduce((a, r) => a + (r.birdies || 0), 0);
+  const lastMonthRounds = rs.filter(r => { const dp = r.date?.split('/'); return dp && dp[1] === lastMonthStr && dp[2] === lastMonthYear; });
+  const lastMonthB = lastMonthRounds.reduce((a, r) => a + (r.birdies || 0), 0);
+  let deltaHtml;
+  if (!lastMonthRounds.length) {
+    deltaHtml = `<span style="color:var(--dim)">— no data last month</span>`;
+  } else {
+    const d = thisMonthB - lastMonthB;
+    deltaHtml = d > 0 ? `<span style="color:var(--par)">↑ ${d} vs last month</span>`
+              : d < 0 ? `<span style="color:var(--bogey)">↓ ${Math.abs(d)} vs last month</span>`
+              : `<span style="color:var(--dim)">→ same as last month</span>`;
+  }
+  return { val: String(seasonBirdies), lbl: 'BIRDIES', deltaHtml, iconHtml: BIRDIE_SVG };
+}
+
+function buildTile_girFir(ctx) {
+  const { last5, seasonRounds, girRaw, firRaw } = ctx;
+  const l5GIR = girRaw(last5), l5FIR = firRaw(last5);
+  const sGIR = girRaw(seasonRounds), sFIR = firRaw(seasonRounds);
+  function deltaHtml(l5, s) {
+    if (l5 !== null && s !== null) {
+      const d = l5 - s;
+      if (d > 0) return `<span style="color:var(--par)">↑ ${Math.abs(d).toFixed(1)} pp</span>`;
+      if (d < 0) return `<span style="color:var(--bogey)">↓ ${Math.abs(d).toFixed(1)} pp</span>`;
+      return `<span style="color:var(--dim)">→ avg</span>`;
+    }
+    return '';
+  }
+  return {
+    split: true,
+    top: { val: l5GIR !== null ? Math.round(l5GIR) + '%' : '—', lbl: 'GIR', deltaHtml: deltaHtml(l5GIR, sGIR) },
+    bot: { val: l5FIR !== null ? Math.round(l5FIR) + '%' : '—', lbl: 'FIR', deltaHtml: deltaHtml(l5FIR, sFIR) },
+  };
+}
+
+function buildTile_stableford(ctx) {
+  const { seasonRounds, p } = ctx;
+  const hcp = p.handicap || 0;
+  const totals = seasonRounds.filter(r => r.scores && r.pars).map(r => {
+    const si = r.si || null;
+    return calcStableford(r.scores, r.pars, hcp, r.slope, si);
+  }).filter(v => v != null);
+  const avg = totals.length ? (totals.reduce((a, b) => a + b, 0) / totals.length).toFixed(1) : null;
+  const delta = totals.length ? `<span style="color:var(--dim)">${totals.length} round${totals.length !== 1 ? 's' : ''} this season</span>` : '';
+  return { val: avg !== null ? avg + ' pts' : '—', lbl: 'STABLEFORD', deltaHtml: delta };
+}
+
+function buildTile_eagles(ctx) {
+  const { seasonRounds, rs, currentYear, now } = ctx;
+  const seasonEagles = seasonRounds.reduce((a, r) => a + (r.eagles || 0), 0);
+  const lastYear = String(now.getFullYear() - 1);
+  const lastYearEagles = rs.filter(r => r.date?.split('/')?.[2] === lastYear).reduce((a, r) => a + (r.eagles || 0), 0);
+  let deltaHtml;
+  const d = seasonEagles - lastYearEagles;
+  if (!rs.some(r => r.date?.split('/')?.[2] === lastYear)) {
+    deltaHtml = `<span style="color:var(--dim)">this season</span>`;
+  } else {
+    deltaHtml = d > 0 ? `<span style="color:var(--par)">↑ ${d} vs last year</span>`
+              : d < 0 ? `<span style="color:var(--bogey)">↓ ${Math.abs(d)} vs last year</span>`
+              : `<span style="color:var(--dim)">→ same as last year</span>`;
+  }
+  return { val: String(seasonEagles), lbl: 'EAGLES', deltaHtml, iconHtml: EAGLE_SVG };
+}
+
+function buildTile_roundsPlayed(ctx) {
+  const { seasonRounds, sorted } = ctx;
+  const count = seasonRounds.length;
+  let deltaHtml = '';
+  if (sorted.length) {
+    const last = sorted[sorted.length - 1];
+    const dp = last.date?.split('/');
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const dateStr = dp?.length === 3 ? MONTHS[+dp[1] - 1] + ' ' + +dp[0] : '';
+    deltaHtml = `<span style="color:var(--dim)">last: ${dateStr}</span>`;
+  }
+  return { val: String(count), lbl: 'ROUNDS', deltaHtml };
+}
+
+function buildTile_bufferBetter(ctx) {
+  const { seasonRounds, p } = ctx;
+  const hcp = p.handicap || 0;
+  if (hcp <= 0 || !seasonRounds.length) {
+    return { val: '—', lbl: 'BUFFER %', deltaHtml: `<span style="color:var(--dim)">need a handicap</span>` };
+  }
+  const buf = seasonRounds.filter(r => isBufferOrBetter(r, hcp)).length;
+  const pct = Math.round(buf / seasonRounds.length * 100);
+  const delta = `<span style="color:var(--dim)">${buf} of ${seasonRounds.length} rounds</span>`;
+  return { val: pct + '%', lbl: 'BUFFER %', deltaHtml: delta };
+}
+
+const TILE_BUILDERS = {
+  avgPar: buildTile_avgPar,
+  bestRound: buildTile_bestRound,
+  birdies: buildTile_birdies,
+  girFir: buildTile_girFir,
+  stableford: buildTile_stableford,
+  eagles: buildTile_eagles,
+  roundsPlayed: buildTile_roundsPlayed,
+  bufferBetter: buildTile_bufferBetter,
+};
+
+function buildTileEl(tileId, ctx) {
+  const builder = TILE_BUILDERS[tileId];
+  if (!builder) return null;
+  const tile = builder(ctx);
+  const card = document.createElement('div');
+  if (tile.split) {
+    card.className = 'home-kpi-card home-kpi-split';
+    card.innerHTML = `<div class="home-kpi-split-inner">
+      <svg class="home-kpi-divider" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <line x1="100" y1="0" x2="0" y2="100" stroke="var(--border)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
+      </svg>
+      <div class="home-kpi-split-top">
+        <div class="home-kpi-val">${tile.top.val}</div>
+        <div class="home-kpi-lbl">${tile.top.lbl}</div>
+        <div class="home-kpi-delta">${tile.top.deltaHtml || ''}</div>
+      </div>
+      <div class="home-kpi-split-bot">
+        <div class="home-kpi-val">${tile.bot.val}</div>
+        <div class="home-kpi-lbl">${tile.bot.lbl}</div>
+        <div class="home-kpi-delta">${tile.bot.deltaHtml || ''}</div>
+      </div>
+    </div>`;
+  } else {
+    card.className = 'home-kpi-card';
+    card.innerHTML = `<div style="display:flex;align-items:center;gap:6px">
+      ${tile.iconHtml || ''}
+      <div class="home-kpi-val">${tile.val}</div>
+    </div>
+    <div class="home-kpi-lbl">${tile.lbl}</div>
+    <div class="home-kpi-delta" style="font-size:11px">${tile.deltaHtml || ''}</div>`;
+  }
+  return card;
+}
+
+function renderKpiGrid(ctx) {
+  const grid = document.getElementById('home-kpis');
+  if (!grid) return;
+  grid.innerHTML = '';
+  getKpiTiles().forEach(id => {
+    const el = buildTileEl(id, ctx);
+    if (el) grid.appendChild(el);
+  });
+}
+
+// ── Tile picker ───────────────────────────────────────────────────
+let _pickerSelected = [];
+
+export function openKpiPicker() {
+  _pickerSelected = [...getKpiTiles()];
+  const optionsEl = document.getElementById('kpi-tile-options');
+  if (!optionsEl) return;
+  optionsEl.innerHTML = '';
+  Object.entries(TILE_META).forEach(([id, label]) => {
+    const chip = document.createElement('div');
+    const isSel = _pickerSelected.includes(id);
+    chip.className = 'kpi-tile-chip' + (isSel ? ' selected' : '') + (!isSel && _pickerSelected.length >= 4 ? ' disabled' : '');
+    chip.dataset.id = id;
+    chip.textContent = label;
+    chip.addEventListener('click', () => {
+      if (_pickerSelected.includes(id)) {
+        _pickerSelected = _pickerSelected.filter(x => x !== id);
+        chip.classList.remove('selected');
+      } else if (_pickerSelected.length < 4) {
+        _pickerSelected.push(id);
+        chip.classList.add('selected');
+      }
+      document.querySelectorAll('.kpi-tile-chip').forEach(c => {
+        const cId = c.dataset.id;
+        c.classList.toggle('disabled', !_pickerSelected.includes(cId) && _pickerSelected.length >= 4);
+      });
+    });
+    optionsEl.appendChild(chip);
+  });
+  const sheet = document.getElementById('kpi-picker-sheet');
+  if (sheet) sheet.style.display = 'flex';
+}
+
+export function closeKpiPicker(save) {
+  const sheet = document.getElementById('kpi-picker-sheet');
+  if (sheet) sheet.style.display = 'none';
+  if (save && _pickerSelected.length === 4) {
+    saveKpiTiles(_pickerSelected);
+    renderHomeStats();
+  }
+}
+
+// ── Mates board feed ─────────────────────────────────────────────
+function renderMatesFeed() {
+  const section = document.getElementById('home-mates-section');
+  const matesEl = document.getElementById('home-mates-list');
+  if (!section || !matesEl) return;
+  const allPlayers = Object.entries(state.gd.players || {});
+  if (allPlayers.length <= 1) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  const currentYear = String(new Date().getFullYear());
+  const matesData = allPlayers.map(([name, p]) => {
+    const sRounds = (p.rounds || []).filter(r => r.date?.split('/')?.[2] === currentYear);
+    const diffs = sRounds.map(r => r.diff).filter(v => v != null && !isNaN(v));
+    const avgDiff = diffs.length ? diffs.reduce((a, b) => a + b, 0) / diffs.length : null;
+    return { name, rounds: sRounds.length, avgDiff };
+  }).filter(m => m.rounds > 0).sort((a, b) => (a.avgDiff ?? 99) - (b.avgDiff ?? 99));
+  if (!matesData.length) { section.style.display = 'none'; return; }
+  const posColors = ['var(--eagle)', 'var(--dim)', '#a07850', 'var(--dimmer)'];
+  matesEl.innerHTML = '';
+  matesData.forEach((m, i) => {
+    const isMe = m.name === state.me;
+    const diff = m.avgDiff != null ? (m.avgDiff >= 0 ? '+' : '') + m.avgDiff.toFixed(1) : '—';
+    const diffColor = m.avgDiff != null && m.avgDiff < 0 ? 'var(--birdie)' : m.avgDiff === 0 ? 'var(--par)' : 'var(--bogey)';
+    const row = document.createElement('div');
+    row.style.cssText = `display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:10px;margin-bottom:6px;${isMe ? 'background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.15)' : 'background:var(--wa-03);border:1px solid var(--wa-06)'}`;
+    row.innerHTML = `
+      <div style="font-size:11px;font-weight:700;color:${posColors[i] || 'var(--dimmer)'};width:16px;text-align:center;flex-shrink:0">${i + 1}</div>
+      ${avatarHtml(m.name, 28, isMe)}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:${isMe ? '600' : '400'};color:${isMe ? 'var(--gold)' : 'var(--cream)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.name}</div>
+        <div style="font-size:10px;color:var(--dimmer)">${m.rounds} round${m.rounds !== 1 ? 's' : ''}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:15px;font-weight:700;color:${diffColor}">${diff}</div>
+        <div style="font-size:9px;color:var(--dimmer)">avg</div>
+      </div>`;
+    matesEl.appendChild(row);
+  });
 }
 
 export function renderHomeStats() {
@@ -246,7 +552,7 @@ export function renderHomeStats() {
   const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
   // Use parseDateGB-compatible split to get year/month — never new Date() on DD/MM/YYYY strings
   const seasonRounds = rs.filter(r => { const dp = r.date?.split('/'); return dp && dp[2] === currentYear; });
-  const hcpVal = p.handicap > 0 ? p.handicap : '—';
+  const hcpVal = fmtHcp(p.handicap);
   const seasonCount = seasonRounds.length;
   if (greetEl) greetEl.textContent = greeting + ', ' + firstName;
   if (metaEl) metaEl.textContent = `HCP ${hcpVal} · ${seasonCount} round${seasonCount !== 1 ? 's' : ''} this season`;
@@ -267,120 +573,12 @@ export function renderHomeStats() {
     rounds.forEach(r => { (r.fir || []).forEach((v, h) => { if ((r.pars?.[h]) !== 3) { poss++; if (v === 'Yes') hits++; } }); });
     return poss ? hits / poss * 100 : null;
   }
-  function par4GIRRaw(rounds) {
-    let hits = 0, poss = 0;
-    rounds.forEach(r => {
-      (r.pars || []).forEach((p, i) => {
-        const g = (r.gir || [])[i];
-        if (p === 4 && (g === 'Yes' || g === 'No')) { poss++; if (g === 'Yes') hits++; }
-      });
-    });
-    return poss ? hits / poss * 100 : null;
-  }
+  // ── Dynamic KPI grid ─────────────────────────────────────────
+  const tileCtx = { p, rs, sorted, last5, seasonRounds, currentYear, currentMonth, now, girRaw, firRaw };
+  renderKpiGrid(tileCtx);
 
-  // ── Card 1: Avg vs par — last 30 days ────────────────────────
-  const avgParEl = document.getElementById('h-avg-par');
-  const avgParDeltaEl = document.getElementById('h-avg-par-delta');
-  const validDiff = d => d !== undefined && d !== null && !isNaN(d);
-  const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - 30);
-  const last30Rounds = rs.filter(r => {
-    const dp = r.date?.split('/');
-    if (!dp || dp.length !== 3) return false;
-    const d = new Date(parseInt(dp[2]), parseInt(dp[1]) - 1, parseInt(dp[0]));
-    return d >= cutoff;
-  });
-  const last30Diffs = last30Rounds.map(r => r.diff).filter(validDiff);
-  const N30 = last30Diffs.length;
-  const avgVsPar = N30 ? last30Diffs.reduce((a, b) => a + b, 0) / N30 : null;
-  if (avgParEl) avgParEl.textContent = avgVsPar !== null ? (avgVsPar >= 0 ? '+' : '') + avgVsPar.toFixed(1) : '—';
-  if (avgParDeltaEl) {
-    if (N30 === 0) {
-      avgParDeltaEl.textContent = 'no rounds in 30 days';
-      avgParDeltaEl.style.color = 'var(--dim)';
-    } else {
-      avgParDeltaEl.textContent = `last ${N30} round${N30 !== 1 ? 's' : ''} · 30d`;
-      avgParDeltaEl.style.color = 'var(--dim)';
-    }
-  }
-
-  // ── Card 2: Best round this season — course + date two lines ─
-  const bestEl = document.getElementById('h-best');
-  const bestMetaEl = document.getElementById('h-best-meta');
-  const seasonWithScore = seasonRounds.filter(r => r.totalScore);
-  const bestRound = seasonWithScore.length ? seasonWithScore.reduce((min, r) => r.totalScore < min.totalScore ? r : min) : null;
-  if (bestEl) bestEl.textContent = bestRound ? bestRound.totalScore : '—';
-  if (bestMetaEl) {
-    if (bestRound) {
-      const fullName = (bestRound.course || '').replace(' Golf Club', '').replace(' Golf Course', '').replace(' Golf Links', '');
-      const shortC = fullName.length > 16 ? fullName.slice(0, 16) + '…' : fullName;
-      const dp = bestRound.date?.split('/');
-      const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      // dp[0]=DD, dp[1]=MM, dp[2]=YYYY — use parseDateGB-compatible indexing
-      const dateStr = dp && dp.length === 3 ? MONTHS[parseInt(dp[1], 10) - 1] + ' ' + parseInt(dp[0], 10) : '';
-      bestMetaEl.innerHTML =
-        `<span style="display:block;font-size:11px;color:var(--dim)">${shortC}</span>` +
-        `<span style="display:block;font-size:11px;color:var(--dim)">${dateStr}</span>`;
-    } else {
-      bestMetaEl.innerHTML = '';
-    }
-  }
-
-  // ── Card 3: Birdies — two delta lines (vs last month, vs last year) ──
-  const birdiesEl = document.getElementById('h-birdies');
-  const birdiesDeltaEl = document.getElementById('h-birdies-delta');
-  const seasonBirdies = seasonRounds.reduce((a, r) => a + (r.birdies || 0), 0);
-  if (birdiesEl) birdiesEl.textContent = seasonBirdies;
-
-  if (birdiesDeltaEl) {
-    // Last month range — derive from JS Date, compare via date string parts
-    const lastMonthNum = now.getMonth() === 0 ? 12 : now.getMonth(); // getMonth() is 0-indexed; Jan→0 wraps to Dec=12
-    const lastMonthStr = String(lastMonthNum).padStart(2, '0');
-    const lastMonthYear = now.getMonth() === 0 ? String(now.getFullYear() - 1) : currentYear;
-    const lastYear = String(now.getFullYear() - 1);
-
-    const thisMonthRounds = rs.filter(r => { const dp = r.date?.split('/'); return dp && dp[1] === currentMonth && dp[2] === currentYear; });
-    const lastMonthRounds = rs.filter(r => { const dp = r.date?.split('/'); return dp && dp[1] === lastMonthStr && dp[2] === lastMonthYear; });
-    const lastYearRounds  = rs.filter(r => { const dp = r.date?.split('/'); return dp && dp[2] === lastYear; });
-
-    const thisMonthB = thisMonthRounds.reduce((a, r) => a + (r.birdies || 0), 0);
-    const lastMonthB = lastMonthRounds.reduce((a, r) => a + (r.birdies || 0), 0);
-
-    function birdieMonthLine() {
-      if (!lastMonthRounds.length) return `<span style="color:var(--dim)">— no data last month</span>`;
-      const d = thisMonthB - lastMonthB;
-      if (d > 0) return `<span style="color:var(--par)">↑ ${d} vs last month</span>`;
-      if (d < 0) return `<span style="color:var(--bogey)">↓ ${Math.abs(d)} vs last month</span>`;
-      return `<span style="color:var(--dim)">→ same as last month</span>`;
-    }
-    birdiesDeltaEl.style.cssText = 'font-size:10px';
-    birdiesDeltaEl.innerHTML = birdieMonthLine();
-  }
-
-  // ── Card 4: GIR / FIR — delta vs season avg ──────────────────
-  const girPctEl  = document.getElementById('h-gir-pct');
-  const firPctEl  = document.getElementById('h-fir-pct');
-  const girDeltaEl = document.getElementById('h-gir-delta');
-  const firDeltaEl = document.getElementById('h-fir-delta');
-
-  const last5GIR   = girRaw(last5);
-  const last5FIR   = firRaw(last5);
-  const seasonGIR  = girRaw(seasonRounds);
-  const seasonFIR  = firRaw(seasonRounds);
-
-  if (girPctEl) girPctEl.textContent = last5GIR !== null ? Math.round(last5GIR) + '%' : '—';
-  if (firPctEl) firPctEl.textContent = last5FIR !== null ? Math.round(last5FIR) + '%' : '—';
-
-  function renderGIRFIRDelta(el, last5Val, seasonVal) {
-    if (!el) return;
-    if (last5Val !== null && seasonVal !== null) {
-      const delta = last5Val - seasonVal;
-      if (delta > 0) { el.textContent = '↑ ' + Math.abs(delta).toFixed(1) + ' pp'; el.style.color = 'var(--par)'; }
-      else if (delta < 0) { el.textContent = '↓ ' + Math.abs(delta).toFixed(1) + ' pp'; el.style.color = 'var(--bogey)'; }
-      else { el.textContent = '→ avg'; el.style.color = 'var(--dim)'; }
-    } else { el.textContent = ''; }
-  }
-  renderGIRFIRDelta(girDeltaEl, last5GIR, seasonGIR);
-  renderGIRFIRDelta(firDeltaEl, last5FIR, seasonFIR);
+  // ── Mates board feed ─────────────────────────────────────────
+  renderMatesFeed();
 
   // ── Recent rounds ────────────────────────────────────────────
   const recent = document.getElementById('home-recent');
@@ -553,7 +751,7 @@ export function renderStats() {
 
   const hcp = p.handicap;
   const hcpEl = document.getElementById('st-hcp-display');
-  if (hcpEl) hcpEl.textContent = hcp != null && hcp > 0 ? hcp : '—';
+  if (hcpEl) hcpEl.textContent = fmtHcp(hcp);
 
   populateCourseFilter(allRounds);
 
@@ -964,16 +1162,27 @@ function renderMatchRecord() {
 
 export function calcStableford(scores, pars, handicapIndex, slope, si) {
   if (!scores || !pars) return null;
-  const php = handicapIndex > 0 ? Math.round(handicapIndex * (slope || 113) / 113) : 0;
+  const php = Math.round(handicapIndex * (slope || 113) / 113);
   const shots = Array(18).fill(0);
   if (si && si.length === 18) {
-    for (let h = 0; h < 18; h++) {
+    if (php >= 0) {
       const extraRounds = Math.floor(php / 18);
       const remainder = php % 18;
-      shots[h] = extraRounds + (si[h] <= remainder ? 1 : 0);
+      for (let h = 0; h < 18; h++) shots[h] = extraRounds + (si[h] <= remainder ? 1 : 0);
+    } else {
+      // Plus handicapper: give strokes back on easiest holes (highest SI)
+      const absPhp = Math.abs(php);
+      const extraRounds = Math.floor(absPhp / 18);
+      const remainder = absPhp % 18;
+      for (let h = 0; h < 18; h++) shots[h] = -(extraRounds + (si[h] > (18 - remainder) ? 1 : 0));
     }
   } else {
-    for (let i = 0; i < php; i++) shots[i % 18]++;
+    if (php >= 0) {
+      for (let i = 0; i < php; i++) shots[i % 18]++;
+    } else {
+      const absPhp = Math.abs(php);
+      for (let i = 0; i < absPhp; i++) shots[17 - (i % 18)]--;
+    }
   }
   let pts = 0, holes = 0;
   for (let h = 0; h < 18; h++) {
@@ -993,16 +1202,26 @@ export function calcStableford(scores, pars, handicapIndex, slope, si) {
 
 export function calcScoringPointsNet(scores, pars, hcp, slope, si) {
   if (!scores || !pars) return null;
-  const playingHcp = (hcp > 0) ? Math.round(hcp * (slope || 113) / 113) : 0;
+  const playingHcp = Math.round(hcp * (slope || 113) / 113);
 
   // SI fallback: linear 1–18 if missing or incomplete
   const effectiveSI = (si && si.length === 18) ? si : Array.from({ length: 18 }, (_, h) => h + 1);
 
-  // Strokes per hole (spec: explicit si-based allocation)
+  // Strokes per hole
   const strokes = Array(18).fill(0);
-  for (let h = 0; h < 18; h++) {
-    if (effectiveSI[h] <= playingHcp) strokes[h] = 1;
-    if (playingHcp > 18 && effectiveSI[h] <= (playingHcp - 18)) strokes[h] += 1;
+  if (playingHcp >= 0) {
+    for (let h = 0; h < 18; h++) {
+      if (effectiveSI[h] <= playingHcp) strokes[h] = 1;
+      if (playingHcp > 18 && effectiveSI[h] <= (playingHcp - 18)) strokes[h] += 1;
+    }
+  } else {
+    // Plus handicapper: give strokes back on easiest holes (highest SI)
+    const absPhp = Math.abs(playingHcp);
+    const extraRounds = Math.floor(absPhp / 18);
+    const remainder = absPhp % 18;
+    for (let h = 0; h < 18; h++) {
+      strokes[h] = -(extraRounds + (effectiveSI[h] > (18 - remainder) ? 1 : 0));
+    }
   }
 
   let total = 0, netEagles = 0, netBirdies = 0, holes = 0;

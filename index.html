@@ -99,8 +99,8 @@
     <label style="font-size:11px;color:var(--dim);margin-bottom:4px;display:block">Full name <span style="color:#e74c3c">*</span></label>
     <input type="text" id="new-fullname" placeholder="e.g. Jamie Wilson" autocomplete="name" class="mb12">
     <label style="font-size:11px;color:var(--dim);margin-bottom:4px;display:block">Handicap Index <span style="color:#e74c3c">*</span></label>
-    <input type="number" id="new-handicap" placeholder="e.g. 12.4" min="0" max="54" step="0.1" class="mb4" inputmode="decimal">
-    <div style="font-size:10px;color:var(--dimmer);margin-bottom:14px">Enter 0 if you don't have an official handicap yet</div>
+    <input type="number" id="new-handicap" placeholder="e.g. 12.4 · use −1.2 for +1.2" min="-10" max="54" step="0.1" class="mb4" inputmode="decimal">
+    <div style="font-size:10px;color:var(--dimmer);margin-bottom:14px">Enter 0 if no official handicap yet. Plus handicap? Use a negative number (e.g. −1.2 = +1.2).</div>
     <label style="font-size:11px;color:var(--dim);margin-bottom:2px;display:block">Email</label>
     <div style="font-size:10px;color:var(--dimmer);margin-bottom:5px">Recommended for cross-device sync</div>
     <input type="email" id="new-email" placeholder="e.g. jamie@example.com" autocomplete="email" class="mb16" inputmode="email">
@@ -364,49 +364,32 @@
     <!-- HOME -->
     <div id="pg-home">
 
-      <!-- 2×2 KPI grid -->
-      <div class="home-kpi-grid" id="home-kpis">
-        <!-- Card 1: Avg vs par -->
-        <div class="home-kpi-card">
-          <div class="home-kpi-val" id="h-avg-par">—</div>
-          <div class="home-kpi-lbl">AVG VS PAR</div>
-          <div class="home-kpi-delta" id="h-avg-par-delta"></div>
-        </div>
-        <!-- Card 2: Best round -->
-        <div class="home-kpi-card">
-          <div class="home-kpi-val" id="h-best">—</div>
-          <div class="home-kpi-lbl">BEST ROUND</div>
-          <div class="home-kpi-delta" id="h-best-meta" style="color:var(--dim)"></div>
-        </div>
-        <!-- Card 3: Birdies -->
-        <div class="home-kpi-card">
-          <div style="display:flex;align-items:center;gap:6px">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--birdie)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg>
-            <div class="home-kpi-val" id="h-birdies">0</div>
-          </div>
-          <div class="home-kpi-lbl">BIRDIES</div>
-          <div class="home-kpi-delta" id="h-birdies-delta"></div>
-        </div>
-        <!-- Card 4: GIR / FIR diagonal split -->
-        <div class="home-kpi-card home-kpi-split">
-          <div class="home-kpi-split-inner">
-            <svg class="home-kpi-divider" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-              <line x1="100" y1="0" x2="0" y2="100" stroke="var(--border)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
-            </svg>
-            <div class="home-kpi-split-top">
-              <div class="home-kpi-val" id="h-gir-pct">—</div>
-              <div class="home-kpi-lbl">GIR</div>
-              <div class="home-kpi-delta" id="h-gir-delta"></div>
-            </div>
-            <div class="home-kpi-split-bot">
-              <div class="home-kpi-val" id="h-fir-pct">—</div>
-              <div class="home-kpi-lbl">FIR</div>
-              <div class="home-kpi-delta" id="h-fir-delta"></div>
-            </div>
-          </div>
+      <!-- 2×2 KPI grid — cards rendered dynamically by renderKpiGrid() in stats.js -->
+      <div class="home-kpi-grid" id="home-kpis"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;padding:0 16px">
+        <div style="font-size:9px;color:var(--dimmer)">Tap grid for full Stats</div>
+        <button id="kpi-customise-btn" style="font-size:9px;color:var(--gold);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;padding:0;letter-spacing:0.03em">✎ Customise</button>
+      </div>
+
+      <!-- Tile picker bottom sheet -->
+      <div id="kpi-picker-sheet" style="display:none;position:fixed;inset:0;z-index:300;align-items:flex-end">
+        <div id="kpi-picker-backdrop" style="position:absolute;inset:0;background:rgba(0,0,0,.55)"></div>
+        <div style="position:relative;background:var(--card);border-radius:20px 20px 0 0;padding:20px 20px calc(20px + var(--safe-bot));width:100%;max-height:75vh;overflow-y:auto">
+          <div style="font-size:15px;font-weight:600;color:var(--cream);margin-bottom:4px">Choose your 4 tiles</div>
+          <div style="font-size:11px;color:var(--dim);margin-bottom:16px">Tap to select · max 4</div>
+          <div id="kpi-tile-options" class="kpi-tile-options"></div>
+          <button class="btn" id="kpi-picker-done" style="margin-top:16px">Done</button>
         </div>
       </div>
-      <div style="font-size:9px;color:var(--dimmer);text-align:center;margin-top:4px;padding:0 16px">Tap Stats for full breakdown</div>
+
+      <!-- Mates on the boards -->
+      <div id="home-mates-section" style="padding:12px 16px 0">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:11px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:0.07em">On the Boards</div>
+          <div style="font-size:10px;color:var(--dimmer)">Season · avg vs par</div>
+        </div>
+        <div id="home-mates-list"></div>
+      </div>
 
       <!-- Recent rounds -->
       <div style="padding:16px 16px 0">
@@ -839,9 +822,9 @@
           </div>
         </div>
         <div id="hcp-edit-row" style="display:none;gap:8px;align-items:center;margin-bottom:8px">
-          <input type="number" id="hcp-input" step="0.1" min="0" max="54" placeholder="e.g. 9.8" style="flex:1;max-width:100px">
+          <input type="number" id="hcp-input" step="0.1" min="-10" max="54" placeholder="e.g. 9.8 or −1.2" style="flex:1;max-width:100px">
           <button class="btn" id="hcp-save-btn" style="width:auto;padding:5px 12px;font-size:12px">Save</button>
-          <div style="font-size:11px;color:var(--dim);flex:1">WHS Index from MyEG or your club</div>
+          <div style="font-size:11px;color:var(--dim);flex:1">WHS Index · use negative for plus (−1.2 = +1.2)</div>
         </div>
         <!-- Filter pills -->
         <div style="display:flex;gap:6px" id="filter-pills">

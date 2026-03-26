@@ -6,7 +6,7 @@ import { loadGist, pushGist, ss, retrySyncUnsynced, updateUnsyncedBadge } from '
 import { goTo, switchEntry, registerNavHandlers } from './nav.js';
 import { getCourseByRef, scanCourseCard, saveCourse, cancelCourseScan, handleCoursePhoto, searchCourseAPI } from './courses.js';
 import { buildSC, recalc, saveRound, toggleSCExtras } from './scorecard.js';
-import { renderStats, setFilter, toggleHcpEdit, saveHandicap, renderHomeStats, openScorecardModal } from './stats.js';
+import { renderStats, setFilter, toggleHcpEdit, saveHandicap, renderHomeStats, openScorecardModal, openKpiPicker, closeKpiPicker } from './stats.js';
 import { renderLeaderboard, initLeaderboard } from './leaderboard.js';
 import { renderOnboard, enterAs, addAndEnter, signOut, addPlayer, renderAllPlayers, renderPlayersToday, showSignupStep, submitProfile, agreePrivacy, showGroupFork, goBackToFork, forkNotNow, forkJoinGroup, forkCreateGroup, refreshAvatarUI, uploadAvatar } from './players.js';
 import { renderPracticePage, selectPracticeArea, startPracticeSession, regeneratePlan, logPracticeShots, completePracticeSession } from './practice.js';
@@ -155,6 +155,9 @@ document.getElementById('demo-exit-panel-btn')?.addEventListener('click', exitDe
 // ── Home page ─────────────────────────────────────────────────────
 document.getElementById('home-go-stats-link')?.addEventListener('click', () => goTo('stats'));
 document.getElementById('home-kpis')?.addEventListener('click', () => goTo('stats'));
+document.getElementById('kpi-customise-btn')?.addEventListener('click', e => { e.stopPropagation(); openKpiPicker(); });
+document.getElementById('kpi-picker-done')?.addEventListener('click', () => closeKpiPicker(true));
+document.getElementById('kpi-picker-backdrop')?.addEventListener('click', () => closeKpiPicker(false));
 
 // ── GPS bar ───────────────────────────────────────────────────────
 document.getElementById('gps-btn-mid')?.addEventListener('click', () => gpsSetTarget('mid'));

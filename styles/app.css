@@ -390,6 +390,22 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
 .home-kpi-split .home-kpi-val{font-size:20px}
 .home-kpi-split .home-kpi-delta{font-size:9px}
 
+/* ── KPI tile picker chips ────────────────────────────────────── */
+.kpi-tile-options{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kpi-tile-chip{
+  padding:12px 14px;border-radius:12px;
+  background:var(--mid);border:1.5px solid var(--border);
+  font-size:11px;font-weight:600;color:var(--dim);
+  text-transform:uppercase;letter-spacing:0.06em;
+  cursor:pointer;text-align:center;transition:all .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.kpi-tile-chip.selected{
+  border-color:var(--gold);color:var(--gold);
+  background:rgba(201,168,76,.08);
+}
+.kpi-tile-chip.disabled{opacity:.35;cursor:default}
+
 /* ── Practice area buttons — v0 style ────────────────────────── */
 .parea-btn{
   background:var(--card);border:1px solid var(--wa-06);

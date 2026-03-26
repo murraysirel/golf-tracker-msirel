@@ -176,8 +176,8 @@ export function submitProfile() {
 
   if (!fullName) { showErr('Please enter your full name.'); return; }
   const hcp = parseFloat(hcpRaw);
-  if (hcpRaw === '' || isNaN(hcp) || hcp < 0 || hcp > 54) {
-    showErr('Please enter a valid Handicap Index between 0 and 54.');
+  if (hcpRaw === '' || isNaN(hcp) || hcp < -10 || hcp > 54) {
+    showErr('Please enter a valid Handicap Index between −10 and 54. Use a negative number for a plus handicap (e.g. −1.2 = +1.2).');
     return;
   }
   if (errEl) errEl.style.display = 'none';

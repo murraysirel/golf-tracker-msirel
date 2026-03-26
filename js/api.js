@@ -30,6 +30,7 @@ function seedMurray() {
 }
 
 export async function loadGist() {
+  if (state.demoMode) return;
   ss('syncing', 'Loading...');
   try {
     const r = await fetch(API);
@@ -99,6 +100,7 @@ export async function pushSupabase(action, data) {
 }
 
 async function loadSupabase() {
+  if (state.demoMode) return false;
   try {
     const res = await fetch('/.netlify/functions/supabase', {
       method: 'POST',

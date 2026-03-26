@@ -73,6 +73,7 @@ function updatePollStatus() {
 }
 
 async function pollAndUpdate() {
+  if (state.demoMode) return;
   await loadGist();
   const newEvents = diffSnapshots(_lastSnapshot, state.gd);
   if (newEvents.length) {
