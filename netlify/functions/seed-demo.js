@@ -5,10 +5,10 @@
 
 const { createClient } = require('@supabase/supabase-js');
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
+// Guard: createClient throws if URL is undefined (e.g. when required by demo-data.js)
+const supabase = process.env.SUPABASE_URL
+  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY)
+  : null;
 
 const GROUP_CODE = 'DEMO01';
 
@@ -474,3 +474,58 @@ exports.handler = async (event) => {
     return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: err.message }) };
   }
 };
+
+// ── In-memory data generator (no Supabase dependency) ────────────────────────
+// Used by demo-data.js to serve demo data directly without DB writes.
+function generateDemoData() {
+  const players = PLAYERS.map(p => ({ name: p.name, handicap: p.hcpIndex }));
+
+  const outings = buildOutings();
+  const rounds  = [];
+
+  for (let oi = 0; oi < outings.length; oi++) {
+    const { courseIdx, dateStr, players: playerNames } = outings[oi];
+    const course = COURSES[courseIdx];
+
+    for (let pi = 0; pi < playerNames.length; pi++) {
+      const playerName = playerNames[pi];
+      const player = PLAYERS.find(p => p.name === playerName);
+      const round  = generateRound(player, course, dateStr, oi, pi);
+      rounds.push({
+        id:           round.id,
+        player_name:  round.player,
+        group_code:   GROUP_CODE,
+        course:       round.course,
+        loc:          round.loc,
+        tee:          round.tee,
+        date:         round.date,
+        scores:       round.scores,
+        putts:        round.putts,
+        fir:          round.fir,
+        gir:          round.gir,
+        pars:         round.pars,
+        notes:        round.notes,
+        total_score:  round.totalScore,
+        total_par:    round.totalPar,
+        diff:         round.diff,
+        birdies:      round.birdies,
+        pars_count:   round.parsCount,
+        bogeys:       round.bogeys,
+        doubles:      round.doubles,
+        eagles:       round.eagles,
+        penalties:    0,
+        bunkers:      0,
+        chips:        0,
+        rating:       round.rating,
+        slope:        round.slope,
+        ai_review:    null,
+        wolf_result:  null,
+        match_result: null,
+      });
+    }
+  }
+
+  return { players, rounds };
+}
+
+exports.generateDemoData = generateDemoData;

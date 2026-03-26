@@ -6,6 +6,7 @@
  
 import { state } from './state.js';
 import { buildSC } from './scorecard.js';
+import { COURSES as BUILTIN_COURSES } from './constants.js';
  
 const COURSES_API = '/.netlify/functions/courses';
  
@@ -220,7 +221,30 @@ function _applyTee(tee) {
   } else if (_selectedCourse?.stroke_indexes?.length === 18) {
     state.scannedSI = _selectedCourse.stroke_indexes;
   }
- 
+
+  // Fallback: if pars are still all-4 (GolfAPI returned no per-hole data),
+  // look up the course in the built-in constants and use its verified data.
+  if (state.cpars.every(p => p === 4)) {
+    const courseName = (_selectedCourse?.name || '').toLowerCase();
+    const builtin = BUILTIN_COURSES.find(c => {
+      if (c.name === 'Custom / Other') return false;
+      const cn = c.name.toLowerCase();
+      const nWords  = courseName.split(/\W+/).filter(w => w.length > 3).slice(0, 2).join(' ');
+      const cnWords = cn.split(/\W+/).filter(w => w.length > 3).slice(0, 2).join(' ');
+      return nWords && (courseName.includes(cnWords) || cn.includes(nWords));
+    });
+    if (builtin) {
+      const colour = tee.colour || state.stee;
+      const builtinTee = builtin.tees[colour] || builtin.tees[builtin.def] || Object.values(builtin.tees)[0];
+      if (builtinTee?.par?.length === 18) {
+        state.cpars = builtinTee.par;
+        if (!state.activeHoleYards && builtinTee.hy?.length === 18) {
+          state.activeHoleYards = builtinTee.hy;
+        }
+      }
+    }
+  }
+
   buildSC();
 }
  
