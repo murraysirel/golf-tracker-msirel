@@ -5,12 +5,12 @@ import { state } from './state.js';
 import { COURSES } from './constants.js';
 import { getCourseByRef } from './courses.js';
 import { initials, avatarHtml } from './players.js';
-import { parseDateGB, calcStableford, isBufferOrBetter } from './stats.js';
+import { parseDateGB, calcStableford, isBufferOrBetter, calcScoringPointsNet } from './stats.js';
 import { pushGist, querySupabase } from './api.js';
 import { goTo } from './nav.js';
 
 // Maps CREATE_BOARDS ids → their wrapping card's data-board-id attribute
-const TOGGLEABLE_BOARD_IDS = ['season', 'scoring_gross', 'stableford', 'net_score', 'buffer', 'best_gross', 'fewest_doubles'];
+const TOGGLEABLE_BOARD_IDS = ['season', 'scoring_gross', 'scoring_net', 'stableford', 'net_score', 'buffer', 'best_gross', 'fewest_doubles'];
 
 // Fetch group membership + config, then render
 export async function initLeaderboard() {
@@ -67,6 +67,7 @@ export function renderLeaderboard() {
   const BOARD_ID_MAP = {
     'lb-list': 'season',
     'lb-birdies': 'scoring_gross',
+    'lb-scoring-net': 'scoring_net',
     'lb-stableford': 'stableford',
     'lb-net': 'net_score',
     'lb-buffer': 'buffer',
@@ -165,6 +166,16 @@ export function renderLeaderboard() {
     }).filter(v => v != null);
     const avgStab = stabTotals.length ? +(stabTotals.reduce((a, b) => a + b, 0) / stabTotals.length).toFixed(1) : null;
 
+    const netPtsRounds = rs.filter(r => r.scores && r.pars);
+    let netPtsTotal = 0, netPtsEagles = 0, netPtsBirdies = 0;
+    netPtsRounds.forEach(r => {
+      const course = getCourseByRef(r.course) || Object.values(COURSES || []).find(c => c.name === r.course);
+      const si = course?.tees?.[r.tee]?.si || null;
+      const res = calcScoringPointsNet(r.scores, r.pars, handicap, r.slope, si);
+      if (res) { netPtsTotal += res.total; netPtsEagles += res.netEagles; netPtsBirdies += res.netBirdies; }
+    });
+    const netPts = netPtsRounds.length ? netPtsTotal : null;
+
     const netRounds = rs.filter(r => r.totalScore && r.totalPar);
     const netScores = netRounds.map(r => {
       const slope = r.slope || 113;
@@ -184,6 +195,7 @@ export function renderLeaderboard() {
       avgDiff: diffs.length ? +(diffs.reduce((a, b) => a + b, 0) / diffs.length).toFixed(1) : null,
       birdies, eagles, doubles, pts, avgDoubles,
       avgStab, stabCount: stabTotals.length,
+      netPts, netPtsEagles, netPtsBirdies,
       avgNet, bestNet, netCount: netScores.length,
       bufferCount, bufferPct
     };
@@ -192,7 +204,7 @@ export function renderLeaderboard() {
   const emptyMsg = '<div class="empty" style="padding:24px 0"><div style="font-size:28px;margin-bottom:8px">\u2014</div><div style="font-size:13px">No rounds this season yet</div></div>';
 
   if (!players.length) {
-    ['lb-list','lb-birdies','lb-stableford','lb-net','lb-buffer','lb-best-stab','lb-best-birdies','lb-best-round','lb-doubles'].forEach(id => {
+    ['lb-list','lb-birdies','lb-scoring-net','lb-stableford','lb-net','lb-buffer','lb-best-stab','lb-best-birdies','lb-best-round','lb-doubles'].forEach(id => {
       const el = document.getElementById(id); if (el) el.innerHTML = emptyMsg;
     });
     return;
@@ -242,6 +254,21 @@ export function renderLeaderboard() {
   });
 
   applyLBExpand('lb-birdies');
+
+  // 2b. Scoring Points (Net)
+  const byNetPts = [...players].filter(p => p.netPts != null).sort((a, b) => b.netPts - a.netPts);
+  const snl = document.getElementById('lb-scoring-net'); if (snl) snl.innerHTML = '';
+  if (snl && !byNetPts.length) {
+    snl.innerHTML = '<div style="font-size:12px;color:var(--dimmer);padding:10px 0">Net scoring points calculated once hole-by-hole scores are available</div>';
+  }
+  byNetPts.forEach((p, i) => {
+    p.meta = `${p.netPtsEagles} net eagle${p.netPtsEagles !== 1 ? 's' : ''} \u00B7 ${p.netPtsBirdies} net birdie${p.netPtsBirdies !== 1 ? 's' : ''}`;
+    if (snl) snl.appendChild(lbRow(p, i, `<div style="text-align:right;flex-shrink:0">
+      <div class="lb-score" style="color:var(--eagle)">${p.netPts}</div>
+      <div style="font-size:9px;color:var(--dimmer);margin-top:1px">net pts total</div>
+    </div>`));
+  });
+  if (snl) applyLBExpand('lb-scoring-net');
 
   // 3. Avg Stableford
   const bySt = [...players].filter(p => p.avgStab != null).sort((a, b) => b.avgStab - a.avgStab);

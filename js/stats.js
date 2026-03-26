@@ -991,6 +991,31 @@ export function calcStableford(scores, pars, handicapIndex, slope, si) {
   return holes > 0 ? pts : null;
 }
 
+export function calcScoringPointsNet(scores, pars, hcp, slope, si) {
+  if (!scores || !pars) return null;
+  const playingHcp = (hcp > 0) ? Math.round(hcp * (slope || 113) / 113) : 0;
+
+  // SI fallback: linear 1–18 if missing or incomplete
+  const effectiveSI = (si && si.length === 18) ? si : Array.from({ length: 18 }, (_, h) => h + 1);
+
+  // Strokes per hole (spec: explicit si-based allocation)
+  const strokes = Array(18).fill(0);
+  for (let h = 0; h < 18; h++) {
+    if (effectiveSI[h] <= playingHcp) strokes[h] = 1;
+    if (playingHcp > 18 && effectiveSI[h] <= (playingHcp - 18)) strokes[h] += 1;
+  }
+
+  let total = 0, netEagles = 0, netBirdies = 0, holes = 0;
+  for (let h = 0; h < 18; h++) {
+    if (scores[h] == null || pars[h] == null) continue;
+    const diff = (scores[h] - strokes[h]) - pars[h];
+    if (diff <= -2) { total += 3; netEagles++; }
+    else if (diff === -1) { total += 1; netBirdies++; }
+    holes++;
+  }
+  return holes > 0 ? { total, netEagles, netBirdies } : null;
+}
+
 export function isBufferOrBetter(round, handicap) {
   if (!round.totalScore || !round.totalPar) return false;
   const slope = round.slope || 113;
