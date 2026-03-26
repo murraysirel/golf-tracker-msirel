@@ -99,10 +99,15 @@ export function renderOnboard() {
 export function enterAs(n) {
   state.me = n;
   if (!state.gd.players[n]) state.gd.players[n] = { handicap: 0, rounds: [] };
-  ['pg-onboard', 'pg-group-fork', 'pg-join-group', 'pg-create-group'].forEach(id => {
+  ['pg-onboard', 'pg-group-fork', 'pg-join-group', 'pg-create-group', 'pg-board'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
+  // Auto-redirect to join flow if a group invite code is in the URL
+  if (new URLSearchParams(window.location.search).get('group')) {
+    forkJoinGroup();
+    return;
+  }
   const pm = document.getElementById('pg-main');
   pm.style.display = 'flex';
   initCourseSearch();
@@ -139,7 +144,7 @@ export function addAndEnter() {
 
 export function signOut() {
   state.me = '';
-  ['pg-main', 'pg-group-fork', 'pg-join-group', 'pg-create-group'].forEach(id => {
+  ['pg-main', 'pg-group-fork', 'pg-join-group', 'pg-create-group', 'pg-board'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
@@ -198,6 +203,11 @@ export function showGroupFork(fromOnboarding = false) {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
+  // Auto-redirect to join flow if a group invite code is in the URL
+  if (new URLSearchParams(window.location.search).get('group')) {
+    forkJoinGroup();
+    return;
+  }
   const fork = document.getElementById('pg-group-fork');
   if (fork) fork.style.display = 'block';
 }
@@ -219,6 +229,7 @@ export function forkNotNow() {
 export function forkJoinGroup() {
   document.getElementById('pg-group-fork').style.display = 'none';
   document.getElementById('pg-join-group').style.display = 'block';
+  document.dispatchEvent(new CustomEvent('joinGroupShown'));
 }
 
 export function forkCreateGroup() {

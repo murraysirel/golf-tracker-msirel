@@ -162,18 +162,46 @@
 </div>
 </div>
 
-<!-- ══════════════ JOIN GROUP (placeholder — Prompt 3) ══════════════ -->
+<!-- ══════════════ JOIN GROUP ══════════════ -->
 <div id="pg-join-group" style="display:none;height:100%;overflow-y:auto">
-<div class="app-inner">
-  <div class="card" style="margin-top:32px">
-    <div class="ct">Join a group</div>
-    <div style="font-size:12px;color:var(--dim);margin-bottom:18px;line-height:1.6">Enter the invite code shared by your group admin, or tap a WhatsApp invite link.</div>
-    <div style="background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.2);border-radius:10px;padding:18px;text-align:center;font-size:13px;color:var(--dim);margin-bottom:18px">
-      Full group-join flow coming soon.
-    </div>
-    <button class="btn btn-ghost" id="join-group-back-btn" style="margin-bottom:8px">← Back</button>
-    <button class="btn" id="join-group-continue-btn">Continue to Looper →</button>
+<div class="app-inner" style="padding-top:24px;padding-bottom:48px">
+
+  <button id="join-group-back-btn" style="background:none;border:none;color:var(--dim);font-size:14px;cursor:pointer;padding:0;margin-bottom:20px;display:flex;align-items:center;gap:6px;font-family:'DM Sans',sans-serif;-webkit-tap-highlight-color:transparent">← Back</button>
+
+  <div style="margin-bottom:24px">
+    <div style="font-size:24px;font-weight:700;color:var(--cream);font-family:'DM Sans',sans-serif;margin-bottom:6px">Join a group</div>
+    <div style="font-size:13px;color:var(--dim);line-height:1.5">Enter the invite code shared by your group leader, or tap a WhatsApp invite link.</div>
   </div>
+
+  <!-- Code input -->
+  <div id="join-group-input-section" class="card" style="padding:20px">
+    <label style="font-size:11px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:8px">Group code</label>
+    <input id="join-group-code-inp" type="text" maxlength="6" placeholder="e.g. ABC123"
+           autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"
+           style="width:100%;padding:14px 16px;border-radius:10px;background:var(--navy);border:1.5px solid var(--border);color:var(--cream);font-size:22px;font-weight:700;letter-spacing:4px;text-transform:uppercase;font-family:'DM Sans',sans-serif;box-sizing:border-box;text-align:center;outline:none;margin-bottom:12px">
+    <button class="btn" id="join-group-find-btn" style="width:100%">Find group</button>
+  </div>
+
+  <!-- Loading -->
+  <div id="join-group-loading" style="display:none;text-align:center;padding:32px 0;color:var(--dim);font-size:14px;font-family:'DM Sans',sans-serif">
+    <span class="spin" style="margin-right:8px"></span>Looking up group…
+  </div>
+
+  <!-- Error -->
+  <div id="join-group-error" style="display:none;margin-top:12px;padding:14px 16px;border-radius:10px;background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.3);font-size:13px;color:#e74c3c;font-family:'DM Sans',sans-serif"></div>
+
+  <!-- Confirmation card -->
+  <div id="join-group-confirm" style="display:none;margin-top:16px" class="card">
+    <div id="join-group-info" style="margin-bottom:16px"></div>
+    <button class="btn" id="join-group-confirm-btn" style="width:100%">Join group</button>
+  </div>
+
+  <!-- Already a member -->
+  <div id="join-group-already" style="display:none;margin-top:12px;padding:16px;border-radius:12px;background:rgba(46,204,113,.06);border:1px solid rgba(46,204,113,.25);font-family:'DM Sans',sans-serif">
+    <div style="font-size:14px;color:var(--cream);margin-bottom:12px">You're already in this group.</div>
+    <button class="btn" id="join-group-board-btn" style="width:100%">Go to Board →</button>
+  </div>
+
 </div>
 </div>
 
@@ -189,6 +217,36 @@
     <button class="btn btn-ghost" id="create-group-back-btn" style="margin-bottom:8px">← Back</button>
     <button class="btn" id="create-group-continue-btn">Continue to Looper →</button>
   </div>
+</div>
+</div>
+
+<!-- ══════════════ BOARD ══════════════ -->
+<div id="pg-board" style="display:none;height:100%;overflow-y:auto">
+<div class="app-inner" style="padding-top:24px;padding-bottom:80px">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+    <div>
+      <div id="board-group-name" style="font-size:22px;font-weight:700;color:var(--cream);font-family:'DM Sans',sans-serif">Group Board</div>
+      <div id="board-group-meta" style="font-size:12px;color:var(--dim);margin-top:3px"></div>
+    </div>
+    <div id="board-group-code-pill" style="padding:6px 12px;border-radius:20px;background:var(--mid);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--gold);font-family:'DM Sans',sans-serif;letter-spacing:2px"></div>
+  </div>
+
+  <!-- Loading -->
+  <div id="board-loading" style="text-align:center;padding:40px 0;color:var(--dim);font-size:14px;font-family:'DM Sans',sans-serif">
+    <span class="spin" style="margin-right:8px"></span>Loading group data…
+  </div>
+
+  <!-- Rows -->
+  <div id="board-content" style="display:none" class="card">
+    <div id="board-rows"></div>
+  </div>
+
+  <!-- Error -->
+  <div id="board-error" style="display:none;margin-top:12px;padding:14px 16px;border-radius:10px;background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.3);font-size:13px;color:#e74c3c;font-family:'DM Sans',sans-serif"></div>
+
+  <button class="btn" id="board-enter-btn" style="width:100%;margin-top:24px;display:none">Start playing with Looper →</button>
+
 </div>
 </div>
 

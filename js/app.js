@@ -15,7 +15,7 @@ import { generateAIReview, generateStatsAnalysis, clearStatsAnalysis, parsePhoto
 import { stopGPS, gpsSetTarget, pinTeePosition, markDriveTap, logDrive } from './gps.js';
 import { exportXlsx } from './export.js';
 import { openAdminSettings, closeAdminSettings, verifyAdminPw, adminPopulateRounds, adminDeleteRound, adminSeedDemo } from './admin.js';
-import { copyGroupCode, leaveGroup, toggleGroupCodeRequired, addSeason, deleteSeason, confirmDeleteMyData, deleteMyData, copyAppUrl, rebuildSeasonSelector } from './group.js';
+import { copyGroupCode, leaveGroup, toggleGroupCodeRequired, addSeason, deleteSeason, confirmDeleteMyData, deleteMyData, copyAppUrl, rebuildSeasonSelector, initJoinGroup, lookupGroupByCode, confirmJoinGroup, showBoardPage } from './group.js';
 import { initCompetition } from './competition.js';
 import { state } from './state.js';
 import { initCaddieButton } from './caddie.js';
@@ -102,9 +102,21 @@ document.getElementById('onb-privacy-agree-btn')?.addEventListener('click', agre
 document.getElementById('fork-join-btn')?.addEventListener('click', forkJoinGroup);
 document.getElementById('fork-create-btn')?.addEventListener('click', forkCreateGroup);
 document.getElementById('fork-solo-btn')?.addEventListener('click', forkNotNow);
-// Placeholder back / continue buttons
+// Join group screen
 document.getElementById('join-group-back-btn')?.addEventListener('click', goBackToFork);
-document.getElementById('join-group-continue-btn')?.addEventListener('click', forkNotNow);
+document.getElementById('join-group-find-btn')?.addEventListener('click', lookupGroupByCode);
+document.getElementById('join-group-code-inp')?.addEventListener('keydown', e => { if (e.key === 'Enter') lookupGroupByCode(); });
+document.getElementById('join-group-code-inp')?.addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
+document.getElementById('join-group-confirm-btn')?.addEventListener('click', confirmJoinGroup);
+document.getElementById('join-group-board-btn')?.addEventListener('click', () => showBoardPage());
+// Board page
+document.getElementById('board-enter-btn')?.addEventListener('click', () => {
+  document.getElementById('pg-board').style.display = 'none';
+  enterAs(state.me);
+});
+// Trigger initJoinGroup whenever pg-join-group becomes visible
+document.addEventListener('joinGroupShown', initJoinGroup);
+// Create group placeholder
 document.getElementById('create-group-back-btn')?.addEventListener('click', goBackToFork);
 document.getElementById('create-group-continue-btn')?.addEventListener('click', forkNotNow);
 // Group fork entry points from within the main app

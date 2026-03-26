@@ -211,6 +211,57 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     }
 
+    // ── lookupGroup ──────────────────────────────────────────────────
+    if (action === 'lookupGroup') {
+      const { code, playerName } = data;
+      if (!code) return { statusCode: 400, headers, body: JSON.stringify({ error: 'code required' }) };
+      const { data: group, error: gErr } = await supabase
+        .from('groups')
+        .select('id, name, code, created_by')
+        .eq('code', code.toUpperCase().trim())
+        .maybeSingle();
+      if (gErr) throw gErr;
+      if (!group) return { statusCode: 200, headers, body: JSON.stringify({ found: false }) };
+      const { count } = await supabase
+        .from('group_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('group_id', group.id);
+      let alreadyMember = false;
+      if (playerName) {
+        const { data: mem } = await supabase
+          .from('group_members')
+          .select('id')
+          .eq('group_id', group.id)
+          .eq('player_id', playerName)
+          .maybeSingle();
+        alreadyMember = !!mem;
+      }
+      return {
+        statusCode: 200, headers,
+        body: JSON.stringify({ found: true, alreadyMember, group: { ...group, memberCount: count || 0 } })
+      };
+    }
+
+    // ── joinGroup ─────────────────────────────────────────────────────
+    if (action === 'joinGroup') {
+      const { groupId, playerName } = data;
+      if (!groupId || !playerName) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'groupId and playerName required' }) };
+      }
+      const { data: existing } = await supabase
+        .from('group_members')
+        .select('id')
+        .eq('group_id', groupId)
+        .eq('player_id', playerName)
+        .maybeSingle();
+      if (existing) return { statusCode: 200, headers, body: JSON.stringify({ ok: true, alreadyMember: true }) };
+      const { error: insErr } = await supabase
+        .from('group_members')
+        .insert({ group_id: groupId, player_id: playerName });
+      if (insErr) throw insErr;
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true, alreadyMember: false }) };
+    }
+
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Unknown action' }) };
 
   } catch (err) {
