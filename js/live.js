@@ -77,8 +77,10 @@ function syncPlayerMatchScore(playerName) {
   if (!match || match.status !== 'active') return;
 
   const course = getCourseByRef();
-  const teeData = course?.tees?.[state.stee];
-  const si = teeData?.si || (state.scannedSI?.some(v => v != null) ? state.scannedSI : null);
+  const teeData = Array.isArray(course?.tees)
+    ? course.tees.find(t => t.colour === state.stee)
+    : course?.tees?.[state.stee];
+  const si = teeData?.si || teeData?.si_per_hole || (state.scannedSI?.some(v => v != null) ? state.scannedSI : null);
 
   const holes = [...(state.liveState.groupScores[playerName] || Array(18).fill(null))];
   const playingHcp = state.liveState.hcpOverrides?.[playerName] ?? state.gd.players[playerName]?.handicap ?? 0;

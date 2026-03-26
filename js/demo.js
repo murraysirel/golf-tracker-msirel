@@ -37,12 +37,23 @@ export async function enterDemoMode() {
 
     if (!res.ok) throw new Error('Could not load demo data');
 
-    const { players, rounds } = await res.json();
+    let { players, rounds } = await res.json();
 
     if (!players || players.length === 0) {
-      alert('Demo data isn\'t set up yet. Please check back soon.');
-      if (btn) { btn.textContent = 'Try the demo'; btn.disabled = false; }
-      return;
+      // Auto-seed: first visitor triggers the seed, subsequent visitors get instant load
+      if (btn) btn.textContent = 'Setting up demo…';
+      const seedRes = await fetch('/.netlify/functions/run-seed-demo', { method: 'POST' });
+      if (!seedRes.ok) throw new Error('Demo setup failed');
+
+      const retryRes = await fetch('/.netlify/functions/supabase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'read', groupCode: DEMO_GROUP })
+      });
+      if (!retryRes.ok) throw new Error('Could not load demo data');
+      ({ players, rounds } = await retryRes.json());
+
+      if (!players || players.length === 0) throw new Error('Demo data still empty after seed');
     }
 
     // Populate state with demo data (isolated from live data)

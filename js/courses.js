@@ -151,11 +151,17 @@ async function _onSelectResult(idx) {
 // ── Apply selected course to app state ───────────────────────────────────────
 // This is the equivalent of what onCourseChange() used to do with the dropdown.
 function _applyCourse(course) {
+  // Normalise tees: old Supabase schema stored tees as a { colour: {...} } object;
+  // new GolfAPI schema stores as [{ colour, pars_per_hole, ... }] array.
+  if (course.tees && !Array.isArray(course.tees)) {
+    course = { ...course, tees: Object.entries(course.tees).map(([colour, t]) => ({ colour, ...t })) };
+  }
+
   _selectedCourse = course;
- 
+
   const tees = course.tees || [];
   const pars = course.pars || [];
- 
+
   // Update core state
   state.cpars      = pars.length === 18 ? pars : Array(18).fill(4);
   state.activeCourse = course;
@@ -239,9 +245,9 @@ function _renderSelectedCard(course) {
             ${tees.map(t => `
               <option value="${t.colour}">
                 ${t.name}
-                ${t.yardage  ? ` · ${t.yardage} yds` : ''}
-                ${t.rating   ? ` · CR ${t.rating}`   : ''}
-                ${t.slope    ? ` / Slope ${t.slope}`  : ''}
+                ${(t.yardage || t.y) ? ` · ${t.yardage || t.y} yds` : ''}
+                ${(t.rating  || t.r) ? ` · CR ${t.rating  || t.r}`  : ''}
+                ${(t.slope   || t.s) ? ` / Slope ${t.slope || t.s}` : ''}
               </option>
             `).join('')}
           </select>
