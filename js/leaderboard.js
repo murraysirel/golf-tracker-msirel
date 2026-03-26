@@ -6,7 +6,29 @@ import { COURSES } from './constants.js';
 import { getCourseByRef } from './courses.js';
 import { initials, avatarHtml } from './players.js';
 import { parseDateGB, calcStableford, isBufferOrBetter } from './stats.js';
-import { pushGist } from './api.js';
+import { pushGist, querySupabase } from './api.js';
+import { goTo } from './nav.js';
+
+// Maps CREATE_BOARDS ids → their wrapping card's data-board-id attribute
+const TOGGLEABLE_BOARD_IDS = ['season', 'scoring_gross', 'stableford', 'net_score', 'buffer', 'best_gross', 'fewest_doubles'];
+
+// Fetch group membership + config, then render
+export async function initLeaderboard() {
+  if (state.me && state.gd.groupCode) {
+    const res = await querySupabase('getGroupByCode', {
+      code: state.gd.groupCode,
+      playerName: state.me
+    });
+    if (res?.found && res.isMember) {
+      state.gd.group = res.group; // { id, name, code, admin_id, active_boards }
+    } else {
+      state.gd.group = null;
+    }
+  } else {
+    state.gd.group = null;
+  }
+  renderLeaderboard();
+}
 
 // Per-panel expanded state (persists across re-renders within the session)
 const leaderboardExpanded = {};
@@ -35,6 +57,53 @@ function applyLBExpand(containerId) {
 }
 
 export function renderLeaderboard() {
+  // ── Part A/B/C/D: group state ──────────────────────────────────────
+  const group = state.gd.group || null;
+  const isInGroup = !!group;
+  const activeBoards = group?.active_boards || [];
+  const isAdmin = isInGroup && group.admin_id === state.me;
+
+  // Stamp data-board-id onto each toggleable card (idempotent)
+  const BOARD_ID_MAP = {
+    'lb-list': 'season',
+    'lb-birdies': 'scoring_gross',
+    'lb-stableford': 'stableford',
+    'lb-net': 'net_score',
+    'lb-buffer': 'buffer',
+    'lb-best-round': 'best_gross',
+    'lb-doubles': 'fewest_doubles',
+  };
+  Object.entries(BOARD_ID_MAP).forEach(([elId, boardId]) => {
+    const el = document.getElementById(elId);
+    if (el?.parentElement) el.parentElement.dataset.boardId = boardId;
+  });
+
+  // Header: title + gear icon
+  const titleEl = document.getElementById('lb-tab-title');
+  if (titleEl) titleEl.textContent = isInGroup ? group.name : 'Board';
+  const gearBtn = document.getElementById('lb-settings-btn');
+  if (gearBtn) {
+    gearBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+    gearBtn.onclick = () => {
+      import('./group.js').then(m => m.initGroupSettings());
+    };
+  }
+
+  // Solo prompt: shown when not in a group
+  const soloPrompt = document.getElementById('lb-solo-prompt');
+  if (soloPrompt) soloPrompt.style.display = isInGroup ? 'none' : 'block';
+
+  // Group code card: only shown in group mode
+  const gcCard = document.getElementById('lb-group-code-card');
+  if (gcCard) gcCard.style.display = isInGroup ? 'block' : 'none';
+
+  // Board card visibility (only filtered when in a group)
+  TOGGLEABLE_BOARD_IDS.forEach(id => {
+    const card = document.querySelector(`[data-board-id="${id}"]`);
+    if (!card) return;
+    card.style.display = (!isInGroup || activeBoards.includes(id)) ? '' : 'none';
+  });
+
   const lb = document.getElementById('lb-list');
   const posClass = ['gold','silver','bronze'];
 

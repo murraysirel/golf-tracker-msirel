@@ -7,7 +7,7 @@ import { goTo, switchEntry, registerNavHandlers } from './nav.js';
 import { getCourseByRef, scanCourseCard, saveCourse, cancelCourseScan, handleCoursePhoto, searchCourseAPI } from './courses.js';
 import { buildSC, recalc, saveRound, toggleSCExtras } from './scorecard.js';
 import { renderStats, setFilter, toggleHcpEdit, saveHandicap, renderHomeStats, openScorecardModal } from './stats.js';
-import { renderLeaderboard } from './leaderboard.js';
+import { renderLeaderboard, initLeaderboard } from './leaderboard.js';
 import { renderOnboard, enterAs, addAndEnter, signOut, addPlayer, renderAllPlayers, renderPlayersToday, showSignupStep, submitProfile, agreePrivacy, showGroupFork, goBackToFork, forkNotNow, forkJoinGroup, forkCreateGroup, refreshAvatarUI, uploadAvatar } from './players.js';
 import { renderPracticePage, selectPracticeArea, startPracticeSession, regeneratePlan, logPracticeShots, completePracticeSession } from './practice.js';
 import { initLiveRound, liveGoto, liveSaveNote, liveNextOrFinish, toggleGroupPlayer, startGroupRound, toggleMatchPlay, openCorrectionModal, submitCorrectionReport, cancelRound } from './live.js';
@@ -15,7 +15,7 @@ import { generateAIReview, generateStatsAnalysis, clearStatsAnalysis, parsePhoto
 import { stopGPS, gpsSetTarget, pinTeePosition, markDriveTap, logDrive } from './gps.js';
 import { exportXlsx } from './export.js';
 import { openAdminSettings, closeAdminSettings, verifyAdminPw, adminPopulateRounds, adminDeleteRound, adminSeedDemo } from './admin.js';
-import { copyGroupCode, leaveGroup, toggleGroupCodeRequired, addSeason, deleteSeason, confirmDeleteMyData, deleteMyData, copyAppUrl, rebuildSeasonSelector, initJoinGroup, lookupGroupByCode, confirmJoinGroup, showBoardPage, initCreateGroup, submitGroupName, confirmBoardSetup } from './group.js';
+import { copyGroupCode, leaveGroup, toggleGroupCodeRequired, addSeason, deleteSeason, confirmDeleteMyData, deleteMyData, copyAppUrl, rebuildSeasonSelector, initJoinGroup, lookupGroupByCode, confirmJoinGroup, showBoardPage, initCreateGroup, submitGroupName, confirmBoardSetup, initGroupSettings, saveGroupName, hideGSModal, confirmGSModal } from './group.js';
 import { initCompetition } from './competition.js';
 import { state } from './state.js';
 import { initCaddieButton } from './caddie.js';
@@ -45,7 +45,7 @@ applyDesign(localStorage.getItem('rr_design') || '');
 // ── Register nav handlers (to avoid circular imports) ─────────────
 registerNavHandlers({
   renderStats,
-  renderLeaderboard,
+  renderLeaderboard: initLeaderboard,
   renderAllPlayers,
   renderHomeStats,
   renderPracticePage,
@@ -280,6 +280,12 @@ document.getElementById('practice-complete-btn')?.addEventListener('click', comp
 // ── Leaderboard ───────────────────────────────────────────────────
 document.getElementById('lb-season-sel')?.addEventListener('change', renderLeaderboard);
 document.getElementById('lb-group-code')?.addEventListener('click', copyGroupCode);
+document.getElementById('lb-join-group-btn')?.addEventListener('click', () => { showGroupFork(false); forkJoinGroup(); });
+document.getElementById('lb-create-group-btn')?.addEventListener('click', () => { showGroupFork(false); forkCreateGroup(); });
+document.getElementById('gs-back-btn')?.addEventListener('click', () => goTo('leaderboard'));
+document.getElementById('gs-name-save-btn')?.addEventListener('click', saveGroupName);
+document.getElementById('gs-modal-cancel')?.addEventListener('click', hideGSModal);
+document.getElementById('gs-modal-confirm')?.addEventListener('click', confirmGSModal);
 
 // ── Players page ──────────────────────────────────────────────────
 document.getElementById('lb-copy-group-code')?.addEventListener('click', copyGroupCode);

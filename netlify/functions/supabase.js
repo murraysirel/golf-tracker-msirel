@@ -211,6 +211,116 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     }
 
+    // ── renameGroup ───────────────────────────────────────────────────
+    if (action === 'renameGroup') {
+      const { groupId, adminId, name } = data;
+      if (!name?.trim()) return { statusCode: 400, headers, body: JSON.stringify({ error: 'name required' }) };
+      const { error } = await supabase
+        .from('groups')
+        .update({ name: name.trim() })
+        .eq('id', groupId)
+        .eq('admin_id', adminId);
+      if (error) throw error;
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+    }
+
+    // ── getGroupMembers ───────────────────────────────────────────────
+    if (action === 'getGroupMembers') {
+      const { groupId } = data;
+      if (!groupId) return { statusCode: 400, headers, body: JSON.stringify({ error: 'groupId required' }) };
+      const { data: members, error: mErr } = await supabase
+        .from('group_members')
+        .select('player_id, joined_at')
+        .eq('group_id', groupId);
+      if (mErr) throw mErr;
+      if (!members?.length) return { statusCode: 200, headers, body: JSON.stringify({ members: [] }) };
+      const { data: players } = await supabase
+        .from('players')
+        .select('name, handicap')
+        .in('name', members.map(m => m.player_id))
+        .eq('group_code', groupCode || '');
+      const hcpMap = {};
+      (players || []).forEach(p => { hcpMap[p.name] = p.handicap; });
+      return {
+        statusCode: 200, headers,
+        body: JSON.stringify({
+          members: members.map(m => ({
+            playerId: m.player_id,
+            handicap: hcpMap[m.player_id] ?? null,
+            joinedAt: m.joined_at
+          }))
+        })
+      };
+    }
+
+    // ── removeGroupMember ─────────────────────────────────────────────
+    if (action === 'removeGroupMember') {
+      const { groupId, playerId, adminId } = data;
+      if (!groupId || !playerId || !adminId) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'groupId, playerId and adminId required' }) };
+      }
+      if (playerId === adminId) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Admin cannot remove themselves' }) };
+      }
+      const { data: grp } = await supabase.from('groups').select('admin_id').eq('id', groupId).maybeSingle();
+      if (!grp || grp.admin_id !== adminId) {
+        return { statusCode: 403, headers, body: JSON.stringify({ error: 'Not authorized' }) };
+      }
+      await supabase.from('group_members').delete().eq('group_id', groupId).eq('player_id', playerId);
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+    }
+
+    // ── regenerateGroupCode ───────────────────────────────────────────
+    if (action === 'regenerateGroupCode') {
+      const { groupId, adminId } = data;
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      const bytes = require('crypto').randomBytes(6);
+      let code = '';
+      for (let i = 0; i < 6; i++) code += chars[bytes[i] % chars.length];
+      const { error } = await supabase.from('groups').update({ code }).eq('id', groupId).eq('admin_id', adminId);
+      if (error) throw error;
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true, code }) };
+    }
+
+    // ── getGroupByCode ────────────────────────────────────────────────
+    if (action === 'getGroupByCode') {
+      const { code, playerName } = data;
+      if (!code) return { statusCode: 400, headers, body: JSON.stringify({ error: 'code required' }) };
+      const { data: group, error } = await supabase
+        .from('groups')
+        .select('id, name, code, admin_id, active_boards')
+        .eq('code', code.toUpperCase().trim())
+        .maybeSingle();
+      if (error) throw error;
+      if (!group) return { statusCode: 200, headers, body: JSON.stringify({ found: false }) };
+      let isMember = false;
+      if (playerName) {
+        const { data: mem } = await supabase
+          .from('group_members')
+          .select('id')
+          .eq('group_id', group.id)
+          .eq('player_id', playerName)
+          .maybeSingle();
+        isMember = !!mem;
+      }
+      return { statusCode: 200, headers, body: JSON.stringify({ found: true, isMember, group }) };
+    }
+
+    // ── updateGroupBoards ─────────────────────────────────────────────
+    if (action === 'updateGroupBoards') {
+      const { groupId, adminId, activeBoards } = data;
+      if (!groupId || !adminId) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'groupId and adminId required' }) };
+      }
+      const { error } = await supabase
+        .from('groups')
+        .update({ active_boards: activeBoards })
+        .eq('id', groupId)
+        .eq('admin_id', adminId);
+      if (error) throw error;
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+    }
+
     // ── createGroup ──────────────────────────────────────────────────
     if (action === 'createGroup') {
       const { name, code, adminId, activeBoards, season } = data;

@@ -2,9 +2,10 @@
 // GROUP / SEASON MANAGEMENT
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
-import { pushGist } from './api.js';
+import { pushGist, querySupabase } from './api.js';
 import { parseDateGB } from './stats.js';
 import { signOut } from './players.js';
+import { goTo } from './nav.js';
 
 export function copyGroupCode() {
   const code = state.gd.groupCode || '';
@@ -473,4 +474,235 @@ export function copyAppUrl() {
   navigator.clipboard?.writeText(url)
     .then(() => alert('App URL copied!\n\nSend this to friends:\n' + url))
     .catch(() => alert('App URL:\n' + url));
+}
+
+// ── Group settings (admin) ────────────────────────────────────────
+
+let _settingsGroup = null;
+let _settingsActiveBoards = new Set();
+let _settingsMembers = [];
+let _modalConfirmCb = null;
+
+export async function initGroupSettings() {
+  const group = state.gd.group;
+  if (!group || group.admin_id !== state.me) return;
+  _settingsGroup = group;
+  _settingsActiveBoards = new Set(group.active_boards || CREATE_BOARDS.map(b => b.id));
+
+  // Start member fetch in background while rendering static sections
+  const membersFetch = querySupabase('getGroupMembers', { groupId: group.id });
+
+  _renderGSNameSection();
+  _renderGSBoardsSection();
+  _renderGSInviteSection();
+
+  // Navigate first so user sees the page immediately
+  goTo('group-settings');
+
+  // Then fill members when data arrives
+  const res = await membersFetch;
+  _settingsMembers = res?.members || [];
+  _renderGSMembersSection();
+}
+
+// ── Section 1: Group Name ─────────────────────────────────────────
+
+function _renderGSNameSection() {
+  const inp = document.getElementById('gs-name-inp');
+  const saveBtn = document.getElementById('gs-name-save-btn');
+  const errEl = document.getElementById('gs-name-err');
+  if (inp) {
+    inp.value = _settingsGroup.name;
+    inp.oninput = () => {
+      if (saveBtn) saveBtn.style.display = inp.value.trim() !== _settingsGroup.name ? 'block' : 'none';
+      if (errEl) errEl.style.display = 'none';
+    };
+  }
+  if (saveBtn) saveBtn.style.display = 'none';
+  if (errEl) errEl.style.display = 'none';
+}
+
+export async function saveGroupName() {
+  const inp = document.getElementById('gs-name-inp');
+  const saveBtn = document.getElementById('gs-name-save-btn');
+  const errEl = document.getElementById('gs-name-err');
+  const name = inp?.value.trim();
+  if (!name || name.length < 2 || name.length > 30) {
+    if (errEl) { errEl.textContent = 'Name must be 2–30 characters.'; errEl.style.display = 'block'; }
+    return;
+  }
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
+  const res = await querySupabase('renameGroup', { groupId: _settingsGroup.id, adminId: state.me, name });
+  if (!res?.ok) {
+    if (errEl) { errEl.textContent = 'Could not save — please try again.'; errEl.style.display = 'block'; }
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
+    return;
+  }
+  _settingsGroup.name = name;
+  if (state.gd.group) state.gd.group.name = name;
+  if (saveBtn) { saveBtn.style.display = 'none'; saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
+}
+
+// ── Section 2: Active Boards ──────────────────────────────────────
+
+function _renderGSBoardsSection() {
+  const list = document.getElementById('gs-boards-list');
+  if (!list) return;
+  list.innerHTML = CREATE_BOARDS.map((b, i) => {
+    const active = _settingsActiveBoards.has(b.id);
+    return '<div class="gs-board-row" data-id="' + b.id + '" style="display:flex;align-items:center;gap:12px;padding:14px 16px;' +
+      (i < CREATE_BOARDS.length - 1 ? 'border-bottom:1px solid var(--border);' : '') +
+      'cursor:pointer;-webkit-tap-highlight-color:transparent">' +
+      '<div style="flex:1;min-width:0">' +
+      '<div class="gs-board-name" style="font-size:14px;font-weight:600;color:' + (active ? 'var(--cream)' : 'var(--dim)') + ';font-family:\'DM Sans\',sans-serif">' + _esc(b.name) + '</div>' +
+      '<div style="font-size:12px;color:var(--dim);margin-top:2px;font-family:\'DM Sans\',sans-serif">' + _esc(b.desc) + '</div>' +
+      '</div>' +
+      '<div class="gs-pill" data-id="' + b.id + '" style="width:44px;height:26px;border-radius:13px;background:' + (active ? 'var(--gold)' : 'var(--dimmer)') + ';position:relative;flex-shrink:0;transition:background .15s">' +
+      '<div style="width:20px;height:20px;border-radius:50%;background:white;position:absolute;top:3px;' + (active ? 'right:3px;left:auto' : 'left:3px;right:auto') + ';transition:right .15s,left .15s;box-shadow:0 1px 3px rgba(0,0,0,.3)"></div>' +
+      '</div></div>';
+  }).join('');
+  list.querySelectorAll('.gs-board-row').forEach(row => {
+    row.addEventListener('click', () => _handleBoardToggle(row.dataset.id));
+  });
+}
+
+function _handleBoardToggle(id) {
+  const isActive = _settingsActiveBoards.has(id);
+  if (isActive) {
+    if (_settingsActiveBoards.size <= 1) return;
+    const board = CREATE_BOARDS.find(b => b.id === id);
+    _showGSModal({
+      title: 'Hide ' + (board?.name || id) + '?',
+      body: 'Hide <strong>' + _esc(board?.name || id) + '</strong> for your whole group? Scores are not deleted — you can re-enable it any time.',
+      confirmText: 'Yes, hide it',
+      onConfirm: () => _applyBoardToggle(id, false)
+    });
+  } else {
+    _applyBoardToggle(id, true);
+  }
+}
+
+async function _applyBoardToggle(id, enable) {
+  if (enable) { _settingsActiveBoards.add(id); } else { _settingsActiveBoards.delete(id); }
+  _updatePillUI('.gs-pill[data-id="' + id + '"]', '.gs-board-row[data-id="' + id + '"] .gs-board-name', enable);
+  const activeBoards = [..._settingsActiveBoards];
+  await querySupabase('updateGroupBoards', { groupId: _settingsGroup.id, adminId: state.me, activeBoards });
+  if (state.gd.group) state.gd.group.active_boards = activeBoards;
+}
+
+// ── Section 3: Members ────────────────────────────────────────────
+
+function _renderGSMembersSection() {
+  const list = document.getElementById('gs-members-list');
+  if (!list) return;
+  if (!_settingsMembers.length) {
+    list.innerHTML = '<div style="padding:16px;font-size:13px;color:var(--dim)">No members yet.</div>';
+    return;
+  }
+  list.innerHTML = _settingsMembers.map((m, i) => {
+    const isMe = m.playerId === state.me;
+    const hcp = m.handicap != null ? 'HCP ' + m.handicap : '';
+    const joinDate = m.joinedAt ? new Date(m.joinedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+    const ini = m.playerId.split(' ').map(w => w[0] || '').join('').toUpperCase().slice(0, 2);
+    return '<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;' + (i < _settingsMembers.length - 1 ? 'border-bottom:1px solid var(--border);' : '') + '">' +
+      '<div style="width:34px;height:34px;border-radius:50%;background:' + (isMe ? 'rgba(201,168,76,.15)' : 'var(--mid)') + ';border:' + (isMe ? '2px solid var(--gold)' : '1.5px solid var(--border)') + ';display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--gold);font-family:\'DM Sans\',sans-serif;flex-shrink:0">' + _esc(ini) + '</div>' +
+      '<div style="flex:1;min-width:0">' +
+      '<div style="font-size:14px;font-weight:' + (isMe ? '700' : '600') + ';color:' + (isMe ? 'var(--gold)' : 'var(--cream)') + ';font-family:\'DM Sans\',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + _esc(m.playerId) + (isMe ? ' <span style="font-size:10px;font-weight:500">you</span>' : '') + '</div>' +
+      '<div style="font-size:11px;color:var(--dim);margin-top:2px;display:flex;gap:10px">' +
+      (hcp ? '<span>' + hcp + '</span>' : '') + (joinDate ? '<span>Joined ' + joinDate + '</span>' : '') +
+      '</div></div>' +
+      (!isMe ? '<button class="gs-rm" data-player="' + _esc(m.playerId) + '" style="background:none;border:none;color:var(--dimmer);font-size:20px;cursor:pointer;padding:4px 8px;line-height:1;-webkit-tap-highlight-color:transparent" title="Remove">×</button>' : '<div style="width:40px"></div>') +
+      '</div>';
+  }).join('');
+  list.querySelectorAll('.gs-rm').forEach(btn => {
+    btn.addEventListener('click', () => _handleRemoveMember(btn.dataset.player));
+  });
+}
+
+function _handleRemoveMember(playerId) {
+  _showGSModal({
+    title: 'Remove ' + playerId + '?',
+    body: 'Remove <strong>' + _esc(playerId) + '</strong> from <strong>' + _esc(_settingsGroup.name) + '</strong>? Their personal stats will not be affected.',
+    confirmText: 'Remove',
+    confirmRed: true,
+    onConfirm: async () => {
+      const res = await querySupabase('removeGroupMember', { groupId: _settingsGroup.id, adminId: state.me, playerId });
+      if (res?.ok) {
+        _settingsMembers = _settingsMembers.filter(m => m.playerId !== playerId);
+        _renderGSMembersSection();
+      }
+    }
+  });
+}
+
+// ── Section 4: Invite Link ────────────────────────────────────────
+
+function _renderGSInviteSection() {
+  const appUrl = window.location.origin + window.location.pathname;
+  const inviteUrl = appUrl + '?group=' + _settingsGroup.code;
+  const urlEl = document.getElementById('gs-invite-url');
+  if (urlEl) urlEl.textContent = inviteUrl;
+  const waBtn = document.getElementById('gs-invite-wa-btn');
+  if (waBtn) waBtn.href = 'https://wa.me/?text=' + encodeURIComponent('Join my Looper group ' + _settingsGroup.name + '! Tap to join: ' + inviteUrl);
+  const regenBtn = document.getElementById('gs-regen-btn');
+  if (regenBtn) regenBtn.onclick = () => {
+    _showGSModal({
+      title: 'Regenerate invite link?',
+      body: 'The old invite link will stop working immediately.',
+      confirmText: 'Regenerate',
+      onConfirm: async () => {
+        const res = await querySupabase('regenerateGroupCode', { groupId: _settingsGroup.id, adminId: state.me });
+        if (res?.ok && res.code) {
+          _settingsGroup.code = res.code;
+          if (state.gd.group) state.gd.group.code = res.code;
+          if (state.gd.groupCode != null) state.gd.groupCode = res.code;
+          _renderGSInviteSection();
+        }
+      }
+    });
+  };
+}
+
+// ── Shared modal ──────────────────────────────────────────────────
+
+function _showGSModal({ title, body, confirmText, confirmRed, onConfirm }) {
+  const modal = document.getElementById('gs-modal');
+  if (!modal) return;
+  const titleEl = document.getElementById('gs-modal-title');
+  const bodyEl = document.getElementById('gs-modal-body');
+  const confirmBtn = document.getElementById('gs-modal-confirm');
+  if (titleEl) titleEl.textContent = title;
+  if (bodyEl) bodyEl.innerHTML = body;
+  if (confirmBtn) {
+    confirmBtn.textContent = confirmText || 'Confirm';
+    confirmBtn.style.background = confirmRed ? '#e74c3c' : '';
+    confirmBtn.style.borderColor = confirmRed ? '#e74c3c' : '';
+  }
+  _modalConfirmCb = onConfirm || null;
+  modal.style.display = 'flex';
+}
+
+export function hideGSModal() {
+  const modal = document.getElementById('gs-modal');
+  if (modal) modal.style.display = 'none';
+  _modalConfirmCb = null;
+}
+
+export function confirmGSModal() {
+  const cb = _modalConfirmCb;
+  hideGSModal();
+  if (cb) cb();
+}
+
+// ── Shared utility ────────────────────────────────────────────────
+
+function _updatePillUI(pillSel, nameSel, active) {
+  const pill = document.querySelector(pillSel);
+  if (pill) {
+    pill.style.background = active ? 'var(--gold)' : 'var(--dimmer)';
+    const dot = pill.firstElementChild;
+    if (dot) { dot.style.right = active ? '3px' : ''; dot.style.left = active ? '' : '3px'; }
+  }
+  const nameEl = document.querySelector(nameSel);
+  if (nameEl) nameEl.style.color = active ? 'var(--cream)' : 'var(--dim)';
 }

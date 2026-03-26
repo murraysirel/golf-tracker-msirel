@@ -4,7 +4,7 @@
 
 export const DEFAULT_GIST = '089c0ed169b5c67dbd8846002b3def45';
 export const API = '/.netlify/functions/sync';
-export const PAGES = ['home','round','live','stats','leaderboard','practice','players','competition'];
+export const PAGES = ['home','round','live','stats','leaderboard','practice','players','competition','group-settings'];
 
 export const TC = {
   blue:   {l:'Blue',   d:'#5dade2'},
