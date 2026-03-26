@@ -15,7 +15,7 @@ import { generateAIReview, generateStatsAnalysis, clearStatsAnalysis, parsePhoto
 import { stopGPS, gpsSetTarget, pinTeePosition, markDriveTap, logDrive } from './gps.js';
 import { exportXlsx } from './export.js';
 import { openAdminSettings, closeAdminSettings, verifyAdminPw, adminPopulateRounds, adminDeleteRound, adminSeedDemo } from './admin.js';
-import { copyGroupCode, leaveGroup, toggleGroupCodeRequired, addSeason, deleteSeason, confirmDeleteMyData, deleteMyData, copyAppUrl, rebuildSeasonSelector, initJoinGroup, lookupGroupByCode, confirmJoinGroup, showBoardPage } from './group.js';
+import { copyGroupCode, leaveGroup, toggleGroupCodeRequired, addSeason, deleteSeason, confirmDeleteMyData, deleteMyData, copyAppUrl, rebuildSeasonSelector, initJoinGroup, lookupGroupByCode, confirmJoinGroup, showBoardPage, initCreateGroup, submitGroupName, confirmBoardSetup } from './group.js';
 import { initCompetition } from './competition.js';
 import { state } from './state.js';
 import { initCaddieButton } from './caddie.js';
@@ -116,9 +116,20 @@ document.getElementById('board-enter-btn')?.addEventListener('click', () => {
 });
 // Trigger initJoinGroup whenever pg-join-group becomes visible
 document.addEventListener('joinGroupShown', initJoinGroup);
-// Create group placeholder
+// Create group flow
 document.getElementById('create-group-back-btn')?.addEventListener('click', goBackToFork);
-document.getElementById('create-group-continue-btn')?.addEventListener('click', forkNotNow);
+document.getElementById('create-group-next-btn')?.addEventListener('click', submitGroupName);
+document.getElementById('create-group-name-inp')?.addEventListener('keydown', e => { if (e.key === 'Enter') submitGroupName(); });
+document.getElementById('board-setup-back-btn')?.addEventListener('click', () => {
+  document.getElementById('pg-board-setup').style.display = 'none';
+  document.getElementById('pg-create-group').style.display = 'block';
+});
+document.getElementById('board-setup-confirm-btn')?.addEventListener('click', confirmBoardSetup);
+document.getElementById('group-ready-start-btn')?.addEventListener('click', () => {
+  document.getElementById('pg-group-ready').style.display = 'none';
+  enterAs(state.me);
+});
+document.addEventListener('createGroupShown', initCreateGroup);
 // Group fork entry points from within the main app
 document.getElementById('lb-group-fork-btn')?.addEventListener('click', () => showGroupFork(false));
 document.getElementById('panel-group-fork-btn')?.addEventListener('click', () => showGroupFork(false));

@@ -211,6 +211,25 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     }
 
+    // ── createGroup ──────────────────────────────────────────────────
+    if (action === 'createGroup') {
+      const { name, code, adminId, activeBoards, season } = data;
+      if (!name || !code || !adminId) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'name, code and adminId required' }) };
+      }
+      const { data: group, error: gErr } = await supabase
+        .from('groups')
+        .insert({ name, code, admin_id: adminId, active_boards: activeBoards || [], season: season || new Date().getFullYear() })
+        .select('id, code, name')
+        .single();
+      if (gErr) throw gErr;
+      const { error: mErr } = await supabase
+        .from('group_members')
+        .insert({ group_id: group.id, player_id: adminId });
+      if (mErr) throw mErr;
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true, group }) };
+    }
+
     // ── lookupGroup ──────────────────────────────────────────────────
     if (action === 'lookupGroup') {
       const { code, playerName } = data;

@@ -99,7 +99,7 @@ export function renderOnboard() {
 export function enterAs(n) {
   state.me = n;
   if (!state.gd.players[n]) state.gd.players[n] = { handicap: 0, rounds: [] };
-  ['pg-onboard', 'pg-group-fork', 'pg-join-group', 'pg-create-group', 'pg-board'].forEach(id => {
+  ['pg-onboard', 'pg-group-fork', 'pg-join-group', 'pg-create-group', 'pg-board-setup', 'pg-group-ready', 'pg-board'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
@@ -144,7 +144,7 @@ export function addAndEnter() {
 
 export function signOut() {
   state.me = '';
-  ['pg-main', 'pg-group-fork', 'pg-join-group', 'pg-create-group', 'pg-board'].forEach(id => {
+  ['pg-main', 'pg-group-fork', 'pg-join-group', 'pg-create-group', 'pg-board-setup', 'pg-group-ready', 'pg-board'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
@@ -213,7 +213,7 @@ export function showGroupFork(fromOnboarding = false) {
 }
 
 export function goBackToFork() {
-  ['pg-join-group', 'pg-create-group'].forEach(id => {
+  ['pg-join-group', 'pg-create-group', 'pg-board-setup', 'pg-group-ready'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
@@ -235,6 +235,7 @@ export function forkJoinGroup() {
 export function forkCreateGroup() {
   document.getElementById('pg-group-fork').style.display = 'none';
   document.getElementById('pg-create-group').style.display = 'block';
+  document.dispatchEvent(new CustomEvent('createGroupShown'));
 }
 
 export function renderAllPlayers() {

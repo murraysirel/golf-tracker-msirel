@@ -134,6 +134,156 @@ export function generateGroupCode() {
   return code;
 }
 
+// ── Create group flow ─────────────────────────────────────────────
+
+const CREATE_BOARDS = [
+  { id: 'season',         name: 'Season Leaderboard',     desc: 'Overall standings across the full season' },
+  { id: 'stableford',     name: 'Avg Stableford',         desc: 'Average Stableford points per round' },
+  { id: 'net_score',      name: 'Avg Net Score',          desc: 'Average net score relative to par' },
+  { id: 'scoring_gross',  name: 'Scoring Points (Gross)', desc: 'Cumulative gross scoring points' },
+  { id: 'scoring_net',    name: 'Scoring Points (Net)',   desc: 'Cumulative net scoring points' },
+  { id: 'best_gross',     name: 'Best Round (Gross)',     desc: 'Best gross score of the season' },
+  { id: 'best_net',       name: 'Best Round (Net)',       desc: 'Best net score of the season' },
+  { id: 'buffer',         name: 'Buffer or Better',       desc: 'Rounds played at handicap buffer or better' },
+  { id: 'fewest_doubles', name: 'Fewest Doubles+',        desc: 'Lowest average double bogeys per round' },
+];
+
+let _pendingGroupName = '';
+let _selectedBoards = new Set();
+
+export function initCreateGroup() {
+  _pendingGroupName = '';
+  const inp = document.getElementById('create-group-name-inp');
+  if (inp) inp.value = '';
+  const err = document.getElementById('create-group-name-err');
+  if (err) err.style.display = 'none';
+}
+
+export function submitGroupName() {
+  const inp = document.getElementById('create-group-name-inp');
+  const name = (inp?.value || '').trim();
+  const err = document.getElementById('create-group-name-err');
+  if (name.length < 2 || name.length > 30) {
+    if (err) { err.textContent = 'Group name must be 2–30 characters.'; err.style.display = 'block'; }
+    return;
+  }
+  if (err) err.style.display = 'none';
+  _pendingGroupName = name;
+  document.getElementById('pg-create-group').style.display = 'none';
+  document.getElementById('pg-board-setup').style.display = 'block';
+  _renderBoardSetup();
+}
+
+function _renderBoardSetup() {
+  _selectedBoards = new Set(CREATE_BOARDS.map(b => b.id));
+  document.getElementById('board-setup-err').style.display = 'none';
+  const btn = document.getElementById('board-setup-confirm-btn');
+  if (btn) { btn.disabled = false; btn.textContent = 'Confirm Boards'; }
+  const list = document.getElementById('board-setup-list');
+  if (!list) return;
+  list.innerHTML = CREATE_BOARDS.map((b, i) =>
+    '<div class="cg-board-row" data-id="' + b.id + '" style="display:flex;align-items:center;gap:12px;padding:14px 0;' +
+    (i < CREATE_BOARDS.length - 1 ? 'border-bottom:1px solid var(--border);' : '') +
+    'cursor:pointer;-webkit-tap-highlight-color:transparent">' +
+    '<div style="flex:1;min-width:0">' +
+    '<div class="cg-board-name" style="font-size:14px;font-weight:600;color:var(--cream);font-family:\'DM Sans\',sans-serif">' + b.name + '</div>' +
+    '<div style="font-size:12px;color:var(--dim);margin-top:2px;font-family:\'DM Sans\',sans-serif">' + b.desc + '</div>' +
+    '</div>' +
+    '<div class="cg-board-pill" data-id="' + b.id + '" style="width:44px;height:26px;border-radius:13px;background:var(--gold);position:relative;flex-shrink:0;transition:background .15s">' +
+    '<div style="width:20px;height:20px;border-radius:50%;background:white;position:absolute;top:3px;right:3px;transition:right .15s,left .15s;box-shadow:0 1px 3px rgba(0,0,0,.3)"></div>' +
+    '</div></div>'
+  ).join('');
+  list.querySelectorAll('.cg-board-row').forEach(row => {
+    row.addEventListener('click', () => _toggleBoard(row.dataset.id));
+  });
+}
+
+function _toggleBoard(id) {
+  const isActive = _selectedBoards.has(id);
+  if (isActive) {
+    _selectedBoards.delete(id);
+  } else {
+    _selectedBoards.add(id);
+  }
+  _updateBoardPill(id, !isActive);
+  if (_selectedBoards.size > 0) document.getElementById('board-setup-err').style.display = 'none';
+}
+
+function _updateBoardPill(id, active) {
+  const pill = document.querySelector('.cg-board-pill[data-id="' + id + '"]');
+  if (!pill) return;
+  pill.style.background = active ? 'var(--gold)' : 'var(--dimmer)';
+  const dot = pill.firstElementChild;
+  if (dot) { dot.style.right = active ? '3px' : ''; dot.style.left = active ? '' : '3px'; }
+  const nameEl = document.querySelector('.cg-board-row[data-id="' + id + '"] .cg-board-name');
+  if (nameEl) nameEl.style.color = active ? 'var(--cream)' : 'var(--dim)';
+}
+
+export async function confirmBoardSetup() {
+  if (_selectedBoards.size === 0) {
+    const err = document.getElementById('board-setup-err');
+    if (err) { err.textContent = 'At least one board must remain active.'; err.style.display = 'block'; }
+    return;
+  }
+  const btn = document.getElementById('board-setup-confirm-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Creating group…'; }
+  document.getElementById('board-setup-err').style.display = 'none';
+  const code = generateGroupCode();
+  try {
+    const res = await fetch('/.netlify/functions/supabase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'createGroup',
+        data: {
+          name: _pendingGroupName,
+          code,
+          adminId: state.me,
+          activeBoards: [..._selectedBoards],
+          season: new Date().getFullYear()
+        }
+      })
+    });
+    const json = await res.json();
+    if (!json.ok) throw new Error('Create failed');
+    state.gd.groupId = json.group.id;
+    state.gd.groupCode = json.group.code;
+    pushGist();
+    _showGroupReady(json.group);
+  } catch {
+    if (btn) { btn.disabled = false; btn.textContent = 'Confirm Boards'; }
+    const err = document.getElementById('board-setup-err');
+    if (err) { err.textContent = 'Could not create group — please try again.'; err.style.display = 'block'; }
+  }
+}
+
+function _showGroupReady(group) {
+  document.getElementById('pg-board-setup').style.display = 'none';
+  document.getElementById('pg-group-ready').style.display = 'block';
+  document.getElementById('ready-group-name-sub').textContent = group.name + ' is ready to play.';
+  document.getElementById('ready-group-code').textContent = group.code;
+  const appUrl = window.location.origin + window.location.pathname;
+  const shareUrl = appUrl + '?group=' + group.code;
+  document.getElementById('ready-share-url').textContent = shareUrl;
+  const waBtn = document.getElementById('ready-whatsapp-btn');
+  if (waBtn) {
+    const msg = encodeURIComponent('Join my Looper group ' + group.name + '! Tap to join: ' + shareUrl);
+    waBtn.href = 'https://wa.me/?text=' + msg;
+  }
+  const copyBtn = document.getElementById('ready-copy-btn');
+  if (copyBtn) {
+    copyBtn.onclick = () => {
+      navigator.clipboard?.writeText(shareUrl).then(() => {
+        const orig = copyBtn.textContent;
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => { copyBtn.textContent = orig; }, 1500);
+      }).catch(() => {
+        copyBtn.textContent = shareUrl;
+      });
+    };
+  }
+}
+
 // ── Join group flow ───────────────────────────────────────────────
 
 let _pendingGroupJoin = null; // { id, code, name, memberCount, created_by }
