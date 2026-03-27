@@ -538,6 +538,17 @@ exports.handler = async (event) => {
       };
     }
 
+    // ── getApiCallLog ─────────────────────────────────────────────────
+    if (action === 'getApiCallLog') {
+      const { data: rows, error: logErr } = await supabase
+        .from('api_call_log')
+        .select('endpoint, course_name, was_cache_hit, timestamp')
+        .order('timestamp', { ascending: false })
+        .limit(200);
+      if (logErr) throw logErr;
+      return { statusCode: 200, headers, body: JSON.stringify({ rows: rows || [] }) };
+    }
+
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Unknown action' }) };
 
   } catch (err) {

@@ -129,6 +129,28 @@
     <button class="btn" id="onb-complete-submit-btn" style="border-radius:40px">Save and continue →</button>
   </div>
 
+  <!-- STEP 1b: Preferences — theme + distance unit -->
+  <div id="onb-step-prefs" class="card mb12" style="display:none">
+    <div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px">Step 1 of 2</div>
+    <div class="ct" style="margin-bottom:4px">Your preferences</div>
+    <div style="font-size:12px;color:var(--dim);margin-bottom:20px;line-height:1.5">Customise Looper to suit how you play.</div>
+
+    <div style="font-size:12px;font-weight:600;color:var(--cream);margin-bottom:8px">Appearance</div>
+    <div class="tab-bar" style="margin-bottom:20px">
+      <button class="tab" id="pref-theme-dark">Dark</button>
+      <button class="tab" id="pref-theme-light">Light</button>
+    </div>
+
+    <div style="font-size:12px;font-weight:600;color:var(--cream);margin-bottom:8px">Distance unit</div>
+    <div class="tab-bar" style="margin-bottom:24px">
+      <button class="tab active" id="pref-unit-yards">Yards</button>
+      <button class="tab" id="pref-unit-metres">Metres</button>
+    </div>
+
+    <button class="btn" id="onb-prefs-submit-btn" style="border-radius:40px;width:100%">Continue →</button>
+    <button class="btn btn-ghost" onclick="document.getElementById('onb-step-prefs').style.display='none';document.getElementById('onb-step-profile').style.display='block'" style="margin-top:8px">← Back</button>
+  </div>
+
   <!-- STEP 2: Privacy notice — must tap to proceed, cannot skip -->
   <div id="onb-step-privacy" class="card mb12" style="display:none">
     <div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px">Step 2 of 2</div>
@@ -138,7 +160,7 @@
       This app stores your name and golf scores in a private group data store. No financial data, location or photos are stored. Your data is used only for scoring and stats within this group. You can export or delete your data at any time from the Players tab.
     </div>
     <button class="btn" id="onb-privacy-agree-btn" style="border-radius:40px">I understand — continue →</button>
-    <button class="btn btn-ghost" id="onb-back-to-profile-btn" style="margin-top:8px">← Back</button>
+    <button class="btn btn-ghost" id="onb-back-to-profile-btn" style="margin-top:8px" onclick="document.getElementById('onb-step-privacy').style.display='none';document.getElementById('onb-step-prefs').style.display='block'">← Back</button>
   </div>
 
 </div>
@@ -1292,6 +1314,16 @@
           <button class="theme-tab" id="theme-light-btn">Light</button>
         </div>
       </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px">
+        <div>
+          <div style="font-size:13px;color:var(--cream)">Distance unit</div>
+          <div style="font-size:10px;color:var(--dim);margin-top:2px">GPS distances and yardages</div>
+        </div>
+        <div class="theme-toggle-wrap">
+          <button class="theme-tab active" id="dist-unit-yards-btn">Yards</button>
+          <button class="theme-tab" id="dist-unit-metres-btn">Metres</button>
+        </div>
+      </div>
     </div>
       <!-- Account details (DOB — deep profile only) -->
       <div class="card" id="profile-account-card" style="margin-bottom:13px;display:none">
@@ -1470,6 +1502,13 @@
             <div style="font-size:11px;color:var(--dim);margin-bottom:10px">Remove unnamed/legacy groups from Supabase. Player profiles and all round history are preserved.</div>
             <button class="btn btn-o" id="admin-cleanup-groups-btn" onclick="window._adminCleanupLegacyGroups()">Clean Up Unnamed Groups</button>
             <div id="admin-cleanup-groups-msg" style="margin-top:8px;font-size:11px;color:var(--dim);white-space:pre-wrap"></div>
+          </div>
+          <!-- API Call Log -->
+          <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+            <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:8px">GolfAPI Call Log</div>
+            <div style="font-size:11px;color:var(--dim);margin-bottom:10px">Track GolfAPI.io usage — total calls, cache hit rate, and recent history.</div>
+            <button class="btn btn-o" id="admin-api-log-btn" onclick="window._adminShowApiCallLog()">Load API Stats</button>
+            <div id="admin-api-log-container" style="margin-top:10px;font-size:12px;color:var(--dim)"></div>
           </div>
           <!-- Demo data seeding -->
           <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">

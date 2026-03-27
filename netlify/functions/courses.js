@@ -326,6 +326,8 @@ exports.handler = async (event) => {
     body: JSON.stringify(body),
   });
 
+  try {
+
   // ── ACTION: search ──────────────────────────────────────────────────────────
   // Tier 1: Supabase directory. Tier 2: GolfAPI.io fallback if directory empty.
   if (action === 'search') {
@@ -565,20 +567,25 @@ exports.handler = async (event) => {
 
   // ── ACTION: report ──────────────────────────────────────────────────────────
   if (action === 'report' && event.httpMethod === 'POST') {
-    const body = JSON.parse(event.body || '{}');
-    const { course_id, player_name, group_code, issue } = body;
+    try {
+      const body = JSON.parse(event.body || '{}');
+      const { course_id, player_name, group_code, issue } = body;
 
-    if (!course_id || !issue) return respond(400, { error: 'Missing fields' });
+      if (!course_id || !issue) return respond(400, { error: 'Missing fields' });
 
-    await sbInsert('course_reports', {
-      course_id,
-      player_name: player_name || 'Unknown',
-      group_code:  group_code  || '',
-      issue,
-      created_at: new Date().toISOString(),
-    });
+      await sbInsert('course_reports', {
+        course_id,
+        player_name: player_name || 'Unknown',
+        group_code:  group_code  || '',
+        issue,
+        created_at: new Date().toISOString(),
+      });
 
-    return respond(200, { ok: true });
+      return respond(200, { ok: true });
+    } catch (e) {
+      console.error('[courses] report error:', e?.message);
+      return respond(500, { error: 'Failed to save report' });
+    }
   }
 
   // ── ACTION: inspect (debug) ─────────────────────────────────────────────────
@@ -591,15 +598,29 @@ exports.handler = async (event) => {
     const courseId = event.queryStringParameters?.courseId;
     if (!courseId) return respond(400, { error: 'Missing courseId' });
     if (!GOLFAPI_KEY) return respond(503, { error: 'No API key configured' });
-    const [rawCourse, rawCoords] = await Promise.all([
-      golfApiGetCourse(courseId),
-      golfApiGetCoordinates(courseId),
-    ]);
-    return respond(200, {
-      raw_course: rawCourse,
-      raw_coords_sample: rawCoords?.coordinates?.slice(0, 3),
-    });
+    try {
+      const [rawCourse, rawCoords] = await Promise.all([
+        golfApiGetCourse(courseId),
+        golfApiGetCoordinates(courseId),
+      ]);
+      return respond(200, {
+        raw_course: rawCourse,
+        raw_coords_sample: rawCoords?.coordinates?.slice(0, 3),
+      });
+    } catch (e) {
+      console.error('[courses] inspect error:', e?.message);
+      return respond(502, { error: 'GolfAPI request failed', detail: e?.message });
+    }
   }
 
   return respond(404, { error: 'Unknown action' });
+
+  } catch (err) {
+    console.error('[courses] unhandled error in action', action, ':', err);
+    return {
+      statusCode: 500,
+      headers: { ...CORS, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: err.message || 'Internal server error' }),
+    };
+  }
 };

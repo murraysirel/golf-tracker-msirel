@@ -224,9 +224,10 @@ export async function enterAs(n) {
 }
 
 async function _checkAndShowGroupFork(playerName) {
-  // Skip if already in a group, fork was dismissed this session, or no Supabase
-  if (state.gd.groupId) return;
-  if (sessionStorage.getItem('looper_fork_dismissed')) return;
+  // Skip if fork was already dismissed (persists across sessions)
+  if (localStorage.getItem('looper_fork_dismissed')) return;
+  // Skip if player is already at league cap
+  if ((state.gd.groupCodes || []).length >= 5) return;
   try {
     const res = await querySupabase('checkGroupMembership', { playerName });
     if (res && res.isMember) {
@@ -288,6 +289,8 @@ export function showSignupStep(n) {
   document.getElementById('onb-step-privacy').style.display = n === 2 ? 'block' : 'none';
   const cps = document.getElementById('onb-step-complete-profile');
   if (cps) cps.style.display = 'none';
+  const ps = document.getElementById('onb-step-prefs');
+  if (ps) ps.style.display = 'none';
   const pg = document.getElementById('pg-onboard');
   if (pg) pg.scrollTop = 0;
 }
@@ -318,6 +321,45 @@ export function submitProfile() {
 
   if (errEl) errEl.style.display = 'none';
   _pendingProfile = { name: fullName, handicap: parseFloat(hcp.toFixed(1)), email, dob };
+  // Show preferences step before privacy
+  showPrefsStep();
+}
+
+export function showPrefsStep() {
+  ['onb-step-select', 'onb-step-profile', 'onb-step-privacy', 'onb-step-complete-profile'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  const prefs = document.getElementById('onb-step-prefs');
+  if (prefs) prefs.style.display = 'block';
+  // Reflect saved preferences in the step UI
+  const savedTheme = localStorage.getItem('rr_theme') || 'dark';
+  document.getElementById('pref-theme-dark')?.classList.toggle('active', savedTheme === 'dark');
+  document.getElementById('pref-theme-light')?.classList.toggle('active', savedTheme === 'light');
+  const savedUnit = localStorage.getItem('looper_dist_unit') || 'yards';
+  document.getElementById('pref-unit-yards')?.classList.toggle('active', savedUnit === 'yards');
+  document.getElementById('pref-unit-metres')?.classList.toggle('active', savedUnit === 'metres');
+}
+
+export function setPrefTheme(t) {
+  localStorage.setItem('rr_theme', t);
+  document.documentElement.dataset.theme = t;
+  document.getElementById('pref-theme-dark')?.classList.toggle('active', t === 'dark');
+  document.getElementById('pref-theme-light')?.classList.toggle('active', t === 'light');
+  // Also update the main theme toggle buttons
+  document.getElementById('theme-dark-btn')?.classList.toggle('active', t === 'dark');
+  document.getElementById('theme-light-btn')?.classList.toggle('active', t === 'light');
+}
+
+export function setPrefUnit(u) {
+  localStorage.setItem('looper_dist_unit', u);
+  document.getElementById('pref-unit-yards')?.classList.toggle('active', u === 'yards');
+  document.getElementById('pref-unit-metres')?.classList.toggle('active', u === 'metres');
+}
+
+export function submitPrefs() {
+  const prefs = document.getElementById('onb-step-prefs');
+  if (prefs) prefs.style.display = 'none';
   showSignupStep(2);
 }
 
@@ -360,7 +402,7 @@ export function goBackToFork() {
 }
 
 export function forkNotNow() {
-  sessionStorage.setItem('looper_fork_dismissed', '1');
+  localStorage.setItem('looper_fork_dismissed', '1');
   document.getElementById('pg-group-fork').style.display = 'none';
   // Don't call enterAs again — we're already on pg-main; just ensure it's visible
   const pm = document.getElementById('pg-main');

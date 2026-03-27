@@ -312,8 +312,50 @@ export async function adminCleanupLegacyGroups() {
   }
 }
 
+export async function adminShowApiCallLog() {
+  const container = document.getElementById('admin-api-log-container');
+  const btn = document.getElementById('admin-api-log-btn');
+  if (!container) return;
+  if (btn) btn.disabled = true;
+  container.innerHTML = '<span style="color:var(--dim)">Loading…</span>';
+  try {
+    const { querySupabase } = await import('./api.js');
+    const res = await querySupabase('getApiCallLog', {});
+    const rows = res?.rows || [];
+    if (!rows.length) {
+      container.innerHTML = '<span style="color:var(--dim)">No API calls logged yet.</span>';
+      return;
+    }
+    const total = rows.length;
+    const hits = rows.filter(r => r.was_cache_hit).length;
+    const hitRate = total ? Math.round((hits / total) * 100) : 0;
+    const byEndpoint = {};
+    rows.forEach(r => { byEndpoint[r.endpoint] = (byEndpoint[r.endpoint] || 0) + 1; });
+    const epSummary = Object.entries(byEndpoint)
+      .sort((a, b) => b[1] - a[1])
+      .map(([ep, n]) => `${ep}: ${n}`)
+      .join(' · ');
+    const recent = rows.slice(0, 20).map(r => {
+      const ts = r.timestamp ? new Date(r.timestamp).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) : '?';
+      const hit = r.was_cache_hit ? '<span style="color:var(--par)">cache</span>' : '<span style="color:var(--gold)">API</span>';
+      return `<div style="padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04)">${ts} — ${r.endpoint} — ${r.course_name || '—'} — ${hit}</div>`;
+    }).join('');
+    container.innerHTML = `
+      <div style="margin-bottom:8px;color:var(--cream)">
+        <strong>${total}</strong> calls logged · <strong>${hitRate}%</strong> cache hit rate
+      </div>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:8px">${epSummary}</div>
+      <div style="font-size:11px;max-height:200px;overflow-y:auto">${recent}</div>`;
+  } catch (e) {
+    container.innerHTML = `<span style="color:var(--double)">Error: ${e.message}</span>`;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 // Expose for inline onclick in admin panel HTML
 window._adminRunMigration         = adminRunMigration;
 window._adminSeedDemo             = adminSeedDemo;
 window._adminFixCourseData        = adminFixCourseData;
 window._adminCleanupLegacyGroups  = adminCleanupLegacyGroups;
+window._adminShowApiCallLog       = adminShowApiCallLog;

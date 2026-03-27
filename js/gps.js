@@ -98,6 +98,12 @@ export function gpsSetTarget(t) {
   if (state.gpsState.coords) updateGPSDisplay(state.liveState?.hole || 0);
 }
 
+function _displayDist(yards) {
+  const unit = localStorage.getItem('looper_dist_unit') || 'yards';
+  if (unit === 'metres') return Math.round(yards / 1.09361);
+  return yards;
+}
+
 export function updateGPSDisplay(hole0) {
   const green = getGreenCoords(hole0);
   if (!green || !state.gpsState.coords) return;
@@ -107,7 +113,7 @@ export function updateGPSDisplay(hole0) {
     state.gpsState.coords.latitude, state.gpsState.coords.longitude,
     target.lat, target.lng
   );
-  document.getElementById('gps-dist').textContent = yards;
+  document.getElementById('gps-dist').textContent = _displayDist(yards);
 
   // Update unified live screen distances
   const { latitude: _clat, longitude: _clng } = state.gpsState.coords;
@@ -115,7 +121,7 @@ export function updateGPSDisplay(hole0) {
     const tgt = green[t];
     const y = tgt ? haversineYards(_clat, _clng, tgt.lat, tgt.lng) : null;
     const el = document.getElementById('live-dist-' + t);
-    if (el) el.textContent = y !== null ? y : '—';
+    if (el) el.textContent = y !== null ? _displayDist(y) : '—';
   });
 
   // Show tee distance if tee coords available
@@ -128,7 +134,7 @@ export function updateGPSDisplay(hole0) {
       tee.lat, tee.lng
     );
     const td = document.getElementById('gps-tee-dist');
-    if (td) td.textContent = teeYards;
+    if (td) td.textContent = _displayDist(teeYards);
   }
 
   updateDriveBtn(hole0);

@@ -8,7 +8,7 @@ import { getCourseByRef, scanCourseCard, saveCourse, cancelCourseScan, handleCou
 import { buildSC, recalc, saveRound, toggleSCExtras } from './scorecard.js';
 import { renderStats, setFilter, toggleHcpEdit, saveHandicap, renderHomeStats, openScorecardModal, openKpiPicker, closeKpiPicker } from './stats.js';
 import { renderLeaderboard, initLeaderboard } from './leaderboard.js';
-import { renderOnboard, enterAs, addAndEnter, signOut, addPlayer, renderAllPlayers, renderPlayersToday, showSignupStep, submitProfile, agreePrivacy, submitCompleteProfile, showGroupFork, goBackToFork, forkNotNow, forkJoinGroup, forkCreateGroup, refreshAvatarUI, uploadAvatar } from './players.js';
+import { renderOnboard, enterAs, addAndEnter, signOut, addPlayer, renderAllPlayers, renderPlayersToday, showSignupStep, submitProfile, agreePrivacy, submitCompleteProfile, showGroupFork, goBackToFork, forkNotNow, forkJoinGroup, forkCreateGroup, refreshAvatarUI, uploadAvatar, setPrefTheme, setPrefUnit, submitPrefs } from './players.js';
 import { renderPracticePage, selectPracticeArea, startPracticeSession, regeneratePlan, logPracticeShots, completePracticeSession } from './practice.js';
 import { initLiveRound, liveGoto, liveSaveNote, liveNextOrFinish, toggleGroupPlayer, startGroupRound, toggleMatchPlay, openCorrectionModal, submitCorrectionReport, cancelRound } from './live.js';
 import { generateAIReview, generateStatsAnalysis, clearStatsAnalysis, parsePhoto, handlePhoto } from './ai.js';
@@ -106,6 +106,12 @@ document.getElementById('onb-profile-submit-btn')?.addEventListener('click', sub
 document.getElementById('onb-back-to-profile-btn')?.addEventListener('click', () => showSignupStep(1));
 document.getElementById('onb-privacy-agree-btn')?.addEventListener('click', agreePrivacy);
 document.getElementById('onb-complete-submit-btn')?.addEventListener('click', submitCompleteProfile);
+// Prefs step (theme + distance unit) — between profile and privacy
+document.getElementById('onb-prefs-submit-btn')?.addEventListener('click', submitPrefs);
+document.getElementById('pref-theme-dark')?.addEventListener('click', () => setPrefTheme('dark'));
+document.getElementById('pref-theme-light')?.addEventListener('click', () => setPrefTheme('light'));
+document.getElementById('pref-unit-yards')?.addEventListener('click', () => setPrefUnit('yards'));
+document.getElementById('pref-unit-metres')?.addEventListener('click', () => setPrefUnit('metres'));
 // Group fork screen
 document.getElementById('fork-join-btn')?.addEventListener('click', forkJoinGroup);
 document.getElementById('fork-create-btn')?.addEventListener('click', forkCreateGroup);
@@ -258,6 +264,19 @@ document.getElementById('theme-dark-btn')?.addEventListener('click', () => {
 document.getElementById('theme-light-btn')?.addEventListener('click', () => {
   applyTheme('light'); localStorage.setItem('rr_theme', 'light');
 });
+// ── Distance unit toggle (profile panel) ─────────────────────────
+function applyDistUnit(u) {
+  localStorage.setItem('looper_dist_unit', u);
+  document.getElementById('dist-unit-yards-btn')?.classList.toggle('active', u === 'yards');
+  document.getElementById('dist-unit-metres-btn')?.classList.toggle('active', u === 'metres');
+  // Also sync the onboarding prefs step buttons
+  document.getElementById('pref-unit-yards')?.classList.toggle('active', u === 'yards');
+  document.getElementById('pref-unit-metres')?.classList.toggle('active', u === 'metres');
+}
+document.getElementById('dist-unit-yards-btn')?.addEventListener('click', () => applyDistUnit('yards'));
+document.getElementById('dist-unit-metres-btn')?.addEventListener('click', () => applyDistUnit('metres'));
+// Initialise the toggle to reflect saved preference
+applyDistUnit(localStorage.getItem('looper_dist_unit') || 'yards');
 // Design variant buttons
 document.getElementById('design-v1-btn')?.addEventListener('click', () => applyDesign(''));
 document.getElementById('design-v2-btn')?.addEventListener('click', () => applyDesign('v2'));

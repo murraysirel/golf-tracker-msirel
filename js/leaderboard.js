@@ -152,12 +152,19 @@ export function renderLeaderboard() {
     soloPrompt.style.display = 'block';
     const heading = soloPrompt.querySelector('.lb-solo-heading');
     const subtext = soloPrompt.querySelector('.lb-solo-subtext');
-    if (isInGroup) {
+    const atCap = (state.gd.groupCodes || []).length >= 5;
+    if (atCap) {
+      if (heading) heading.textContent = 'League limit reached';
+      if (subtext) subtext.textContent = 'You are in 5 leagues — the maximum. Leave a league to join or create another.';
+      soloPrompt.querySelectorAll('button').forEach(b => { b.disabled = true; b.title = 'Max 5 leagues reached'; });
+    } else if (isInGroup) {
       if (heading) heading.textContent = 'Add another group';
       if (subtext) subtext.textContent = 'Join or create a new group for separate leaderboards.';
+      soloPrompt.querySelectorAll('button').forEach(b => { b.disabled = false; b.title = ''; });
     } else {
       if (heading) heading.textContent = 'Invite your mates to compete on these boards';
       if (subtext) subtext.textContent = '';
+      soloPrompt.querySelectorAll('button').forEach(b => { b.disabled = false; b.title = ''; });
     }
   }
 

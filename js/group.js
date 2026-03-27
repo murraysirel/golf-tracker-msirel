@@ -242,6 +242,11 @@ function _updateBoardPill(id, active) {
 }
 
 export async function confirmBoardSetup() {
+  if ((state.gd.groupCodes || []).length >= 5) {
+    const err = document.getElementById('board-setup-err');
+    if (err) { err.textContent = 'You can be in a maximum of 5 leagues at once.'; err.style.display = 'block'; }
+    return;
+  }
   if (_selectedBoards.size === 0) {
     const err = document.getElementById('board-setup-err');
     if (err) { err.textContent = 'At least one board must remain active.'; err.style.display = 'block'; }
@@ -396,6 +401,11 @@ export async function lookupGroupByCode() {
 
 export async function confirmJoinGroup() {
   if (!_pendingGroupJoin || !state.me) return;
+  if ((state.gd.groupCodes || []).length >= 5) {
+    const errEl = document.getElementById('join-group-error');
+    if (errEl) { errEl.textContent = 'You can be in a maximum of 5 leagues at once.'; errEl.style.display = 'block'; }
+    return;
+  }
   const btn = document.getElementById('join-group-confirm-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Joining…'; }
   try {
