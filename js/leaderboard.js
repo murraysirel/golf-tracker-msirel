@@ -30,6 +30,19 @@ export async function initLeaderboard() {
   } else {
     state.gd.group = null;
   }
+  // Fetch names for all other groups in the switcher (fire in parallel, non-blocking)
+  const allCodes = state.gd.groupCodes || [];
+  await Promise.all(allCodes.map(async code => {
+    if (code === state.gd.activeGroupCode) return; // already fetched above
+    if (state.gd.groupMeta?.[code]?.name) return; // already have it
+    try {
+      const r = await querySupabase('getGroupByCode', { code, playerName: state.me || '' });
+      if (r?.found && r.group?.name) {
+        if (!state.gd.groupMeta) state.gd.groupMeta = {};
+        state.gd.groupMeta[code] = { name: r.group.name };
+      }
+    } catch (_) {}
+  }));
   renderGroupSwitcher();
   renderLeaderboard();
 }
@@ -132,8 +145,20 @@ export function renderLeaderboard() {
   }
 
   // Solo prompt: shown when not in a group
+  // Join/create prompt — always visible so you can join/create additional groups
   const soloPrompt = document.getElementById('lb-solo-prompt');
-  if (soloPrompt) soloPrompt.style.display = isInGroup ? 'none' : 'block';
+  if (soloPrompt) {
+    soloPrompt.style.display = 'block';
+    const heading = soloPrompt.querySelector('.lb-solo-heading');
+    const subtext = soloPrompt.querySelector('.lb-solo-subtext');
+    if (isInGroup) {
+      if (heading) heading.textContent = 'Add another group';
+      if (subtext) subtext.textContent = 'Join or create a new group for separate leaderboards.';
+    } else {
+      if (heading) heading.textContent = 'Invite your mates to compete on these boards';
+      if (subtext) subtext.textContent = '';
+    }
+  }
 
   // Group code card: only shown in group mode
   const gcCard = document.getElementById('lb-group-code-card');

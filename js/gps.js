@@ -61,9 +61,14 @@ export function startGPS() {
   const teeWrap = document.getElementById('gps-tee-wrap');
   if (teeWrap) teeWrap.style.display = getTeeCoords(h) ? '' : 'none';
 
+  // Clear any existing watch before starting a new one
+  if (state.gpsState.watchId != null) {
+    navigator.geolocation.clearWatch(state.gpsState.watchId);
+    state.gpsState.watchId = null;
+  }
   state.gpsState.watching = true;
   state.gpsState.watchId = navigator.geolocation.watchPosition(
-    pos => { state.gpsState.coords = pos.coords; updateGPSDisplay(h); },
+    pos => { state.gpsState.coords = pos.coords; updateGPSDisplay(state.liveState?.hole || 0); },
     err => { document.getElementById('gps-dist').textContent = '—'; console.warn('GPS error:', err.message); },
     { enableHighAccuracy: true, maximumAge: 3000, timeout: 15000 }
   );

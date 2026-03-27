@@ -112,14 +112,29 @@ export async function loadGroupData(groupCode) {
     if (!state.gd.groupMeta) state.gd.groupMeta = {};
     if (!state.gd.matches) state.gd.matches = {};
 
+    // Snapshot existing players so we can preserve avatarImg and Gist-only rounds
+    const prevPlayers = state.gd.players || {};
     state.gd.players = {};
     (players || []).forEach(p => {
-      state.gd.players[p.name] = { handicap: p.handicap || 0, rounds: [],
-        ...(p.email ? { email: p.email } : {}) };
+      const prev = prevPlayers[p.name] || {};
+      state.gd.players[p.name] = {
+        handicap: p.handicap || 0,
+        rounds: [],
+        ...(p.email ? { email: p.email } : {}),
+        ...(prev.avatarImg ? { avatarImg: prev.avatarImg } : {})
+      };
     });
     (rounds || []).forEach(r => {
       const pl = state.gd.players[r.player_name];
       if (pl) pl.rounds.push(supabaseRoundToApp(r));
+    });
+    // Merge back any Gist-only rounds (not yet in Supabase) for players in this group
+    Object.entries(prevPlayers).forEach(([name, ep]) => {
+      if (!state.gd.players[name]) return; // not a member of this group
+      const supaIds = new Set(state.gd.players[name].rounds.map(r => r.id));
+      (ep.rounds || []).forEach(r => {
+        if (!supaIds.has(r.id)) state.gd.players[name].rounds.push(r);
+      });
     });
 
     // Restore group metadata from Supabase settings JSONB

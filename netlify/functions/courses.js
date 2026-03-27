@@ -165,7 +165,7 @@ function parseCourseDetail(clubData, rawCourseData, coordData) {
     slope:          parseInt(t.slopeRating   || t.slope)   || null,
     yards_per_hole: (t.holes || []).map(h => h.length || h.yards || 0),
     pars_per_hole:  (t.holes || []).map(h => parseInt(h.par)   || 4),
-    si_per_hole:    (t.holes || []).map(h => parseInt(h.strokeIndex || h.handicap) || 0),
+    si_per_hole:    (() => { const arr = (t.holes || []).map(h => parseInt(h.strokeIndex || h.handicap) || 0); return arr.some(v => v > 0) ? arr : null; })(),
   }));
 
   const firstTee = courseData.tees?.[0];

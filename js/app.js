@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────────────────────────
 import { loadGist, pushGist, ss, retrySyncUnsynced, updateUnsyncedBadge } from './api.js';
 import { goTo, switchEntry, registerNavHandlers } from './nav.js';
-import { getCourseByRef, scanCourseCard, saveCourse, cancelCourseScan, handleCoursePhoto, searchCourseAPI } from './courses.js';
+import { getCourseByRef, scanCourseCard, saveCourse, cancelCourseScan, handleCoursePhoto, searchCourseAPI, initCourseSearch } from './courses.js';
 import { buildSC, recalc, saveRound, toggleSCExtras } from './scorecard.js';
 import { renderStats, setFilter, toggleHcpEdit, saveHandicap, renderHomeStats, openScorecardModal, openKpiPicker, closeKpiPicker } from './stats.js';
 import { renderLeaderboard, initLeaderboard } from './leaderboard.js';
@@ -51,7 +51,14 @@ registerNavHandlers({
   renderPracticePage,
   initLiveRound,
   initCompetition,
-  onPageChange: (page) => { if (page !== 'live') hideMatchOverlay(); },
+  onPageChange: (page) => {
+    if (page !== 'live') hideMatchOverlay();
+    // Reinitialise course search if container is empty (guard against missing init)
+    if (page === 'round') {
+      const wrap = document.getElementById('course-search-container');
+      if (wrap && !wrap.querySelector('.cs-wrap')) initCourseSearch();
+    }
+  },
   closeProfilePanel
 });
 

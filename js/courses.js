@@ -249,11 +249,14 @@ function _applyTee(tee) {
   if (pars?.length === 18) state.cpars = pars;
 
   // Stroke indexes — check both new (si_per_hole) and old (si) field names
+  // Guard: only use if at least one value is non-zero (all-zero = API returned nothing)
   const siArr = tee.si_per_hole || tee.si;
-  if (siArr?.length === 18) {
+  if (siArr?.length === 18 && siArr.some(v => v > 0)) {
     state.scannedSI = siArr;
-  } else if (_selectedCourse?.stroke_indexes?.length === 18) {
+  } else if (_selectedCourse?.stroke_indexes?.length === 18 && _selectedCourse.stroke_indexes.some(v => v > 0)) {
     state.scannedSI = _selectedCourse.stroke_indexes;
+  } else {
+    state.scannedSI = null; // no valid SI data — clear stale values
   }
 
   // Fallback: if pars are still all-4 (GolfAPI returned no per-hole data),

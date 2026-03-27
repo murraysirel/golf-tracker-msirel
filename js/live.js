@@ -427,7 +427,7 @@ export function liveGoto(h) {
   document.getElementById('live-hole-num').textContent = h + 1;
   document.getElementById('live-par').textContent = par;
   document.getElementById('live-yards').textContent = hYards?.[h] || '—';
-  document.getElementById('live-si').textContent = si?.[h] || '—';
+  document.getElementById('live-si').textContent = (si && si[h] > 0) ? si[h] : '—';
 
   // Always use group rendering (handles 1 or more players)
   liveRenderGroupHole(h);
