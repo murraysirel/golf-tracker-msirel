@@ -60,6 +60,19 @@ exports.handler = async (event) => {
       };
     }
 
+    // ── upsertPlayer ─────────────────────────────────────────────────
+    // Called when a player creates or joins a group so they appear in
+    // the player picker immediately (before saving their first round).
+    if (action === 'upsertPlayer') {
+      const { playerName, handicap } = data;
+      if (!playerName || !groupCode) return { statusCode: 400, headers, body: JSON.stringify({ error: 'playerName and groupCode required' }) };
+      await supabase.from('players').upsert(
+        { name: playerName, group_code: groupCode, handicap: handicap || 0 },
+        { onConflict: 'name,group_code' }
+      );
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+    }
+
     // ── saveGroupSettings ─────────────────────────────────────────────
     if (action === 'saveGroupSettings') {
       const { groupCode: code, settings } = data;
