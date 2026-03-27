@@ -6,7 +6,7 @@ import { COURSES } from './constants.js';
 import { getCourseByRef } from './courses.js';
 import { initials, avatarHtml } from './players.js';
 import { parseDateGB, calcStableford, isBufferOrBetter, calcScoringPointsNet } from './stats.js';
-import { pushGist, querySupabase } from './api.js';
+import { pushGist, querySupabase, loadGroupData } from './api.js';
 import { goTo } from './nav.js';
 
 // Maps CREATE_BOARDS ids → their wrapping card's data-board-id attribute
@@ -36,9 +36,10 @@ export async function initLeaderboard() {
 
 export async function switchActiveGroup(code) {
   if (state.gd.activeGroupCode === code) return;
-  state.gd.activeGroupCode = code;
   localStorage.setItem('gt_activegroup', code);
   state.gd.group = null;
+  // Reload all player/round data scoped to the new group
+  await loadGroupData(code);
   if (state.me) {
     const res = await querySupabase('getGroupByCode', { code, playerName: state.me });
     if (res?.found && res.isMember) {

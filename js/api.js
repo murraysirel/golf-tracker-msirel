@@ -4,6 +4,9 @@
 import { state } from './state.js';
 import { DEFAULT_GIST, API } from './constants.js';
 
+const GROUP_SETTINGS_KEYS = ['customCourses','teeCoords','greenCoords','seasons',
+                              'deletionLog','courseCorrections','requireGroupCode'];
+
 export function ss(status, msg) {
   const d = document.getElementById('sdot'), t = document.getElementById('stext');
   if (!d) return;
@@ -53,7 +56,7 @@ export async function loadGist() {
     if (storedActive && state.gd.groupCodes.includes(storedActive)) {
       state.gd.activeGroupCode = storedActive;
     }
-    seedMurray();
+    if (state.demoMode) seedMurray();
     localStorage.setItem('gt_localdata', JSON.stringify(state.gd));
     if (unsynced) localStorage.setItem('rr_unsynced_rounds', unsynced);
     ss('ok', 'Synced \u2713');
@@ -71,14 +74,66 @@ export async function loadGist() {
           delete state.gd.groupCode;
         }
         if (!state.gd.groupMeta) state.gd.groupMeta = {};
-        seedMurray();
+        if (state.demoMode) seedMurray();
       } catch (_) {}
     } else {
-      seedMurray();
+      if (state.demoMode) seedMurray();
     }
   }
   // Merge Supabase data on top — parallel phase: Supabase wins on conflict
   await loadSupabase();
+}
+
+// ── Supabase-first group load ─────────────────────────────────────
+// Primary boot loader when a group code is known.
+// Populates state.gd.players from Supabase scoped to the group,
+// and restores group metadata from groups.settings.
+// Falls back to loadGist() if Supabase fails.
+export async function loadGroupData(groupCode) {
+  if (state.demoMode) return loadGist();
+  if (!groupCode) return loadGist();
+  ss('syncing', 'Loading...');
+  try {
+    const res = await fetch('/.netlify/functions/supabase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'read', groupCode })
+    });
+    if (!res.ok) throw new Error('Supabase read ' + res.status);
+    const { players, rounds, settings } = await res.json();
+
+    // Preserve unsynced rounds across reload
+    const unsynced = localStorage.getItem('rr_unsynced_rounds');
+
+    // Build state.gd.players scoped to this group only
+    if (!state.gd.groupCodes) state.gd.groupCodes = [];
+    if (!state.gd.groupCodes.includes(groupCode)) state.gd.groupCodes.push(groupCode);
+    state.gd.activeGroupCode = groupCode;
+    if (!state.gd.groupMeta) state.gd.groupMeta = {};
+    if (!state.gd.matches) state.gd.matches = {};
+
+    state.gd.players = {};
+    (players || []).forEach(p => {
+      state.gd.players[p.name] = { handicap: p.handicap || 0, rounds: [],
+        ...(p.email ? { email: p.email } : {}) };
+    });
+    (rounds || []).forEach(r => {
+      const pl = state.gd.players[r.player_name];
+      if (pl) pl.rounds.push(supabaseRoundToApp(r));
+    });
+
+    // Restore group metadata from Supabase settings JSONB
+    const s = settings || {};
+    GROUP_SETTINGS_KEYS.forEach(k => { if (s[k] != null) state.gd[k] = s[k]; });
+
+    localStorage.setItem('gt_localdata', JSON.stringify(state.gd));
+    if (unsynced) localStorage.setItem('rr_unsynced_rounds', unsynced);
+    ss('ok', 'Synced \u2713');
+    return true;
+  } catch (e) {
+    console.warn('[loadGroupData] Supabase failed, falling back to Gist:', e.message);
+    return loadGist();
+  }
 }
 
 // ── Supabase parallel sync ────────────────────────────────────────
@@ -157,7 +212,7 @@ function mergeSupabaseData(players, rounds) {
   });
 }
 
-function supabaseRoundToApp(r) {
+export function supabaseRoundToApp(r) {
   return {
     id: r.id, player: r.player_name, course: r.course,
     loc: r.loc, tee: r.tee, date: r.date,
@@ -241,6 +296,12 @@ export async function pushGist() {
     if (!r.ok) throw new Error(r.status);
     updateUnsyncedBadge();
     ss('ok', 'Saved \u2713 ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
+    // Sync group-level metadata to Supabase groups.settings (fire-and-forget)
+    if (state.gd.activeGroupCode) {
+      const settings = {};
+      GROUP_SETTINGS_KEYS.forEach(k => { if (state.gd[k] != null) settings[k] = state.gd[k]; });
+      pushSupabase('saveGroupSettings', { groupCode: state.gd.activeGroupCode, settings }).catch(() => {});
+    }
     return true;
   } catch (e) {
     ss('err', 'Sync failed \u2014 saved locally, will retry');

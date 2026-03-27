@@ -43,19 +43,36 @@ exports.handler = async (event) => {
 
     // ── read ─────────────────────────────────────────────────────────
     if (action === 'read') {
-      const [players, rounds, matches] = await Promise.all([
+      const [players, rounds, matches, groupRow] = await Promise.all([
         supabase.from('players').select('*').eq('group_code', groupCode),
         supabase.from('rounds').select('*').eq('group_code', groupCode).order('id', { ascending: false }),
-        supabase.from('active_matches').select('*').eq('group_code', groupCode).eq('status', 'active')
+        supabase.from('active_matches').select('*').eq('group_code', groupCode).eq('status', 'active'),
+        groupCode ? supabase.from('groups').select('settings').eq('code', groupCode).maybeSingle() : Promise.resolve({ data: null })
       ]);
       return {
         statusCode: 200, headers,
         body: JSON.stringify({
           players: players.data || [],
           rounds: rounds.data || [],
-          matches: matches.data || []
+          matches: matches.data || [],
+          settings: groupRow.data?.settings || {}
         })
       };
+    }
+
+    // ── saveGroupSettings ─────────────────────────────────────────────
+    if (action === 'saveGroupSettings') {
+      const { groupCode: code, settings } = data;
+      if (!code) return { statusCode: 400, headers, body: JSON.stringify({ error: 'groupCode required' }) };
+      await supabase.from('groups').update({ settings }).eq('code', code);
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+    }
+
+    // ── getGroupSettings ──────────────────────────────────────────────
+    if (action === 'getGroupSettings') {
+      const { data: row } = await supabase.from('groups')
+        .select('settings').eq('code', groupCode).maybeSingle();
+      return { statusCode: 200, headers, body: JSON.stringify({ settings: row?.settings || {} }) };
     }
 
     // ── saveRound ────────────────────────────────────────────────────

@@ -2,7 +2,7 @@
 // APP ENTRY POINT
 // Imports all modules, sets up event listeners, initialises app
 // ─────────────────────────────────────────────────────────────────
-import { loadGist, pushGist, ss, retrySyncUnsynced, updateUnsyncedBadge } from './api.js';
+import { loadGist, loadGroupData, pushGist, ss, retrySyncUnsynced, updateUnsyncedBadge } from './api.js';
 import { goTo, switchEntry, registerNavHandlers } from './nav.js';
 import { getCourseByRef, scanCourseCard, saveCourse, cancelCourseScan, handleCoursePhoto, searchCourseAPI } from './courses.js';
 import { buildSC, recalc, saveRound, toggleSCExtras } from './scorecard.js';
@@ -449,7 +449,8 @@ function showRoundRecoveryPrompt(backup) {
 
 // ── Initialise ────────────────────────────────────────────────────
 initMatchOverlay();
-loadGist().then(async () => {
+const _bootGroupCode = localStorage.getItem('gt_activegroup') || '';
+(_bootGroupCode ? loadGroupData(_bootGroupCode) : loadGist()).then(async () => {
   renderOnboard();
   updateActiveMatchBadge();
   updateUnsyncedBadge();

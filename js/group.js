@@ -2,7 +2,7 @@
 // GROUP / SEASON MANAGEMENT
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
-import { pushGist, querySupabase } from './api.js';
+import { pushGist, querySupabase, loadGroupData } from './api.js';
 import { parseDateGB } from './stats.js';
 import { signOut } from './players.js';
 import { goTo } from './nav.js';
@@ -259,6 +259,7 @@ export async function confirmBoardSetup() {
     if (!state.gd.groupMeta) state.gd.groupMeta = {};
     state.gd.groupMeta[json.group.code] = { name: json.group.name || _pendingGroupName };
     pushGist();
+    await loadGroupData(json.group.code);
     _showGroupReady(json.group);
   } catch (e) {
     console.error('[createGroup] failed:', e?.message);
@@ -387,6 +388,7 @@ export async function confirmJoinGroup() {
     state.gd.groupMeta[_pendingGroupJoin.code] = { name: _pendingGroupJoin.name };
     localStorage.setItem('gt_activegroup', _pendingGroupJoin.code);
     pushGist();
+    await loadGroupData(_pendingGroupJoin.code);
     showBoardPage(_pendingGroupJoin);
   } catch {
     if (btn) { btn.disabled = false; btn.textContent = 'Join ' + (_pendingGroupJoin?.name || 'group'); }
