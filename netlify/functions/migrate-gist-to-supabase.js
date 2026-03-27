@@ -94,7 +94,7 @@ exports.handler = async (event) => {
     const rounds = playerObj.rounds || [];
     for (const r of rounds) {
       const { error: rErr } = await supabase.from('rounds').upsert({
-        id: r.id,
+        id: Math.round(r.id),
         player_name: r.player || playerName,
         group_code: groupCode,
         course: r.course,
