@@ -218,18 +218,25 @@ exports.handler = async (event) => {
  
     if (name.length < 2) return respond(400, { error: 'Name too short' });
  
-    // 1. Supabase cache check — free, instant
-    const cached = await searchCache(name, country);
+    // 1. Supabase cache check — free, instant; fall through to GolfAPI on any error
+    let cached = [];
+    try {
+      cached = await searchCache(name, country);
+    } catch (e) {
+      console.error('[courses] searchCache error:', e?.message);
+    }
     if (cached.length > 0) {
       return respond(200, { courses: cached, source: 'cache' });
     }
- 
+
     // 2. GolfAPI.io search — costs 0.1 credits, only on cache miss
     if (!GOLFAPI_KEY) return respond(200, { courses: [], source: 'no_key' });
- 
+
     const apiResult = await golfApiSearchClubs(name, country);
+    console.log('[courses] GolfAPI search keys:', Object.keys(apiResult || {}),
+      '| clubs:', apiResult?.clubs?.length ?? 'none', '| error:', apiResult?.error ?? 'none');
     if (!apiResult?.clubs?.length) {
-      return respond(200, { courses: [], source: 'api_empty' });
+      return respond(200, { courses: [], source: 'api_empty', debug: apiResult });
     }
  
     // Return slim search results to the frontend (no credits spent on detail yet)

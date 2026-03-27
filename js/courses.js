@@ -80,7 +80,13 @@ async function _runSearch(q) {
     const res  = await fetch(url);
     const data = await res.json();
     _lastResults = data.courses || [];
-    _renderResults(_lastResults);
+    if (_lastResults.length === 0 && data.source === 'no_key') {
+      _showResultsMsg('Course search is not configured. Contact your group admin.');
+    } else if (_lastResults.length === 0 && data.source === 'api_empty') {
+      _showResultsMsg('No courses found — try a different spelling or check the country filter.');
+    } else {
+      _renderResults(_lastResults);
+    }
   } catch {
     _showResultsMsg('Search failed — check your connection and try again.');
   } finally {
