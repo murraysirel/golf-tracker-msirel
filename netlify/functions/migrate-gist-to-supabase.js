@@ -74,6 +74,31 @@ exports.handler = async (event) => {
   let roundCount = 0;
   const errors = [];
 
+  // ── 2a. Upsert group + group_members from Gist group code ────────
+  let groupId = null;
+  if (groupCode) {
+    const firstPlayerName = Object.keys(gistData.players)[0] || '';
+    const { data: grp, error: grpErr } = await supabase
+      .from('groups')
+      .upsert({ code: groupCode, name: groupCode, admin_id: firstPlayerName },
+               { onConflict: 'code' })
+      .select('id')
+      .single();
+    if (grpErr) {
+      errors.push(`Group upsert: ${grpErr.message}`);
+    } else {
+      groupId = grp.id;
+      // Upsert a group_members row for every player
+      for (const playerName of Object.keys(gistData.players)) {
+        const { error: mErr } = await supabase
+          .from('group_members')
+          .upsert({ group_id: groupId, player_id: playerName },
+                  { onConflict: 'group_id,player_id' });
+        if (mErr) errors.push(`Member ${playerName}: ${mErr.message}`);
+      }
+    }
+  }
+
   for (const [playerName, playerObj] of Object.entries(gistData.players)) {
     // Upsert player
     const { error: pErr } = await supabase.from('players').upsert({
