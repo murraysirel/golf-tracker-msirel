@@ -84,7 +84,7 @@ async function _runSearch(q) {
     _lastResults = data.courses || [];
 
     if (_lastResults.length === 0 && data.source === 'cache_empty') {
-      _showResultsMsg('Course directory not yet loaded — please contact your group admin to run the import.');
+      _showResultsMsg('No courses found — try a different spelling or country filter.');
     } else if (_lastResults.length === 0 && data.source === 'db_error') {
       _showResultsMsg('Course search is temporarily unavailable — please try again in a moment.');
     } else if (_lastResults.length === 0) {

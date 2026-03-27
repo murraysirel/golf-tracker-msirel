@@ -211,12 +211,12 @@ export async function adminRunMigration() {
   try {
     const res = await fetch('/.netlify/functions/run-migration', { method: 'POST' });
     const json = await res.json();
-    if (res.ok && json.migrated != null) {
+    if (res.ok) {
       msg.style.color = '#2ecc71';
-      msg.textContent = `\u2705 Done \u2014 ${json.migrated} round(s) migrated, ${json.skipped ?? 0} skipped.`;
-    } else if (res.ok) {
-      msg.style.color = '#2ecc71';
-      msg.textContent = '\u2705 Migration complete.';
+      const players = json.players ?? json.migrated ?? '?';
+      const rounds  = json.rounds ?? '?';
+      const errs    = json.errors?.length ? `\n⚠️ ${json.errors.length} error(s): ${json.errors.slice(0,3).join('; ')}` : '';
+      msg.textContent = `\u2705 Done \u2014 ${players} player(s), ${rounds} round(s) migrated.${errs}`;
     } else {
       msg.style.color = '#e74c3c';
       msg.textContent = `\u274C Error ${res.status}: ${json.error || 'unknown'}`;

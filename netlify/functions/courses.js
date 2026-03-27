@@ -62,6 +62,11 @@ function httpsPost(hostname, path, body, headers = {}) {
 // ── GolfAPI helpers ────────────────────────────────────────────────────────────
 const golfApiHeaders = () => ({ Authorization: `Bearer ${GOLFAPI_KEY}` });
 
+async function golfApiSearchClubs(name, country) {
+  const countryParam = (country && country !== 'all') ? `&country=${encodeURIComponent(country)}` : '';
+  return httpsGet(GOLFAPI_BASE, `/api/v2.3/clubs?name=${encodeURIComponent(name)}${countryParam}`, golfApiHeaders());
+}
+
 async function golfApiGetCourse(courseId) {
   return httpsGet(GOLFAPI_BASE, `/api/v2.3/courses/${courseId}`, golfApiHeaders());
 }
@@ -319,14 +324,14 @@ exports.handler = async (event) => {
   });
 
   // ── ACTION: search ──────────────────────────────────────────────────────────
-  // Searches Supabase ONLY. Never calls GolfAPI.io.
-  // The admin/import-courses.js script must be run first to populate the directory.
+  // Tier 1: Supabase directory. Tier 2: GolfAPI.io fallback if directory empty.
   if (action === 'search') {
     const name    = event.queryStringParameters?.name    || '';
     const country = event.queryStringParameters?.country || 'all';
 
     if (name.length < 2) return respond(400, { error: 'Name too short' });
 
+    // 1. Try Supabase first
     let courses = [];
     try {
       courses = await searchCache(name, country);
@@ -335,20 +340,40 @@ exports.handler = async (event) => {
       return respond(200, { courses: [], source: 'db_error', error: e?.message });
     }
 
-    // Log search (fire-and-forget — always a cache hit since we never call GolfAPI)
-    logCall('search', name, true, { country, results: courses.length });
-
-    if (courses.length === 0) {
-      return respond(200, {
-        courses: [],
-        source: 'cache_empty',
-        hint: 'The course directory may not be populated yet. Run admin/import-courses.js first.',
-      });
+    if (courses.length > 0) {
+      logCall('search', name, true, { country, results: courses.length });
+      return respond(200, { courses: courses.map(c => ({ ...c, cached: true })), source: 'cache' });
     }
 
-    // Add cached:true flag so the frontend knows these are from Supabase
-    const withFlag = courses.map(c => ({ ...c, cached: true }));
-    return respond(200, { courses: withFlag, source: 'cache' });
+    // 2. Supabase empty — fall back to GolfAPI.io (costs 0.1 credits per call)
+    if (GOLFAPI_KEY) {
+      try {
+        const apiRes = await golfApiSearchClubs(name, country);
+        const clubs  = apiRes?.clubs || apiRes?.data || [];
+        if (Array.isArray(clubs) && clubs.length > 0) {
+          const mapped = clubs.map(club => ({
+            external_course_id: String(club.id || club.course_id || ''),
+            external_club_id:   String(club.club_id || club.id || ''),
+            name:      club.club_name || club.name || '',
+            location:  club.city || club.location || '',
+            country:   club.country || country,
+            has_hole_data: false,
+            cached: false,
+          })).filter(c => c.name);
+          logCall('search', name, false, { country, results: mapped.length, source: 'api_fallback' });
+          return respond(200, { courses: mapped, source: 'api' });
+        }
+      } catch (apiErr) {
+        console.error('[courses] GolfAPI fallback error:', apiErr?.message);
+      }
+    }
+
+    logCall('search', name, false, { country, results: 0 });
+    return respond(200, {
+      courses: [],
+      source: 'cache_empty',
+      hint: 'No courses found. Try a different spelling or country filter.',
+    });
   }
 
   // ── ACTION: fetch ───────────────────────────────────────────────────────────
