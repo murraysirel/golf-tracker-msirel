@@ -62,7 +62,7 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'No players found in Gist data' }) };
   }
 
-  const groupCode = gistData.groupCode || '';
+  const groupCode = gistData.activeGroupCode || gistData.groupCode || '';
 
   // ── 2. Upsert to Supabase ────────────────────────────────────────
   const supabase = createClient(
