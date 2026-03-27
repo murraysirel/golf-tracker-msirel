@@ -25,8 +25,8 @@ const COUNTRIES = [
   { value: 'Canada',  label: '🇨🇦 Canada' },
 ];
  
-let _searchTimer   = null;
-let _lastResults   = [];
+let _searchTimer    = null;
+let _lastResults    = [];
 let _selectedCourse = null;
  
 // ── Called from app.js on Round page load ─────────────────────────────────────
@@ -68,25 +68,26 @@ function _onInput() {
   const q = document.getElementById('cs-input')?.value?.trim() || '';
   _hideResults();
   if (q.length < 2) return;
-  _searchTimer = setTimeout(() => _runSearch(q), 380);
+  // 400ms — search hits Supabase only, but we still debounce to avoid spamming on
+  // fast typists. No API calls fire during search under any circumstances.
+  _searchTimer = setTimeout(() => _runSearch(q), 400);
 }
  
 async function _runSearch(q) {
   const country = document.getElementById('cs-country')?.value || 'all';
   _showSpinner(true);
- 
+
   try {
     const url = `${COURSES_API}?action=search&name=${encodeURIComponent(q)}&country=${encodeURIComponent(country)}`;
     const res  = await fetch(url);
     const data = await res.json();
     _lastResults = data.courses || [];
-    if (_lastResults.length === 0 && data.source === 'no_key') {
-      _showResultsMsg('Course search is not configured. Contact your group admin.');
-    } else if (_lastResults.length === 0 && data.source === 'api_error') {
-      console.warn('[courses] GolfAPI network error:', data.error);
+
+    if (_lastResults.length === 0 && data.source === 'cache_empty') {
+      _showResultsMsg('Course directory not yet loaded — please contact your group admin to run the import.');
+    } else if (_lastResults.length === 0 && data.source === 'db_error') {
       _showResultsMsg('Course search is temporarily unavailable — please try again in a moment.');
-    } else if (_lastResults.length === 0 && data.source === 'api_empty') {
-      console.warn('[courses] GolfAPI returned no clubs. Raw response:', data.debug);
+    } else if (_lastResults.length === 0) {
       _showResultsMsg('No courses found — try a different spelling or check the country filter.');
     } else {
       _renderResults(_lastResults);
@@ -110,17 +111,24 @@ function _renderResults(courses) {
   }
  
   el.style.display = 'block';
-  el.innerHTML = courses.map((c, i) => `
+  el.innerHTML = courses.map((c, i) => {
+    // Green dot = hole data already cached (instant load, no API call on selection)
+    const holeDataBadge = c.has_hole_data
+      ? ' <span class="cs-holedata-badge" title="Full course data cached — loads instantly">●</span>'
+      : '';
+    // Par badge shown when available at directory level
+    const parBadge = c.overall_par ? ` · <span class="cs-par-badge">Par ${c.overall_par}</span>` : '';
+
+    return `
     <div class="cs-result" data-idx="${i}">
-      <div class="cs-result-name">${c.name}${c.name !== c.club_name && c.club_name ? ` <span class="cs-result-club">· ${c.club_name}</span>` : ''}</div>
+      <div class="cs-result-name">${c.name}${c.name !== c.club_name && c.club_name ? ` <span class="cs-result-club">· ${c.club_name}</span>` : ''}${holeDataBadge}</div>
       <div class="cs-result-meta">
-        ${c.location || ''}
-        ${c.holes !== 18 ? ` · ${c.holes} holes` : ''}
+        ${c.location || ''}${parBadge}
+        ${c.holes && c.holes !== 18 ? ` · ${c.holes} holes` : ''}
         ${c.has_gps ? ' · <span class="cs-gps-badge">📍 GPS</span>' : ''}
-        ${c.cached  ? ' · <span class="cs-cached-badge">✓ saved</span>' : ''}
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
  
   el.querySelectorAll('.cs-result').forEach(item => {
     item.addEventListener('click', () => _onSelectResult(parseInt(item.dataset.idx)));
@@ -131,31 +139,47 @@ function _renderResults(courses) {
 async function _onSelectResult(idx) {
   const result = _lastResults[idx];
   if (!result) return;
- 
+
   _hideResults();
- 
-  // If already fully cached (came from Supabase), use directly
-  if (result.cached && result.pars?.length === 18) {
-    _applyCourse(result);
-    return;
+
+  const fetchUrl = `${COURSES_API}?action=fetch&courseId=${encodeURIComponent(result.external_course_id)}&clubId=${encodeURIComponent(result.external_club_id || '')}`;
+
+  // has_hole_data=true means valid hole data is already in Supabase — load from cache,
+  // no GolfAPI call. Still goes through the fetch action so the server can return the
+  // full row (the search result only has slim/directory-level fields).
+  if (result.has_hole_data === true) {
+    _showLoadingState('Loading course details…');
+    try {
+      const res  = await fetch(fetchUrl);
+      const data = await res.json();
+      if (data.course) { _applyCourse(data.course); return; }
+    } catch { /* fall through */ }
+    finally { _hideLoadingState(); }
   }
- 
-  // Otherwise fetch full detail + coordinates (cache-once write happens server-side)
-  _showSpinner(true);
+
+  // Hole data not yet cached — server will make ONE GolfAPI call, validate, then save.
+  _showLoadingState('Getting course details…');
   try {
-    const url = `${COURSES_API}?action=fetch&courseId=${encodeURIComponent(result.external_course_id)}&clubId=${encodeURIComponent(result.external_club_id || '')}`;
-    const res  = await fetch(url);
+    const res  = await fetch(fetchUrl);
     const data = await res.json();
+
+    if (res.status === 422) {
+      // Server-side validation failed — do not apply broken data
+      _showResultsMsg('Course details incomplete — please try again. If this keeps happening, use "Report incorrect data".');
+      return;
+    }
+
     if (data.course) {
       _applyCourse(data.course);
     } else {
-      // Fallback — use slim result even without full detail
+      // Unexpected error from server — apply slim result as best effort
+      // (_applyTee will try the built-in fallback if pars are all-4)
       _applyCourse(result);
     }
   } catch {
-    _applyCourse(result); // Best effort fallback
+    _applyCourse(result); // Network failure — best effort with slim data
   } finally {
-    _showSpinner(false);
+    _hideLoadingState();
   }
 }
  
@@ -384,7 +408,23 @@ function _showResultsMsg(msg) {
   el.style.display = 'block';
   el.innerHTML = `<div class="cs-empty">${msg}</div>`;
 }
- 
+
+// Show an inline loading message while fetching hole detail from GolfAPI
+function _showLoadingState(msg) {
+  _showSpinner(true);
+  const res = document.getElementById('cs-results');
+  if (res) {
+    res.style.display = 'block';
+    res.innerHTML = `<div class="cs-loading">${msg}</div>`;
+  }
+}
+
+function _hideLoadingState() {
+  _showSpinner(false);
+  const res = document.getElementById('cs-results');
+  if (res) res.style.display = 'none';
+}
+
 // ── Expose getCourseByRef for any module still using it ───────────────────────
 // Returns the currently active course — backwards compatible with old usage
 export function getCourseByRef() {

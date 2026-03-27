@@ -1433,6 +1433,13 @@
             <button class="btn btn-o" id="admin-migrate-btn" onclick="window._adminRunMigration()">Run Migration</button>
             <div id="admin-migrate-msg" style="margin-top:8px;font-size:11px;color:var(--dim)"></div>
           </div>
+          <!-- Course data repair -->
+          <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+            <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:8px">Course Data Repair</div>
+            <div style="font-size:11px;color:var(--dim);margin-bottom:10px">Find courses where hole data is corrupted (all pars = 4, invalid SI) and reset them so they re-fetch correctly on next selection.</div>
+            <button class="btn btn-o" id="admin-fix-courses-btn" onclick="window._adminFixCourseData()">Fix Corrupted Course Data</button>
+            <div id="admin-fix-courses-msg" style="margin-top:8px;font-size:11px;color:var(--dim);white-space:pre-wrap"></div>
+          </div>
           <!-- Demo data seeding -->
           <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
             <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:8px">Demo Data</div>

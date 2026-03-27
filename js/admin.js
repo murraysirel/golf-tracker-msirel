@@ -255,6 +255,35 @@ export async function adminSeedDemo(reset = false) {
   }
 }
 
+export async function adminFixCourseData() {
+  const btn = document.getElementById('admin-fix-courses-btn');
+  const msg = document.getElementById('admin-fix-courses-msg');
+  if (!msg) return;
+  if (btn) btn.disabled = true;
+  msg.style.color = 'var(--dim)';
+  msg.textContent = 'Scanning for corrupted course records…';
+  try {
+    const secret = prompt('Enter admin secret:');
+    if (!secret) { msg.textContent = 'Cancelled.'; return; }
+    const res  = await fetch(`/.netlify/functions/courses?action=fix-bad-data&secret=${encodeURIComponent(secret)}`);
+    const data = await res.json();
+    if (!res.ok) {
+      msg.style.color = 'var(--double)';
+      msg.textContent = `Error: ${data.error || res.status}`;
+      return;
+    }
+    msg.style.color = 'var(--par)';
+    const details = (data.details || []).map(d => `• ${d.name}: ${d.reason}`).join('\n');
+    msg.textContent = data.message + (details ? '\n\n' + details : '');
+  } catch (e) {
+    msg.style.color = 'var(--double)';
+    msg.textContent = `Network error: ${e.message}`;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 // Expose for inline onclick in admin panel HTML
-window._adminRunMigration = adminRunMigration;
-window._adminSeedDemo = adminSeedDemo;
+window._adminRunMigration   = adminRunMigration;
+window._adminSeedDemo       = adminSeedDemo;
+window._adminFixCourseData  = adminFixCourseData;

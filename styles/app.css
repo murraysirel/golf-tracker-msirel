@@ -1188,9 +1188,12 @@ details[open] summary::after{content:' ▾'}
 .cs-result-name   { font-size:14px; color:var(--cream); font-weight:600; }
 .cs-result-club   { font-weight:400; color:var(--dim); }
 .cs-result-meta   { font-size:11px; color:var(--dim); margin-top:2px; }
-.cs-gps-badge     { color:var(--gold); }
-.cs-cached-badge  { color:var(--par); }
-.cs-empty         { padding:12px; font-size:13px; color:var(--dim); text-align:center; }
+.cs-gps-badge      { color:var(--gold); }
+.cs-cached-badge   { color:var(--par); }
+.cs-holedata-badge { color:var(--par); font-size:9px; vertical-align:middle; margin-left:4px; }
+.cs-par-badge      { color:var(--dim); }
+.cs-empty          { padding:12px; font-size:13px; color:var(--dim); text-align:center; }
+.cs-loading        { padding:12px; font-size:13px; color:var(--dim); text-align:center; font-style:italic; }
 .cs-selected      { margin-top:12px; }
 .cs-card          { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px; }
 .cs-card-name     { font-size:16px; font-weight:700; color:var(--cream); }

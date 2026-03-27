@@ -1,48 +1,51 @@
 // ============================================================
 // netlify/functions/courses.js
-// GolfAPI.io integration — search, fetch, cache, report
-// Save this file as: netlify/functions/courses.js
-// Last updated: 24 March 2026
+// GolfAPI.io integration — search (Supabase-only), fetch on
+// selection, api_call_log monitoring, data repair admin action.
+//
+// Architecture:
+//   Search  → Supabase ONLY.  Zero GolfAPI calls during search.
+//   Fetch   → Supabase if has_hole_data=true, else ONE GolfAPI call.
+//   The admin/import-courses.js script pre-populates the directory.
 // ============================================================
- 
+
 const https = require('https');
- 
+
 const SUPABASE_URL  = process.env.SUPABASE_URL;
 const SUPABASE_KEY  = process.env.SUPABASE_SERVICE_KEY;
-const GOLFAPI_KEY   = process.env.GOLFAPI_KEY;  // Add to Netlify env vars
+const GOLFAPI_KEY   = process.env.GOLFAPI_KEY;
+const SYNC_SECRET   = process.env.SYNC_SECRET;   // Used to protect admin actions
 const GOLFAPI_BASE  = 'www.golfapi.io';
- 
+
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 };
- 
-// ── Generic HTTPS request helper ──────────────────────────────────────────────
+
+// ── Generic HTTPS helpers ──────────────────────────────────────────────────────
 function httpsGet(hostname, path, headers = {}) {
   return new Promise((resolve, reject) => {
-    const options = { hostname, path, method: 'GET', headers };
-    const req = https.request(options, res => {
+    const req = https.request({ hostname, path, method: 'GET', headers }, res => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
         try { resolve(JSON.parse(data)); }
-        catch { resolve({ error: 'Invalid JSON', raw: data }); }
+        catch { resolve({ error: 'Invalid JSON', raw: data.slice(0, 500) }); }
       });
     });
     req.on('error', reject);
     req.end();
   });
 }
- 
+
 function httpsPost(hostname, path, body, headers = {}) {
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify(body);
-    const options = {
+    const req = https.request({
       hostname, path, method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload), ...headers }
-    };
-    const req = https.request(options, res => {
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload), ...headers },
+    }, res => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
@@ -55,249 +58,329 @@ function httpsPost(hostname, path, body, headers = {}) {
     req.end();
   });
 }
- 
-// ── GolfAPI.io helpers ─────────────────────────────────────────────────────────
-const golfApiHeaders = () => ({ 'Authorization': `Bearer ${GOLFAPI_KEY}` });
- 
-// Search clubs by name (costs 0.1 credits — only called on cache miss)
-async function golfApiSearchClubs(name, country) {
-  let path = `/api/v2.3/clubs?name=${encodeURIComponent(name)}`;
-  if (country && country !== 'all') path += `&country=${encodeURIComponent(country)}`;
-  return httpsGet(GOLFAPI_BASE, path, golfApiHeaders());
-}
- 
-// Fetch full course detail (costs 1 credit)
+
+// ── GolfAPI helpers ────────────────────────────────────────────────────────────
+const golfApiHeaders = () => ({ Authorization: `Bearer ${GOLFAPI_KEY}` });
+
 async function golfApiGetCourse(courseId) {
   return httpsGet(GOLFAPI_BASE, `/api/v2.3/courses/${courseId}`, golfApiHeaders());
 }
- 
-// Fetch coordinates (costs 1 credit)
+
 async function golfApiGetCoordinates(courseId) {
   return httpsGet(GOLFAPI_BASE, `/api/v2.3/coordinates/${courseId}`, golfApiHeaders());
 }
- 
-// ── Parse coordinates into clean per-hole structure ───────────────────────────
-// poi=1 is the green. location: 1=back, 2=middle, 3=front
-// poi=2 is tee box. poi=11/12 are tee markers.
+
+// ── Coordinate parser ─────────────────────────────────────────────────────────
+// poi=1 = green; location: 1=back, 2=middle, 3=front
+// poi=11 = back tee marker
 function parseCoordinates(rawCoords) {
   const holes = {};
- 
-  for (const c of rawCoords) {
+  for (const c of (rawCoords || [])) {
     const h = c.hole;
-    if (!holes[h]) holes[h] = { green: {}, tee: null, hazards: [] };
- 
+    if (!holes[h]) holes[h] = { green: {}, tee: null };
     if (c.poi === 1) {
-      // Green coordinates — front/middle/back
       if (c.location === 3) holes[h].green.front  = { lat: c.latitude, lng: c.longitude };
       if (c.location === 2) holes[h].green.middle = { lat: c.latitude, lng: c.longitude };
       if (c.location === 1) holes[h].green.back   = { lat: c.latitude, lng: c.longitude };
     }
- 
     if (c.poi === 11 && c.location === 2) {
-      // Back tee marker (poi=11 is the main tee reference point)
       holes[h].tee = { lat: c.latitude, lng: c.longitude };
     }
   }
- 
-  return holes; // { 1: { green: {front, middle, back}, tee: {lat,lng} }, 2: ... }
+  return holes;
 }
- 
-// ── Parse course detail into our schema ───────────────────────────────────────
+
+// ── Validate parsed hole data ─────────────────────────────────────────────────
+// Returns { valid: bool, reason: string }
+function validateHoleData(tees) {
+  if (!Array.isArray(tees) || tees.length === 0) {
+    return { valid: false, reason: 'No tees found in API response' };
+  }
+
+  // Find a tee with full hole data
+  const teesWithHoles = tees.filter(t =>
+    Array.isArray(t.pars_per_hole) && t.pars_per_hole.length === 18
+  );
+  if (teesWithHoles.length === 0) {
+    return { valid: false, reason: 'No tee has 18 holes of par data' };
+  }
+
+  // Check every tee with hole data
+  for (const tee of teesWithHoles) {
+    const pars = tee.pars_per_hole;
+    const si   = tee.si_per_hole;
+
+    // Every par must be 3, 4, or 5
+    if (pars.some(p => p < 3 || p > 5)) {
+      return { valid: false, reason: `Tee "${tee.name}": par value out of range 3–5` };
+    }
+
+    // All pars must not be 4 — that's the default-fallback signature
+    if (pars.every(p => p === 4)) {
+      return { valid: false, reason: `Tee "${tee.name}": all 18 holes are par 4 — likely default fallback data, not real course data` };
+    }
+
+    // Stroke indexes: if present, must be 1–18 with no duplicates
+    if (Array.isArray(si) && si.length === 18) {
+      if (si.some(v => v < 1 || v > 18)) {
+        return { valid: false, reason: `Tee "${tee.name}": stroke index out of range 1–18` };
+      }
+      const siSet = new Set(si);
+      if (siSet.size !== 18) {
+        return { valid: false, reason: `Tee "${tee.name}": duplicate stroke index values` };
+      }
+    }
+  }
+
+  // At least one tee must have yardage data
+  const hasYardage = tees.some(t =>
+    Array.isArray(t.yards_per_hole) && t.yards_per_hole.some(y => y > 0)
+  );
+  if (!hasYardage) {
+    return { valid: false, reason: 'No yardage data found in any tee' };
+  }
+
+  return { valid: true, reason: 'ok' };
+}
+
+// ── Parse full course detail from GolfAPI response ────────────────────────────
 function parseCourseDetail(clubData, rawCourseData, coordData) {
-  // GolfAPI may wrap the response in a top-level key (e.g. { course: {...} } or { data: {...} }).
-  // Unwrap defensively so we always work with the bare course object.
+  // GolfAPI may wrap in { course: {...} } or { data: {...} } — unwrap defensively
   const courseData = rawCourseData?.course || rawCourseData?.data || rawCourseData;
 
-  // Diagnostic log — visible in Netlify function logs
   console.log('[courses] parseCourseDetail top-level keys:', Object.keys(courseData || {}));
   console.log('[courses] tees count:', (courseData?.tees || []).length,
     '| first-tee holes:', courseData?.tees?.[0]?.holes?.length ?? 'n/a');
 
-  // Build tees array from course data
   const tees = (courseData.tees || []).map(t => ({
-    colour:         (t.teeName || t.name || 'unknown').toLowerCase().replace(/\s+/g, '_'),
+    colour:         mapTeeColour(t.teeName || t.name || ''),
     name:           t.teeName || t.name || 'Unknown',
     yardage:        t.totalLength || t.yardage || null,
     rating:         parseFloat(t.courseRating || t.rating) || null,
-    slope:          parseInt(t.slopeRating || t.slope) || null,
+    slope:          parseInt(t.slopeRating   || t.slope)   || null,
     yards_per_hole: (t.holes || []).map(h => h.length || h.yards || 0),
-    pars_per_hole:  (t.holes || []).map(h => h.par || 4),
-    si_per_hole:    (t.holes || []).map(h => h.strokeIndex || h.handicap || 0),
+    pars_per_hole:  (t.holes || []).map(h => parseInt(h.par)   || 4),
+    si_per_hole:    (t.holes || []).map(h => parseInt(h.strokeIndex || h.handicap) || 0),
   }));
 
-  // Pars — use first tee as master (they should all share the same pars)
   const firstTee = courseData.tees?.[0];
   const pars = firstTee?.holes?.length === 18
-    ? firstTee.holes.map(h => h.par || 4)
+    ? firstTee.holes.map(h => parseInt(h.par) || 4)
     : Array(18).fill(4);
 
-  // Stroke indexes — from first tee if available
   const si = firstTee?.holes?.[0]?.strokeIndex !== undefined
-    ? firstTee.holes.map(h => h.strokeIndex || 0)
+    ? firstTee.holes.map(h => parseInt(h.strokeIndex || h.handicap) || 0)
     : [];
- 
-  // Coordinates
+
   const greenCoords = coordData?.coordinates
     ? parseCoordinates(coordData.coordinates)
     : {};
- 
+
+  const overallPar = pars.reduce((a, b) => a + b, 0);
+
   return {
-    external_club_id: String(clubData.clubID || ''),
+    external_club_id:   String(clubData.clubID   || ''),
     external_course_id: String(courseData.courseID || ''),
-    name:           courseData.courseName || clubData.clubName || 'Unknown Course',
-    club_name:      clubData.clubName || '',
-    location:       [clubData.city?.trim(), clubData.state, clubData.country].filter(Boolean).join(', '),
-    country:        clubData.country || '',
-    city:           clubData.city?.trim() || '',
-    holes:          parseInt(courseData.numHoles) || 18,
+    name:        courseData.courseName || clubData.clubName || 'Unknown Course',
+    club_name:   clubData.clubName || '',
+    location:    [clubData.city?.trim(), clubData.state, clubData.country].filter(Boolean).join(', '),
+    country:     clubData.country || '',
+    city:        clubData.city?.trim() || '',
+    holes:       parseInt(courseData.numHoles) || 18,
     tees,
     pars,
     stroke_indexes: si,
+    overall_par: overallPar,
+    tee_types:   tees.map(t => t.name),
     green_coords:   greenCoords,
     has_gps:        Object.keys(greenCoords).length > 0,
+    has_hole_data:  false,  // Will be set to true after validation passes
     data_source:    'golfapi_v2',
     data_quality:   'api',
     report_count:   0,
   };
 }
- 
+
+// Map a GolfAPI tee name to our standard colour key
+function mapTeeColour(teeName) {
+  const n = (teeName || '').toLowerCase();
+  if (/black|champion/.test(n)) return 'black';
+  if (/blue|back/.test(n))      return 'blue';
+  if (/white|medal|mens|men/.test(n)) return 'white';
+  if (/yellow|gents|standard|forward|senior/.test(n)) return 'yellow';
+  if (/red|ladi|women/.test(n)) return 'red';
+  return n.replace(/\s+/g, '_') || 'white';
+}
+
 // ── Supabase helpers ───────────────────────────────────────────────────────────
-const sbHost = () => new URL(SUPABASE_URL).hostname;
-const sbPath = (table, qs = '') => `/rest/v1/${table}${qs ? '?' + qs : ''}`;
+const sbHost    = () => new URL(SUPABASE_URL).hostname;
+const sbPath    = (table, qs = '') => `/rest/v1/${table}${qs ? '?' + qs : ''}`;
 const sbHeaders = (extra = {}) => ({
-  'apikey': SUPABASE_KEY,
-  'Authorization': `Bearer ${SUPABASE_KEY}`,
+  apikey:        SUPABASE_KEY,
+  Authorization: `Bearer ${SUPABASE_KEY}`,
   'Content-Type': 'application/json',
-  'Prefer': 'return=representation',
-  ...extra
+  Prefer:        'return=representation',
+  ...extra,
 });
- 
+
 async function sbSelect(table, qs) {
   const result = await httpsGet(sbHost(), sbPath(table, qs), sbHeaders());
   return Array.isArray(result) ? result : [];
 }
- 
+
 async function sbUpsert(table, data) {
   return httpsPost(
     sbHost(),
     sbPath(table, 'on_conflict=external_course_id'),
     { ...data, updated_at: new Date().toISOString() },
-    sbHeaders({ 'Prefer': 'return=representation,resolution=merge-duplicates' })
+    sbHeaders({ Prefer: 'return=representation,resolution=merge-duplicates' }),
   );
 }
- 
+
+async function sbUpdate(table, data, qs) {
+  return new Promise((resolve, reject) => {
+    const payload = JSON.stringify(data);
+    const req = https.request({
+      hostname: sbHost(),
+      path:     sbPath(table, qs),
+      method:   'PATCH',
+      headers:  { ...sbHeaders(), 'Content-Length': Buffer.byteLength(payload) },
+    }, res => {
+      let d = '';
+      res.on('data', chunk => d += chunk);
+      res.on('end', () => {
+        try { resolve(JSON.parse(d)); }
+        catch { resolve([]); }
+      });
+    });
+    req.on('error', reject);
+    req.write(payload);
+    req.end();
+  });
+}
+
 async function sbInsert(table, data) {
   return httpsPost(sbHost(), sbPath(table), data, sbHeaders());
 }
- 
-// ── Search Supabase cache first ────────────────────────────────────────────────
+
+// ── Log an API call to api_call_log ───────────────────────────────────────────
+async function logCall(endpoint, courseName, wasCacheHit, details = {}) {
+  try {
+    await sbInsert('api_call_log', {
+      timestamp:    new Date().toISOString(),
+      endpoint,
+      course_name:  courseName || null,
+      was_cache_hit: wasCacheHit,
+      details:      Object.keys(details).length > 0 ? details : null,
+    });
+  } catch (e) {
+    // Non-critical — don't let logging failures break the request
+    console.warn('[courses] api_call_log write failed:', e?.message);
+  }
+}
+
+// ── Search Supabase (ONLY — no GolfAPI fallback) ──────────────────────────────
 async function searchCache(name, country) {
-  let qs = `select=id,external_course_id,external_club_id,name,club_name,location,country,city,holes,tees,pars,stroke_indexes,green_coords,has_gps,data_source&name=ilike.*${encodeURIComponent(name)}*&limit=10`;
+  let qs = `select=id,external_course_id,external_club_id,name,club_name,location,country,city,holes,has_gps,has_hole_data,overall_par,tee_types&name=ilike.*${encodeURIComponent(name)}*&limit=12`;
   if (country && country !== 'all') qs += `&country=ilike.*${encodeURIComponent(country)}*`;
   return sbSelect('courses', qs);
 }
- 
+
+// ── Load full detail from Supabase cache ───────────────────────────────────────
+async function loadCachedDetail(courseId) {
+  const rows = await sbSelect('courses',
+    `external_course_id=eq.${encodeURIComponent(courseId)}&select=*&limit=1`
+  );
+  return rows[0] || null;
+}
+
+// ── Check if cached detail has valid hole data ─────────────────────────────────
+function cacheHasGoodHoleData(row) {
+  if (!row || row.has_hole_data !== true) return false;
+  if (!Array.isArray(row.tees) || row.tees.length === 0) return false;
+  const t0 = row.tees[0];
+  if (!Array.isArray(t0?.pars_per_hole) || t0.pars_per_hole.length !== 18) return false;
+  // Extra guard: reject if all pars are 4 (corrupted fallback data)
+  if (t0.pars_per_hole.every(p => p === 4)) return false;
+  return true;
+}
+
 // ── Main handler ───────────────────────────────────────────────────────────────
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers: CORS };
   }
- 
+
   const action  = event.queryStringParameters?.action || 'search';
   const respond = (status, body) => ({
     statusCode: status,
     headers: { ...CORS, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
   });
- 
-  // ── ACTION: search ─────────────────────────────────────────────────────────
-  // Called on every keypress (debounced). Checks Supabase first, then GolfAPI.
+
+  // ── ACTION: search ──────────────────────────────────────────────────────────
+  // Searches Supabase ONLY. Never calls GolfAPI.io.
+  // The admin/import-courses.js script must be run first to populate the directory.
   if (action === 'search') {
-    const name    = event.queryStringParameters?.name || '';
+    const name    = event.queryStringParameters?.name    || '';
     const country = event.queryStringParameters?.country || 'all';
- 
+
     if (name.length < 2) return respond(400, { error: 'Name too short' });
- 
-    // 1. Supabase cache check — free, instant; fall through to GolfAPI on any error
-    let cached = [];
+
+    let courses = [];
     try {
-      cached = await searchCache(name, country);
+      courses = await searchCache(name, country);
     } catch (e) {
       console.error('[courses] searchCache error:', e?.message);
-    }
-    if (cached.length > 0) {
-      return respond(200, { courses: cached, source: 'cache' });
+      return respond(200, { courses: [], source: 'db_error', error: e?.message });
     }
 
-    // 2. GolfAPI.io search — costs 0.1 credits, only on cache miss
-    if (!GOLFAPI_KEY) return respond(200, { courses: [], source: 'no_key' });
+    // Log search (fire-and-forget — always a cache hit since we never call GolfAPI)
+    logCall('search', name, true, { country, results: courses.length });
 
-    let apiResult = null;
-    try {
-      apiResult = await golfApiSearchClubs(name, country);
-    } catch (e) {
-      console.error('[courses] golfApiSearchClubs error:', e?.message);
-      return respond(200, { courses: [], source: 'api_error', error: e?.message });
+    if (courses.length === 0) {
+      return respond(200, {
+        courses: [],
+        source: 'cache_empty',
+        hint: 'The course directory may not be populated yet. Run admin/import-courses.js first.',
+      });
     }
-    console.log('[courses] GolfAPI search keys:', Object.keys(apiResult || {}),
-      '| clubs:', apiResult?.clubs?.length ?? 'none', '| error:', apiResult?.error ?? 'none');
-    if (!apiResult?.clubs?.length) {
-      return respond(200, { courses: [], source: 'api_empty', debug: apiResult });
-    }
- 
-    // Return slim search results to the frontend (no credits spent on detail yet)
-    // Each result includes clubID + courseID so frontend can request full detail on selection
-    const results = [];
-    for (const club of apiResult.clubs.slice(0, 8)) {
-      for (const course of (club.courses || [])) {
-        results.push({
-          // These IDs are used to fetch full detail on selection
-          external_club_id:   String(club.clubID),
-          external_course_id: String(course.courseID),
-          name:       course.courseName || club.clubName,
-          club_name:  club.clubName,
-          location:   [club.city?.trim(), club.state, club.country].filter(Boolean).join(', '),
-          country:    club.country,
-          city:       club.city?.trim(),
-          holes:      course.numHoles,
-          has_gps:    course.hasGPS === 1,
-          cached:     false,
-        });
-      }
-    }
- 
-    return respond(200, { courses: results, source: 'api' });
+
+    // Add cached:true flag so the frontend knows these are from Supabase
+    const withFlag = courses.map(c => ({ ...c, cached: true }));
+    return respond(200, { courses: withFlag, source: 'cache' });
   }
- 
-  // ── ACTION: fetch ──────────────────────────────────────────────────────────
-  // Called once when a player selects a course from search results.
-  // Fetches full detail + coordinates, saves to Supabase, returns complete record.
+
+  // ── ACTION: fetch ───────────────────────────────────────────────────────────
+  // Called once when a user selects a course.
+  // Returns from Supabase if has_hole_data=true and data is valid.
+  // Falls back to ONE GolfAPI call if not yet cached.
   if (action === 'fetch') {
     const courseId = event.queryStringParameters?.courseId;
     const clubId   = event.queryStringParameters?.clubId;
- 
+
     if (!courseId) return respond(400, { error: 'Missing courseId' });
- 
-    // Check if already fully cached in Supabase with real per-hole data.
-    // We require tees[0].pars_per_hole.length === 18 to avoid serving courses
-    // that were previously cached with all-default (par-4) data.
-    const existing = await sbSelect('courses',
-      `external_course_id=eq.${encodeURIComponent(courseId)}&select=*&limit=1`
-    );
-    if (existing.length > 0) {
-      const cached = existing[0];
-      const hasHoleData = Array.isArray(cached.tees) && cached.tees.length > 0
-        && cached.tees[0].pars_per_hole?.length === 18;
-      if (hasHoleData) {
-        return respond(200, { course: cached, source: 'cache' });
-      }
-      // Cached but missing real per-hole data — fall through to re-fetch from GolfAPI
-      console.log('[courses] cache miss quality check for', courseId, '— re-fetching from GolfAPI');
+
+    // 1. Check Supabase for valid cached hole data
+    let cached = null;
+    try {
+      cached = await loadCachedDetail(courseId);
+    } catch (e) {
+      console.error('[courses] loadCachedDetail error:', e?.message);
     }
- 
-    // Not cached — fetch from GolfAPI (costs 2 credits: course + coordinates)
-    if (!GOLFAPI_KEY) return respond(503, { error: 'No API key configured' });
- 
+
+    if (cacheHasGoodHoleData(cached)) {
+      logCall('fetch', cached.name, true, { courseId, source: 'cache' });
+      return respond(200, { course: cached, source: 'cache' });
+    }
+
+    // 2. Not cached with good data — fetch from GolfAPI (ONE call, cached forever after)
+    if (!GOLFAPI_KEY) {
+      return respond(503, { error: 'Course details are not available — API key not configured.' });
+    }
+
+    console.log('[courses] Cache miss for', courseId, '— fetching from GolfAPI');
+
     let courseData, coordData;
     try {
       [courseData, coordData] = await Promise.all([
@@ -305,37 +388,153 @@ exports.handler = async (event) => {
         golfApiGetCoordinates(courseId),
       ]);
     } catch (e) {
-      console.error('[courses] golfApiGetCourse error:', e?.message);
-      return respond(502, { error: 'GolfAPI fetch failed', detail: e?.message });
+      console.error('[courses] GolfAPI fetch error:', e?.message);
+      logCall('fetch', courseId, false, { courseId, error: e?.message, stage: 'network' });
+      return respond(502, { error: 'Could not reach course data service — please try again.' });
     }
 
-    if (courseData.error) return respond(502, { error: 'GolfAPI course fetch failed' });
+    if (courseData?.error) {
+      console.error('[courses] GolfAPI returned error:', courseData.error);
+      logCall('fetch', courseId, false, { courseId, error: courseData.error, stage: 'api_error' });
+      return respond(502, { error: 'Course details incomplete — please try again.' });
+    }
 
-    // Log the raw GolfAPI response shape for diagnostics
-    console.log('[courses] raw GolfAPI response top-level keys:', Object.keys(courseData || {}));
-
-    // We need club data — either from a prior search result or fetch the club
-    // Note: parseCourseDetail will unwrap courseData.course if GolfAPI wraps the response.
+    // 3. Parse the response
     const unwrapped = courseData?.course || courseData?.data || courseData;
-    let clubData = { clubID: clubId, clubName: unwrapped.clubName || '', city: unwrapped.city || '', state: unwrapped.state || '', country: unwrapped.country || 'UK' };
+    const clubData = {
+      clubID:   clubId || unwrapped.clubID || '',
+      clubName: unwrapped.clubName || unwrapped.courseName || '',
+      city:     unwrapped.city || '',
+      state:    unwrapped.state || '',
+      country:  unwrapped.country || 'UK',
+    };
 
     const parsed = parseCourseDetail(clubData, courseData, coordData);
- 
-    // Save to Supabase — this is the "cache once" write
+
+    // 4. Validate before saving — if validation fails, do NOT write to Supabase
+    const validation = validateHoleData(parsed.tees);
+    if (!validation.valid) {
+      console.error('[courses] Validation failed for', courseId, ':', validation.reason);
+      // Log the raw response for debugging
+      logCall('fetch', parsed.name, false, {
+        courseId,
+        error: validation.reason,
+        stage: 'validation_failed',
+        raw_tees_count:       (unwrapped?.tees || []).length,
+        raw_first_tee_holes:  unwrapped?.tees?.[0]?.holes?.length ?? 'n/a',
+      });
+      return respond(422, {
+        error: 'Course details incomplete — please try again.',
+        debug: validation.reason,
+      });
+    }
+
+    // 5. Validation passed — mark as having good data and save
+    parsed.has_hole_data = true;
+
     const saved = await sbUpsert('courses', parsed);
     const record = Array.isArray(saved) ? saved[0] : parsed;
- 
+
+    logCall('fetch', parsed.name, false, { courseId, source: 'api', tees: parsed.tees.length });
+
     return respond(200, { course: record, source: 'api' });
   }
- 
-  // ── ACTION: report ─────────────────────────────────────────────────────────
-  // Player flags incorrect data on a course. Logged for Murray to review.
+
+  // ── ACTION: fix-bad-data ────────────────────────────────────────────────────
+  // Admin action: find all courses in Supabase where hole data is corrupted
+  // (all pars = 4, or fewer than 18 holes, or invalid pars) and reset
+  // has_hole_data = false so they will be re-fetched on next user selection.
+  //
+  // Protected by SYNC_SECRET.
+  // Usage: GET /.netlify/functions/courses?action=fix-bad-data&secret=<SYNC_SECRET>
+  if (action === 'fix-bad-data') {
+    if (SYNC_SECRET && event.queryStringParameters?.secret !== SYNC_SECRET) {
+      return respond(401, { error: 'Unauthorised' });
+    }
+
+    let allCourses = [];
+    try {
+      // Fetch all courses that currently have has_hole_data = true
+      allCourses = await sbSelect('courses',
+        'has_hole_data=eq.true&select=id,external_course_id,name,tees&limit=1000'
+      );
+    } catch (e) {
+      return respond(500, { error: 'Failed to query courses', detail: e?.message });
+    }
+
+    const toReset = [];
+
+    for (const course of allCourses) {
+      // Check 1: tees must be a non-empty array
+      if (!Array.isArray(course.tees) || course.tees.length === 0) {
+        toReset.push({ id: course.id, name: course.name, reason: 'no tees array' });
+        continue;
+      }
+
+      const t0 = course.tees[0];
+
+      // Check 2: first tee must have pars_per_hole with 18 entries
+      if (!Array.isArray(t0?.pars_per_hole) || t0.pars_per_hole.length !== 18) {
+        toReset.push({ id: course.id, name: course.name, reason: 'pars_per_hole missing or not 18 entries' });
+        continue;
+      }
+
+      // Check 3: pars must be 3–5 (not all defaulted to 4)
+      if (t0.pars_per_hole.every(p => p === 4)) {
+        toReset.push({ id: course.id, name: course.name, reason: 'all pars are 4 (default fallback data)' });
+        continue;
+      }
+
+      // Check 4: any par outside 3–5 range
+      if (t0.pars_per_hole.some(p => p < 3 || p > 5)) {
+        toReset.push({ id: course.id, name: course.name, reason: 'par value outside 3–5 range' });
+        continue;
+      }
+
+      // Check 5: if SI present, must be 1–18 with no duplicates
+      if (Array.isArray(t0.si_per_hole) && t0.si_per_hole.length === 18) {
+        if (t0.si_per_hole.some(v => v < 1 || v > 18) || new Set(t0.si_per_hole).size !== 18) {
+          toReset.push({ id: course.id, name: course.name, reason: 'invalid stroke index data' });
+          continue;
+        }
+      }
+    }
+
+    if (toReset.length === 0) {
+      return respond(200, { reset: 0, message: 'No corrupted records found — all looks clean.' });
+    }
+
+    // Reset has_hole_data = false for each bad record individually
+    let resetCount = 0;
+    const errors = [];
+    for (const c of toReset) {
+      try {
+        await sbUpdate('courses',
+          { has_hole_data: false, updated_at: new Date().toISOString() },
+          `id=eq.${encodeURIComponent(c.id)}`
+        );
+        resetCount++;
+        console.log(`[courses] reset has_hole_data for: ${c.name} (${c.reason})`);
+      } catch (e) {
+        errors.push({ id: c.id, name: c.name, error: e?.message });
+      }
+    }
+
+    return respond(200, {
+      reset:   resetCount,
+      errors:  errors.length,
+      details: toReset.map(c => ({ name: c.name, reason: c.reason })),
+      message: `Reset ${resetCount} corrupted course records. They will be re-fetched from GolfAPI on next user selection.`,
+    });
+  }
+
+  // ── ACTION: report ──────────────────────────────────────────────────────────
   if (action === 'report' && event.httpMethod === 'POST') {
     const body = JSON.parse(event.body || '{}');
     const { course_id, player_name, group_code, issue } = body;
- 
+
     if (!course_id || !issue) return respond(400, { error: 'Missing fields' });
- 
+
     await sbInsert('course_reports', {
       course_id,
       player_name: player_name || 'Unknown',
@@ -343,15 +542,17 @@ exports.handler = async (event) => {
       issue,
       created_at: new Date().toISOString(),
     });
- 
+
     return respond(200, { ok: true });
   }
- 
-  // ── ACTION: inspect (debug only) ───────────────────────────────────────────
-  // Returns the raw GolfAPI response for a courseId so you can verify the
-  // field names and nesting structure without looking at Netlify logs.
-  // Usage: /.netlify/functions/courses?action=inspect&courseId=<id>
+
+  // ── ACTION: inspect (debug) ─────────────────────────────────────────────────
+  // Returns the raw GolfAPI response so you can verify field names.
+  // Usage: /.netlify/functions/courses?action=inspect&courseId=<id>&secret=<SYNC_SECRET>
   if (action === 'inspect') {
+    if (SYNC_SECRET && event.queryStringParameters?.secret !== SYNC_SECRET) {
+      return respond(401, { error: 'Unauthorised' });
+    }
     const courseId = event.queryStringParameters?.courseId;
     if (!courseId) return respond(400, { error: 'Missing courseId' });
     if (!GOLFAPI_KEY) return respond(503, { error: 'No API key configured' });
@@ -359,9 +560,11 @@ exports.handler = async (event) => {
       golfApiGetCourse(courseId),
       golfApiGetCoordinates(courseId),
     ]);
-    return respond(200, { raw_course: rawCourse, raw_coords_sample: rawCoords?.coordinates?.slice(0, 3) });
+    return respond(200, {
+      raw_course: rawCourse,
+      raw_coords_sample: rawCoords?.coordinates?.slice(0, 3),
+    });
   }
 
   return respond(404, { error: 'Unknown action' });
 };
- 
