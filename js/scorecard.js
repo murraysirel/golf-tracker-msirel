@@ -224,6 +224,7 @@ export async function saveRound() {
   const playerData = {
     name: target,
     email: state.gd.players[target]?.email || null,
+    dob: state.gd.players[target]?.dob || null,
     handicap: state.gd.players[target]?.handicap || 0,
     matchCode: state.gd.players[target]?.matchCode || null
   };

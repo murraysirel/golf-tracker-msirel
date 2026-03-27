@@ -107,10 +107,15 @@ exports.handler = async (event) => {
     // Called when a player creates or joins a group so they appear in
     // the player picker immediately (before saving their first round).
     if (action === 'upsertPlayer') {
-      const { playerName, handicap } = data;
+      const { playerName, handicap, email, dob } = data;
       if (!playerName) return { statusCode: 400, headers, body: JSON.stringify({ error: 'playerName required' }) };
       await supabase.from('players').upsert(
-        { name: playerName, handicap: handicap || 0 },
+        {
+          name: playerName,
+          handicap: handicap || 0,
+          ...(email ? { email } : {}),
+          ...(dob   ? { dob }   : {})
+        },
         { onConflict: 'name' }
       );
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
@@ -138,6 +143,7 @@ exports.handler = async (event) => {
       await supabase.from('players').upsert({
         name: playerData.name,
         email: playerData.email || null,
+        dob: playerData.dob || null,
         handicap: playerData.handicap || 0,
         match_code: playerData.matchCode || null
         // group_code intentionally omitted — nullable audit-only column post-migration

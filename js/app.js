@@ -8,7 +8,7 @@ import { getCourseByRef, scanCourseCard, saveCourse, cancelCourseScan, handleCou
 import { buildSC, recalc, saveRound, toggleSCExtras } from './scorecard.js';
 import { renderStats, setFilter, toggleHcpEdit, saveHandicap, renderHomeStats, openScorecardModal, openKpiPicker, closeKpiPicker } from './stats.js';
 import { renderLeaderboard, initLeaderboard } from './leaderboard.js';
-import { renderOnboard, enterAs, addAndEnter, signOut, addPlayer, renderAllPlayers, renderPlayersToday, showSignupStep, submitProfile, agreePrivacy, showGroupFork, goBackToFork, forkNotNow, forkJoinGroup, forkCreateGroup, refreshAvatarUI, uploadAvatar } from './players.js';
+import { renderOnboard, enterAs, addAndEnter, signOut, addPlayer, renderAllPlayers, renderPlayersToday, showSignupStep, submitProfile, agreePrivacy, submitCompleteProfile, showGroupFork, goBackToFork, forkNotNow, forkJoinGroup, forkCreateGroup, refreshAvatarUI, uploadAvatar } from './players.js';
 import { renderPracticePage, selectPracticeArea, startPracticeSession, regeneratePlan, logPracticeShots, completePracticeSession } from './practice.js';
 import { initLiveRound, liveGoto, liveSaveNote, liveNextOrFinish, toggleGroupPlayer, startGroupRound, toggleMatchPlay, openCorrectionModal, submitCorrectionReport, cancelRound } from './live.js';
 import { generateAIReview, generateStatsAnalysis, clearStatsAnalysis, parsePhoto, handlePhoto } from './ai.js';
@@ -105,6 +105,7 @@ document.getElementById('onb-back-to-select-btn')?.addEventListener('click', () 
 document.getElementById('onb-profile-submit-btn')?.addEventListener('click', submitProfile);
 document.getElementById('onb-back-to-profile-btn')?.addEventListener('click', () => showSignupStep(1));
 document.getElementById('onb-privacy-agree-btn')?.addEventListener('click', agreePrivacy);
+document.getElementById('onb-complete-submit-btn')?.addEventListener('click', submitCompleteProfile);
 // Group fork screen
 document.getElementById('fork-join-btn')?.addEventListener('click', forkJoinGroup);
 document.getElementById('fork-create-btn')?.addEventListener('click', forkCreateGroup);
@@ -457,7 +458,13 @@ function showRoundRecoveryPrompt(backup) {
 // ── Initialise ────────────────────────────────────────────────────
 initMatchOverlay();
 loadGist().then(async () => {
-  renderOnboard();
+  // Auto-login from previous session; enterAs handles profile-completion check
+  const savedMe = localStorage.getItem('rrg_me');
+  if (savedMe && state.gd.players?.[savedMe]) {
+    enterAs(savedMe);
+  } else {
+    renderOnboard();
+  }
   updateActiveMatchBadge();
   updateUnsyncedBadge();
   startInvitePolling(); // begin checking for live round invites once data loaded

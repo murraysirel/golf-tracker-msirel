@@ -47,6 +47,13 @@ export function refreshAvatarUI() {
   if (removeBtn) removeBtn.style.display = img ? 'inline' : 'none';
   const nameEl = document.getElementById('profile-name-display');
   if (nameEl) nameEl.textContent = state.me;
+  const emailEl = document.getElementById('profile-email-display');
+  if (emailEl) emailEl.textContent = state.gd.players?.[state.me]?.email || '';
+  // DOB — shown only in account card, never elsewhere
+  const dobEl = document.getElementById('profile-dob-display');
+  if (dobEl) dobEl.textContent = state.gd.players?.[state.me]?.dob || 'Not set';
+  const acctCard = document.getElementById('profile-account-card');
+  if (acctCard) acctCard.style.display = 'block';
 }
 
 function resizeToDataURL(file, size = 64) {
@@ -96,9 +103,97 @@ export function renderOnboard() {
   });
 }
 
+// ── Profile completion for existing players ───────────────────────
+let _profileCompletionPlayer = null;
+
+function _isValidDOB(dob) {
+  if (!dob) return false;
+  const parts = dob.split('/');
+  if (parts.length !== 3) return false;
+  const [d, m, y] = parts.map(Number);
+  if (!d || !m || !y) return false;
+  if (m < 1 || m > 12) return false;
+  if (d < 1 || d > 31) return false;
+  if (y < 1900 || y > new Date().getFullYear() - 5) return false;
+  const dt = new Date(y, m - 1, d);
+  return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
+}
+
+function _showCompleteProfileFor(n) {
+  _profileCompletionPlayer = n;
+  const p = state.gd.players[n] || {};
+  ['onb-step-select', 'onb-step-profile', 'onb-step-privacy'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  const pg = document.getElementById('pg-onboard');
+  if (pg) pg.style.display = 'block';
+  const fields = document.getElementById('onb-complete-fields');
+  if (fields) {
+    let html = '';
+    if (!p.email) {
+      html += `<label style="font-size:11px;color:var(--dim);margin-bottom:4px;display:block">Email address <span style="color:#e74c3c">*</span></label>
+        <input type="email" id="cp-email" placeholder="e.g. jamie@example.com" autocomplete="email" class="mb12" inputmode="email">`;
+    }
+    if (!p.dob) {
+      html += `<label style="font-size:11px;color:var(--dim);margin-bottom:4px;display:block">Date of birth <span style="color:#e74c3c">*</span></label>
+        <div style="font-size:10px;color:var(--dimmer);margin-bottom:5px">Used to keep your account secure — never shown publicly</div>
+        <input type="text" id="cp-dob" placeholder="DD/MM/YYYY" class="mb12" inputmode="numeric" maxlength="10">`;
+    }
+    fields.innerHTML = html;
+  }
+  document.getElementById('onb-step-complete-profile').style.display = 'block';
+  if (pg) pg.scrollTop = 0;
+}
+
+export function submitCompleteProfile() {
+  const n = _profileCompletionPlayer;
+  if (!n || !state.gd.players[n]) return;
+  const p = state.gd.players[n];
+  const errEl = document.getElementById('onb-complete-err');
+  const showErr = msg => { if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; } };
+  if (errEl) errEl.style.display = 'none';
+
+  let email = p.email;
+  let dob   = p.dob;
+
+  if (!email) {
+    email = (document.getElementById('cp-email')?.value || '').trim();
+    if (!email || !email.includes('@')) { showErr('Please enter a valid email address.'); return; }
+    const el = email.toLowerCase();
+    const inUse = Object.entries(state.gd.players).some(([pn, pp]) => pn !== n && pp.email?.toLowerCase() === el);
+    if (inUse) { showErr('This email is already used by another player.'); return; }
+  }
+
+  if (!dob) {
+    dob = (document.getElementById('cp-dob')?.value || '').trim();
+    if (!dob) { showErr('Please enter your date of birth.'); return; }
+    if (!_isValidDOB(dob)) { showErr('Please enter a valid date in DD/MM/YYYY format.'); return; }
+  }
+
+  p.email = email;
+  p.dob   = dob;
+  pushGist();
+  querySupabase('upsertPlayer', { playerName: n, email, dob, handicap: p.handicap || 0 });
+
+  document.getElementById('onb-step-complete-profile').style.display = 'none';
+  _profileCompletionPlayer = null;
+  enterAs(n); // re-call — profile is now complete, will proceed normally
+}
+
 export async function enterAs(n) {
-  state.me = n;
   if (!state.gd.players[n]) state.gd.players[n] = { handicap: 0, rounds: [] };
+
+  // Block sign-in until email and DOB are on record
+  const p = state.gd.players[n];
+  if (!p.email || !p.dob) {
+    _showCompleteProfileFor(n);
+    return;
+  }
+
+  state.me = n;
+  localStorage.setItem('rrg_me', n);
+
   ['pg-onboard', 'pg-group-fork', 'pg-join-group', 'pg-create-group', 'pg-board-setup', 'pg-group-ready', 'pg-board'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
@@ -124,7 +219,7 @@ export async function enterAs(n) {
     loadGroupData(groupCode).then(() => renderHomeStats()).catch(() => {});
   }
 
-  // Part D: check group membership — show fork screen if player has no active group
+  // Check group membership — show fork screen if player has no active group
   _checkAndShowGroupFork(n);
 }
 
@@ -171,6 +266,7 @@ export function addAndEnter() {
 
 export function signOut() {
   state.me = '';
+  localStorage.removeItem('rrg_me');
   ['pg-main', 'pg-group-fork', 'pg-join-group', 'pg-create-group', 'pg-board-setup', 'pg-group-ready', 'pg-board'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
@@ -183,13 +279,15 @@ export function signOut() {
 
 // ── New-user sign-up flow (3 steps) ──────────────────────────────
 
-let _pendingProfile = null; // { name, handicap, email } — held between steps 1 and 2
+let _pendingProfile = null; // { name, handicap, email, dob } — held between steps 1 and 2
 let _forkFromOnboarding = false;
 
 export function showSignupStep(n) {
   document.getElementById('onb-step-select').style.display = n === 0 ? 'block' : 'none';
   document.getElementById('onb-step-profile').style.display = n === 1 ? 'block' : 'none';
   document.getElementById('onb-step-privacy').style.display = n === 2 ? 'block' : 'none';
+  const cps = document.getElementById('onb-step-complete-profile');
+  if (cps) cps.style.display = 'none';
   const pg = document.getElementById('pg-onboard');
   if (pg) pg.scrollTop = 0;
 }
@@ -199,6 +297,7 @@ export function submitProfile() {
   const lastName = (document.getElementById('new-lastname')?.value || '').trim();
   const hcpRaw = document.getElementById('new-handicap')?.value ?? '';
   const email = (document.getElementById('new-email')?.value || '').trim();
+  const dob   = (document.getElementById('new-dob')?.value || '').trim();
   const errEl = document.getElementById('onb-profile-err');
   const showErr = msg => { if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; } };
 
@@ -210,20 +309,29 @@ export function submitProfile() {
     showErr('Please enter a valid Handicap Index between −10 and 54. Use a negative number for a plus handicap (e.g. −1.2 = +1.2).');
     return;
   }
+  if (!email || !email.includes('@')) { showErr('Please enter a valid email address.'); return; }
+  const emailLower = email.toLowerCase();
+  const emailInUse = Object.entries(state.gd.players).some(([, p]) => p.email?.toLowerCase() === emailLower);
+  if (emailInUse) { showErr('This email is already in use. If this is you, tap your name from the player list to sign in.'); return; }
+  if (!dob) { showErr('Please enter your date of birth.'); return; }
+  if (!_isValidDOB(dob)) { showErr('Please enter a valid date of birth in DD/MM/YYYY format (e.g. 15/06/1990).'); return; }
+
   if (errEl) errEl.style.display = 'none';
-  _pendingProfile = { name: fullName, handicap: parseFloat(hcp.toFixed(1)), email };
+  _pendingProfile = { name: fullName, handicap: parseFloat(hcp.toFixed(1)), email, dob };
   showSignupStep(2);
 }
 
 export function agreePrivacy() {
   if (!_pendingProfile) return;
-  const { name, handicap, email } = _pendingProfile;
+  const { name, handicap, email, dob } = _pendingProfile;
   if (!state.gd.players[name]) {
-    state.gd.players[name] = { handicap, rounds: [], ...(email ? { email } : {}) };
+    state.gd.players[name] = { handicap, rounds: [], email, dob };
   }
   state.me = name;
+  localStorage.setItem('rrg_me', name);
   _pendingProfile = null;
   pushGist();
+  querySupabase('upsertPlayer', { playerName: name, email, dob, handicap });
   showGroupFork(true);
 }
 
