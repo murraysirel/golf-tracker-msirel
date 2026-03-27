@@ -246,7 +246,12 @@ export async function confirmBoardSetup() {
       })
     });
     const json = await res.json();
-    if (!json.ok) throw new Error('Create failed');
+    // Log the full response so we can diagnose any schema or RLS issues
+    console.log('[createGroup] server response (HTTP', res.status, '):', JSON.stringify(json));
+    if (!json.ok) {
+      // Surface the actual server error rather than swallowing it
+      throw new Error(json.error || 'Create failed (HTTP ' + res.status + ')');
+    }
     state.gd.groupId = json.group.id;
     if (!state.gd.groupCodes) state.gd.groupCodes = [];
     if (!state.gd.groupCodes.includes(json.group.code)) state.gd.groupCodes.push(json.group.code);
@@ -255,10 +260,16 @@ export async function confirmBoardSetup() {
     state.gd.groupMeta[json.group.code] = { name: json.group.name || _pendingGroupName };
     pushGist();
     _showGroupReady(json.group);
-  } catch {
+  } catch (e) {
+    console.error('[createGroup] failed:', e?.message);
     if (btn) { btn.disabled = false; btn.textContent = 'Confirm Leagues'; }
-    const err = document.getElementById('board-setup-err');
-    if (err) { err.textContent = 'Could not create group — please try again.'; err.style.display = 'block'; }
+    const errEl = document.getElementById('board-setup-err');
+    if (errEl) {
+      // Show the real error during development; trim to something user-friendly in prod
+      const msg = e?.message && e.message !== 'Create failed' ? e.message : 'Could not create group — please try again.';
+      errEl.textContent = msg;
+      errEl.style.display = 'block';
+    }
   }
 }
 
@@ -367,7 +378,8 @@ export async function confirmJoinGroup() {
       body: JSON.stringify({ action: 'joinGroup', data: { groupId: _pendingGroupJoin.id, playerName: state.me } })
     });
     const json = await res.json();
-    if (!json.ok) throw new Error('Join failed');
+    if (!json.ok) throw new Error(json.error || 'Join failed');
+    state.gd.groupId = _pendingGroupJoin.id;
     if (!state.gd.groupCodes) state.gd.groupCodes = [];
     if (!state.gd.groupCodes.includes(_pendingGroupJoin.code)) state.gd.groupCodes.push(_pendingGroupJoin.code);
     state.gd.activeGroupCode = _pendingGroupJoin.code;

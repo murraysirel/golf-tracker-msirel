@@ -283,7 +283,37 @@ export async function adminFixCourseData() {
   }
 }
 
+export async function adminCleanupLegacyGroups() {
+  const btn = document.getElementById('admin-cleanup-groups-btn');
+  const msg = document.getElementById('admin-cleanup-groups-msg');
+  if (!msg) return;
+  if (btn) btn.disabled = true;
+  msg.style.color = 'var(--dim)';
+  msg.textContent = 'Scanning for unnamed/legacy groups…';
+  try {
+    const { querySupabase } = await import('./api.js');
+    const res = await querySupabase('cleanupUnnamedGroups', {});
+    if (res && res.error) {
+      msg.style.color = 'var(--double)';
+      msg.textContent = `Error: ${res.error}`;
+    } else if (res) {
+      msg.style.color = 'var(--par)';
+      const removed = (res.removedGroups || []).map(g => `• ${g.name || '(unnamed)'} [${g.code || g.id}]`).join('\n');
+      msg.textContent = res.message + (removed ? '\n\n' + removed : '');
+    } else {
+      msg.style.color = 'var(--dim)';
+      msg.textContent = 'No response from server.';
+    }
+  } catch (e) {
+    msg.style.color = 'var(--double)';
+    msg.textContent = `Network error: ${e.message}`;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 // Expose for inline onclick in admin panel HTML
-window._adminRunMigration   = adminRunMigration;
-window._adminSeedDemo       = adminSeedDemo;
-window._adminFixCourseData  = adminFixCourseData;
+window._adminRunMigration         = adminRunMigration;
+window._adminSeedDemo             = adminSeedDemo;
+window._adminFixCourseData        = adminFixCourseData;
+window._adminCleanupLegacyGroups  = adminCleanupLegacyGroups;

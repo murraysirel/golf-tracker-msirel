@@ -13,7 +13,7 @@ Browser (PWA, vanilla JS ES modules, no build step)
   │
   ├── index.html          ← entire app shell (all pages, modals, navbar in one file)
   ├── styles/app.css      ← design system via CSS custom properties
-  └── js/*.js             ← 25 ES module files, entry point is app.js
+  └── js/*.js             ← 25 ES module files, entry point is app.jsyera
          │
          ├── /.netlify/functions/sync      ← GitHub Gist proxy (sync.js)
          │       └── GitHub Gist: golf_data.json  ← single source of truth

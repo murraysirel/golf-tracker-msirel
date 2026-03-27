@@ -134,7 +134,7 @@
 
 <!-- ══════════════ GROUP FORK ══════════════ -->
 <div id="pg-group-fork" style="display:none;height:100%;overflow-y:auto">
-<div class="app-inner" style="display:flex;flex-direction:column;justify-content:center;padding-top:40px;padding-bottom:40px;min-height:100%">
+<div class="app-inner" style="display:flex;flex-direction:column;justify-content:center;padding-top:max(40px, calc(env(safe-area-inset-top, 0px) + 24px));padding-bottom:max(40px, calc(env(safe-area-inset-bottom, 0px) + 24px));min-height:100%">
 
   <div style="text-align:center;margin-bottom:32px">
     <div style="width:60px;height:60px;border-radius:50%;overflow:hidden;margin:0 auto 14px;background:var(--mid);box-shadow:0 4px 20px rgba(201,168,76,.2)">
@@ -259,7 +259,7 @@
 
 <!-- ══════════════ GROUP READY — Screen 3 ══════════════ -->
 <div id="pg-group-ready" style="display:none;height:100%;overflow-y:auto">
-<div class="app-inner" style="padding-top:32px;padding-bottom:48px">
+<div class="app-inner" style="padding-top:max(32px, calc(env(safe-area-inset-top, 0px) + 16px));padding-bottom:48px">
 
   <div style="text-align:center;margin-bottom:32px">
     <div style="width:56px;height:56px;border-radius:50%;background:rgba(46,204,113,.12);border:2px solid rgba(46,204,113,.4);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:24px">✓</div>
@@ -293,7 +293,7 @@
 
 <!-- ══════════════ BOARD ══════════════ -->
 <div id="pg-board" style="display:none;height:100%;overflow-y:auto">
-<div class="app-inner" style="padding-top:24px;padding-bottom:80px">
+<div class="app-inner" style="padding-top:max(24px, calc(env(safe-area-inset-top, 0px) + 16px));padding-bottom:80px">
 
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
     <div>
@@ -1439,6 +1439,13 @@
             <div style="font-size:11px;color:var(--dim);margin-bottom:10px">Find courses where hole data is corrupted (all pars = 4, invalid SI) and reset them so they re-fetch correctly on next selection.</div>
             <button class="btn btn-o" id="admin-fix-courses-btn" onclick="window._adminFixCourseData()">Fix Corrupted Course Data</button>
             <div id="admin-fix-courses-msg" style="margin-top:8px;font-size:11px;color:var(--dim);white-space:pre-wrap"></div>
+          </div>
+          <!-- Legacy group cleanup -->
+          <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+            <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:8px">Legacy Group Cleanup</div>
+            <div style="font-size:11px;color:var(--dim);margin-bottom:10px">Remove unnamed/legacy groups from Supabase. Player profiles and all round history are preserved.</div>
+            <button class="btn btn-o" id="admin-cleanup-groups-btn" onclick="window._adminCleanupLegacyGroups()">Clean Up Unnamed Groups</button>
+            <div id="admin-cleanup-groups-msg" style="margin-top:8px;font-size:11px;color:var(--dim);white-space:pre-wrap"></div>
           </div>
           <!-- Demo data seeding -->
           <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">

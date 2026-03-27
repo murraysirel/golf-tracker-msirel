@@ -2,7 +2,7 @@
 // PLAYERS
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
-import { loadGist, pushGist } from './api.js';
+import { loadGist, pushGist, querySupabase } from './api.js';
 import { goTo } from './nav.js';
 import { initCourseSearch, renderScannedCourses } from './courses.js';
 import { renderHomeStats } from './stats.js';
@@ -96,7 +96,7 @@ export function renderOnboard() {
   });
 }
 
-export function enterAs(n) {
+export async function enterAs(n) {
   state.me = n;
   if (!state.gd.players[n]) state.gd.players[n] = { handicap: 0, rounds: [] };
   ['pg-onboard', 'pg-group-fork', 'pg-join-group', 'pg-create-group', 'pg-board-setup', 'pg-group-ready', 'pg-board'].forEach(id => {
@@ -116,6 +116,26 @@ export function enterAs(n) {
   seedGreenCoords();
   goTo('home');
   document.getElementById('r-date').value = new Date().toISOString().split('T')[0];
+
+  // Part D: check group membership — show fork screen if player has no active group
+  _checkAndShowGroupFork(n);
+}
+
+async function _checkAndShowGroupFork(playerName) {
+  // Skip if already in a group, fork was dismissed this session, or no Supabase
+  if (state.gd.groupId) return;
+  if (sessionStorage.getItem('looper_fork_dismissed')) return;
+  try {
+    const res = await querySupabase('checkGroupMembership', { playerName });
+    if (res && res.isMember) {
+      // Player already belongs to a real group — no action needed
+      return;
+    }
+    // Not a member of any group — show the fork screen
+    showGroupFork();
+  } catch (_) {
+    // Non-fatal: if check fails, don't block the player
+  }
 }
 
 export function addAndEnter() {
@@ -225,8 +245,11 @@ export function goBackToFork() {
 }
 
 export function forkNotNow() {
+  sessionStorage.setItem('looper_fork_dismissed', '1');
   document.getElementById('pg-group-fork').style.display = 'none';
-  enterAs(state.me);
+  // Don't call enterAs again — we're already on pg-main; just ensure it's visible
+  const pm = document.getElementById('pg-main');
+  if (pm) pm.style.display = 'flex';
 }
 
 export function forkJoinGroup() {

@@ -29,12 +29,17 @@ exports.handler = async (event) => {
   }
 
   try {
-    // Set group code for RLS policies
-    await supabase.rpc('set_config', {
-      setting: 'app.group_code',
-      value: groupCode || '',
-      is_local: true
-    });
+    // Set group code for RLS policies — wrapped in its own try-catch so a missing
+    // set_config function or wrong parameter names never kills other actions.
+    try {
+      await supabase.rpc('set_config', {
+        setting: 'app.group_code',
+        value: groupCode || '',
+        is_local: true
+      });
+    } catch (_rpcErr) {
+      // Non-fatal — RLS config, ignore silently
+    }
 
     // ── read ─────────────────────────────────────────────────────────
     if (action === 'read') {
@@ -346,7 +351,7 @@ exports.handler = async (event) => {
       if (!code) return { statusCode: 400, headers, body: JSON.stringify({ error: 'code required' }) };
       const { data: group, error: gErr } = await supabase
         .from('groups')
-        .select('id, name, code, created_by')
+        .select('id, name, code, admin_id')
         .eq('code', code.toUpperCase().trim())
         .maybeSingle();
       if (gErr) throw gErr;
@@ -389,6 +394,69 @@ exports.handler = async (event) => {
         .insert({ group_id: groupId, player_id: playerName });
       if (insErr) throw insErr;
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true, alreadyMember: false }) };
+    }
+
+    // ── checkGroupMembership ──────────────────────────────────────────
+    // Returns whether the given player is in any group_members row.
+    // Used on app load to decide whether to show the group fork screen.
+    if (action === 'checkGroupMembership') {
+      const { playerName } = data;
+      if (!playerName) return { statusCode: 400, headers, body: JSON.stringify({ error: 'playerName required' }) };
+      const { data: rows, error: mErr } = await supabase
+        .from('group_members')
+        .select('group_id, groups(id, name, code, admin_id, active_boards)')
+        .eq('player_id', playerName)
+        .limit(5);
+      if (mErr) throw mErr;
+      const memberships = (rows || []).map(r => ({
+        groupId:      r.group_id,
+        name:         r.groups?.name || '',
+        code:         r.groups?.code || '',
+        adminId:      r.groups?.admin_id || '',
+        activeBoards: r.groups?.active_boards || [],
+      })).filter(m => m.code);
+      return { statusCode: 200, headers, body: JSON.stringify({ isMember: memberships.length > 0, memberships }) };
+    }
+
+    // ── cleanupUnnamedGroups ──────────────────────────────────────────
+    // Admin action: find groups with null/empty/literal-"undefined" names,
+    // delete their group_members rows, then delete the groups themselves.
+    // Does NOT touch the players or rounds tables.
+    if (action === 'cleanupUnnamedGroups') {
+      // Find unnamed groups
+      const { data: badGroups, error: bgErr } = await supabase
+        .from('groups')
+        .select('id, name, code')
+        .or('name.is.null,name.eq.,name.eq.undefined');
+      if (bgErr) throw bgErr;
+
+      if (!badGroups || badGroups.length === 0) {
+        return { statusCode: 200, headers, body: JSON.stringify({ cleaned: 0, message: 'No unnamed groups found.' }) };
+      }
+
+      const ids = badGroups.map(g => g.id);
+      let membersDeleted = 0;
+      for (const id of ids) {
+        const { count } = await supabase
+          .from('group_members')
+          .select('*', { count: 'exact', head: true })
+          .eq('group_id', id);
+        await supabase.from('group_members').delete().eq('group_id', id);
+        membersDeleted += count || 0;
+      }
+
+      await supabase.from('groups').delete().in('id', ids);
+
+      console.log('[cleanupUnnamedGroups] removed', badGroups.length, 'groups,', membersDeleted, 'member rows');
+      return {
+        statusCode: 200, headers,
+        body: JSON.stringify({
+          cleaned:        badGroups.length,
+          membersRemoved: membersDeleted,
+          removedGroups:  badGroups.map(g => ({ id: g.id, name: g.name, code: g.code })),
+          message:        `Removed ${badGroups.length} unnamed group(s) and ${membersDeleted} member row(s). All player and round data is intact.`,
+        }),
+      };
     }
 
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Unknown action' }) };
