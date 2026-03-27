@@ -2,7 +2,7 @@
 // PLAYERS
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
-import { loadGist, pushGist, querySupabase } from './api.js';
+import { loadGist, pushGist, querySupabase, loadGroupData } from './api.js';
 import { goTo } from './nav.js';
 import { initCourseSearch, renderScannedCourses } from './courses.js';
 import { renderHomeStats } from './stats.js';
@@ -116,6 +116,13 @@ export async function enterAs(n) {
   seedGreenCoords();
   goTo('home');
   document.getElementById('r-date').value = new Date().toISOString().split('T')[0];
+
+  // Now that state.me is known, load group-scoped data from Supabase.
+  // Re-renders home stats once scoped data arrives (fire-and-forget, non-blocking).
+  const groupCode = state.gd.activeGroupCode || localStorage.getItem('gt_activegroup') || '';
+  if (groupCode) {
+    loadGroupData(groupCode).then(() => renderHomeStats()).catch(() => {});
+  }
 
   // Part D: check group membership — show fork screen if player has no active group
   _checkAndShowGroupFork(n);
