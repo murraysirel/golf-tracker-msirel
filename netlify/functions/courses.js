@@ -232,7 +232,13 @@ exports.handler = async (event) => {
     // 2. GolfAPI.io search — costs 0.1 credits, only on cache miss
     if (!GOLFAPI_KEY) return respond(200, { courses: [], source: 'no_key' });
 
-    const apiResult = await golfApiSearchClubs(name, country);
+    let apiResult = null;
+    try {
+      apiResult = await golfApiSearchClubs(name, country);
+    } catch (e) {
+      console.error('[courses] golfApiSearchClubs error:', e?.message);
+      return respond(200, { courses: [], source: 'api_error', error: e?.message });
+    }
     console.log('[courses] GolfAPI search keys:', Object.keys(apiResult || {}),
       '| clubs:', apiResult?.clubs?.length ?? 'none', '| error:', apiResult?.error ?? 'none');
     if (!apiResult?.clubs?.length) {
@@ -292,11 +298,17 @@ exports.handler = async (event) => {
     // Not cached — fetch from GolfAPI (costs 2 credits: course + coordinates)
     if (!GOLFAPI_KEY) return respond(503, { error: 'No API key configured' });
  
-    const [courseData, coordData] = await Promise.all([
-      golfApiGetCourse(courseId),
-      golfApiGetCoordinates(courseId),
-    ]);
- 
+    let courseData, coordData;
+    try {
+      [courseData, coordData] = await Promise.all([
+        golfApiGetCourse(courseId),
+        golfApiGetCoordinates(courseId),
+      ]);
+    } catch (e) {
+      console.error('[courses] golfApiGetCourse error:', e?.message);
+      return respond(502, { error: 'GolfAPI fetch failed', detail: e?.message });
+    }
+
     if (courseData.error) return respond(502, { error: 'GolfAPI course fetch failed' });
 
     // Log the raw GolfAPI response shape for diagnostics
