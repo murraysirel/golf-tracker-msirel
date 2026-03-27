@@ -141,7 +141,7 @@
       <img src="/assets/looper_caddie.png" alt="Looper" style="width:100%;height:100%;object-fit:cover">
     </div>
     <div style="font-size:26px;font-weight:700;color:var(--cream);font-family:'DM Sans',sans-serif;margin-bottom:6px">Play with your mates?</div>
-    <div style="font-size:13px;color:var(--dim);line-height:1.5">Track scores, stats and leaderboards as a group.</div>
+    <div style="font-size:13px;color:var(--dim);line-height:1.5">Track scores, stats and leagues as a group.</div>
   </div>
 
   <!-- Option A: Join a group -->
@@ -207,7 +207,7 @@
   <!-- Already a member -->
   <div id="join-group-already" style="display:none;margin-top:12px;padding:16px;border-radius:12px;background:rgba(46,204,113,.06);border:1px solid rgba(46,204,113,.25);font-family:'DM Sans',sans-serif">
     <div style="font-size:14px;color:var(--cream);margin-bottom:12px">You're already in this group.</div>
-    <button class="btn" id="join-group-board-btn" style="width:100%">Go to Board →</button>
+    <button class="btn" id="join-group-board-btn" style="width:100%">Go to Leagues →</button>
   </div>
 
 </div>
@@ -243,8 +243,8 @@
   <button id="board-setup-back-btn" style="background:none;border:none;color:var(--dim);font-size:14px;cursor:pointer;padding:10px 16px 10px 0;margin-bottom:12px;display:flex;align-items:center;gap:6px;font-family:'DM Sans',sans-serif;-webkit-tap-highlight-color:transparent;min-height:44px">← Back</button>
 
   <div style="margin-bottom:20px">
-    <div style="font-size:24px;font-weight:700;color:var(--cream);font-family:'DM Sans',sans-serif;margin-bottom:8px">Your Season Boards</div>
-    <div style="font-size:12px;color:var(--dim);line-height:1.6">These are the leaderboards your group will compete on. All are active — turn off any you don't want. You can change this any time in Group Settings.</div>
+    <div style="font-size:24px;font-weight:700;color:var(--cream);font-family:'DM Sans',sans-serif;margin-bottom:8px">Your Leagues</div>
+    <div style="font-size:12px;color:var(--dim);line-height:1.6">These are the leagues your group will compete in. All are active — turn off any you don't want. You can change this any time in Group Settings.</div></div>
   </div>
 
   <div class="card" style="padding:0 16px" id="board-setup-list">
@@ -252,7 +252,7 @@
   </div>
 
   <div id="board-setup-err" style="display:none;margin-top:12px;padding:12px 16px;border-radius:10px;background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.3);font-size:13px;color:#e74c3c;font-family:'DM Sans',sans-serif"></div>
-  <button class="btn" id="board-setup-confirm-btn" style="width:100%;margin-top:20px">Confirm Boards</button>
+  <button class="btn" id="board-setup-confirm-btn" style="width:100%;margin-top:20px">Confirm Leagues</button>
 
 </div>
 </div>
@@ -297,7 +297,7 @@
 
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
     <div>
-      <div id="board-group-name" style="font-size:22px;font-weight:700;color:var(--cream);font-family:'DM Sans',sans-serif">Group Board</div>
+      <div id="board-group-name" style="font-size:22px;font-weight:700;color:var(--cream);font-family:'DM Sans',sans-serif">Group Leagues</div>
       <div id="board-group-meta" style="font-size:12px;color:var(--dim);margin-top:3px"></div>
     </div>
     <div id="board-group-code-pill" style="padding:6px 12px;border-radius:20px;background:var(--mid);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--gold);font-family:'DM Sans',sans-serif;letter-spacing:2px"></div>
@@ -393,7 +393,7 @@
       <!-- Mates on the boards -->
       <div id="home-mates-section" style="padding:12px 16px 0">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div style="font-size:11px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:0.07em">On the Boards</div>
+          <div style="font-size:11px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:0.07em">In the Leagues</div>
           <div style="font-size:10px;color:var(--dimmer)">Season · avg vs par</div>
         </div>
         <div id="home-mates-list"></div>
@@ -1055,7 +1055,7 @@
 
       <!-- Tab header: title + admin gear -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <div id="lb-tab-title" style="font-size:20px;font-weight:700;color:var(--cream);font-family:'DM Sans',sans-serif">Board</div>
+        <div id="lb-tab-title" style="font-size:20px;font-weight:700;color:var(--cream);font-family:'DM Sans',sans-serif">Leagues</div>
         <button id="lb-settings-btn" style="display:none;align-items:center;justify-content:center;background:none;border:none;color:var(--dim);cursor:pointer;padding:4px;-webkit-tap-highlight-color:transparent" title="Group settings">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
         </button>
@@ -1085,7 +1085,7 @@
       <div class="card" data-board-id="season">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
           <div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></div>
-          <div><div style="font-size:14px;font-weight:500;color:var(--cream)">Season Leaderboard</div><div style="font-size:10px;color:var(--dim)">Ranked by avg vs par</div></div>
+          <div><div style="font-size:14px;font-weight:500;color:var(--cream)">Season League</div><div style="font-size:10px;color:var(--dim)">Ranked by avg vs par</div></div>
         </div>
         <div id="lb-list"></div>
       </div>
@@ -1184,7 +1184,7 @@
     <!-- GROUP SETTINGS (admin only) -->
     <div id="pg-group-settings" style="display:none" class="sec">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
-        <button id="gs-back-btn" style="background:none;border:none;color:var(--dim);font-size:14px;cursor:pointer;padding:0;display:flex;align-items:center;gap:6px;font-family:'DM Sans',sans-serif;-webkit-tap-highlight-color:transparent">← Board</button>
+        <button id="gs-back-btn" style="background:none;border:none;color:var(--dim);font-size:14px;cursor:pointer;padding:0;display:flex;align-items:center;gap:6px;font-family:'DM Sans',sans-serif;-webkit-tap-highlight-color:transparent">← Leagues</button>
         <div style="font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--gold);font-weight:600;font-family:'DM Sans',sans-serif">Group Settings</div>
       </div>
 
@@ -1200,7 +1200,7 @@
 
       <!-- Section 2: Active Boards -->
       <div class="card" style="margin-bottom:12px;padding:0">
-        <div style="font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--dim);font-weight:600;padding:16px 16px 12px;border-bottom:1px solid var(--border);font-family:'DM Sans',sans-serif">Active Boards</div>
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--dim);font-weight:600;padding:16px 16px 12px;border-bottom:1px solid var(--border);font-family:'DM Sans',sans-serif">Active Leagues</div>
         <div id="gs-boards-list"></div>
       </div>
 
@@ -1302,7 +1302,7 @@
       <!-- Group access — join or create a group from the Players panel -->
       <div class="card" style="margin-bottom:13px">
         <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase;margin-bottom:10px">Find a Group</div>
-        <div style="font-size:12px;color:var(--dim);margin-bottom:12px;line-height:1.5">Join a friend's group or create your own to compare scores and unlock leaderboards.</div>
+        <div style="font-size:12px;color:var(--dim);margin-bottom:12px;line-height:1.5">Join a friend's group or create your own to compare scores and compete in leagues.</div>
         <button class="btn" id="panel-group-fork-btn" style="border-radius:40px">Join or create a group →</button>
       </div>
 
@@ -1311,7 +1311,7 @@
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
           <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase">Season Management</div>
         </div>
-        <div style="font-size:12px;color:var(--dim);margin-bottom:12px;line-height:1.5">Name your seasons to make the leaderboard more meaningful. The current year will be labelled automatically if not set here.</div>
+        <div style="font-size:12px;color:var(--dim);margin-bottom:12px;line-height:1.5">Name your seasons to make the leagues more meaningful. The current year will be labelled automatically if not set here.</div>
         <div id="season-list" style="margin-bottom:10px"></div>
         <div style="display:flex;gap:8px">
           <input type="text" id="new-season-name" placeholder="e.g. 2026 Summer" style="flex:1;font-size:13px">
@@ -1570,7 +1570,7 @@
     <button class="nb" id="nb-round"><span class="ni"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg></span>Round</button>
 
   <button class="nb" id="nb-stats"><span class="ni"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>Stats</button>
-    <button class="nb" id="nb-leaderboard"><span class="ni"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></span>Board</button>
+    <button class="nb" id="nb-leaderboard"><span class="ni"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></span>Leagues</button>
     <button class="nb" id="nb-practice"><span class="ni"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg></span>Practice</button>
 
   </div>

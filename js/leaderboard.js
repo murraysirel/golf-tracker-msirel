@@ -121,7 +121,7 @@ export function renderLeaderboard() {
 
   // Header: title + gear icon
   const titleEl = document.getElementById('lb-tab-title');
-  if (titleEl) titleEl.textContent = isInGroup ? group.name : 'Board';
+  if (titleEl) titleEl.textContent = isInGroup ? group.name : 'Leagues';
   const gearBtn = document.getElementById('lb-settings-btn');
   if (gearBtn) {
     gearBtn.style.display = isAdmin ? 'inline-flex' : 'none';
