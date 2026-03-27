@@ -168,17 +168,16 @@ export function showSignupStep(n) {
 }
 
 export function submitProfile() {
-  const fullName = (document.getElementById('new-fullname')?.value || '').trim();
+  const firstName = (document.getElementById('new-firstname')?.value || '').trim();
+  const lastName = (document.getElementById('new-lastname')?.value || '').trim();
   const hcpRaw = document.getElementById('new-handicap')?.value ?? '';
   const email = (document.getElementById('new-email')?.value || '').trim();
   const errEl = document.getElementById('onb-profile-err');
   const showErr = msg => { if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; } };
 
-  if (!fullName) { showErr('Please enter your full name.'); return; }
-  if (fullName.split(' ').filter(Boolean).length < 2) {
-    showErr('Please enter both your first and last name (e.g. Jamie Wilson).');
-    return;
-  }
+  if (!firstName) { showErr('Please enter your first name.'); return; }
+  if (!lastName) { showErr('Please enter your last name.'); return; }
+  const fullName = firstName + ' ' + lastName;
   const hcp = parseFloat(hcpRaw);
   if (hcpRaw === '' || isNaN(hcp) || hcp < -10 || hcp > 54) {
     showErr('Please enter a valid Handicap Index between −10 and 54. Use a negative number for a plus handicap (e.g. −1.2 = +1.2).');

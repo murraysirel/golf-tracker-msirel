@@ -96,8 +96,16 @@
     <div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px">Step 1 of 2</div>
     <div class="ct" style="margin-bottom:4px">Create your profile</div>
     <div style="font-size:12px;color:var(--dim);margin-bottom:20px;line-height:1.5">Tell us who you are so we can track your game.</div>
-    <label style="font-size:11px;color:var(--dim);margin-bottom:4px;display:block">Full name <span style="color:#e74c3c">*</span></label>
-    <input type="text" id="new-fullname" placeholder="e.g. Jamie Wilson" autocomplete="name" class="mb12">
+    <div style="display:flex;gap:10px;margin-bottom:12px">
+      <div style="flex:1">
+        <label style="font-size:11px;color:var(--dim);margin-bottom:4px;display:block">First name <span style="color:#e74c3c">*</span></label>
+        <input type="text" id="new-firstname" placeholder="Jamie" autocomplete="given-name" style="margin-bottom:0">
+      </div>
+      <div style="flex:1">
+        <label style="font-size:11px;color:var(--dim);margin-bottom:4px;display:block">Last name <span style="color:#e74c3c">*</span></label>
+        <input type="text" id="new-lastname" placeholder="Wilson" autocomplete="family-name" style="margin-bottom:0">
+      </div>
+    </div>
     <label style="font-size:11px;color:var(--dim);margin-bottom:4px;display:block">Handicap Index <span style="color:#e74c3c">*</span></label>
     <input type="number" id="new-handicap" placeholder="e.g. 12.4 · use −1.2 for +1.2" min="-10" max="54" step="0.1" class="mb4" inputmode="decimal">
     <div style="font-size:10px;color:var(--dimmer);margin-bottom:14px">Enter 0 if no official handicap yet. Plus handicap? Use a negative number (e.g. −1.2 = +1.2).</div>
