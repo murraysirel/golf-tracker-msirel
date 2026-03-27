@@ -83,6 +83,7 @@ async function _runSearch(q) {
     if (_lastResults.length === 0 && data.source === 'no_key') {
       _showResultsMsg('Course search is not configured. Contact your group admin.');
     } else if (_lastResults.length === 0 && data.source === 'api_empty') {
+      console.warn('[courses] GolfAPI returned no clubs. Raw response:', data.debug);
       _showResultsMsg('No courses found — try a different spelling or check the country filter.');
     } else {
       _renderResults(_lastResults);
