@@ -175,6 +175,10 @@ export function submitProfile() {
   const showErr = msg => { if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; } };
 
   if (!fullName) { showErr('Please enter your full name.'); return; }
+  if (fullName.split(' ').filter(Boolean).length < 2) {
+    showErr('Please enter both your first and last name (e.g. Jamie Wilson).');
+    return;
+  }
   const hcp = parseFloat(hcpRaw);
   if (hcpRaw === '' || isNaN(hcp) || hcp < -10 || hcp > 54) {
     showErr('Please enter a valid Handicap Index between −10 and 54. Use a negative number for a plus handicap (e.g. −1.2 = +1.2).');
