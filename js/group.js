@@ -21,14 +21,35 @@ export function copyGroupCode() {
   });
 }
 
+// Remove a group code from the player's list and persist.
+// Does NOT sign the player out — used for silent removal (e.g. legacy groups).
+export function removeGroupFromList(code) {
+  if (!code) return;
+  state.gd.groupCodes = (state.gd.groupCodes || []).filter(c => c !== code);
+  if (state.gd.activeGroupCode === code) {
+    state.gd.activeGroupCode = state.gd.groupCodes[0] || '';
+    localStorage.setItem('gt_activegroup', state.gd.activeGroupCode);
+  }
+  pushGist();
+  import('./leaderboard.js').then(m => m.renderLeaderboard());
+}
+
 export function leaveGroup() {
   const confirmed = confirm('Leave this group? Your data will remain in the group for others to see. To remove it, use "Delete all my data" in the Players tab first.');
   if (!confirmed) return;
+  // Remove the current group code from the list before signing out
+  const code = state.gd.activeGroupCode;
+  if (code) {
+    state.gd.groupCodes = (state.gd.groupCodes || []).filter(c => c !== code);
+    state.gd.activeGroupCode = state.gd.groupCodes[0] || '';
+    localStorage.setItem('gt_activegroup', state.gd.activeGroupCode);
+    pushGist();
+  }
   localStorage.removeItem('rrg_me');
   state.me = null;
   document.getElementById('pg-main').style.display = 'none';
   document.getElementById('pg-onboard').style.display = 'flex';
-  document.getElementById('new-name').value = '';
+  document.getElementById('new-name')?.value && (document.getElementById('new-name').value = '');
   if (document.getElementById('new-group-code')) document.getElementById('new-group-code').value = '';
 }
 

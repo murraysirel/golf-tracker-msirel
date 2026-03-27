@@ -7,6 +7,7 @@ import { getCourseByRef } from './courses.js';
 import { initials, avatarHtml } from './players.js';
 import { parseDateGB, calcStableford, isBufferOrBetter, calcScoringPointsNet } from './stats.js';
 import { pushGist, querySupabase, loadGroupData } from './api.js';
+import { removeGroupFromList } from './group.js';
 import { goTo } from './nav.js';
 
 // Maps CREATE_BOARDS ids → their wrapping card's data-board-id attribute
@@ -160,9 +161,35 @@ export function renderLeaderboard() {
     }
   }
 
-  // Group code card: only shown in group mode
+  // Group code card: shown when in a registered group OR when a legacy code exists
   const gcCard = document.getElementById('lb-group-code-card');
-  if (gcCard) gcCard.style.display = isInGroup ? 'block' : 'none';
+  const hasActiveCode = !!state.gd.activeGroupCode;
+  const isLegacyGroup = hasActiveCode && !isInGroup;
+  if (gcCard) {
+    gcCard.style.display = (isInGroup || isLegacyGroup) ? 'block' : 'none';
+    // Show a callout for legacy/unregistered codes
+    let legacyBanner = gcCard.querySelector('.lb-legacy-banner');
+    if (isLegacyGroup) {
+      if (!legacyBanner) {
+        legacyBanner = document.createElement('div');
+        legacyBanner.className = 'lb-legacy-banner';
+        legacyBanner.style.cssText = 'margin-top:12px;padding:10px 12px;border-radius:8px;background:rgba(230,126,34,.08);border:1px solid rgba(230,126,34,.3)';
+        gcCard.appendChild(legacyBanner);
+      }
+      legacyBanner.innerHTML = `
+        <div style="font-size:12px;color:var(--bogey);font-weight:600;margin-bottom:3px">Legacy group code</div>
+        <div style="font-size:12px;color:var(--dim);margin-bottom:10px">This code isn't connected to a registered Looper group. Remove it to keep things tidy, or create a new group.</div>
+        <button id="lb-remove-legacy-btn" style="padding:7px 14px;border-radius:20px;background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.35);color:#e74c3c;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent">Remove this code</button>
+      `;
+      document.getElementById('lb-remove-legacy-btn')?.addEventListener('click', () => {
+        if (confirm(`Remove group code ${state.gd.activeGroupCode} from your list?`)) {
+          removeGroupFromList(state.gd.activeGroupCode);
+        }
+      });
+    } else if (legacyBanner) {
+      legacyBanner.remove();
+    }
+  }
 
   // Board card visibility (only filtered when in a group)
   TOGGLEABLE_BOARD_IDS.forEach(id => {

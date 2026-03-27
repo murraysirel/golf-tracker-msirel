@@ -286,7 +286,10 @@ async function logCall(endpoint, courseName, wasCacheHit, details = {}) {
 
 // ── Search Supabase (ONLY — no GolfAPI fallback) ──────────────────────────────
 async function searchCache(name, country) {
-  let qs = `select=id,external_course_id,external_club_id,name,club_name,location,country,city,holes,has_gps,has_hole_data,overall_par,tee_types&name=ilike.*${encodeURIComponent(name)}*&limit=12`;
+  // Only select columns that exist in the courses table.
+  // club_name/city/holes/has_gps live as computed/display fields only until
+  // migration 001_courses_extra_columns.sql is run in Supabase.
+  let qs = `select=id,external_course_id,external_club_id,name,location,country,has_hole_data,overall_par,tee_types&name=ilike.*${encodeURIComponent(name)}*&limit=12`;
   if (country && country !== 'all') qs += `&country=ilike.*${encodeURIComponent(country)}*`;
   return sbSelect('courses', qs);
 }
@@ -358,9 +361,9 @@ exports.handler = async (event) => {
             location:  club.city || club.location || '',
             country:   club.country || country,
             has_hole_data: false,
-            cached: false,
           })).filter(c => c.name);
           // Cache results back to Supabase so next search hits DB (fire-and-forget)
+          // Only write columns that exist in the courses table schema.
           Promise.all(mapped.map(c => sbUpsert('courses', c))).catch(() => {});
           logCall('search', name, false, { country, results: mapped.length, source: 'api_fallback' });
           return respond(200, { courses: mapped, source: 'api' });
@@ -459,8 +462,13 @@ exports.handler = async (event) => {
     // 5. Validation passed — mark as having good data and save
     parsed.has_hole_data = true;
 
-    const saved = await sbUpsert('courses', parsed);
-    const record = Array.isArray(saved) ? saved[0] : parsed;
+    // Strip fields not yet in the courses table schema before writing.
+    // The full parsed object (with club_name, city, holes, has_gps etc.) is
+    // still returned to the frontend below. Run migration 001_courses_extra_columns.sql
+    // to store these fields in Supabase permanently.
+    const { club_name, city, holes, has_gps, data_source, data_quality, report_count, ...dbSafe } = parsed;
+    const saved = await sbUpsert('courses', dbSafe);
+    const record = Array.isArray(saved) ? { ...saved[0], club_name, city, holes, has_gps } : parsed;
 
     logCall('fetch', parsed.name, false, { courseId, source: 'api', tees: parsed.tees.length });
 
