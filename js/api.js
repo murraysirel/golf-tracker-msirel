@@ -41,6 +41,18 @@ export async function loadGist() {
     state.gd = JSON.parse(raw);
     if (!state.gd.players) state.gd.players = {};
     if (!state.gd.matches) state.gd.matches = {};
+    // Migrate legacy scalar groupCode → multi-group schema
+    if (!state.gd.groupCodes) {
+      state.gd.groupCodes = state.gd.groupCode ? [state.gd.groupCode] : [];
+      state.gd.activeGroupCode = state.gd.groupCode || '';
+      delete state.gd.groupCode;
+    }
+    if (!state.gd.groupMeta) state.gd.groupMeta = {};
+    // Restore active group from localStorage if present
+    const storedActive = localStorage.getItem('gt_activegroup');
+    if (storedActive && state.gd.groupCodes.includes(storedActive)) {
+      state.gd.activeGroupCode = storedActive;
+    }
     seedMurray();
     localStorage.setItem('gt_localdata', JSON.stringify(state.gd));
     if (unsynced) localStorage.setItem('rr_unsynced_rounds', unsynced);
@@ -53,6 +65,12 @@ export async function loadGist() {
         state.gd = JSON.parse(cached);
         if (!state.gd.players) state.gd.players = {};
         if (!state.gd.matches) state.gd.matches = {};
+        if (!state.gd.groupCodes) {
+          state.gd.groupCodes = state.gd.groupCode ? [state.gd.groupCode] : [];
+          state.gd.activeGroupCode = state.gd.groupCode || '';
+          delete state.gd.groupCode;
+        }
+        if (!state.gd.groupMeta) state.gd.groupMeta = {};
         seedMurray();
       } catch (_) {}
     } else {
@@ -71,7 +89,7 @@ export async function querySupabase(action, data) {
     const res = await fetch('/.netlify/functions/supabase', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, groupCode: state.gd?.groupCode || '', data })
+      body: JSON.stringify({ action, groupCode: state.gd?.activeGroupCode || '', data })
     });
     if (!res.ok) return null;
     return await res.json();
@@ -87,7 +105,7 @@ export async function pushSupabase(action, data) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action,
-        groupCode: state.gd?.groupCode || '',
+        groupCode: state.gd?.activeGroupCode || '',
         data
       })
     });
@@ -107,7 +125,7 @@ async function loadSupabase() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'read',
-        groupCode: state.gd?.groupCode || ''
+        groupCode: state.gd?.activeGroupCode || ''
       })
     });
     if (!res.ok) return false;

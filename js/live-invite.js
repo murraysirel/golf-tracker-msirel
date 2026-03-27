@@ -23,7 +23,7 @@ export function stopInvitePolling() {
 async function _checkForInvites() {
   // Don't show invites while hosting a round or already watching one
   if (state.roundActive || state.liveInvite.currentRoundId) return;
-  if (!state.me || !state.gd?.groupCode) return;
+  if (!state.me || !state.gd?.activeGroupCode) return;
 
   const res = await querySupabase('pollGroupInvites', {});
   if (!res?.rounds) return;

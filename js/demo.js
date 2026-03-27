@@ -37,7 +37,9 @@ export async function enterDemoMode() {
     state.demoMode = true;
     state.gd = {
       players:         {},
-      groupCode:       DEMO_GROUP,
+      groupCodes:      [DEMO_GROUP],
+      activeGroupCode: DEMO_GROUP,
+      groupMeta:       { [DEMO_GROUP]: { name: 'Demo Group' } },
       requireGroupCode: false,
       seasons:         [{ name: '2026 Season', year: 2026 }],
       customCourses:   {},

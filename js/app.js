@@ -81,7 +81,7 @@ function openProfilePanel() {
   document.getElementById('profile-backdrop')?.classList.add('open');
   document.getElementById('profile-icon-btn')?.classList.add('panel-open');
   const gc = document.getElementById('players-group-code');
-  if (gc && state.gd?.groupCode) gc.textContent = state.gd.groupCode;
+  if (gc && state.gd?.activeGroupCode) gc.textContent = state.gd.activeGroupCode;
 }
 function closeProfilePanel() {
   document.getElementById('profile-panel')?.classList.remove('open');

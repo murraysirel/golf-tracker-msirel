@@ -13,17 +13,22 @@ Browser (PWA, vanilla JS ES modules, no build step)
   │
   ├── index.html          ← entire app shell (all pages, modals, navbar in one file)
   ├── styles/app.css      ← design system via CSS custom properties
-  └── js/*.js             ← 18 ES module files, entry point is app.js
+  └── js/*.js             ← 25 ES module files, entry point is app.js
          │
-         ├── /.netlify/functions/sync  ← GitHub Gist proxy (sync.js)
+         ├── /.netlify/functions/sync      ← GitHub Gist proxy (sync.js)
          │       └── GitHub Gist: golf_data.json  ← single source of truth
          │           (localStorage key gt_localdata = offline fallback)
          │
-         └── /.netlify/functions/ai   ← Anthropic Claude proxy (ai.js)
-                 └── claude-haiku-4-5-20251001
+         ├── /.netlify/functions/supabase  ← Supabase backend proxy (supabase.js)
+         │       └── Supabase DB — parallel write target; active_matches queries
+         │
+         ├── /.netlify/functions/ai        ← Anthropic Claude proxy (ai.js)
+         │       └── claude-haiku-4-5-20251001
+         │
+         └── /.netlify/functions/courses   ← GolfAPI.io proxy with Supabase cache
 ```
 
-Netlify hosts both the static frontend and the two serverless functions. No build step; the repo ships as-is. Auto-deploys from `main`.
+Netlify hosts both the static frontend and all serverless functions. No build step; the repo ships as-is. Auto-deploys from `main`.
 
 ---
 
@@ -35,21 +40,26 @@ Netlify hosts both the static frontend and the two serverless functions. No buil
 | `constants.js` | `PAGES`, `COURSES` array (20 built-in), tee-colour map `TC`, `DEFAULT_GIST`, `API` |
 | `app.js` | Entry point — imports every module, binds all DOM event listeners, calls `registerNavHandlers`, kicks off `loadGist()` |
 | `nav.js` | SPA routing: `goTo(page)`, `switchEntry(type)`, `registerNavHandlers()` (circular-dep workaround) |
-| `api.js` | `loadGist()` / `pushGist()` / `pushSupabase()` — Gist ↔ `state.gd` sync; Supabase parallel write; `ss()` updates the status dot |
+| `api.js` | `loadGist()` / `pushGist()` / `pushSupabase()` / `querySupabase()` / `retrySyncUnsynced()` — Gist ↔ `state.gd` sync; Supabase parallel write; `ss()` updates the status dot |
 | `scorecard.js` | `buildSC()` renders the 18-hole input table; `saveRound()` collects DOM values, computes breakdown, appends to `state.gd`, calls `pushGist()` then `pushSupabase()` fire-and-forget |
-| `live.js` | Hole-by-hole live scoring UI; multi-player group mode; match play tracking; syncs back to manual scorecard before saving; exports `cancelRound()` to reset live state and hide the caddie button |
-| `competition.js` | "Live" nav tab — activity feed + today's leaderboard; polls Gist every 45 s and diffs snapshots |
-| `stats.js` | KPI cards, five Chart.js charts, Stableford calculator, handicap edit, round history list |
+| `live.js` | Hole-by-hole live scoring UI; multi-player group mode; match play tracking; `publishLiveState()` for real-time sharing; `cancelRound()` resets live state; syncs back to manual scorecard before saving |
+| `live-invite.js` | Real-time round invite polling, toast dismissal, join/leave live round, view/edit mode toggle; `startInvitePolling()`, `joinLiveRound()`, `minimiseLiveView()`, `submitEditorScore()` |
+| `overlay.js` | Match overlay display and controls; `initMatchOverlay()`, `showMatchOverlay()`, `hideMatchOverlay()`, `showEndRoundConfirm()` |
+| `competition.js` | Competition tab — activity feed (eagles, birdies, submissions) + live leaderboard; polls Gist every 45 s and diffs snapshots; supports Stableford and Gross modes |
+| `stats.js` | KPI cards, five Chart.js charts, Stableford calculator, `calcScoringPointsNet()`, handicap edit, round history list; `parseDateGB()` used app-wide |
 | `leaderboard.js` | Nine season-filtered ranking panels; imports `calcStableford` and `isBufferOrBetter` from `stats.js` |
-| `players.js` | Onboarding/sign-in, player management, initials generation, "who's playing today" selector |
-| `courses.js` | Course search UI (`initCourseSearch()` mounts into `#course-search-container`), `getCourseByRef()` returns the active course object, `clearCourseSelection()` resets it; AI course-card scanner; custom course CRUD; `_applyCourse()` sets `state.cpars`/`state.activeCourse` and rebuilds the scorecard |
-| `gps.js` | `watchPosition` GPS, Haversine distance-to-green, tee/green coord pinning stored in `state.gd` |
+| `players.js` | Onboarding/sign-in, player management, initials generation, "who's playing today" selector, avatar upload |
+| `courses.js` | Course search UI (`initCourseSearch()` mounts into `#course-search-container`), `getCourseByRef()` returns active course object, `clearCourseSelection()` resets it; AI course-card scanner; custom course CRUD; `_applyCourse()` sets `state.cpars`/`state.activeCourse` and rebuilds the scorecard |
+| `gps.js` | `watchPosition` GPS, Haversine distance-to-green, tee/green coord pinning, drive logging stored in `state.gd` |
 | `ai.js` | Scorecard photo parsing, post-round coaching review, multi-round stats analysis — all via `/.netlify/functions/ai` |
 | `practice.js` | AI practice-plan generation (Claude), session logging with drill-by-drill shot counting |
-| `group.js` | Group code, season CRUD, "delete my data", clipboard helpers |
-| `admin.js` | Password-protected admin panel — round deletion (logged to `deletionLog`), course-correction application, Supabase migration trigger |
+| `group.js` | Group code/season CRUD, board setup, "delete my data", clipboard helpers; `initJoinGroup()`, `initCreateGroup()`, `initGroupSettings()`, `showBoardPage()` |
+| `group-match.js` | Group match creation/joining modals and active-match badge; `openCreateMatchModal()`, `openJoinMatchModal()`, `updateGroupMatchButtonVisibility()`, `updateActiveMatchBadge()` |
+| `admin.js` | Password-protected admin panel — round deletion (logged to `deletionLog`), course-correction application, Supabase migration trigger, demo seeding |
 | `export.js` | XLSX export using global `XLSX` — two sheets: All Rounds + Hole Data |
-| `gamemodes.js` | Wolf + Match Play game mode engine; `setGameMode()`, `updateFormatUI()`, Wolf state init/scoring/banners/scoreboard, `isWolfRound()` |
+| `gamemodes.js` | Wolf / Match Play / Sixes game mode engines; `setGameMode()`, `updateFormatUI()`, Wolf state init/scoring/banners/scoreboard, Sixes 3-ball net points (4-2-0 scoring), `initSixesState()`, `getSixesStandings()` |
+| `caddie.js` | `initCaddieButton()` — floating caddie pill button initialisation |
+| `demo.js` | `enterDemoMode()`, `exitDemoMode()`, `isDemoMode()` — demo group loaded from `/.netlify/functions/demo-data` with no auth |
 
 ---
 
@@ -63,12 +73,17 @@ state = {
   stee,            // Current tee colour key ('blue'|'yellow'|'white'|'red'|'black')
   photoFile,       // File object for scorecard photo upload
   CH,              // Chart.js instance container (managed by stats.js)
-  statsFilter,     // Active filter: '5'|'all'|'month'|'course'  (Last 10 option removed)
-  gameMode,        // 'stroke' | 'match' | 'wolf'
+  statsFilter,     // Active filter: '5'|'all'|'month'|'course'
+  demoMode,        // boolean — true when running DEMO01 data
+  roundActive,     // boolean — true between startGroupRound() and cancelRound()/save
+  wakeLock,        // WakeLock sentinel (or null)
+  gameMode,        // 'stroke' | 'match' | 'wolf' | 'sixes'
   wolfState: {
     order[],         // Player name turn order (hole 1 wolf = order[0])
     holes[]          // Per-hole result objects from scoreWolfHole()
   },
+  sixesState,      // Sixes standings/hole breakdown (null when not a Sixes round)
+  currentMatchId,  // string|null — set when joining a group live match
   liveState: {
     hole,                // Current hole index (0–17)
     scores[],            // Single-player hole scores
@@ -83,7 +98,17 @@ state = {
     groupGir: {},
     matchPlay,           // boolean
     matchFormat,         // 'singles'|'pairs'
-    matchResult          // match state (leader, holesUp, result)
+    matchResult,         // match state (leader, holesUp, result)
+    matchTeams: { a: [], b: [] },
+    hcpOverrides: {}     // { playerName: playingHandicap } — set by pre-round modal
+  },
+  liveInvite: {
+    liveRoundId,         // string — Supabase active_matches row id
+    currentRoundId,      // string — round being tracked
+    mode,                // 'view' | 'edit'
+    data,                // latest published state snapshot
+    minimised,           // boolean
+    seenIds              // Set of already-processed snapshot IDs
   },
   courseCardFile,       // File for course card scan
   scannedPars,          // Array(18) from AI scan
@@ -159,9 +184,13 @@ state = {
   penalties, bunkers, chips: number,
   rating: number,      // course rating
   slope: number,       // slope rating
-  aiReview?: { positive, negative, drill },  // optional, added post-save
-  matchResult?: { ... },                     // optional, set when match play round saved
-  wolfResult?: { order, holes, winner }      // optional, set when Wolf round saved
+  aiReview?: { positive, negative, drill },         // optional, added post-save
+  matchResult?: { ... },                            // optional, set when match play round saved
+  wolfResult?: { order, holes, winner },            // optional, set when Wolf round saved
+  sixesResult?: { standings, holeBreakdown, winner }, // optional, set when Sixes round saved
+  playedWith?: string[],       // partner names tagged post-save
+  matchHandicaps?: {},         // playing handicaps used
+  handicapsUsed?: boolean
 }
 ```
 
@@ -198,6 +227,8 @@ Key component classes: `.btn` `.btn-o` `.btn-ghost`, `.card` `.ct`, `.fpill`, `.
 
 Home screen KPI grid classes: `.home-kpi-grid` (2×2 CSS grid, `padding:12px 16px 0`), `.home-kpi-card` (individual card, `var(--mid)` bg, 12px radius), `.home-kpi-val` (28px Cormorant serif value), `.home-kpi-lbl` (9px uppercase label), `.home-kpi-delta` (11px trend line). Split card: `.home-kpi-split` + `.home-kpi-split-inner` + `.home-kpi-divider` (absolute-positioned SVG diagonal line) + `.home-kpi-split-top` / `.home-kpi-split-bot` (each `max-width:46%; overflow:hidden`; value font 20px, delta font 9px inside split). Avatar circles: `.avatar` and `.lb-avatar-me` both use DM Sans 13px/700 — do not use Cormorant Garamond for initials.
 
+Cormorant Garamond is restricted to: `.home-kpi-val`, stats breakdown header (`#st-avg`, `#st-best` etc.), and `.lb-score`/`.bv`. Do not use it in live scoring, GPS, or game mode UI.
+
 ---
 
 ## Coding Conventions
@@ -207,7 +238,7 @@ Home screen KPI grid classes: `.home-kpi-grid` (2×2 CSS grid, `padding:12px 16p
 - **DOM access.** Always via `document.getElementById('id')?.` — optional chaining everywhere for safety. IDs are short and kebab-case (`#h0`, `#sdot`, `#comp-feed`).
 - **Module imports.** Named ES module exports only — no default exports. Circular dependencies are broken by the `registerNavHandlers` pattern (see below). `app.js` is the only module that imports every other module.
 - **State mutation.** All modules import `state` from `state.js` and mutate it directly. No Redux, no events, no proxies.
-- **Dates.** GB format `'DD/MM/YYYY'` everywhere. Parsed for comparison with `parseDateGB()` in `stats.js`.
+- **Dates.** GB format `'DD/MM/YYYY'` everywhere. Parsed for comparison with `parseDateGB()` in `stats.js`. Never use `new Date()` on a DD/MM/YYYY string — always split on `/` first.
 - **Score deltas.** Always `score − par` (negative = good). `scoreClass(d)` / `scoreCol(d)` in `scorecard.js` map deltas to CSS classes/colours.
 - **FIR on par-3s.** Stored as `'N/A'` — exclude from FIR% calculations.
 - **Async.** `loadGist()` and `pushGist()` are `async`/`await`. `pushGist()` always writes `localStorage` first, then tries remote.
@@ -265,6 +296,20 @@ Every path that saves a round — manual entry, photo parse, live scoring — ul
 
 If you need to add a field to the Round object, add it in exactly one place: `saveRound()`.
 
+### 5. Netlify functions — full inventory
+
+| Function | Endpoint | Auth | Purpose |
+|---|---|---|---|
+| `sync.js` | `/.netlify/functions/sync` | `GITHUB_TOKEN` (server) | Gist read/write proxy; IP rate-limit 60/hr; schema validation |
+| `supabase.js` | `/.netlify/functions/supabase` | `SUPABASE_SERVICE_KEY` (server) | Supabase CRUD — read/saveRound/updateHandicap/deleteRound/saveMatch/active_matches |
+| `ai.js` | `/.netlify/functions/ai` | `ANTHROPIC_API_KEY` (server) | Photo OCR, coaching review, stats analysis via Claude |
+| `courses.js` | `/.netlify/functions/courses` | `GOLFAPI_KEY` (server) | GolfAPI.io search + detail fetch; results cached in Supabase |
+| `demo-data.js` | `/.netlify/functions/demo-data` | None | Returns in-memory DEMO01 demo data (no DB, no auth) |
+| `migrate-gist-to-supabase.js` | `/.netlify/functions/migrate-gist-to-supabase` | `x-admin-key` header | One-time Gist→Supabase migration worker |
+| `run-migration.js` | `/.netlify/functions/run-migration` | Injected server-side | Admin trigger — proxies migrate-gist-to-supabase with `SYNC_SECRET` |
+| `seed-demo.js` | `/.netlify/functions/seed-demo` | `x-admin-key` header | Seeds DEMO01 group (8 players, 40 outings) into Supabase |
+| `run-seed-demo.js` | `/.netlify/functions/run-seed-demo` | Injected server-side | Admin trigger — proxies seed-demo with `SYNC_SECRET` |
+
 ---
 
 ## Environment Variables
@@ -288,6 +333,7 @@ All variables are set in the Netlify dashboard. None are ever sent to the browse
 
 | Date | Change |
 |---|---|
+| 2026-03-27 | **Multi-group support** — `state.gd.groupCode` (scalar) replaced by `state.gd.groupCodes: string[]` + `state.gd.activeGroupCode: string` + `state.gd.groupMeta: { [code]: { name } }`; `loadGist()` in `api.js` auto-migrates old scalar on load; join/create flows append to `groupCodes[]` instead of overwriting; `renderGroupSwitcher()` in `leaderboard.js` renders a horizontal scrollable pill strip above the season selector (hidden when ≤1 group); `switchActiveGroup(code)` (exported) re-fetches group from Supabase and re-renders; active group persisted to `localStorage` key `gt_activegroup`; all `state.gd.groupCode` reads in `api.js`, `app.js`, `players.js`, `group.js`, `courses.js`, `live-invite.js`, `demo.js` updated to `activeGroupCode`; `.group-switcher-bar` + `.group-pill` + `.group-pill.active` CSS classes added |
 | 2026-03-26 | **Demo mode rewrite** — replaced Supabase-dependent seed flow (`run-seed-demo` → `seed-demo` server-to-server → DB writes) with a new `netlify/functions/demo-data.js` that generates all demo data in-memory from the deterministic RNG in `seed-demo.js` (no auth, no DB, no timeout risk); `enterDemoMode()` in `demo.js` is now a single `GET /.netlify/functions/demo-data` fetch; `seed-demo.js` gains a `generateDemoData()` export and a guard on `createClient` so it can be safely required without env vars |
 | 2026-03-26 | **Course pars/SI/yards fallback** — `_applyTee()` in `courses.js` now falls back to the built-in `BUILTIN_COURSES` (imported from `constants.js`) when GolfAPI/Supabase returns no per-hole par data (detected by all-4 pars after API application); fuzzy name matching (first two meaningful words) maps the selected course to its constants.js entry and applies verified `par` arrays and `hy` hole-yardage arrays; fixes Broadstone, Trevose, Cawder, and all other built-in UK/US courses showing par 4 everywhere; `syncPlayerMatchScore()` in `live.js` updated to find tees by colour from array format (array/object dual-support); tee option display in `_renderSelectedCard` gains `r`/`s`/`y` fallbacks for old field names |
 | 2026-03-25 | **Sixes competition format** — 3-ball net points game (4-2-0 / 3-3-0 / 4-1-1 / 2-2-2 per hole); `initSixesState()`, `getSixesStandings()`, `getSixesHolePts()`, `updateSixesBanner()`, `isSixesRound()`, `sixesGetSaveData()` added to `gamemodes.js`; `state.gameMode = 'sixes'` set via `#play-sixes-btn` in Competition section (enabled only when exactly 3 players registered); `startGroupRound()` validates 3 players and calls `initSixesState()`; `liveGoto()` and `liveGroupAdj()` call `updateSixesBanner()` via dynamic import; per-player running pts shown via `.sixes-player-pts` spans in group rows and `#sixes-live-bar` standings bar; `liveUpdateRunning()` overrides header bar to show sixes standings; `sixesResult` (standings, holeBreakdown, winner) stored on each player's round object and written to Supabase `rounds.sixes_result` JSONB column (conditional spread — column must be added manually); final alert shows podium standings; `state.sixesState` reset in `cancelRound()` and after `liveGroupSave()` |
@@ -309,27 +355,5 @@ All variables are set in the Netlify dashboard. None are ever sent to the browse
 | 2026-03-21 | **Pre-round handicap modal** — shown when 2+ players selected; calculates playing handicap (`round(hcpIndex × slope/113)`) per player using selected tee slope; inline number input for override stored in `state.liveState.hcpOverrides`; modal skipped for solo rounds |
 | 2026-03-21 | **AI scorecard reader** — `parsePhoto()` prompt updated to extract SI per hole (validated: 18 unique values 1–18, stored to `state.scannedSI`) and all tees found on card (`state._scannedTeeRatings`); `buildSC()` falls back to `state.scannedSI` when course has no SI; `scanCourseCard()` stores per-tee ratings and renders editable per-tee rating/slope inputs (`#tee-ratings-detail`); `saveCourse()` uses per-tee rating/slope rather than one global value |
 | 2026-03-21 | **Wolf fixes** — drag-to-reorder player setup (HTML5 drag + iOS touch); single centred partner-selection modal replaces sequential prompts + countdown; 6-pointer modal centred and re-selectable until wolf's score first changed (`wolfShotStarted` per hole); Wolf round saves to all 4 player profiles in one `pushGist()` call |
-| 2026-03-20 | **Home KPI polish** — Avg vs Par (card 1): prorates across however many rounds exist; labels "last N rounds" in `var(--dim)` until 5 rounds, then shows ↑/↓/→ delta vs season avg. Birdies (card 3): year delta removed, only vs-last-month delta shown. GIR/FIR split card: `max-width:46%` + `overflow:hidden` on both halves, value font 20px, delta font 9px, delta text shortened to "↑ X.X%" to prevent overflow across diagonal. Leaderboard avatar (`.lb-avatar-me`): standardised to DM Sans 13px/700 matching all other avatar circles |
-| 2026-03-20 | **Home KPI delta lines** — Card 1 (Avg vs Par): delta compares last-5 avg vs current season avg; prorated for fewer than 5 rounds (see polish entry). Card 2 (Best Round): meta split into two stacked 11px lines — course name (truncated to 16 chars) and "Mar 18" formatted date. Card 3 (Birdies): vs last month only. Card 4 (GIR/FIR): deltas compare last-5 vs season avg using raw float percentages (toFixed(1)), shortened to "↑ X.X%". All date filtering uses `date.split('/')` field indexing — never `new Date()` on DD/MM/YYYY strings |
-| 2026-03-20 | **Player initials in header avatar** — `.avatar-btn` now shows the current player's two-letter initials (`#hdr-avatar-initials`) instead of a person SVG; populated by `renderHomeStats()` via `initials()` from `players.js` |
-| 2026-03-20 | **Cancel round** — `cancelRound()` exported from `live.js`; resets all `liveState` fields, clears `state.roundActive`, removes `.visible`/`.in-progress` from `#caddie-btn`, releases wake lock, navigates home. Two entry points: "Cancel" ghost button on group setup screen (`#live-cancel-setup-btn`) and "✕ End" text button on the right of the live hole-view sticky header (`#live-cancel-round-btn`) |
-| 2026-03-20 | **Stats filter pills** — removed "Last 10" pill; remaining filters: Last 5, Month, Course, All time. `statsFilter` type is now `'5'|'all'|'month'|'course'` |
-| 2026-03-20 | **Home screen layout restructure** — slim header replaces logo/wordmark/sync-pill: left side shows time-based greeting ("Good morning/afternoon/evening, [firstName]") + "HCP X · N rounds this season"; right side keeps avatar button. Sync status dot+text moved into profile panel as a 12px status line below the panel header. Hero card (avatar circle, full name, Ready-to-play dot, large HCP) removed. 2×2 KPI grid added directly below header: Avg vs Par, Best Round, Birdies (with bird SVG), GIR/FIR diagonal split card (absolute-positioned halves with SVG divider). Recent Rounds section updated: 11px/600 uppercase heading, "See all" link, score diff colour thresholds (birdie ≤−3, par ≤+3, bogey ≤+10, double +11+). Full-width gold "Play with the Caddie 🏌️" CTA at bottom wired to `goTo('live')`. CSS: `.hdr` padding/background updated; `.home-kpi-*` class family added |
-| 2026-03-20 | **Match Play format pill fix** — `updateFormatUI()` in `gamemodes.js` now tracks `matchBtn` and `matchHint`; toggles `.active` on `#fmt-match` when `state.gameMode === 'match'`; stroke pill only active when neither wolf nor match is selected |
-| 2026-03-20 | **Global micro-animations** — `@keyframes fadeUp` card entrance stagger extended to nth-child(5); `.btn/.btn-o/.btn-ghost` `:active` scale(0.93) press feedback with 80ms transition; scorecard extra stats (penalties/bunkers/chips) hidden by default behind "More +/Less −" JS toggle (`.scorecard-table` / `.sc-extra-cols` / `toggleSCExtras()` in `scorecard.js`); replaces native `<details>` element |
-| 2026-03-20 | **Caddie score entry** — scores pre-filled to par on first hole visit; `.live-score-btn` 44×44px, `var(--mid)` bg, 24px/300 font, no border; `.live-score-val` 26px/700, min-width 52px; FIR/GIR replaced with `.live-toggle-pill` pill buttons ("Fairway Hit"/"Green in Reg"); `active-fir`=green, `active-gir`=blue; FIR hidden on par-3s; `scoreCol()` used for score colour; `@keyframes scoreBounce` + `.score-bounce` on +/− tap |
-| 2026-03-20 | **Profile panel close button** — avatar icon cross-fades to ✕ when panel open via `.avatar-btn` + `.avatar-initials`/`.avatar-close` CSS opacity toggle on `.panel-open` class |
-| 2026-03-20 | **Rolling ball splash screen** — replaced wink/shrink animation with golf ball rolling in from left, logo spinning on ball, grass strip SVG, title/tagline fade-in; `prefers-reduced-motion` respected; `loadGist()` runs in parallel |
-| 2026-03-20 | **Caddie button fix** — tapping caddie button mid-round restores current hole view without reinitialising; green dot (`.caddie-dot`, `.in-progress`) shows when round active |
-| 2026-03-20 | **Home screen declutter** — Quick Actions button grid and gold gradient divider removed; dead event listeners removed from `app.js`; profile panel export label → "Export my data" |
-| 2026-03-20 | **Home KPI cards** — birdie card gets inline 16×16 bird SVG; new GIR%/FIR% combined `.kpi` block with delta vs prior calendar month; `renderHomeStats()` in `stats.js` updated |
-| 2026-03-20 | **Game format pills** — Stroke Play pill renamed to "Stroke / Stableford"; Match Play added as a first-class format pill (`#fmt-match`, `state.gameMode = 'match'`) alongside Wolf; selecting Match Play auto-inits `state.liveState.matchPlay` and `matchResult` on round start; validates exactly 2 players at start; old `#live-matchplay-row` toggle hidden (replaced by pill) |
 | 2026-03-20 | **Wolf game mode** — new `js/gamemodes.js` module; `state.gameMode` ('stroke'\|'match'\|'wolf'); Wolf requires 4 players, scoring engine with Lone Wolf / Six-pointer declarations, per-hole partner selection modal with 10 s auto-dismiss, Wolf scoreboard, standings persisted to `round.wolfResult`; `state.wolfState` holds order + hole results |
 | 2026-03-20 | **Looper rebrand** — renamed app from "RRGs Tracker" to "Looper" throughout UI, manifest, splash, and onboarding; replaced Viking logo with new Looper caddie mascot (`/assets/looper-logo.png`); new tagline "Your AI caddie" |
-| 2026-03-19 | **Round entry redesign** — removed 4-tab bar; replaced with three compact entry cards (Type it in / Scan scorecard / Add a course) + a full-width "Play with the Caddie 🏌️" pill CTA; CTA shows inline course selector when no course selected, otherwise launches unified live screen directly |
-| 2026-03-19 | **Caddie button restyled** — changed from gold circle to subtle pill (`var(--mid)` bg, 1px gold border, grip-line SVG, `box-shadow: 0 4px 16px rgba(0,0,0,.35)`); clicking returns to `#pg-live` instead of opening an overlay |
-| 2026-03-19 | **Unified Caddie+Live screen** — `#caddie-view` overlay removed; `#pg-live` now contains full GPS distance block (front/mid/back yards) + per-player scoring rows + sticky header + fixed footer; GPS auto-starts on round launch; Wake Lock prompted once and persisted to `localStorage` key `rr_wakelock` |
-| 2026-03-19 | **Light mode** — `[data-theme="light"]` CSS variables (Schoolhouse White palette); `--wa-*` and `--chart-*` tokens replace all `rgba(255,255,255,...)` occurrences; Chart.js uses `cc()` helper for theme-aware tick/grid colors; Dark/Light toggle in profile panel persisted to `localStorage` key `rr_theme`; theme applied at boot in `app.js` before splash fades |
-| 2026-03-19 | **Caddie View** — full-screen GPS + scoring overlay (`js/caddie.js`, `#caddie-view`); `gps.js` now populates `caddie-dist-{front,mid,back}`; Wake Lock API for screen-on during round |
-| 2026-03-19 | **Floating Caddie button** — draggable `#caddie-btn` appears above tab bar when `startGroupRound()` fires (`state.roundActive`), disappears when round finishes |
-| 2026-03-19 | **Nav reduced to 5 tabs** — Live and Players tabs removed from bottom nav; Players & Settings moved to a slide-in profile panel (`#profile-panel`) triggered by a circular icon in the header |

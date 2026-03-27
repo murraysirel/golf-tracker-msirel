@@ -8,7 +8,7 @@ import { signOut } from './players.js';
 import { goTo } from './nav.js';
 
 export function copyGroupCode() {
-  const code = state.gd.groupCode || '';
+  const code = state.gd.activeGroupCode || '';
   if (!code) return;
   navigator.clipboard?.writeText(code).then(() => {
     ['lb-group-code','players-group-code'].forEach(id => {
@@ -248,7 +248,11 @@ export async function confirmBoardSetup() {
     const json = await res.json();
     if (!json.ok) throw new Error('Create failed');
     state.gd.groupId = json.group.id;
-    state.gd.groupCode = json.group.code;
+    if (!state.gd.groupCodes) state.gd.groupCodes = [];
+    if (!state.gd.groupCodes.includes(json.group.code)) state.gd.groupCodes.push(json.group.code);
+    state.gd.activeGroupCode = json.group.code;
+    if (!state.gd.groupMeta) state.gd.groupMeta = {};
+    state.gd.groupMeta[json.group.code] = { name: json.group.name || _pendingGroupName };
     pushGist();
     _showGroupReady(json.group);
   } catch {
@@ -364,7 +368,12 @@ export async function confirmJoinGroup() {
     });
     const json = await res.json();
     if (!json.ok) throw new Error('Join failed');
-    state.gd.groupCode = _pendingGroupJoin.code;
+    if (!state.gd.groupCodes) state.gd.groupCodes = [];
+    if (!state.gd.groupCodes.includes(_pendingGroupJoin.code)) state.gd.groupCodes.push(_pendingGroupJoin.code);
+    state.gd.activeGroupCode = _pendingGroupJoin.code;
+    if (!state.gd.groupMeta) state.gd.groupMeta = {};
+    state.gd.groupMeta[_pendingGroupJoin.code] = { name: _pendingGroupJoin.name };
+    localStorage.setItem('gt_activegroup', _pendingGroupJoin.code);
     pushGist();
     showBoardPage(_pendingGroupJoin);
   } catch {
@@ -375,7 +384,7 @@ export async function confirmJoinGroup() {
 }
 
 export async function showBoardPage(group) {
-  const g = group || _pendingGroupJoin || { name: '', code: state.gd?.groupCode || '', memberCount: 0 };
+  const g = group || _pendingGroupJoin || { name: '', code: state.gd?.activeGroupCode || '', memberCount: 0 };
   ['pg-join-group', 'pg-group-fork', 'pg-create-group', 'pg-onboard'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
@@ -401,7 +410,7 @@ export async function showBoardPage(group) {
     const res = await fetch('/.netlify/functions/supabase', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'read', groupCode: g.code || state.gd?.groupCode || '' })
+      body: JSON.stringify({ action: 'read', groupCode: g.code || state.gd?.activeGroupCode || '' })
     });
     const json = await res.json();
     _renderBoardRows(json.players || [], json.rounds || []);
@@ -655,7 +664,16 @@ function _renderGSInviteSection() {
         if (res?.ok && res.code) {
           _settingsGroup.code = res.code;
           if (state.gd.group) state.gd.group.code = res.code;
-          if (state.gd.groupCode != null) state.gd.groupCode = res.code;
+          // Update in groupCodes[] and activeGroupCode
+          const oldCode = _settingsGroup.code;
+          const idx = state.gd.groupCodes?.indexOf(oldCode);
+          if (idx != null && idx >= 0) state.gd.groupCodes[idx] = res.code;
+          if (state.gd.activeGroupCode === oldCode) state.gd.activeGroupCode = res.code;
+          if (state.gd.groupMeta?.[oldCode]) {
+            state.gd.groupMeta[res.code] = state.gd.groupMeta[oldCode];
+            delete state.gd.groupMeta[oldCode];
+          }
+          localStorage.setItem('gt_activegroup', res.code);
           _renderGSInviteSection();
         }
       }

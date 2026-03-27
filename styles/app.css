@@ -436,6 +436,22 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
   background:var(--gold);border:2px solid var(--cream);color:var(--navy);font-weight:600;
 }
 [data-theme="light"] .fpill.active{border-color:var(--navy);}
+/* Group switcher bar (FPL-style) */
+.group-switcher-bar{
+  display:flex;gap:8px;overflow-x:auto;padding:0 0 12px;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;
+}
+.group-switcher-bar::-webkit-scrollbar{display:none;}
+.group-pill{
+  padding:7px 16px;border-radius:20px;font-size:0.8125rem;font-weight:500;
+  background:var(--navy);border:1px solid var(--wa-06);
+  color:var(--dim);cursor:pointer;font-family:'DM Sans',sans-serif;
+  transition:all .15s;white-space:nowrap;min-height:36px;flex-shrink:0;
+}
+.group-pill.active{
+  background:rgba(201,168,76,.12);border:1.5px solid var(--gold);
+  color:var(--gold);font-weight:600;
+}
 /* hcp edit row flex */
 #hcp-edit-row{display:flex;}
 

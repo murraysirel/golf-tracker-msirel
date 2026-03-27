@@ -129,9 +129,9 @@ export function addAndEnter() {
     return;
   }
   const n = fname + ' ' + lname;
-  if (state.gd.requireGroupCode && state.gd.groupCode) {
+  if (state.gd.requireGroupCode && state.gd.activeGroupCode) {
     const entered = (document.getElementById('new-group-code')?.value || '').trim().toUpperCase();
-    if (entered !== state.gd.groupCode) {
+    if (!state.gd.groupCodes?.includes(entered)) {
       if (errEl) { errEl.textContent = 'Incorrect group code — check with your group admin.'; errEl.style.display = 'block'; setTimeout(() => errEl.style.display = 'none', 4000); }
       document.getElementById('group-code-field').style.display = 'block';
       return;
@@ -242,7 +242,7 @@ export function renderAllPlayers() {
   const list = document.getElementById('all-players');
   list.innerHTML = '';
   const pgc = document.getElementById('players-group-code');
-  if (pgc) pgc.textContent = state.gd.groupCode || '—';
+  if (pgc) pgc.textContent = state.gd.activeGroupCode || '—';
   const gcBtn = document.getElementById('gc-toggle-btn');
   if (gcBtn) gcBtn.textContent = state.gd.requireGroupCode ? 'On' : 'Off';
   renderSeasonList();
@@ -406,15 +406,19 @@ export function saveHandicapForPlayer(playerName, value) {
 
 // Group utils
 function ensureGroupCode() {
-  if (!state.gd.groupCode) {
+  if (!state.gd.activeGroupCode) {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    state.gd.groupCode = Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    const code = Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    if (!state.gd.groupCodes) state.gd.groupCodes = [];
+    if (!state.gd.groupCodes.includes(code)) state.gd.groupCodes.push(code);
+    state.gd.activeGroupCode = code;
+    if (!state.gd.groupMeta) state.gd.groupMeta = {};
     pushGist();
   }
   const gcEl = document.getElementById('lb-group-code');
-  if (gcEl) gcEl.textContent = state.gd.groupCode;
+  if (gcEl) gcEl.textContent = state.gd.activeGroupCode;
   const pgc = document.getElementById('players-group-code');
-  if (pgc) pgc.textContent = state.gd.groupCode;
+  if (pgc) pgc.textContent = state.gd.activeGroupCode;
 }
 
 // Approximate green centre coordinates for built-in courses (within ~30 yards; _approx:true)

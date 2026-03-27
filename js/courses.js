@@ -341,7 +341,7 @@ function _showReportModal(course) {
           body: JSON.stringify({
             course_id:   course.id || course.external_course_id,
             player_name: state.me,
-            group_code:  state.gd?.groupCode || '',
+            group_code:  state.gd?.activeGroupCode || '',
             issue,
           }),
         });

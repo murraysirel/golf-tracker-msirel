@@ -14,20 +14,60 @@ const TOGGLEABLE_BOARD_IDS = ['season', 'scoring_gross', 'scoring_net', 'stablef
 
 // Fetch group membership + config, then render
 export async function initLeaderboard() {
-  if (state.me && state.gd.groupCode) {
+  if (state.me && state.gd.activeGroupCode) {
     const res = await querySupabase('getGroupByCode', {
-      code: state.gd.groupCode,
+      code: state.gd.activeGroupCode,
       playerName: state.me
     });
     if (res?.found && res.isMember) {
       state.gd.group = res.group; // { id, name, code, admin_id, active_boards }
+      // Cache the name for the switcher pill
+      if (!state.gd.groupMeta) state.gd.groupMeta = {};
+      if (res.group.name) state.gd.groupMeta[state.gd.activeGroupCode] = { name: res.group.name };
     } else {
       state.gd.group = null;
     }
   } else {
     state.gd.group = null;
   }
+  renderGroupSwitcher();
   renderLeaderboard();
+}
+
+export async function switchActiveGroup(code) {
+  if (state.gd.activeGroupCode === code) return;
+  state.gd.activeGroupCode = code;
+  localStorage.setItem('gt_activegroup', code);
+  state.gd.group = null;
+  if (state.me) {
+    const res = await querySupabase('getGroupByCode', { code, playerName: state.me });
+    if (res?.found && res.isMember) {
+      state.gd.group = res.group;
+      if (!state.gd.groupMeta) state.gd.groupMeta = {};
+      if (res.group.name) state.gd.groupMeta[code] = { name: res.group.name };
+    }
+  }
+  renderGroupSwitcher();
+  renderLeaderboard();
+}
+
+function renderGroupSwitcher() {
+  const bar = document.getElementById('group-switcher');
+  if (!bar) return;
+  const codes = state.gd.groupCodes || (state.gd.activeGroupCode ? [state.gd.activeGroupCode] : []);
+  if (codes.length <= 1) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  bar.innerHTML = '';
+  codes.forEach(code => {
+    const meta = state.gd.groupMeta?.[code];
+    const label = meta?.name ? meta.name : code;
+    const isActive = code === state.gd.activeGroupCode;
+    const pill = document.createElement('button');
+    pill.className = 'group-pill' + (isActive ? ' active' : '');
+    pill.textContent = label;
+    pill.addEventListener('click', () => switchActiveGroup(code));
+    bar.appendChild(pill);
+  });
 }
 
 // Per-panel expanded state (persists across re-renders within the session)
@@ -128,9 +168,9 @@ export function renderLeaderboard() {
     });
     if (currentSeason && currentSeason !== 'all') seasonSel.value = currentSeason;
   }
-  if (state.gd.groupCode) {
+  if (state.gd.activeGroupCode) {
     const gcEl = document.getElementById('lb-group-code');
-    if (gcEl) gcEl.textContent = state.gd.groupCode;
+    if (gcEl) gcEl.textContent = state.gd.activeGroupCode;
   }
 
   function filterRounds(rounds) {
