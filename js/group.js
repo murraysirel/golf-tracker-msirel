@@ -179,7 +179,7 @@ function _renderBoardSetup() {
   _selectedBoards = new Set(CREATE_BOARDS.map(b => b.id));
   document.getElementById('board-setup-err').style.display = 'none';
   const btn = document.getElementById('board-setup-confirm-btn');
-  if (btn) { btn.disabled = false; btn.textContent = 'Confirm Boards'; }
+  if (btn) { btn.disabled = false; btn.textContent = 'Confirm Leagues'; }
   const list = document.getElementById('board-setup-list');
   if (!list) return;
   list.innerHTML = CREATE_BOARDS.map((b, i) =>
@@ -256,7 +256,7 @@ export async function confirmBoardSetup() {
     pushGist();
     _showGroupReady(json.group);
   } catch {
-    if (btn) { btn.disabled = false; btn.textContent = 'Confirm Boards'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Confirm Leagues'; }
     const err = document.getElementById('board-setup-err');
     if (err) { err.textContent = 'Could not create group — please try again.'; err.style.display = 'block'; }
   }
