@@ -360,6 +360,8 @@ exports.handler = async (event) => {
             has_hole_data: false,
             cached: false,
           })).filter(c => c.name);
+          // Cache results back to Supabase so next search hits DB (fire-and-forget)
+          Promise.all(mapped.map(c => sbUpsert('courses', c))).catch(() => {});
           logCall('search', name, false, { country, results: mapped.length, source: 'api_fallback' });
           return respond(200, { courses: mapped, source: 'api' });
         }
