@@ -42,20 +42,63 @@ exports.handler = async (event) => {
     }
 
     // ── read ─────────────────────────────────────────────────────────
+    // Rounds belong to the player, not the group. We scope by group membership
+    // (group_members join table) so a player's rounds are visible on every
+    // leaderboard they belong to.
     if (action === 'read') {
-      const [players, rounds, matches, groupRow] = await Promise.all([
-        supabase.from('players').select('*').eq('group_code', groupCode),
-        supabase.from('rounds').select('*').eq('group_code', groupCode).order('id', { ascending: false }),
-        supabase.from('active_matches').select('*').eq('group_code', groupCode).eq('status', 'active'),
-        groupCode ? supabase.from('groups').select('settings').eq('code', groupCode).maybeSingle() : Promise.resolve({ data: null })
+      const { data: groupRow } = groupCode
+        ? await supabase.from('groups').select('id, settings').eq('code', groupCode).maybeSingle()
+        : { data: null };
+
+      if (!groupRow) {
+        // Unknown group code — return empty payload without error.
+        // loadGroupData() in api.js detects this via the noSupabasePresence guard.
+        return {
+          statusCode: 200, headers,
+          body: JSON.stringify({ players: [], rounds: [], matches: [], settings: {} })
+        };
+      }
+
+      const groupId  = groupRow.id;
+      const settings = groupRow.settings || {};
+
+      // Get all member names for this group.
+      const { data: memberRows, error: mErr } = await supabase
+        .from('group_members').select('player_id').eq('group_id', groupId);
+      if (mErr) throw mErr;
+
+      const memberNames = (memberRows || []).map(m => m.player_id);
+
+      if (memberNames.length === 0) {
+        const { data: matches } = await supabase
+          .from('active_matches').select('*').eq('group_code', groupCode).eq('status', 'active');
+        return {
+          statusCode: 200, headers,
+          body: JSON.stringify({ players: [], rounds: [], matches: matches || [], settings })
+        };
+      }
+
+      // Fetch players and ALL their rounds (no group_code filter on rounds).
+      const [playersRes, roundsRes, matchesRes] = await Promise.all([
+        supabase.from('players').select('*').in('name', memberNames),
+        supabase.from('rounds').select('*').in('player_name', memberNames).order('id', { ascending: false }),
+        supabase.from('active_matches').select('*').eq('group_code', groupCode).eq('status', 'active')
       ]);
+
+      // Synthetic placeholder for members who joined but have no players row yet
+      // (race window between joinGroup writing group_members and the first saveRound).
+      const knownNames = new Set((playersRes.data || []).map(p => p.name));
+      const syntheticPlayers = memberNames
+        .filter(n => !knownNames.has(n))
+        .map(n => ({ id: null, name: n, email: null, group_code: null, handicap: 0, match_code: null }));
+
       return {
         statusCode: 200, headers,
         body: JSON.stringify({
-          players: players.data || [],
-          rounds: rounds.data || [],
-          matches: matches.data || [],
-          settings: groupRow.data?.settings || {}
+          players: [...(playersRes.data || []), ...syntheticPlayers],
+          rounds:  roundsRes.data  || [],
+          matches: matchesRes.data || [],
+          settings
         })
       };
     }
@@ -65,10 +108,10 @@ exports.handler = async (event) => {
     // the player picker immediately (before saving their first round).
     if (action === 'upsertPlayer') {
       const { playerName, handicap } = data;
-      if (!playerName || !groupCode) return { statusCode: 400, headers, body: JSON.stringify({ error: 'playerName and groupCode required' }) };
+      if (!playerName) return { statusCode: 400, headers, body: JSON.stringify({ error: 'playerName required' }) };
       await supabase.from('players').upsert(
-        { name: playerName, group_code: groupCode, handicap: handicap || 0 },
-        { onConflict: 'name,group_code' }
+        { name: playerName, handicap: handicap || 0 },
+        { onConflict: 'name' }
       );
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     }
@@ -95,10 +138,10 @@ exports.handler = async (event) => {
       await supabase.from('players').upsert({
         name: playerData.name,
         email: playerData.email || null,
-        group_code: groupCode,
         handicap: playerData.handicap || 0,
         match_code: playerData.matchCode || null
-      }, { onConflict: 'name,group_code' });
+        // group_code intentionally omitted — nullable audit-only column post-migration
+      }, { onConflict: 'name' });
 
       await supabase.from('rounds').upsert({
         id: round.id,
@@ -139,20 +182,20 @@ exports.handler = async (event) => {
     // ── updateHandicap ───────────────────────────────────────────────
     if (action === 'updateHandicap') {
       const { playerName, handicap } = data;
+      // One canonical row per player name post-migration — no group_code filter needed.
       await supabase.from('players')
         .update({ handicap })
-        .eq('name', playerName)
-        .eq('group_code', groupCode);
+        .eq('name', playerName);
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     }
 
     // ── deleteRound ──────────────────────────────────────────────────
     if (action === 'deleteRound') {
       const { roundId } = data;
+      // Round id is Date.now() — globally unique. No group_code filter needed.
       await supabase.from('rounds')
         .delete()
-        .eq('id', roundId)
-        .eq('group_code', groupCode);
+        .eq('id', roundId);
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     }
 
@@ -269,11 +312,11 @@ exports.handler = async (event) => {
         .eq('group_id', groupId);
       if (mErr) throw mErr;
       if (!members?.length) return { statusCode: 200, headers, body: JSON.stringify({ members: [] }) };
+      // One canonical row per player name — no group_code filter needed.
       const { data: players } = await supabase
         .from('players')
         .select('name, handicap')
-        .in('name', members.map(m => m.player_id))
-        .eq('group_code', groupCode || '');
+        .in('name', members.map(m => m.player_id));
       const hcpMap = {};
       (players || []).forEach(p => { hcpMap[p.name] = p.handicap; });
       return {
