@@ -103,7 +103,16 @@ function parseCoordinates(rawCoords) {
 }
  
 // ── Parse course detail into our schema ───────────────────────────────────────
-function parseCourseDetail(clubData, courseData, coordData) {
+function parseCourseDetail(clubData, rawCourseData, coordData) {
+  // GolfAPI may wrap the response in a top-level key (e.g. { course: {...} } or { data: {...} }).
+  // Unwrap defensively so we always work with the bare course object.
+  const courseData = rawCourseData?.course || rawCourseData?.data || rawCourseData;
+
+  // Diagnostic log — visible in Netlify function logs
+  console.log('[courses] parseCourseDetail top-level keys:', Object.keys(courseData || {}));
+  console.log('[courses] tees count:', (courseData?.tees || []).length,
+    '| first-tee holes:', courseData?.tees?.[0]?.holes?.length ?? 'n/a');
+
   // Build tees array from course data
   const tees = (courseData.tees || []).map(t => ({
     colour:         (t.teeName || t.name || 'unknown').toLowerCase().replace(/\s+/g, '_'),
@@ -115,13 +124,13 @@ function parseCourseDetail(clubData, courseData, coordData) {
     pars_per_hole:  (t.holes || []).map(h => h.par || 4),
     si_per_hole:    (t.holes || []).map(h => h.strokeIndex || h.handicap || 0),
   }));
- 
+
   // Pars — use first tee as master (they should all share the same pars)
   const firstTee = courseData.tees?.[0];
   const pars = firstTee?.holes?.length === 18
     ? firstTee.holes.map(h => h.par || 4)
     : Array(18).fill(4);
- 
+
   // Stroke indexes — from first tee if available
   const si = firstTee?.holes?.[0]?.strokeIndex !== undefined
     ? firstTee.holes.map(h => h.strokeIndex || 0)
@@ -256,12 +265,21 @@ exports.handler = async (event) => {
  
     if (!courseId) return respond(400, { error: 'Missing courseId' });
  
-    // Check if already fully cached in Supabase
+    // Check if already fully cached in Supabase with real per-hole data.
+    // We require tees[0].pars_per_hole.length === 18 to avoid serving courses
+    // that were previously cached with all-default (par-4) data.
     const existing = await sbSelect('courses',
       `external_course_id=eq.${encodeURIComponent(courseId)}&select=*&limit=1`
     );
-    if (existing.length > 0 && existing[0].pars?.length === 18) {
-      return respond(200, { course: existing[0], source: 'cache' });
+    if (existing.length > 0) {
+      const cached = existing[0];
+      const hasHoleData = Array.isArray(cached.tees) && cached.tees.length > 0
+        && cached.tees[0].pars_per_hole?.length === 18;
+      if (hasHoleData) {
+        return respond(200, { course: cached, source: 'cache' });
+      }
+      // Cached but missing real per-hole data — fall through to re-fetch from GolfAPI
+      console.log('[courses] cache miss quality check for', courseId, '— re-fetching from GolfAPI');
     }
  
     // Not cached — fetch from GolfAPI (costs 2 credits: course + coordinates)
@@ -273,10 +291,15 @@ exports.handler = async (event) => {
     ]);
  
     if (courseData.error) return respond(502, { error: 'GolfAPI course fetch failed' });
- 
+
+    // Log the raw GolfAPI response shape for diagnostics
+    console.log('[courses] raw GolfAPI response top-level keys:', Object.keys(courseData || {}));
+
     // We need club data — either from a prior search result or fetch the club
-    let clubData = { clubID: clubId, clubName: courseData.clubName || '', city: courseData.city || '', state: courseData.state || '', country: courseData.country || 'UK' };
- 
+    // Note: parseCourseDetail will unwrap courseData.course if GolfAPI wraps the response.
+    const unwrapped = courseData?.course || courseData?.data || courseData;
+    let clubData = { clubID: clubId, clubName: unwrapped.clubName || '', city: unwrapped.city || '', state: unwrapped.state || '', country: unwrapped.country || 'UK' };
+
     const parsed = parseCourseDetail(clubData, courseData, coordData);
  
     // Save to Supabase — this is the "cache once" write
@@ -305,6 +328,21 @@ exports.handler = async (event) => {
     return respond(200, { ok: true });
   }
  
+  // ── ACTION: inspect (debug only) ───────────────────────────────────────────
+  // Returns the raw GolfAPI response for a courseId so you can verify the
+  // field names and nesting structure without looking at Netlify logs.
+  // Usage: /.netlify/functions/courses?action=inspect&courseId=<id>
+  if (action === 'inspect') {
+    const courseId = event.queryStringParameters?.courseId;
+    if (!courseId) return respond(400, { error: 'Missing courseId' });
+    if (!GOLFAPI_KEY) return respond(503, { error: 'No API key configured' });
+    const [rawCourse, rawCoords] = await Promise.all([
+      golfApiGetCourse(courseId),
+      golfApiGetCoordinates(courseId),
+    ]);
+    return respond(200, { raw_course: rawCourse, raw_coords_sample: rawCoords?.coordinates?.slice(0, 3) });
+  }
+
   return respond(404, { error: 'Unknown action' });
 };
  
