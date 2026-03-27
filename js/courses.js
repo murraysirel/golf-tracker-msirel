@@ -87,7 +87,7 @@ async function _runSearch(q) {
       _showResultsMsg('Course search is temporarily unavailable — please try again in a moment.');
     } else if (_lastResults.length === 0 && data.source === 'api_empty') {
       console.warn('[courses] GolfAPI returned no clubs. Raw response:', data.debug);
-      _showResultsMsg('No courses found — try a different spelling or check the country filter.');
+      _showResultsMsg('No courses found. DEBUG: ' + JSON.stringify(data.debug).slice(0, 300));
     } else {
       _renderResults(_lastResults);
     }
