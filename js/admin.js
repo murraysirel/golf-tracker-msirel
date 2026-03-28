@@ -353,9 +353,42 @@ export async function adminShowApiCallLog() {
   }
 }
 
+export async function adminShowApiUsage() {
+  const container = document.getElementById('admin-token-container');
+  const btn = document.getElementById('admin-token-btn');
+  if (!container) return;
+  if (btn) btn.disabled = true;
+  container.innerHTML = '<span style="color:var(--dim)">Checking…</span>';
+  try {
+    const res  = await fetch('/.netlify/functions/courses?action=usage');
+    const data = await res.json();
+    if (!res.ok) {
+      container.innerHTML = `<span style="color:var(--double)">Error: ${data.error || res.status}</span>`;
+      return;
+    }
+    if (data.apiRequestsLeft === null) {
+      container.innerHTML = '<span style="color:var(--dim)">No token data recorded yet — make a course search first.</span>';
+      return;
+    }
+    const n = data.apiRequestsLeft;
+    const colour = n > 100 ? 'var(--par)' : n > 20 ? 'var(--bogey)' : 'var(--double)';
+    const ts = data.lastChecked
+      ? new Date(data.lastChecked).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+      : '?';
+    container.innerHTML = `
+      <div style="color:${colour};font-size:20px;font-weight:700">${n.toLocaleString()} requests left</div>
+      <div style="color:var(--dim);font-size:11px;margin-top:4px">Last recorded: ${ts}</div>`;
+  } catch (e) {
+    container.innerHTML = `<span style="color:var(--double)">Network error: ${e.message}</span>`;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 // Expose for inline onclick in admin panel HTML
 window._adminRunMigration         = adminRunMigration;
 window._adminSeedDemo             = adminSeedDemo;
 window._adminFixCourseData        = adminFixCourseData;
 window._adminCleanupLegacyGroups  = adminCleanupLegacyGroups;
 window._adminShowApiCallLog       = adminShowApiCallLog;
+window._adminShowApiUsage         = adminShowApiUsage;

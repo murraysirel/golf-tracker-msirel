@@ -613,6 +613,17 @@ initMatchOverlay();
   } catch (e) {
     console.warn('[boot] unhandled error:', e);
     ss('ok', '');
+    try {
+      const { getStoredSession } = await import('./auth.js');
+      const s = getStoredSession();
+      if (s?.playerName) {
+        // Session exists — show app with cached data rather than kicking to login
+        const cached = localStorage.getItem('gt_localdata');
+        if (cached) { try { Object.assign(state.gd, JSON.parse(cached)); } catch (_) {} }
+        await enterAs(s.playerName);
+        return;
+      }
+    } catch (_) {}
     renderLogin();
   }
 })();

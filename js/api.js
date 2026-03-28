@@ -91,7 +91,17 @@ export async function loadAppData(playerName, groupCode) {
 
   // 3. Load group-scoped data (other players, rounds, settings)
   const code = groupCode || state.gd.activeGroupCode || '';
-  if (code) await loadGroupData(code);
+  if (code) {
+    try {
+      await loadGroupData(code);
+    } catch (e) {
+      console.warn('[api] loadGroupData failed, using cache:', e.message);
+      const cached = localStorage.getItem('gt_localdata');
+      if (cached) {
+        try { Object.assign(state.gd, JSON.parse(cached)); } catch (_) {}
+      }
+    }
+  }
 
   localStorage.setItem('gt_localdata', JSON.stringify(state.gd));
   ss('ok', 'Synced \u2713');

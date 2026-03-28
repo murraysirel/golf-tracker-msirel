@@ -197,7 +197,11 @@ export async function refreshIfNeeded() {
     storeSession(res.session, res.playerName || session.playerName, session.sessionId);
     return null;
   } catch (e) {
-    return { error: 'Network error during token refresh' };
+    // Network error — don't destroy the session; the refresh token is still valid.
+    // Data calls use the server-side service key so they'll still work.
+    // Token will be refreshed successfully on the next boot.
+    console.warn('[auth] token refresh network error — proceeding with stale token:', e.message);
+    return null;
   }
 }
 

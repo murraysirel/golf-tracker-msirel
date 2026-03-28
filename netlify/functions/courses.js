@@ -230,7 +230,12 @@ const sbHeaders = (extra = {}) => ({
 
 async function sbSelect(table, qs) {
   const result = await httpsGet(sbHost(), sbPath(table, qs), sbHeaders());
-  return Array.isArray(result) ? result : [];
+  if (!Array.isArray(result)) {
+    const msg = result?.message || result?.error || JSON.stringify(result).slice(0, 200);
+    console.error(`[courses] sbSelect(${table}) Supabase error:`, msg);
+    throw new Error(`Supabase query failed: ${msg}`);
+  }
+  return result;
 }
 
 async function sbUpsert(table, data) {
@@ -355,20 +360,31 @@ exports.handler = async (event) => {
       try {
         const apiRes = await golfApiSearchClubs(name, country);
         const clubs  = apiRes?.clubs || apiRes?.data || [];
+        const requestsLeft = apiRes?.apiRequestsLeft ?? null;
         if (Array.isArray(clubs) && clubs.length > 0) {
-          const mapped = clubs.map(club => ({
-            external_course_id: String(club.id || club.course_id || ''),
-            external_club_id:   String(club.club_id || club.id || ''),
-            name:      club.club_name || club.name || '',
-            location:  club.city || club.location || '',
-            country:   club.country || country,
-            has_hole_data: false,
-          })).filter(c => c.name);
-          // Cache results back to Supabase so next search hits DB (fire-and-forget)
-          // Only write columns that exist in the courses table schema.
-          Promise.all(mapped.map(c => sbUpsert('courses', c))).catch(() => {});
-          logCall('search', name, false, { country, results: mapped.length, source: 'api_fallback' });
-          return respond(200, { courses: mapped, source: 'api' });
+          const mapped = [];
+          for (const club of clubs) {
+            const coursesInClub = Array.isArray(club.courses) && club.courses.length > 0
+              ? club.courses
+              : [{ id: club.id, course_name: club.club_name || club.name || '' }];
+            for (const course of coursesInClub) {
+              if (!course.id) continue;
+              mapped.push({
+                external_course_id: String(course.id),
+                external_club_id:   String(club.club_id || club.id || ''),
+                name:      course.course_name || club.club_name || '',
+                location:  [club.city, club.state, club.country].filter(Boolean).join(', '),
+                country:   club.country || country,
+                has_hole_data: false,
+              });
+            }
+          }
+          if (mapped.length > 0) {
+            // Cache results back to Supabase so next search hits DB (fire-and-forget)
+            Promise.all(mapped.map(c => sbUpsert('courses', c))).catch(() => {});
+            logCall('search', name, false, { country, results: mapped.length, source: 'api_fallback', apiRequestsLeft: requestsLeft });
+            return respond(200, { courses: mapped, source: 'api' });
+          }
         }
       } catch (apiErr) {
         console.error('[courses] GolfAPI fallback error:', apiErr?.message);
@@ -413,12 +429,13 @@ exports.handler = async (event) => {
 
     console.log('[courses] Cache miss for', courseId, '— fetching from GolfAPI');
 
-    let courseData, coordData;
+    let courseData, coordData, fetchRequestsLeft;
     try {
       [courseData, coordData] = await Promise.all([
         golfApiGetCourse(courseId),
         golfApiGetCoordinates(courseId),
       ]);
+      fetchRequestsLeft = courseData?.apiRequestsLeft ?? coordData?.apiRequestsLeft ?? null;
     } catch (e) {
       console.error('[courses] GolfAPI fetch error:', e?.message);
       logCall('fetch', courseId, false, { courseId, error: e?.message, stage: 'network' });
@@ -468,11 +485,13 @@ exports.handler = async (event) => {
     // The full parsed object (with club_name, city, holes, has_gps etc.) is
     // still returned to the frontend below. Run migration 001_courses_extra_columns.sql
     // to store these fields in Supabase permanently.
-    const { club_name, city, holes, has_gps, data_source, data_quality, report_count, ...dbSafe } = parsed;
+    const { club_name, city, holes, has_gps, data_source, data_quality, report_count, pars, stroke_indexes, ...dbSafe } = parsed;
     const saved = await sbUpsert('courses', dbSafe);
-    const record = Array.isArray(saved) ? { ...saved[0], club_name, city, holes, has_gps } : parsed;
+    const record = Array.isArray(saved)
+      ? { ...saved[0], club_name, city, holes, has_gps, pars, stroke_indexes }
+      : { ...parsed };
 
-    logCall('fetch', parsed.name, false, { courseId, source: 'api', tees: parsed.tees.length });
+    logCall('fetch', parsed.name, false, { courseId, source: 'api', tees: parsed.tees.length, apiRequestsLeft: fetchRequestsLeft ?? null });
 
     return respond(200, { course: record, source: 'api' });
   }
@@ -611,6 +630,48 @@ exports.handler = async (event) => {
       console.error('[courses] inspect error:', e?.message);
       return respond(502, { error: 'GolfAPI request failed', detail: e?.message });
     }
+  }
+
+  // ── ACTION: usage ───────────────────────────────────────────────────────────
+  // Returns the most recently recorded GolfAPI token balance from api_call_log.
+  if (action === 'usage') {
+    try {
+      const rows = await sbSelect('api_call_log',
+        `details->>apiRequestsLeft=not.is.null&order=timestamp.desc&limit=1&select=timestamp,details`
+      );
+      if (!rows.length) return respond(200, { apiRequestsLeft: null, lastChecked: null });
+      return respond(200, {
+        apiRequestsLeft: rows[0].details?.apiRequestsLeft ?? null,
+        lastChecked: rows[0].timestamp,
+      });
+    } catch (e) {
+      return respond(500, { error: 'Failed to query usage', detail: e?.message });
+    }
+  }
+
+  // ── ACTION: diagnose ────────────────────────────────────────────────────────
+  // Tests Supabase connectivity and key config. Protected by SYNC_SECRET.
+  // Usage: GET /.netlify/functions/courses?action=diagnose&secret=<SYNC_SECRET>
+  if (action === 'diagnose') {
+    if (SYNC_SECRET && event.queryStringParameters?.secret !== SYNC_SECRET) {
+      return respond(401, { error: 'Unauthorised' });
+    }
+    const result = {
+      supabase_url_set:  !!SUPABASE_URL,
+      supabase_key_set:  !!SUPABASE_KEY,
+      golfapi_key_set:   !!GOLFAPI_KEY,
+      sync_secret_set:   !!SYNC_SECRET,
+      tables: {},
+    };
+    for (const table of ['courses', 'api_call_log']) {
+      try {
+        const rows = await sbSelect(table, 'limit=1&select=id');
+        result.tables[table] = { ok: true, rows: rows.length };
+      } catch (e) {
+        result.tables[table] = { ok: false, error: e?.message };
+      }
+    }
+    return respond(200, result);
   }
 
   return respond(404, { error: 'Unknown action' });

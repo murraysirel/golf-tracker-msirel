@@ -147,15 +147,17 @@ async function _onSelectResult(idx) {
   // has_hole_data=true means valid hole data is already in Supabase — load from cache,
   // no GolfAPI call. Still goes through the fetch action so the server can return the
   // full row (the search result only has slim/directory-level fields).
+  let cacheSucceeded = false;
   if (result.has_hole_data === true) {
     _showLoadingState('Loading course details…');
     try {
       const res  = await fetch(fetchUrl);
       const data = await res.json();
-      if (data.course) { _applyCourse(data.course); return; }
-    } catch { /* fall through */ }
+      if (data.course) { _applyCourse(data.course); cacheSucceeded = true; return; }
+    } catch { /* fall through to live fetch */ }
     finally { _hideLoadingState(); }
   }
+  if (cacheSucceeded) return;
 
   // Hole data not yet cached — server will make ONE GolfAPI call, validate, then save.
   _showLoadingState('Getting course details…');
