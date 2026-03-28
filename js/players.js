@@ -2,7 +2,7 @@
 // PLAYERS
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
-import { pushGist, querySupabase, loadGroupData, loadAppData } from './api.js';
+import { pushData, querySupabase, loadGroupData, loadAppData } from './api.js';
 import { goTo } from './nav.js';
 import { initCourseSearch, renderScannedCourses } from './courses.js';
 import { renderHomeStats } from './stats.js';
@@ -80,7 +80,7 @@ export async function uploadAvatar(file) {
   if (!state.gd.players[state.me]) return;
   state.gd.players[state.me].avatarImg = dataUrl;
   refreshAvatarUI();
-  pushGist();
+  pushData();
   querySupabase('upsertPlayer', { playerName: state.me, avatarUrl: dataUrl });
 }
 
@@ -165,7 +165,7 @@ export function submitCompleteProfile() {
 
   p.email = email;
   p.dob   = dob;
-  pushGist();
+  pushData();
   querySupabase('upsertPlayer', { playerName: n, email, dob, handicap: p.handicap || 0 });
 
   document.getElementById('onb-step-complete-profile').style.display = 'none';
@@ -238,7 +238,7 @@ export function addAndEnter() {
     }
   }
   if (!state.gd.players[n]) state.gd.players[n] = { handicap: 0, rounds: [], ...(username ? { username } : {}) };
-  pushGist();
+  pushData();
   enterAs(n);
 }
 
@@ -473,7 +473,7 @@ export function addPlayer() {
   const n = fname + ' ' + lname;
   if (state.gd.players[n]) { if (msg) msg.textContent = 'Already exists!'; return; }
   state.gd.players[n] = { handicap: 0, rounds: [], ...(username ? { username } : {}) };
-  pushGist();
+  pushData();
   if (msg) msg.textContent = '\u2705 ' + n + ' added!';
   document.getElementById('add-fname').value = '';
   document.getElementById('add-lname').value = '';
@@ -592,7 +592,7 @@ export function showMatchContextSheet(playerName, roundId) {
         if (handicapsUsed && Object.keys(matchHandicaps).length) {
           playerRounds[rndIdx].matchHandicaps = matchHandicaps;
         }
-        await pushGist();
+        await pushData();
       }
       close();
     });
@@ -606,7 +606,7 @@ export function showMatchContextSheet(playerName, roundId) {
 export function saveHandicapForPlayer(playerName, value) {
   if (!state.gd.players[playerName]) return;
   state.gd.players[playerName].handicap = value;
-  pushGist();
+  pushData();
 }
 
 // Group utils
@@ -618,7 +618,7 @@ function ensureGroupCode() {
     if (!state.gd.groupCodes.includes(code)) state.gd.groupCodes.push(code);
     state.gd.activeGroupCode = code;
     if (!state.gd.groupMeta) state.gd.groupMeta = {};
-    pushGist();
+    pushData();
   }
   const gcEl = document.getElementById('lb-group-code');
   if (gcEl) gcEl.textContent = state.gd.activeGroupCode;

@@ -6,7 +6,7 @@ import { COURSES } from './constants.js';
 import { getCourseByRef } from './courses.js';
 import { initials, avatarHtml } from './players.js';
 import { parseDateGB, calcStableford, isBufferOrBetter, calcScoringPointsNet } from './stats.js';
-import { pushGist, querySupabase, loadGroupData } from './api.js';
+import { pushData, querySupabase, loadGroupData } from './api.js';
 import { removeGroupFromList } from './group.js';
 import { goTo } from './nav.js';
 

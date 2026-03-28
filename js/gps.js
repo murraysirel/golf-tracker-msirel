@@ -2,7 +2,7 @@
 // GPS DISTANCE TO GREEN
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
-import { pushGist, pushSupabase } from './api.js';
+import { pushData, pushSupabase } from './api.js';
 import { getCourseByRef } from './courses.js';
 
 function haversineYards(lat1, lng1, lat2, lng2) {
@@ -150,7 +150,7 @@ export function pinTeePosition(hole0) {
     if (!state.gd.teeCoords) state.gd.teeCoords = {};
     if (!state.gd.teeCoords[courseName]) state.gd.teeCoords[courseName] = {};
     state.gd.teeCoords[courseName][hole0] = { lat, lng };
-    pushGist();
+    pushData();
     if (btn) { btn.textContent = 'Tee pinned ✓'; btn.disabled = false; btn.style.display = 'none'; }
     const teeWrap = document.getElementById('gps-tee-wrap');
     if (teeWrap) teeWrap.style.display = '';

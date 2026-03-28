@@ -2,7 +2,7 @@
 // ADMIN SETTINGS
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
-import { pushGist } from './api.js';
+import { pushData } from './api.js';
 import { renderHomeStats } from './stats.js';
 
 const ADMIN_PW = 'YorBorTrial!';
@@ -80,7 +80,7 @@ export async function adminDeleteRound() {
     deletedAt: new Date().toLocaleDateString('en-GB') + ' ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
   });
   player.rounds.splice(idx, 1);
-  const ok = await pushGist();
+  const ok = await pushData();
   msg.innerHTML = ok
     ? `<span style="color:#2ecc71">\u2705 Round deleted and logged.</span>`
     : `<span style="color:#e67e22">\u26A0\uFE0F Deleted locally \u2014 sync pending.</span>`;
@@ -166,9 +166,9 @@ async function adminApplyFix(origIdx) {
   COURSES.forEach(course => {
     if (course.name !== c.course) return;
     Object.values(course.tees).forEach(teeData => {
-      if (!isNaN(newPar) && teeData.par?.[holeIdx] != null) { teeData.par[holeIdx] = newPar; applied = true; }
-      if (newYards && teeData.hy) teeData.hy[holeIdx] = newYards;
-      if (newSI && teeData.si) teeData.si[holeIdx] = newSI;
+      if (!isNaN(newPar) && teeData.pars_per_hole?.[holeIdx] != null) { teeData.pars_per_hole[holeIdx] = newPar; applied = true; }
+      if (newYards && teeData.yards_per_hole) teeData.yards_per_hole[holeIdx] = newYards;
+      if (newSI && teeData.si_per_hole) teeData.si_per_hole[holeIdx] = newSI;
     });
   });
 
@@ -176,16 +176,16 @@ async function adminApplyFix(origIdx) {
   if (state.gd.customCourses?.[c.course]) {
     const cc = state.gd.customCourses[c.course];
     Object.values(cc.tees || {}).forEach(teeData => {
-      if (!isNaN(newPar) && teeData.par?.[holeIdx] != null) { teeData.par[holeIdx] = newPar; applied = true; }
-      if (newYards && teeData.hy) teeData.hy[holeIdx] = newYards;
-      if (newSI && teeData.si) teeData.si[holeIdx] = newSI;
+      if (!isNaN(newPar) && teeData.pars_per_hole?.[holeIdx] != null) { teeData.pars_per_hole[holeIdx] = newPar; applied = true; }
+      if (newYards && teeData.yards_per_hole) teeData.yards_per_hole[holeIdx] = newYards;
+      if (newSI && teeData.si_per_hole) teeData.si_per_hole[holeIdx] = newSI;
     });
   }
 
   c.status = 'resolved';
   c.resolvedAt = new Date().toLocaleDateString('en-GB');
   c.resolvedBy = state.me;
-  await pushGist();
+  await pushData();
   renderAdminCorrections();
   const msg = document.getElementById('admin-del-msg');
   if (msg) { msg.style.color = 'var(--par)'; msg.innerHTML = `<span style="color:#2ecc71">✅ Fix applied${!applied ? ' (custom course updated — built-in courses require a code change)' : ''}.</span>`; }
@@ -197,36 +197,8 @@ async function adminDismissCorrection(origIdx) {
   c.status = 'dismissed';
   c.resolvedAt = new Date().toLocaleDateString('en-GB');
   c.resolvedBy = state.me;
-  await pushGist();
+  await pushData();
   renderAdminCorrections();
-}
-
-export async function adminRunMigration() {
-  const btn = document.getElementById('admin-migrate-btn');
-  const msg = document.getElementById('admin-migrate-msg');
-  if (!msg) return;
-  btn.disabled = true;
-  msg.style.color = 'var(--dim)';
-  msg.textContent = 'Running migration\u2026';
-  try {
-    const res = await fetch('/.netlify/functions/run-migration', { method: 'POST' });
-    const json = await res.json();
-    if (res.ok) {
-      msg.style.color = '#2ecc71';
-      const players = json.players ?? json.migrated ?? '?';
-      const rounds  = json.rounds ?? '?';
-      const errs    = json.errors?.length ? `\n⚠️ ${json.errors.length} error(s): ${json.errors.slice(0,3).join('; ')}` : '';
-      msg.textContent = `\u2705 Done \u2014 ${players} player(s), ${rounds} round(s) migrated.${errs}`;
-    } else {
-      msg.style.color = '#e74c3c';
-      msg.textContent = `\u274C Error ${res.status}: ${json.error || 'unknown'}`;
-    }
-  } catch (err) {
-    msg.style.color = '#e74c3c';
-    msg.textContent = '\u274C Network error \u2014 check connection.';
-  } finally {
-    btn.disabled = false;
-  }
 }
 
 export async function adminSeedDemo(reset = false) {
@@ -386,7 +358,6 @@ export async function adminShowApiUsage() {
 }
 
 // Expose for inline onclick in admin panel HTML
-window._adminRunMigration         = adminRunMigration;
 window._adminSeedDemo             = adminSeedDemo;
 window._adminFixCourseData        = adminFixCourseData;
 window._adminCleanupLegacyGroups  = adminCleanupLegacyGroups;

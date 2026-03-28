@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
 import { getCourseByRef, clearCourseSelection } from './courses.js';
-import { pushGist, pushSupabase, updateUnsyncedBadge, ss } from './api.js';
+import { pushData, pushSupabase, updateUnsyncedBadge, ss } from './api.js';
 
 // Convert YYYY-MM-DD (native date input) → DD/MM/YYYY (stored format)
 function toGBDate(isoDate) {
@@ -205,11 +205,11 @@ export async function saveRound() {
     penalties: parseInt(document.getElementById('r-pen')?.value) || 0,
     bunkers: parseInt(document.getElementById('r-bun')?.value) || 0,
     chips: parseInt(document.getElementById('r-chip')?.value) || 0,
-    rating: t.rating || t.r, slope: t.slope || t.s
+    rating: t.rating, slope: t.slope
   };
   if (!state.gd.players[target]) state.gd.players[target] = { handicap: 0, rounds: [] };
   state.gd.players[target].rounds.push(rnd);
-  const ok = await pushGist();
+  const ok = await pushData();
   if (ok) {
     localStorage.removeItem('rr_live_backup');
   } else {
@@ -403,7 +403,7 @@ function showPuttsOnlyEntry(rnd) {
         if (sc == null || pt == null) return r.gir?.[h] || '';
         return (sc - pt) <= (par - 2) ? 'Yes' : 'No';
       });
-      await pushGist();
+      await pushData();
     }
     modal.style.display = 'none';
     // Clear nudge dismissed entry since putts are now added

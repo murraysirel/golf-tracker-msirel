@@ -2,7 +2,7 @@
 // GROUP / SEASON MANAGEMENT
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
-import { pushGist, querySupabase, loadGroupData } from './api.js';
+import { pushData, querySupabase, loadGroupData } from './api.js';
 import { parseDateGB } from './stats.js';
 import { signOut } from './players.js';
 import { goTo } from './nav.js';
@@ -30,7 +30,7 @@ export function removeGroupFromList(code) {
     state.gd.activeGroupCode = state.gd.groupCodes[0] || '';
     localStorage.setItem('gt_activegroup', state.gd.activeGroupCode);
   }
-  pushGist();
+  pushData();
   import('./leaderboard.js').then(m => m.renderLeaderboard());
 }
 
@@ -43,7 +43,7 @@ export function leaveGroup() {
     state.gd.groupCodes = (state.gd.groupCodes || []).filter(c => c !== code);
     state.gd.activeGroupCode = state.gd.groupCodes[0] || '';
     localStorage.setItem('gt_activegroup', state.gd.activeGroupCode);
-    pushGist();
+    pushData();
   }
   localStorage.removeItem('rrg_me');
   state.me = null;
@@ -57,7 +57,7 @@ export function toggleGroupCodeRequired() {
   state.gd.requireGroupCode = !state.gd.requireGroupCode;
   const btn = document.getElementById('gc-toggle-btn');
   if (btn) btn.textContent = state.gd.requireGroupCode ? 'On' : 'Off';
-  pushGist();
+  pushData();
 }
 
 export function addSeason() {
@@ -71,7 +71,7 @@ export function addSeason() {
   inp.value = '';
   renderSeasonListInLeaderboard();
   rebuildSeasonSelector();
-  pushGist();
+  pushData();
 }
 
 export function deleteSeason(i) {
@@ -79,7 +79,7 @@ export function deleteSeason(i) {
   state.gd.seasons.splice(i, 1);
   renderSeasonListInLeaderboard();
   rebuildSeasonSelector();
-  pushGist();
+  pushData();
 }
 
 function renderSeasonListInLeaderboard() {
@@ -134,7 +134,7 @@ export async function deleteMyData() {
   const msg = document.getElementById('delete-data-msg');
   msg.innerHTML = '<div class="alert"><span class="spin"></span> Deleting your data...</div>';
   delete state.gd.players[state.me];
-  const ok = await pushGist();
+  const ok = await pushData();
   if (ok) {
     msg.innerHTML = '<div class="alert alert-ok">Your data has been deleted from the group.</div>';
     setTimeout(() => signOut(), 2000);
@@ -284,7 +284,7 @@ export async function confirmBoardSetup() {
     state.gd.activeGroupCode = json.group.code;
     if (!state.gd.groupMeta) state.gd.groupMeta = {};
     state.gd.groupMeta[json.group.code] = { name: json.group.name || _pendingGroupName };
-    pushGist();
+    pushData();
     // Upsert this player into the new group so they appear in the picker immediately
     await querySupabase('upsertPlayer', {
       playerName: state.me,
@@ -423,7 +423,7 @@ export async function confirmJoinGroup() {
     if (!state.gd.groupMeta) state.gd.groupMeta = {};
     state.gd.groupMeta[_pendingGroupJoin.code] = { name: _pendingGroupJoin.name };
     localStorage.setItem('gt_activegroup', _pendingGroupJoin.code);
-    pushGist();
+    pushData();
     // Upsert this player into the joined group so they appear in the picker immediately
     await querySupabase('upsertPlayer', {
       playerName: state.me,

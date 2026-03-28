@@ -2,7 +2,7 @@
 // GROUP MATCH — creation, joining, and active-match UI helpers
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
-import { pushGist } from './api.js';
+import { pushData } from './api.js';
 
 // ── Helpers ───────────────────────────────────────────────────────
 
@@ -435,7 +435,7 @@ function _renderScreen2(modal, matchId, matchName) {
     if (state.gd.matches?.[matchId]) {
       state.gd.matches[matchId].status = 'active';
     }
-    await pushGist();
+    await pushData();
     modal.style.display = 'none';
     updateActiveMatchBadge();
     showMatchToast('Match created — good luck!');
@@ -536,7 +536,7 @@ async function _handleJoin(modal) {
   }
 
   state.currentMatchId = code;
-  await pushGist();
+  await pushData();
   modal.style.display = 'none';
   updateActiveMatchBadge();
   showMatchToast('Joined ' + match.name + ' — good luck!');

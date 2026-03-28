@@ -217,7 +217,6 @@ export function updateUnsyncedBadge() {
 }
 
 // ── retryUnsyncedRounds — push buffered rounds to Supabase ────────
-// Replaces the old retrySyncUnsynced() which pushed to the Gist.
 // Returns true if no unsynced rounds remain.
 export async function retryUnsyncedRounds() {
   const raw = localStorage.getItem('rr_unsynced_rounds');
@@ -253,9 +252,7 @@ export async function retryUnsyncedRounds() {
   return false;
 }
 
-// ── pushData — write group settings to Supabase (replaces pushGist) ──
-// All modules that previously called pushGist() call this instead.
-// The pushGist alias below ensures zero-change compatibility on day 1.
+// ── pushData — write group settings to Supabase ───────────────────
 export async function pushData() {
   localStorage.setItem('gt_localdata', JSON.stringify(state.gd));
   if (state.demoMode) return true;
@@ -275,9 +272,3 @@ export async function pushData() {
   }
 }
 
-// Migration alias — all existing pushGist() call sites work unchanged.
-// Remove this export once all call sites have been updated to pushData().
-export const pushGist = pushData;
-
-// Keep retrySyncUnsynced as alias for any module that hasn't been updated yet
-export const retrySyncUnsynced = retryUnsyncedRounds;

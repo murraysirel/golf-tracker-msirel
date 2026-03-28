@@ -2,7 +2,7 @@
 // APP ENTRY POINT
 // Imports all modules, sets up event listeners, initialises app
 // ─────────────────────────────────────────────────────────────────
-import { loadAppData, pushGist, querySupabase, ss, retryUnsyncedRounds, updateUnsyncedBadge } from './api.js';
+import { loadAppData, pushData, querySupabase, ss, retryUnsyncedRounds, updateUnsyncedBadge } from './api.js';
 import { goTo, switchEntry, registerNavHandlers } from './nav.js';
 import { getCourseByRef, scanCourseCard, saveCourse, cancelCourseScan, handleCoursePhoto, searchCourseAPI, initCourseSearch } from './courses.js';
 import { buildSC, recalc, saveRound, toggleSCExtras } from './scorecard.js';
@@ -176,7 +176,7 @@ document.getElementById('profile-avatar-display')?.addEventListener('click', () 
 document.getElementById('avatar-remove-btn')?.addEventListener('click', () => {
   if (state.gd.players[state.me]) delete state.gd.players[state.me].avatarImg;
   refreshAvatarUI();
-  pushGist();
+  pushData();
   querySupabase('upsertPlayer', { playerName: state.me, avatarUrl: null });
 });
 // DOB auto-format: insert slashes as user types digits (numeric keypad on mobile)

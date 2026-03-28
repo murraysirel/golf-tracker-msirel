@@ -2,7 +2,7 @@
 // AI REVIEW & ANALYSIS
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
-import { pushGist, querySupabase } from './api.js';
+import { pushData, querySupabase } from './api.js';
 import { parseDateGB } from './stats.js';
 import { getCourseByRef } from './courses.js';
 
@@ -241,7 +241,7 @@ Find genuine multi-round patterns, not single-round noise. Respond ONLY with val
     document.getElementById('ai-stats-msg').innerHTML = '';
     state.gd.players[state.me].statsAnalysis = parsed;
     state.gd.players[state.me].statsAnalysisDate = new Date().toLocaleDateString('en-GB');
-    pushGist();
+    pushData();
     querySupabase('saveStatsAnalysis', {
       playerName: state.me,
       statsAnalysis: parsed,
@@ -261,12 +261,12 @@ export function clearStatsAnalysis() {
   delete state.gd.players[state.me].statsAnalysisDate;
   document.getElementById('ai-stats-output').style.display = 'none';
   document.getElementById('ai-stats-msg').innerHTML = '';
-  pushGist();
+  pushData();
 }
 
 function storeAIReviewInRound(roundIndex, review) {
   const p = state.gd.players[state.me];
   if (!p || !p.rounds[roundIndex]) return;
   p.rounds[roundIndex].aiReview = review;
-  pushGist();
+  pushData();
 }

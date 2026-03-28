@@ -2,7 +2,7 @@
 // PRACTICE
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
-import { pushGist, querySupabase } from './api.js';
+import { pushData, querySupabase } from './api.js';
 import { parseDateGB } from './stats.js';
 
 const AREA_LABELS = {
@@ -266,7 +266,7 @@ export function completePracticeSession() {
 
   if (!state.gd.players[state.me].practiceSessions) state.gd.players[state.me].practiceSessions = [];
   state.gd.players[state.me].practiceSessions.push(session);
-  pushGist();
+  pushData();
   querySupabase('savePracticeSessions', { playerName: state.me, sessions: state.gd.players[state.me].practiceSessions });
 
   document.getElementById('c-practice-active').style.display = 'none';

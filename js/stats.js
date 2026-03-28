@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
 import { TC } from './constants.js';
-import { pushGist, pushSupabase } from './api.js';
+import { pushData, pushSupabase } from './api.js';
 import { initials, refreshAvatarUI, avatarHtml } from './players.js';
 
 // Chart instances container
@@ -233,7 +233,7 @@ export function saveHandicap() {
   if (isNaN(v) || v < -10 || v > 54) { alert('Please enter a valid handicap between −10 and 54. Use a negative number for a plus handicap (e.g. −1.2 = +1.2).'); return; }
   if (!state.gd.players[state.me]) state.gd.players[state.me] = { handicap: v, rounds: [] };
   else state.gd.players[state.me].handicap = v;
-  pushGist();
+  pushData();
   document.getElementById('hcp-edit-row').style.display = 'none';
   renderStats();
 }
@@ -739,7 +739,7 @@ function deletePlayerRound(r) {
     deletedAt: new Date().toLocaleDateString('en-GB') + ' ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
   });
   player.rounds.splice(idx, 1);
-  pushGist(); // single call per deletion
+  pushData(); // single call per deletion
   pushSupabase('deleteRound', { roundId: r.id }); // fire-and-forget Supabase sync
   renderStats();
 }

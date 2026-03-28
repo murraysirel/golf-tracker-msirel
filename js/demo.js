@@ -72,7 +72,7 @@ export async function enterDemoMode() {
 
     // Set current player to Murray for stats view
     state.me = DEMO_PLAYER;
-    localStorage.setItem('rr_me', DEMO_PLAYER);
+    localStorage.setItem('rrg_me', DEMO_PLAYER);
 
     // Transition from onboarding screens to main app (same pattern as enterAs())
     ['pg-onboard', 'pg-group-fork', 'pg-join-group', 'pg-create-group'].forEach(id => {
@@ -100,7 +100,7 @@ export function exitDemoMode() {
   state.demoMode = false;
   state.me = '';
   state.gd = { players: {} };
-  localStorage.removeItem('rr_me');
+  localStorage.removeItem('rrg_me');
   removeDemoUI();
 
   // Reload so the Gist re-loads normally

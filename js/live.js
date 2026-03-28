@@ -325,7 +325,7 @@ function showHcpModal(onConfirm) {
   {
     const course = getCourseByRef();
     const teeData = course?.tees?.[state.stee];
-    slope = teeData?.s || teeData?.slope || 113;
+    slope = teeData?.slope || 113;
   }
 
   if (!state.liveState.hcpOverrides) state.liveState.hcpOverrides = {};
@@ -575,7 +575,7 @@ function liveGroupAdj(playerName, field, delta) {
       scoreEl.classList.add('score-bounce');
       setTimeout(() => scoreEl.classList.remove('score-bounce'), 210);
     }
-    // Keep group match scores in sync (persisted at round-end via pushGist)
+    // Keep group match scores in sync (persisted at round-end via pushData)
     syncPlayerMatchScore(playerName);
     // Refresh overlay immediately so current player's score shows live
     import('./overlay.js').then(({ refreshMatchOverlay }) => refreshMatchOverlay());
@@ -959,7 +959,7 @@ async function liveGroupSave() {
     : new Date().toLocaleDateString('en-GB');
   const notes = document.getElementById('r-notes')?.value || '';
 
-  const { pushGist, pushSupabase, updateUnsyncedBadge, ss } = await import('./api.js');
+  const { pushData, pushSupabase, updateUnsyncedBadge, ss } = await import('./api.js');
 
   // Final match score sync for all group members before persisting
   state.liveState.group.forEach(name => syncPlayerMatchScore(name));
@@ -971,7 +971,7 @@ async function liveGroupSave() {
     sixesResult = sixesGetSaveData();
   }
 
-  const savedRounds = []; // collect rounds to protect if pushGist fails
+  const savedRounds = []; // collect rounds to protect if pushData fails
 
   for (const playerName of state.liveState.group) {
     const sc = state.liveState.groupScores[playerName] || Array(18).fill(null);
@@ -997,7 +997,7 @@ async function liveGroupSave() {
       bogeys: sc.filter((s, i) => s && s === state.cpars[i] + 1).length,
       doubles: sc.filter((s, i) => s && s >= state.cpars[i] + 2).length,
       eagles: sc.filter((s, i) => s && s <= state.cpars[i] - 2).length,
-      rating: teeData.r, slope: teeData.s,
+      rating: teeData.rating, slope: teeData.slope,
       // Include match outcome if match play was used
       ...(state.liveState.matchPlay && state.liveState.matchResult
         ? { matchOutcome: { ...state.liveState.matchResult } }
@@ -1048,7 +1048,7 @@ async function liveGroupSave() {
         bogeys: sc.filter((s, i) => s && s === state.cpars[i] + 1).length,
         doubles: sc.filter((s, i) => s && s >= state.cpars[i] + 2).length,
         eagles: sc.filter((s, i) => s && s <= state.cpars[i] - 2).length,
-        rating: teeData.r, slope: teeData.s,
+        rating: teeData.rating, slope: teeData.slope,
         wolfResult
       };
       if (!state.gd.players[playerName]) state.gd.players[playerName] = { handicap: 0, rounds: [] };
@@ -1062,7 +1062,7 @@ async function liveGroupSave() {
   const _meRoundId = state.gd.players[state.me]?.rounds?.slice(-1)[0]?.id;
   const _groupPlayers = [...state.liveState.group];
 
-  const ok = await pushGist(); // single pushGist call for all players
+  const ok = await pushData(); // single pushData call for all players
   if (ok) {
     localStorage.removeItem('rr_live_backup');
   } else {
@@ -1183,8 +1183,8 @@ export async function submitCorrectionReport() {
     status: 'pending'
   });
 
-  const { pushGist } = await import('./api.js');
-  await pushGist();
+  const { pushData } = await import('./api.js');
+  await pushData();
 
   if (msg) { msg.style.color = 'var(--par)'; msg.textContent = '✅ Report submitted — admin will review.'; }
   setTimeout(() => { document.getElementById('correction-modal').style.display = 'none'; }, 1500);

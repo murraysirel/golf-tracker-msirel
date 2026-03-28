@@ -242,17 +242,14 @@ function _applyCourse(course) {
 function _applyTee(tee) {
   state.stee = tee.colour || tee.name?.toLowerCase() || 'white';
  
-  // Per-hole yardages — check both new (yards_per_hole) and old (hy) field names
-  const yards = tee.yards_per_hole || tee.hy;
+  const yards = tee.yards_per_hole;
   if (yards?.length === 18) state.activeHoleYards = yards;
- 
-  // Per-tee pars — check both new (pars_per_hole) and old (par) field names
-  const pars = tee.pars_per_hole || tee.par;
+
+  const pars = tee.pars_per_hole;
   if (pars?.length === 18) state.cpars = pars;
 
-  // Stroke indexes — check both new (si_per_hole) and old (si) field names
-  // Guard: only use if at least one value is non-zero (all-zero = API returned nothing)
-  const siArr = tee.si_per_hole || tee.si;
+  // Guard: only use SI if at least one value is non-zero (all-zero = API returned nothing)
+  const siArr = tee.si_per_hole;
   if (siArr?.length === 18 && siArr.some(v => v > 0)) {
     state.scannedSI = siArr;
   } else if (_selectedCourse?.stroke_indexes?.length === 18 && _selectedCourse.stroke_indexes.some(v => v > 0)) {
@@ -275,10 +272,10 @@ function _applyTee(tee) {
     if (builtin) {
       const colour = tee.colour || state.stee;
       const builtinTee = builtin.tees[colour] || builtin.tees[builtin.def] || Object.values(builtin.tees)[0];
-      if (builtinTee?.par?.length === 18) {
-        state.cpars = builtinTee.par;
-        if (!state.activeHoleYards && builtinTee.hy?.length === 18) {
-          state.activeHoleYards = builtinTee.hy;
+      if (builtinTee?.pars_per_hole?.length === 18) {
+        state.cpars = builtinTee.pars_per_hole;
+        if (!state.activeHoleYards && builtinTee.yards_per_hole?.length === 18) {
+          state.activeHoleYards = builtinTee.yards_per_hole;
         }
       }
     }
@@ -308,9 +305,9 @@ function _renderSelectedCard(course) {
             ${tees.map(t => `
               <option value="${t.colour}">
                 ${t.name}
-                ${(t.yardage || t.y) ? ` · ${t.yardage || t.y} yds` : ''}
-                ${(t.rating  || t.r) ? ` · CR ${t.rating  || t.r}`  : ''}
-                ${(t.slope   || t.s) ? ` / Slope ${t.slope || t.s}` : ''}
+                ${t.yardage ? ` · ${t.yardage} yds` : ''}
+                ${t.rating  ? ` · CR ${t.rating}`  : ''}
+                ${t.slope   ? ` / Slope ${t.slope}` : ''}
               </option>
             `).join('')}
           </select>
@@ -655,7 +652,7 @@ export function saveCourse() {
   state.gd.customCourses[name] = { name, loc, tees, addedBy: state.me, addedDate: new Date().toLocaleDateString('en-GB') };
   state._scannedTeeRatings = null;
 
-  import('./api.js').then(({ pushGist }) => pushGist()).then(ok => {
+  import('./api.js').then(({ pushData }) => pushData()).then(ok => {
     const msg = ok ? '✅ Course saved! It\'ll now appear in the course selector.' : '⚠️ Saved locally — will sync when connection is available.';
     document.getElementById('course-save-msg').textContent = msg;
     setTimeout(() => {
@@ -712,7 +709,7 @@ export function renderScannedCourses() {
 export function deleteScannedCourse(key) {
   if (!confirm(`Delete "${key}" from the course list? This cannot be undone.`)) return;
   delete state.gd.customCourses[key];
-  import('./api.js').then(({ pushGist }) => pushGist());
+  import('./api.js').then(({ pushData }) => pushData());
   renderScannedCourses();
 }
 
