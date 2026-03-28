@@ -176,13 +176,6 @@ export function submitCompleteProfile() {
 export async function enterAs(n) {
   if (!state.gd.players[n]) state.gd.players[n] = { handicap: 0, rounds: [] };
 
-  // Block sign-in until email and DOB are on record
-  const p = state.gd.players[n];
-  if (!p.email || !p.dob) {
-    _showCompleteProfileFor(n);
-    return;
-  }
-
   state.me = n;
   localStorage.setItem('rrg_me', n);
 
@@ -398,6 +391,10 @@ export async function agreePrivacy() {
 
   // Load all data from Supabase now that auth_user_id is linked
   await loadAppData(resolvedName, localStorage.getItem('gt_activegroup') || '');
+
+  // Ensure DOB, email, and handicap are persisted — server linkOrCreatePlayer may have
+  // skipped DOB if it matched by email rather than creating a new row
+  querySupabase('upsertPlayer', { playerName: resolvedName, email, dob, handicap });
 
   showGroupFork(true);
 }

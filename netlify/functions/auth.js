@@ -72,9 +72,12 @@ async function linkOrCreatePlayer(authUserId, email, name, handicap, dob) {
   if (byEmail) {
     await supabaseAdmin
       .from('players')
-      .update({ auth_user_id: authUserId })
-      .eq('name', byEmail.name)
-      .is('auth_user_id', null);
+      .update({
+        auth_user_id: authUserId,
+        ...(dob      ? { dob }                              : {}),
+        ...(handicap ? { handicap: parseFloat(handicap) || 0 } : {}),
+      })
+      .eq('name', byEmail.name);
     return byEmail.name;
   }
 
@@ -242,8 +245,7 @@ exports.handler = async (event) => {
       const { refreshToken, sessionId, deviceHint } = body;
       if (!refreshToken) return respond(400, { error: 'refreshToken required' });
 
-      const { data, error } = await supabaseAnon.auth.setSession({
-        access_token:  'placeholder', // required but ignored during refresh
+      const { data, error } = await supabaseAnon.auth.refreshSession({
         refresh_token: refreshToken,
       });
       if (error || !data.session) return respond(401, { error: 'Session expired — please sign in again' });
