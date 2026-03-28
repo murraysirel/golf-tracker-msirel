@@ -2,13 +2,13 @@
 // APP ENTRY POINT
 // Imports all modules, sets up event listeners, initialises app
 // ─────────────────────────────────────────────────────────────────
-import { loadGist, pushGist, ss, retrySyncUnsynced, updateUnsyncedBadge } from './api.js';
+import { loadAppData, pushGist, ss, retryUnsyncedRounds, updateUnsyncedBadge } from './api.js';
 import { goTo, switchEntry, registerNavHandlers } from './nav.js';
 import { getCourseByRef, scanCourseCard, saveCourse, cancelCourseScan, handleCoursePhoto, searchCourseAPI, initCourseSearch } from './courses.js';
 import { buildSC, recalc, saveRound, toggleSCExtras } from './scorecard.js';
 import { renderStats, setFilter, toggleHcpEdit, saveHandicap, renderHomeStats, openScorecardModal, openKpiPicker, closeKpiPicker } from './stats.js';
 import { renderLeaderboard, initLeaderboard } from './leaderboard.js';
-import { renderOnboard, enterAs, addAndEnter, signOut, addPlayer, renderAllPlayers, renderPlayersToday, showSignupStep, submitProfile, agreePrivacy, submitCompleteProfile, showGroupFork, goBackToFork, forkNotNow, forkJoinGroup, forkCreateGroup, refreshAvatarUI, uploadAvatar, setPrefTheme, setPrefUnit, submitPrefs } from './players.js';
+import { renderLogin, enterAs, signOut, addPlayer, renderAllPlayers, renderPlayersToday, showSignupStep, submitProfile, agreePrivacy, submitCompleteProfile, showGroupFork, goBackToFork, forkNotNow, forkJoinGroup, forkCreateGroup, refreshAvatarUI, uploadAvatar, setPrefTheme, setPrefUnit, submitPrefs } from './players.js';
 import { renderPracticePage, selectPracticeArea, startPracticeSession, regeneratePlan, logPracticeShots, completePracticeSession } from './practice.js';
 import { initLiveRound, liveGoto, liveSaveNote, liveNextOrFinish, toggleGroupPlayer, startGroupRound, toggleMatchPlay, openCorrectionModal, submitCorrectionReport, cancelRound } from './live.js';
 import { generateAIReview, generateStatsAnalysis, clearStatsAnalysis, parsePhoto, handlePhoto } from './ai.js';
@@ -325,7 +325,7 @@ document.getElementById('add-season-btn')?.addEventListener('click', addSeason);
 document.getElementById('export-xlsx-btn')?.addEventListener('click', exportXlsx);
 document.getElementById('confirm-delete-data-btn')?.addEventListener('click', confirmDeleteMyData);
 document.getElementById('add-player-btn')?.addEventListener('click', addPlayer);
-document.getElementById('reload-btn')?.addEventListener('click', () => loadGist().then(renderHomeStats));
+document.getElementById('reload-btn')?.addEventListener('click', () => loadAppData(state.me, state.gd?.activeGroupCode || '').then(() => renderHomeStats()));
 document.getElementById('copy-app-url-btn')?.addEventListener('click', copyAppUrl);
 document.getElementById('sign-out-btn')?.addEventListener('click', signOut);
 document.getElementById('open-admin-btn')?.addEventListener('click', openAdminSettings);
@@ -409,30 +409,9 @@ function showUnsyncedRoundsPrompt(unsynced) {
   document.getElementById('us-later-btn').addEventListener('click', () => overlay.remove());
 
   document.getElementById('us-sync-btn').addEventListener('click', async () => {
-    const raw = localStorage.getItem('rr_unsynced_rounds');
-    if (!raw) { overlay.remove(); return; }
-    let items;
-    try { items = JSON.parse(raw); } catch (_) { overlay.remove(); return; }
-    let merged = false;
-    for (const item of items) {
-      if (!state.gd.players[item.player]) state.gd.players[item.player] = { handicap: 0, rounds: [] };
-      const exists = state.gd.players[item.player].rounds.some(r => r.id === item.round.id);
-      if (!exists) { state.gd.players[item.player].rounds.push(item.round); merged = true; }
-    }
     overlay.remove();
-    if (merged) {
-      try {
-        await pushGist();
-        localStorage.removeItem('rr_unsynced_rounds');
-        updateUnsyncedBadge();
-        ss('ok', 'Rounds synced successfully');
-      } catch (e) {
-        ss('err', 'Sync failed \u2014 will try again next time you open the app');
-      }
-    } else {
-      localStorage.removeItem('rr_unsynced_rounds');
-      updateUnsyncedBadge();
-    }
+    const ok = await retryUnsyncedRounds();
+    if (!ok) ss('err', 'Sync failed \u2014 will try again next time you open the app');
   });
 }
 
@@ -474,24 +453,105 @@ function showRoundRecoveryPrompt(backup) {
   };
 }
 
-// ── Initialise ────────────────────────────────────────────────────
-initMatchOverlay();
-loadGist().then(async () => {
-  // Auto-login from previous session; enterAs handles profile-completion check
-  const savedMe = localStorage.getItem('rrg_me');
-  if (savedMe && state.gd.players?.[savedMe]) {
-    enterAs(savedMe);
-  } else {
-    renderOnboard();
+// ── Login form event listeners ────────────────────────────────────
+document.getElementById('login-submit-btn')?.addEventListener('click', async () => {
+  const email    = document.getElementById('login-email')?.value.trim();
+  const password = document.getElementById('login-password')?.value;
+  const errEl    = document.getElementById('login-err');
+  if (!email || !password) {
+    if (errEl) { errEl.textContent = 'Please enter your email and password.'; errEl.style.display = 'block'; }
+    return;
   }
+  const btn = document.getElementById('login-submit-btn');
+  if (btn) btn.disabled = true;
+  const { signIn } = await import('./auth.js');
+  const result = await signIn(email, password);
+  if (btn) btn.disabled = false;
+  if (result.error) {
+    if (errEl) { errEl.textContent = result.error; errEl.style.display = 'block'; }
+    return;
+  }
+  if (errEl) errEl.style.display = 'none';
+  await loadAppData(result.playerName, '');
+  await enterAs(result.playerName);
   updateActiveMatchBadge();
   updateUnsyncedBadge();
-  startInvitePolling(); // begin checking for live round invites once data loaded
+  startInvitePolling();
+  await retryUnsyncedRounds();
+});
 
-  // Silent retry — merge any unsynced rounds into Gist without prompting
-  const syncedOk = await retrySyncUnsynced();
+document.getElementById('login-magic-link-btn')?.addEventListener('click', () => {
+  document.getElementById('onb-login-form').style.display = 'none';
+  document.getElementById('onb-magic-form').style.display = 'block';
+});
 
-  // Only show modal if silent retry failed and rounds still remain
+document.getElementById('magic-back-btn')?.addEventListener('click', () => {
+  document.getElementById('onb-magic-form').style.display = 'none';
+  document.getElementById('onb-login-form').style.display = 'block';
+});
+
+document.getElementById('magic-submit-btn')?.addEventListener('click', async () => {
+  const email = document.getElementById('magic-email')?.value.trim();
+  const errEl = document.getElementById('magic-err');
+  if (!email) {
+    if (errEl) { errEl.textContent = 'Please enter your email address.'; errEl.style.display = 'block'; }
+    return;
+  }
+  const btn = document.getElementById('magic-submit-btn');
+  if (btn) btn.disabled = true;
+  const { sendMagicLink } = await import('./auth.js');
+  const result = await sendMagicLink(email);
+  if (btn) btn.disabled = false;
+  if (result.error) {
+    if (errEl) { errEl.textContent = result.error; errEl.style.display = 'block'; }
+    return;
+  }
+  if (errEl) errEl.style.display = 'none';
+  const sent = document.getElementById('magic-sent');
+  if (sent) sent.style.display = 'block';
+  if (btn) btn.style.display = 'none';
+});
+
+// ── Initialise ────────────────────────────────────────────────────
+initMatchOverlay();
+(async function boot() {
+  const { handleMagicLinkRedirect, getStoredSession, refreshIfNeeded, clearSession } =
+    await import('./auth.js');
+
+  // 1. Consume magic link redirect tokens from URL hash (must run before any nav)
+  const magicResult = await handleMagicLinkRedirect();
+  if (magicResult?.needsProfile) {
+    // New user via magic link — direct to signup profile step
+    showSignupStep(1);
+    return;
+  }
+
+  // 2. Check stored session
+  let session = getStoredSession();
+  if (!session?.playerName) {
+    renderLogin();
+    return;
+  }
+
+  // 3. Refresh access token if near expiry
+  const refreshResult = await refreshIfNeeded();
+  if (refreshResult?.error) {
+    clearSession();
+    renderLogin();
+    return;
+  }
+
+  session = getStoredSession(); // re-read after potential refresh
+
+  // 4. Load data and enter app
+  await loadAppData(session.playerName, localStorage.getItem('gt_activegroup') || '');
+  await enterAs(session.playerName);
+  updateActiveMatchBadge();
+  updateUnsyncedBadge();
+  startInvitePolling();
+
+  // 5. Retry unsynced rounds silently; show prompt if still failing
+  const syncedOk = await retryUnsyncedRounds();
   if (!syncedOk) {
     const raw = localStorage.getItem('rr_unsynced_rounds');
     if (raw) {
@@ -502,7 +562,7 @@ loadGist().then(async () => {
     }
   }
 
-  // Live round recovery
+  // 6. Live round recovery
   const backup = localStorage.getItem('rr_live_backup');
   if (backup) {
     try {
@@ -511,4 +571,4 @@ loadGist().then(async () => {
       if (ageMinutes < 480 && b.hole > 0) showRoundRecoveryPrompt(b);
     } catch (_) {}
   }
-});
+})();

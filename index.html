@@ -80,15 +80,43 @@
     <div class="onb-sub" style="margin-top:8px">Your caddie in your pocket</div>
   </div>
 
-  <!-- STEP 0: Select existing player or start sign-up -->
+  <!-- STEP 0: Login / sign-in screen -->
   <div id="onb-step-select" class="card mb12">
-    <div class="ct">Who are you?</div>
-    <div id="onb-player-list"><div class="empty"><div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></div>Loading players...</div></div>
-    <div class="divider"><span>New to Looper?</span></div>
-    <button class="btn" id="onb-create-profile-btn" style="border-radius:40px">Create your profile →</button>
-    <button id="demo-entry-btn" style="display:block;width:100%;margin-top:12px;padding:12px;border-radius:40px;background:transparent;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;-webkit-tap-highlight-color:transparent;text-align:center">
-      <span style="font-size:12px;color:var(--dimmer)">Just browsing? </span><span style="font-size:12px;color:var(--gold);text-decoration:underline;text-underline-offset:2px">Try the demo →</span>
-    </button>
+
+    <!-- Login form (default view) -->
+    <div id="onb-login-form">
+      <div class="ct" style="margin-bottom:4px">Welcome back</div>
+      <div style="font-size:12px;color:var(--dim);margin-bottom:20px;line-height:1.5">Sign in to your Looper account</div>
+      <label style="font-size:11px;color:var(--dim);margin-bottom:4px;display:block">Email address</label>
+      <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email" inputmode="email" class="mb12">
+      <label style="font-size:11px;color:var(--dim);margin-bottom:4px;display:block">Password</label>
+      <input type="password" id="login-password" placeholder="Your password" autocomplete="current-password" class="mb4">
+      <div id="login-err" style="display:none;font-size:12px;color:#f1948a;margin-bottom:10px;padding:8px 12px;background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.2);border-radius:8px"></div>
+      <button class="btn" id="login-submit-btn" style="border-radius:40px;width:100%;margin-top:8px">Sign in →</button>
+      <div style="text-align:center;margin-top:14px">
+        <button id="login-magic-link-btn" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--gold);font-family:'DM Sans',sans-serif;text-decoration:underline;text-underline-offset:2px;-webkit-tap-highlight-color:transparent">Sign in without a password →</button>
+      </div>
+      <div class="divider" style="margin-top:16px"><span>New to Looper?</span></div>
+      <button class="btn btn-o" id="onb-create-profile-btn" style="border-radius:40px;width:100%">Create account →</button>
+      <button id="demo-entry-btn" style="display:block;width:100%;margin-top:12px;padding:12px;border-radius:40px;background:transparent;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;-webkit-tap-highlight-color:transparent;text-align:center">
+        <span style="font-size:12px;color:var(--dimmer)">Just browsing? </span><span style="font-size:12px;color:var(--gold);text-decoration:underline;text-underline-offset:2px">Try the demo →</span>
+      </button>
+    </div>
+
+    <!-- Magic link form (toggled) -->
+    <div id="onb-magic-form" style="display:none">
+      <div class="ct" style="margin-bottom:4px">Magic link</div>
+      <div style="font-size:12px;color:var(--dim);margin-bottom:20px;line-height:1.5">Enter your email and we'll send you a link to sign in instantly — no password needed.</div>
+      <label style="font-size:11px;color:var(--dim);margin-bottom:4px;display:block">Email address</label>
+      <input type="email" id="magic-email" placeholder="you@example.com" autocomplete="email" inputmode="email" class="mb4">
+      <div id="magic-err" style="display:none;font-size:12px;color:#f1948a;margin-bottom:10px;padding:8px 12px;background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.2);border-radius:8px"></div>
+      <div id="magic-sent" style="display:none;font-size:12px;color:var(--par);margin-bottom:12px;padding:10px 12px;background:rgba(46,204,113,.08);border:1px solid rgba(46,204,113,.2);border-radius:8px;line-height:1.5">
+        Check your email — tap the link to sign in. You can close this tab.
+      </div>
+      <button class="btn" id="magic-submit-btn" style="border-radius:40px;width:100%;margin-top:4px">Send magic link →</button>
+      <button class="btn btn-ghost" id="magic-back-btn" style="margin-top:8px">← Back to sign in</button>
+    </div>
+
   </div>
 
   <!-- STEP 1: Profile creation -->

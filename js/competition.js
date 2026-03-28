@@ -3,7 +3,7 @@
 // Also exports getMatchLeaderboard for group match standings
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
-import { loadGist } from './api.js';
+import { loadAppData } from './api.js';
 import { calcStableford, parseDateGB } from './stats.js';
 import { initials, avatarHtml } from './players.js';
 import { getCourseByRef } from './courses.js';
@@ -74,7 +74,9 @@ function updatePollStatus() {
 
 async function pollAndUpdate() {
   if (state.demoMode) return;
-  await loadGist();
+  const { getStoredSession } = await import('./auth.js');
+  const session = getStoredSession();
+  await loadAppData(session?.playerName || '', state.gd?.activeGroupCode || '');
   const newEvents = diffSnapshots(_lastSnapshot, state.gd);
   if (newEvents.length) {
     _feed = [...newEvents, ..._feed].slice(0, 50);

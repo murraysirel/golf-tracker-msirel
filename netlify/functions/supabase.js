@@ -538,6 +538,74 @@ exports.handler = async (event) => {
       };
     }
 
+    // ── getPlayerByAuthId ─────────────────────────────────────────────
+    // Returns player name, group codes, and personal data (practice sessions,
+    // stats analysis) for the given auth UUID. Called on each app boot.
+    if (action === 'getPlayerByAuthId') {
+      const { authUserId } = data;
+      if (!authUserId) return { statusCode: 400, headers, body: JSON.stringify({ error: 'authUserId required' }) };
+      const { data: player } = await supabase
+        .from('players')
+        .select('name, practice_sessions, stats_analysis, stats_analysis_date')
+        .eq('auth_user_id', authUserId)
+        .maybeSingle();
+      if (!player) return { statusCode: 404, headers, body: JSON.stringify({ error: 'Player not found' }) };
+      const { data: memberships } = await supabase
+        .from('group_members')
+        .select('groups(code)')
+        .eq('player_id', player.name);
+      const groupCodes = (memberships || []).map(m => m.groups?.code).filter(Boolean);
+      return {
+        statusCode: 200, headers,
+        body: JSON.stringify({
+          name:               player.name,
+          groupCodes,
+          practiceSessions:   player.practice_sessions  || [],
+          statsAnalysis:      player.stats_analysis     || null,
+          statsAnalysisDate:  player.stats_analysis_date || null,
+        }),
+      };
+    }
+
+    // ── savePracticeSessions ──────────────────────────────────────────
+    if (action === 'savePracticeSessions') {
+      const { playerName, sessions } = data;
+      if (!playerName) return { statusCode: 400, headers, body: JSON.stringify({ error: 'playerName required' }) };
+      const { error: upErr } = await supabase
+        .from('players')
+        .update({ practice_sessions: sessions || [] })
+        .eq('name', playerName);
+      if (upErr) throw upErr;
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+    }
+
+    // ── saveStatsAnalysis ─────────────────────────────────────────────
+    if (action === 'saveStatsAnalysis') {
+      const { playerName, statsAnalysis, statsAnalysisDate } = data;
+      if (!playerName) return { statusCode: 400, headers, body: JSON.stringify({ error: 'playerName required' }) };
+      const { error: upErr } = await supabase
+        .from('players')
+        .update({ stats_analysis: statsAnalysis || null, stats_analysis_date: statsAnalysisDate || null })
+        .eq('name', playerName);
+      if (upErr) throw upErr;
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+    }
+
+    // ── linkAuthToPlayer ──────────────────────────────────────────────
+    // Safety action: set auth_user_id on an existing player row by email.
+    // Only links if the row has no auth_user_id yet (avoids overwriting).
+    if (action === 'linkAuthToPlayer') {
+      const { authUserId, email } = data;
+      if (!authUserId || !email) return { statusCode: 400, headers, body: JSON.stringify({ error: 'authUserId and email required' }) };
+      const { error: upErr } = await supabase
+        .from('players')
+        .update({ auth_user_id: authUserId })
+        .ilike('email', email)
+        .is('auth_user_id', null);
+      if (upErr) throw upErr;
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+    }
+
     // ── getApiCallLog ─────────────────────────────────────────────────
     if (action === 'getApiCallLog') {
       const { data: rows, error: logErr } = await supabase

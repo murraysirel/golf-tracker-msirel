@@ -2,7 +2,7 @@
 // PLAYERS
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
-import { loadGist, pushGist, querySupabase, loadGroupData } from './api.js';
+import { pushGist, querySupabase, loadGroupData } from './api.js';
 import { goTo } from './nav.js';
 import { initCourseSearch, renderScannedCourses } from './courses.js';
 import { renderHomeStats } from './stats.js';
@@ -83,24 +83,15 @@ export async function uploadAvatar(file) {
   pushGist();
 }
 
-export function renderOnboard() {
-  const list = document.getElementById('onb-player-list');
-  const names = Object.keys(state.gd.players);
-  if (!names.length) {
-    list.innerHTML = '<div style="font-size:12px;color:var(--dim);padding:8px 0;text-align:center">No players yet \u2014 add yourself below</div>';
-    return;
-  }
-  list.innerHTML = '';
-  names.forEach(n => {
-    const p = state.gd.players[n];
-    const rs = p.rounds || [];
-    const sc = rs.map(r => r.totalScore).filter(Boolean);
-    const div = document.createElement('div');
-    div.className = 'player-card';
-    div.innerHTML = `${avatarHtml(n, 36, false)}<div><div class="pname">${n}</div><div class="pmeta">${rs.length} round${rs.length !== 1 ? 's' : ''} \u00B7 Best: ${sc.length ? Math.min(...sc) : '—'}</div></div>`;
-    div.addEventListener('click', () => enterAs(n));
-    list.appendChild(div);
+export function renderLogin() {
+  // Hide all flow pages, show the onboarding shell with the login form panel
+  ['pg-main', 'pg-group-fork', 'pg-join-group', 'pg-create-group', 'pg-board-setup', 'pg-group-ready', 'pg-board'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
   });
+  const pg = document.getElementById('pg-onboard');
+  if (pg) pg.style.display = 'block';
+  showSignupStep(0);
 }
 
 // ── Profile completion for existing players ───────────────────────
@@ -207,17 +198,9 @@ export async function enterAs(n) {
   pm.style.display = 'flex';
   initCourseSearch();
   renderHomeStats();
-  ensureGroupCode();
   seedGreenCoords();
   goTo('home');
   document.getElementById('r-date').value = new Date().toISOString().split('T')[0];
-
-  // Now that state.me is known, load group-scoped data from Supabase.
-  // Re-renders home stats once scoped data arrives (fire-and-forget, non-blocking).
-  const groupCode = state.gd.activeGroupCode || localStorage.getItem('gt_activegroup') || '';
-  if (groupCode) {
-    loadGroupData(groupCode).then(() => renderHomeStats()).catch(() => {});
-  }
 
   // Check group membership — show fork screen if player has no active group
   _checkAndShowGroupFork(n);
@@ -266,16 +249,10 @@ export function addAndEnter() {
 }
 
 export function signOut() {
+  import('./auth.js').then(({ serverSignOut }) => serverSignOut()).catch(() => {});
   state.me = '';
   localStorage.removeItem('rrg_me');
-  ['pg-main', 'pg-group-fork', 'pg-join-group', 'pg-create-group', 'pg-board-setup', 'pg-group-ready', 'pg-board'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = 'none';
-  });
-  const po = document.getElementById('pg-onboard');
-  if (po) po.style.display = 'block';
-  showSignupStep(0);
-  renderOnboard();
+  renderLogin();
 }
 
 // ── New-user sign-up flow (3 steps) ──────────────────────────────
@@ -284,7 +261,15 @@ let _pendingProfile = null; // { name, handicap, email, dob } — held between s
 let _forkFromOnboarding = false;
 
 export function showSignupStep(n) {
-  document.getElementById('onb-step-select').style.display = n === 0 ? 'block' : 'none';
+  const stepSelect = document.getElementById('onb-step-select');
+  if (stepSelect) stepSelect.style.display = n === 0 ? 'block' : 'none';
+  // When showing step 0 (login), default to login form panel, hide magic panel
+  if (n === 0) {
+    const lf = document.getElementById('onb-login-form');
+    const mf = document.getElementById('onb-magic-form');
+    if (lf) lf.style.display = 'block';
+    if (mf) mf.style.display = 'none';
+  }
   document.getElementById('onb-step-profile').style.display = n === 1 ? 'block' : 'none';
   document.getElementById('onb-step-privacy').style.display = n === 2 ? 'block' : 'none';
   const cps = document.getElementById('onb-step-complete-profile');
@@ -372,7 +357,6 @@ export function agreePrivacy() {
   state.me = name;
   localStorage.setItem('rrg_me', name);
   _pendingProfile = null;
-  pushGist();
   querySupabase('upsertPlayer', { playerName: name, email, dob, handicap });
   showGroupFork(true);
 }

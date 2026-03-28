@@ -2,7 +2,7 @@
 // AI REVIEW & ANALYSIS
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
-import { pushGist } from './api.js';
+import { pushGist, querySupabase } from './api.js';
 import { parseDateGB } from './stats.js';
 import { getCourseByRef } from './courses.js';
 
@@ -242,6 +242,11 @@ Find genuine multi-round patterns, not single-round noise. Respond ONLY with val
     state.gd.players[state.me].statsAnalysis = parsed;
     state.gd.players[state.me].statsAnalysisDate = new Date().toLocaleDateString('en-GB');
     pushGist();
+    querySupabase('saveStatsAnalysis', {
+      playerName: state.me,
+      statsAnalysis: parsed,
+      statsAnalysisDate: state.gd.players[state.me].statsAnalysisDate
+    });
   } catch (e) {
     console.error('Stats analysis error:', e);
     document.getElementById('ai-stats-msg').innerHTML = `<div class="alert alert-err">Could not generate analysis — ${e.message || 'please try again'}.</div>`;
