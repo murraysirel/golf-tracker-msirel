@@ -107,14 +107,15 @@ exports.handler = async (event) => {
     // Called when a player creates or joins a group so they appear in
     // the player picker immediately (before saving their first round).
     if (action === 'upsertPlayer') {
-      const { playerName, handicap, email, dob } = data;
+      const { playerName, handicap, email, dob, avatarUrl } = data;
       if (!playerName) return { statusCode: 400, headers, body: JSON.stringify({ error: 'playerName required' }) };
       await supabase.from('players').upsert(
         {
           name: playerName,
           handicap: handicap || 0,
           ...(email ? { email } : {}),
-          ...(dob   ? { dob }   : {})
+          ...(dob   ? { dob }   : {}),
+          ...(avatarUrl !== undefined ? { avatar_url: avatarUrl } : {})
         },
         { onConflict: 'name' }
       );

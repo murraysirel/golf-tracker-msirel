@@ -2,7 +2,7 @@
 // APP ENTRY POINT
 // Imports all modules, sets up event listeners, initialises app
 // ─────────────────────────────────────────────────────────────────
-import { loadAppData, pushGist, ss, retryUnsyncedRounds, updateUnsyncedBadge } from './api.js';
+import { loadAppData, pushGist, querySupabase, ss, retryUnsyncedRounds, updateUnsyncedBadge } from './api.js';
 import { goTo, switchEntry, registerNavHandlers } from './nav.js';
 import { getCourseByRef, scanCourseCard, saveCourse, cancelCourseScan, handleCoursePhoto, searchCourseAPI, initCourseSearch } from './courses.js';
 import { buildSC, recalc, saveRound, toggleSCExtras } from './scorecard.js';
@@ -158,6 +158,15 @@ document.getElementById('avatar-remove-btn')?.addEventListener('click', () => {
   if (state.gd.players[state.me]) delete state.gd.players[state.me].avatarImg;
   refreshAvatarUI();
   pushGist();
+  querySupabase('upsertPlayer', { playerName: state.me, avatarUrl: null });
+});
+// DOB auto-format: insert slashes as user types digits (numeric keypad on mobile)
+document.getElementById('new-dob')?.addEventListener('input', e => {
+  let digits = e.target.value.replace(/\D/g, '');
+  let v = digits;
+  if (digits.length > 2) v = digits.slice(0, 2) + '/' + digits.slice(2);
+  if (digits.length > 4) v = v.slice(0, 5) + '/' + digits.slice(4);
+  e.target.value = v.slice(0, 10);
 });
 
 // Demo mode

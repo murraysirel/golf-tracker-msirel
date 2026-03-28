@@ -81,6 +81,7 @@ export async function uploadAvatar(file) {
   state.gd.players[state.me].avatarImg = dataUrl;
   refreshAvatarUI();
   pushGist();
+  querySupabase('upsertPlayer', { playerName: state.me, avatarUrl: dataUrl });
 }
 
 export function renderLogin() {

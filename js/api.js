@@ -140,7 +140,7 @@ export async function loadGroupData(groupCode) {
         rounds: [],
         ...(p.email  ? { email:  p.email  } : {}),
         ...(p.dob    ? { dob:    p.dob    } : {}),
-        ...(prev.avatarImg        ? { avatarImg:        prev.avatarImg        } : {}),
+        ...(p.avatar_url ? { avatarImg: p.avatar_url } : (prev.avatarImg ? { avatarImg: prev.avatarImg } : {})),
         ...(prev.practiceSessions ? { practiceSessions: prev.practiceSessions } : {}),
         ...(prev.statsAnalysis    ? { statsAnalysis:    prev.statsAnalysis    } : {}),
         ...(prev.statsAnalysisDate? { statsAnalysisDate:prev.statsAnalysisDate} : {}),
