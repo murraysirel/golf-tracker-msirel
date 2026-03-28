@@ -291,10 +291,10 @@ async function logCall(endpoint, courseName, wasCacheHit, details = {}) {
 
 // ── Search Supabase (ONLY — no GolfAPI fallback) ──────────────────────────────
 async function searchCache(name, country) {
-  // Only select columns that exist in the courses table.
-  // club_name/city/holes/has_gps live as computed/display fields only until
-  // migration 001_courses_extra_columns.sql is run in Supabase.
-  let qs = `select=id,external_course_id,external_club_id,name,location,country,has_hole_data,overall_par,tee_types&name=ilike.*${encodeURIComponent(name)}*&limit=12`;
+  // Only select columns guaranteed to exist in the base courses table schema.
+  // overall_par and tee_types require migration 001_courses_extra_columns.sql —
+  // omit them here to avoid a PGRST204 column-not-found error.
+  let qs = `select=id,external_course_id,external_club_id,name,location,country,has_hole_data&name=ilike.*${encodeURIComponent(name)}*&limit=12`;
   if (country && country !== 'all') qs += `&country=ilike.*${encodeURIComponent(country)}*`;
   return sbSelect('courses', qs);
 }
@@ -346,8 +346,8 @@ exports.handler = async (event) => {
     try {
       courses = await searchCache(name, country);
     } catch (e) {
-      console.error('[courses] searchCache error:', e?.message);
-      return respond(200, { courses: [], source: 'db_error', error: e?.message });
+      // Log the error but fall through to GolfAPI — don't block search on Supabase issues
+      console.error('[courses] searchCache error (falling through to GolfAPI):', e?.message);
     }
 
     if (courses.length > 0) {
