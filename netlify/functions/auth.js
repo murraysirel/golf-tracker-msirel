@@ -29,6 +29,15 @@ const respond = (status, body) => ({
   body: JSON.stringify(body),
 });
 
+// ── Helper: track which device/browser has an active session ────────────────
+async function trackSession(userId, sessionId, deviceHint) {
+  if (!userId || !sessionId) return;
+  await supabaseAdmin.from('user_sessions').upsert(
+    { id: sessionId, user_id: userId, device_hint: deviceHint || 'Unknown device', last_seen_at: new Date().toISOString() },
+    { onConflict: 'id' }
+  );
+}
+
 // ── Helper: resolve player name + group codes from auth user id ──────────────
 async function resolvePlayer(authUserId) {
   const { data: player } = await supabaseAdmin
@@ -133,7 +142,7 @@ exports.handler = async (event) => {
     // Creates a Supabase auth user, then links/creates the players row.
     // Email confirmation is disabled in Supabase dashboard for frictionless UX.
     if (action === 'signUp') {
-      const { email, password, name, handicap, dob } = body;
+      const { email, password, name, handicap, dob, sessionId, deviceHint } = body;
       if (!email || !password) return respond(400, { error: 'Email and password required' });
 
       const { data, error } = await supabaseAnon.auth.signUp({ email, password });
@@ -145,6 +154,7 @@ exports.handler = async (event) => {
 
       const authUserId = data.user.id;
       const playerName = await linkOrCreatePlayer(authUserId, email, name, handicap, dob);
+      await trackSession(authUserId, sessionId, deviceHint);
 
       return respond(200, {
         session: buildSession(data.session),
@@ -154,13 +164,15 @@ exports.handler = async (event) => {
 
     // ── signInPassword ──────────────────────────────────────────────────────
     if (action === 'signInPassword') {
-      const { email, password } = body;
+      const { email, password, sessionId, deviceHint } = body;
       if (!email || !password) return respond(400, { error: 'Email and password required' });
 
       const { data, error } = await supabaseAnon.auth.signInWithPassword({ email, password });
       if (error) return respond(401, { error: 'Incorrect email or password' });
 
       const resolved = await resolvePlayer(data.user.id);
+      await trackSession(data.user.id, sessionId, deviceHint);
+
       if (!resolved) {
         // Auth user exists but no player row — create one
         const playerName = await linkOrCreatePlayer(data.user.id, email, null, 0, null);
@@ -227,7 +239,7 @@ exports.handler = async (event) => {
 
     // ── refreshSession ──────────────────────────────────────────────────────
     if (action === 'refreshSession') {
-      const { refreshToken } = body;
+      const { refreshToken, sessionId, deviceHint } = body;
       if (!refreshToken) return respond(400, { error: 'refreshToken required' });
 
       const { data, error } = await supabaseAnon.auth.setSession({
@@ -236,6 +248,7 @@ exports.handler = async (event) => {
       });
       if (error || !data.session) return respond(401, { error: 'Session expired — please sign in again' });
 
+      await trackSession(data.user.id, sessionId, deviceHint);
       const resolved = await resolvePlayer(data.user.id);
       return respond(200, {
         session:    buildSession(data.session),
@@ -244,11 +257,43 @@ exports.handler = async (event) => {
       });
     }
 
+    // ── listSessions ────────────────────────────────────────────────────────
+    if (action === 'listSessions') {
+      const { accessToken } = body;
+      if (!accessToken) return respond(400, { error: 'accessToken required' });
+
+      const { data: { user }, error } = await supabaseAdmin.auth.getUser(accessToken);
+      if (error || !user) return respond(401, { error: 'Invalid or expired token' });
+
+      const { data: sessions } = await supabaseAdmin
+        .from('user_sessions')
+        .select('id, device_hint, last_seen_at, created_at')
+        .eq('user_id', user.id)
+        .order('last_seen_at', { ascending: false });
+
+      return respond(200, { sessions: sessions || [] });
+    }
+
     // ── signOut ─────────────────────────────────────────────────────────────
     if (action === 'signOut') {
-      const { userId } = body;
-      if (userId) {
-        await supabaseAdmin.auth.admin.signOut(userId);
+      const { accessToken, userId, sessionId, scope } = body;
+      try {
+        if (scope === 'global' && accessToken) {
+          // Invalidate ALL sessions for this user in Supabase Auth
+          await supabaseAdmin.auth.admin.signOut(accessToken, 'global');
+          // Clean up our own tracking table for this user
+          if (userId) {
+            await supabaseAdmin.from('user_sessions').delete().eq('user_id', userId);
+          }
+        } else if (accessToken) {
+          // Invalidate this session only
+          await supabaseAdmin.auth.admin.signOut(accessToken, 'local');
+          if (sessionId) {
+            await supabaseAdmin.from('user_sessions').delete().eq('id', sessionId);
+          }
+        }
+      } catch (_) {
+        // Non-fatal — respond ok regardless so client still clears locally
       }
       return respond(200, { ok: true });
     }

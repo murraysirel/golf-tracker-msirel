@@ -89,6 +89,25 @@ function openProfilePanel() {
   document.getElementById('profile-icon-btn')?.classList.add('panel-open');
   const gc = document.getElementById('players-group-code');
   if (gc && state.gd?.activeGroupCode) gc.textContent = state.gd.activeGroupCode;
+  // Load active session count (non-blocking)
+  if (!state.demoMode) {
+    import('./auth.js').then(({ listSessions, getStoredSession }) => {
+      if (!getStoredSession()) return;
+      const row = document.getElementById('active-sessions-row');
+      const txt = document.getElementById('session-count-text');
+      if (row) row.style.display = 'flex';
+      listSessions().then(sessions => {
+        if (!txt) return;
+        if (!sessions.length) { txt.textContent = '1 device (this one)'; return; }
+        const count = sessions.length;
+        const current = getStoredSession()?.sessionId;
+        const others = sessions.filter(s => s.id !== current);
+        txt.textContent = count === 1
+          ? '1 device — just you here'
+          : `${count} devices active${others.length ? ' · ' + others.map(s => s.device_hint || 'Unknown').join(', ') : ''}`;
+      });
+    });
+  }
 }
 function closeProfilePanel() {
   document.getElementById('profile-panel')?.classList.remove('open');
@@ -337,6 +356,13 @@ document.getElementById('add-player-btn')?.addEventListener('click', addPlayer);
 document.getElementById('reload-btn')?.addEventListener('click', () => loadAppData(state.me, state.gd?.activeGroupCode || '').then(() => renderHomeStats()));
 document.getElementById('copy-app-url-btn')?.addEventListener('click', copyAppUrl);
 document.getElementById('sign-out-btn')?.addEventListener('click', signOut);
+document.getElementById('sign-out-all-btn')?.addEventListener('click', async () => {
+  const btn = document.getElementById('sign-out-all-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Signing out…'; }
+  const { signOutAll } = await import('./auth.js');
+  await signOutAll();
+  signOut();
+});
 document.getElementById('open-admin-btn')?.addEventListener('click', openAdminSettings);
 
 // ── Wolf game format ──────────────────────────────────────────────

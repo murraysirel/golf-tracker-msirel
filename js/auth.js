@@ -10,6 +10,19 @@ const SESSION_KEY   = 'looper_session';
 // Access token refresh threshold — refresh if less than 5 minutes remain
 const REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 
+// ── Device hint — human-readable label for the current browser/device ─────
+function deviceHint() {
+  const ua = navigator.userAgent;
+  const browser = /Edg\//.test(ua) ? 'Edge'
+    : /Chrome\//.test(ua) ? 'Chrome'
+    : /Firefox\//.test(ua) ? 'Firefox'
+    : /Safari\//.test(ua) ? 'Safari' : 'Browser';
+  const device = /iPhone/.test(ua) ? 'iPhone'
+    : /iPad/.test(ua) ? 'iPad'
+    : /Android/.test(ua) ? 'Android' : 'Desktop';
+  return `${browser} on ${device}`;
+}
+
 // ── Internal helpers ──────────────────────────────────────────────
 
 async function callAuth(payload) {
@@ -21,7 +34,7 @@ async function callAuth(payload) {
   return res.json();
 }
 
-function storeSession(supabaseSession, playerName) {
+function storeSession(supabaseSession, playerName, sessionId) {
   const session = {
     accessToken:  supabaseSession.accessToken,
     refreshToken: supabaseSession.refreshToken,
@@ -29,6 +42,7 @@ function storeSession(supabaseSession, playerName) {
     expiresAt:    Date.now() + (supabaseSession.expiresIn || 3600) * 1000,
     userId:       supabaseSession.userId,
     playerName:   playerName || '',
+    sessionId:    sessionId || (typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).slice(2)),
   };
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
   // Keep rrg_me in sync for any legacy code that reads it during transition
@@ -65,9 +79,10 @@ export function clearSession() {
  */
 export async function signIn(email, password) {
   try {
-    const res = await callAuth({ action: 'signInPassword', email, password });
+    const sessionId = typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+    const res = await callAuth({ action: 'signInPassword', email, password, sessionId, deviceHint: deviceHint() });
     if (res.error) return { error: res.error };
-    storeSession(res.session, res.playerName);
+    storeSession(res.session, res.playerName, sessionId);
     return { ok: true, playerName: res.playerName, groupCodes: res.groupCodes || [] };
   } catch (e) {
     return { error: 'Network error — check your connection' };
@@ -80,10 +95,11 @@ export async function signIn(email, password) {
  */
 export async function signUp(email, password, name, handicap, dob) {
   try {
-    const res = await callAuth({ action: 'signUp', email, password, name, handicap, dob });
+    const sessionId = typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+    const res = await callAuth({ action: 'signUp', email, password, name, handicap, dob, sessionId, deviceHint: deviceHint() });
     if (res.error) return { error: res.error };
     if (res.needsConfirmation) return { needsConfirmation: true };
-    storeSession(res.session, res.playerName);
+    storeSession(res.session, res.playerName, sessionId);
     return { ok: true, playerName: res.playerName };
   } catch (e) {
     return { error: 'Network error — check your connection' };
@@ -169,11 +185,16 @@ export async function refreshIfNeeded() {
   if (timeLeft > REFRESH_THRESHOLD_MS) return null; // still fresh
 
   try {
-    const res = await callAuth({ action: 'refreshSession', refreshToken: session.refreshToken });
+    const res = await callAuth({
+      action: 'refreshSession',
+      refreshToken: session.refreshToken,
+      sessionId: session.sessionId,
+      deviceHint: deviceHint(),
+    });
     if (res.error) return { error: res.error };
 
-    // Update stored session with new tokens; preserve playerName
-    storeSession(res.session, res.playerName || session.playerName);
+    // Update stored session with new tokens; preserve sessionId + playerName
+    storeSession(res.session, res.playerName || session.playerName, session.sessionId);
     return null;
   } catch (e) {
     return { error: 'Network error during token refresh' };
@@ -181,17 +202,45 @@ export async function refreshIfNeeded() {
 }
 
 /**
- * Server-side sign out (invalidates the refresh token).
+ * Server-side sign out (invalidates this session's refresh token).
  * Always call clearSession() client-side regardless of server response.
  */
 export async function serverSignOut() {
   const session = getStoredSession();
   clearSession();
-  if (session?.userId) {
+  if (session?.accessToken) {
     try {
-      await callAuth({ action: 'signOut', userId: session.userId });
+      await callAuth({ action: 'signOut', accessToken: session.accessToken, userId: session.userId, sessionId: session.sessionId });
     } catch (_) {
       // Non-fatal — local session is already cleared
     }
+  }
+}
+
+/**
+ * Sign out ALL devices — invalidates every active session for this user.
+ */
+export async function signOutAll() {
+  const session = getStoredSession();
+  clearSession();
+  if (session?.accessToken) {
+    try {
+      await callAuth({ action: 'signOut', accessToken: session.accessToken, userId: session.userId, scope: 'global' });
+    } catch (_) {}
+  }
+}
+
+/**
+ * Return the list of active sessions for the current user.
+ * @returns {{ id, deviceHint, lastSeenAt, createdAt }[]}
+ */
+export async function listSessions() {
+  const session = getStoredSession();
+  if (!session?.accessToken) return [];
+  try {
+    const res = await callAuth({ action: 'listSessions', accessToken: session.accessToken });
+    return res.sessions || [];
+  } catch {
+    return [];
   }
 }
