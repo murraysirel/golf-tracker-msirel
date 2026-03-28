@@ -53,25 +53,44 @@ async function resolvePlayer(authUserId) {
 
 // ── Helper: link or create player row for a new auth user ───────────────────
 async function linkOrCreatePlayer(authUserId, email, name, handicap, dob) {
-  // Try to link by email first (existing player row)
-  const { data: existing } = await supabaseAdmin
+  // 1. Try to link by email (existing player row with matching email)
+  const { data: byEmail } = await supabaseAdmin
     .from('players')
     .select('name')
     .ilike('email', email)
     .maybeSingle();
 
-  if (existing) {
-    // Link auth account to existing player row
+  if (byEmail) {
     await supabaseAdmin
       .from('players')
       .update({ auth_user_id: authUserId })
-      .eq('name', existing.name)
-      .is('auth_user_id', null); // only link if not already linked
-    return existing.name;
+      .eq('name', byEmail.name)
+      .is('auth_user_id', null);
+    return byEmail.name;
   }
 
-  // No existing row — create a new player
+  // 2. Try to link by name (player existed before email/auth was introduced)
   const playerName = name || email.split('@')[0];
+  const { data: byName } = await supabaseAdmin
+    .from('players')
+    .select('name, handicap')
+    .eq('name', playerName)
+    .maybeSingle();
+
+  if (byName) {
+    await supabaseAdmin
+      .from('players')
+      .update({
+        auth_user_id: authUserId,
+        email: email.toLowerCase(),
+        ...(dob ? { dob } : {}),
+        handicap: parseFloat(handicap) || byName.handicap || 0,
+      })
+      .eq('name', byName.name);
+    return byName.name;
+  }
+
+  // 3. No existing row — create new player
   await supabaseAdmin
     .from('players')
     .insert({

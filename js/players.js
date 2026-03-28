@@ -2,7 +2,7 @@
 // PLAYERS
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
-import { pushGist, querySupabase, loadGroupData } from './api.js';
+import { pushGist, querySupabase, loadGroupData, loadAppData } from './api.js';
 import { goTo } from './nav.js';
 import { initCourseSearch, renderScannedCourses } from './courses.js';
 import { renderHomeStats } from './stats.js';
@@ -360,12 +360,20 @@ export async function agreePrivacy() {
   const errEl = document.getElementById('onb-privacy-err');
   const btn   = document.getElementById('onb-privacy-agree-btn');
   if (errEl) errEl.style.display = 'none';
-  if (btn) btn.disabled = true;
+  if (btn) { btn.disabled = true; btn.textContent = 'Creating account…'; }
 
   const { signUp } = await import('./auth.js');
   const result = await signUp(email, password, name, handicap, dob);
 
-  if (btn) btn.disabled = false;
+  if (btn) { btn.disabled = false; btn.textContent = 'I understand — continue →'; }
+
+  if (result.needsConfirmation) {
+    if (errEl) {
+      errEl.textContent = 'Check your email for a confirmation link, then sign in.';
+      errEl.style.display = 'block';
+    }
+    return;
+  }
 
   if (result.error) {
     if (errEl) {
@@ -378,13 +386,18 @@ export async function agreePrivacy() {
   }
 
   // Auth account created + session stored by signUp()
-  if (!state.gd.players[name]) {
-    state.gd.players[name] = { handicap, rounds: [], email, dob };
+  // Use the server-resolved player name (handles name-based linking)
+  const resolvedName = result.playerName || name;
+  if (!state.gd.players[resolvedName]) {
+    state.gd.players[resolvedName] = { handicap, rounds: [], email, dob };
   }
-  state.me = name;
-  localStorage.setItem('rrg_me', name);
+  state.me = resolvedName;
+  localStorage.setItem('rrg_me', resolvedName);
   _pendingProfile = null;
-  querySupabase('upsertPlayer', { playerName: name, email, dob, handicap });
+
+  // Load all data from Supabase now that auth_user_id is linked
+  await loadAppData(resolvedName, localStorage.getItem('gt_activegroup') || '');
+
   showGroupFork(true);
 }
 
