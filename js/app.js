@@ -515,60 +515,69 @@ document.getElementById('magic-submit-btn')?.addEventListener('click', async () 
 // ── Initialise ────────────────────────────────────────────────────
 initMatchOverlay();
 (async function boot() {
-  const { handleMagicLinkRedirect, getStoredSession, refreshIfNeeded, clearSession } =
-    await import('./auth.js');
+  try {
+    const { handleMagicLinkRedirect, getStoredSession, refreshIfNeeded, clearSession } =
+      await import('./auth.js');
 
-  // 1. Consume magic link redirect tokens from URL hash (must run before any nav)
-  const magicResult = await handleMagicLinkRedirect();
-  if (magicResult?.needsProfile) {
-    // New user via magic link — direct to signup profile step
-    showSignupStep(1);
-    return;
-  }
+    // 1. Consume magic link redirect tokens from URL hash (must run before any nav)
+    const magicResult = await handleMagicLinkRedirect();
+    if (magicResult?.needsProfile) {
+      // New user via magic link — direct to signup profile step
+      ss('ok', '');
+      showSignupStep(1);
+      return;
+    }
 
-  // 2. Check stored session
-  let session = getStoredSession();
-  if (!session?.playerName) {
-    renderLogin();
-    return;
-  }
+    // 2. Check stored session
+    let session = getStoredSession();
+    if (!session?.playerName) {
+      ss('ok', '');
+      renderLogin();
+      return;
+    }
 
-  // 3. Refresh access token if near expiry
-  const refreshResult = await refreshIfNeeded();
-  if (refreshResult?.error) {
-    clearSession();
-    renderLogin();
-    return;
-  }
+    // 3. Refresh access token if near expiry
+    const refreshResult = await refreshIfNeeded();
+    if (refreshResult?.error) {
+      clearSession();
+      ss('ok', '');
+      renderLogin();
+      return;
+    }
 
-  session = getStoredSession(); // re-read after potential refresh
+    session = getStoredSession(); // re-read after potential refresh
 
-  // 4. Load data and enter app
-  await loadAppData(session.playerName, localStorage.getItem('gt_activegroup') || '');
-  await enterAs(session.playerName);
-  updateActiveMatchBadge();
-  updateUnsyncedBadge();
-  startInvitePolling();
+    // 4. Load data and enter app
+    await loadAppData(session.playerName, localStorage.getItem('gt_activegroup') || '');
+    await enterAs(session.playerName);
+    updateActiveMatchBadge();
+    updateUnsyncedBadge();
+    startInvitePolling();
 
-  // 5. Retry unsynced rounds silently; show prompt if still failing
-  const syncedOk = await retryUnsyncedRounds();
-  if (!syncedOk) {
-    const raw = localStorage.getItem('rr_unsynced_rounds');
-    if (raw) {
+    // 5. Retry unsynced rounds silently; show prompt if still failing
+    const syncedOk = await retryUnsyncedRounds();
+    if (!syncedOk) {
+      const raw = localStorage.getItem('rr_unsynced_rounds');
+      if (raw) {
+        try {
+          const unsynced = JSON.parse(raw);
+          if (unsynced.length > 0) showUnsyncedRoundsPrompt(unsynced);
+        } catch (_) {}
+      }
+    }
+
+    // 6. Live round recovery
+    const backup = localStorage.getItem('rr_live_backup');
+    if (backup) {
       try {
-        const unsynced = JSON.parse(raw);
-        if (unsynced.length > 0) showUnsyncedRoundsPrompt(unsynced);
+        const b = JSON.parse(backup);
+        const ageMinutes = (Date.now() - b.savedAt) / 60000;
+        if (ageMinutes < 480 && b.hole > 0) showRoundRecoveryPrompt(b);
       } catch (_) {}
     }
-  }
-
-  // 6. Live round recovery
-  const backup = localStorage.getItem('rr_live_backup');
-  if (backup) {
-    try {
-      const b = JSON.parse(backup);
-      const ageMinutes = (Date.now() - b.savedAt) / 60000;
-      if (ageMinutes < 480 && b.hole > 0) showRoundRecoveryPrompt(b);
-    } catch (_) {}
+  } catch (e) {
+    console.warn('[boot] unhandled error:', e);
+    ss('ok', '');
+    renderLogin();
   }
 })();
