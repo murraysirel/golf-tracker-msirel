@@ -139,6 +139,10 @@
     <div style="font-size:10px;color:var(--dimmer);margin-bottom:14px">Enter 0 if no official handicap yet. Plus handicap? Use a negative number (e.g. −1.2 = +1.2).</div>
     <label style="font-size:11px;color:var(--dim);margin-bottom:2px;display:block">Email address <span style="color:#e74c3c">*</span></label>
     <input type="email" id="new-email" placeholder="e.g. jamie@example.com" autocomplete="email" class="mb12" inputmode="email">
+    <label style="font-size:11px;color:var(--dim);margin-bottom:2px;display:block">Password <span style="color:#e74c3c">*</span></label>
+    <input type="password" id="new-password" placeholder="Min. 8 characters" autocomplete="new-password" class="mb12">
+    <label style="font-size:11px;color:var(--dim);margin-bottom:2px;display:block">Confirm password <span style="color:#e74c3c">*</span></label>
+    <input type="password" id="new-password2" placeholder="Repeat password" autocomplete="new-password" class="mb12">
     <label style="font-size:11px;color:var(--dim);margin-bottom:2px;display:block">Date of birth <span style="color:#e74c3c">*</span></label>
     <div style="font-size:10px;color:var(--dimmer);margin-bottom:5px">Used to keep your account secure — never shown publicly</div>
     <input type="text" id="new-dob" placeholder="DD/MM/YYYY" autocomplete="bday" class="mb16" inputmode="numeric" maxlength="10">
@@ -187,6 +191,7 @@
     <div style="font-size:12px;color:var(--dim);line-height:1.75;padding:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;margin-bottom:20px">
       This app stores your name and golf scores in a private group data store. No financial data, location or photos are stored. Your data is used only for scoring and stats within this group. You can export or delete your data at any time from the Players tab.
     </div>
+    <div id="onb-privacy-err" style="display:none;font-size:12px;color:#f1948a;margin-bottom:10px;padding:8px 12px;background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.2);border-radius:8px"></div>
     <button class="btn" id="onb-privacy-agree-btn" style="border-radius:40px">I understand — continue →</button>
     <button class="btn btn-ghost" id="onb-back-to-profile-btn" style="margin-top:8px" onclick="document.getElementById('onb-step-privacy').style.display='none';document.getElementById('onb-step-prefs').style.display='block'">← Back</button>
   </div>

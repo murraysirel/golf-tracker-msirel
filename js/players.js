@@ -304,8 +304,13 @@ export function submitProfile() {
   if (!dob) { showErr('Please enter your date of birth.'); return; }
   if (!_isValidDOB(dob)) { showErr('Please enter a valid date of birth in DD/MM/YYYY format (e.g. 15/06/1990).'); return; }
 
+  const password  = (document.getElementById('new-password')?.value || '');
+  const password2 = (document.getElementById('new-password2')?.value || '');
+  if (password.length < 8) { showErr('Password must be at least 8 characters.'); return; }
+  if (password !== password2) { showErr('Passwords do not match.'); return; }
+
   if (errEl) errEl.style.display = 'none';
-  _pendingProfile = { name: fullName, handicap: parseFloat(hcp.toFixed(1)), email, dob };
+  _pendingProfile = { name: fullName, handicap: parseFloat(hcp.toFixed(1)), email, dob, password };
   // Show preferences step before privacy
   showPrefsStep();
 }
@@ -348,9 +353,31 @@ export function submitPrefs() {
   showSignupStep(2);
 }
 
-export function agreePrivacy() {
+export async function agreePrivacy() {
   if (!_pendingProfile) return;
-  const { name, handicap, email, dob } = _pendingProfile;
+  const { name, handicap, email, dob, password } = _pendingProfile;
+
+  const errEl = document.getElementById('onb-privacy-err');
+  const btn   = document.getElementById('onb-privacy-agree-btn');
+  if (errEl) errEl.style.display = 'none';
+  if (btn) btn.disabled = true;
+
+  const { signUp } = await import('./auth.js');
+  const result = await signUp(email, password, name, handicap, dob);
+
+  if (btn) btn.disabled = false;
+
+  if (result.error) {
+    if (errEl) {
+      errEl.textContent = result.error.toLowerCase().includes('already registered')
+        ? 'An account with this email already exists — please sign in instead.'
+        : result.error;
+      errEl.style.display = 'block';
+    }
+    return;
+  }
+
+  // Auth account created + session stored by signUp()
   if (!state.gd.players[name]) {
     state.gd.players[name] = { handicap, rounds: [], email, dob };
   }
