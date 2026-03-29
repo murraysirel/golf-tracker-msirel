@@ -611,6 +611,69 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     }
 
+    // ── createCompetition ──────────────────────────────────────────────
+    if (action === 'createCompetition') {
+      const { competition } = data;
+      if (!competition?.code || !competition?.name || !competition?.created_by) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'code, name and created_by required' }) };
+      }
+      const { data: row, error: cErr } = await supabase
+        .from('competitions')
+        .insert({
+          code:          competition.code,
+          name:          competition.name,
+          created_by:    competition.created_by,
+          admin_players: competition.admin_players || [competition.created_by],
+          format:        competition.format || 'stableford',
+          team_format:   competition.team_format || false,
+          rounds_config: competition.rounds_config || [],
+          players:       [competition.created_by],
+          status:        'setup',
+        })
+        .select('*')
+        .single();
+      if (cErr) throw cErr;
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true, competition: row }) };
+    }
+
+    // ── lookupCompetition ────────────────────────────────────────────
+    if (action === 'lookupCompetition') {
+      const { code } = data;
+      if (!code) return { statusCode: 400, headers, body: JSON.stringify({ error: 'code required' }) };
+      const { data: row, error: lErr } = await supabase
+        .from('competitions')
+        .select('*')
+        .eq('code', code.toUpperCase().trim())
+        .maybeSingle();
+      if (lErr) throw lErr;
+      if (!row) return { statusCode: 200, headers, body: JSON.stringify({ found: false }) };
+      return { statusCode: 200, headers, body: JSON.stringify({ found: true, competition: row }) };
+    }
+
+    // ── joinCompetition ──────────────────────────────────────────────
+    if (action === 'joinCompetition') {
+      const { code, playerName } = data;
+      if (!code || !playerName) return { statusCode: 400, headers, body: JSON.stringify({ error: 'code and playerName required' }) };
+      const { data: row, error: fErr } = await supabase
+        .from('competitions')
+        .select('id, players')
+        .eq('code', code.toUpperCase().trim())
+        .maybeSingle();
+      if (fErr) throw fErr;
+      if (!row) return { statusCode: 404, headers, body: JSON.stringify({ error: 'Competition not found' }) };
+      const players = row.players || [];
+      if (players.includes(playerName)) {
+        return { statusCode: 200, headers, body: JSON.stringify({ ok: true, alreadyJoined: true }) };
+      }
+      players.push(playerName);
+      const { error: uErr } = await supabase
+        .from('competitions')
+        .update({ players })
+        .eq('id', row.id);
+      if (uErr) throw uErr;
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true, alreadyJoined: false }) };
+    }
+
     // ── getApiCallLog ─────────────────────────────────────────────────
     if (action === 'getApiCallLog') {
       const { data: rows, error: logErr } = await supabase

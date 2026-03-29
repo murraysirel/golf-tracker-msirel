@@ -50,6 +50,7 @@ Netlify hosts both the static frontend and all serverless functions. No build st
 | `live-invite.js` | Real-time round invite polling, toast dismissal, join/leave live round, view/edit mode toggle; `startInvitePolling()`, `joinLiveRound()`, `minimiseLiveView()`, `submitEditorScore()` |
 | `overlay.js` | Match overlay display and controls; `initMatchOverlay()`, `showMatchOverlay()`, `hideMatchOverlay()`, `showEndRoundConfirm()` |
 | `competition.js` | Competition tab — activity feed (eagles, birdies, submissions) + live leaderboard; polls Supabase every 45 s; supports Stableford and Gross modes |
+| `competition-setup.js` | Competition creation/joining — `generateCompCode()`, `createCompetition()`, `joinCompetition()`, `lookupCompetition()`, `renderCompetitionSetupModal()`, `handleJoinCompetition()` |
 | `stats.js` | KPI cards, five Chart.js charts, Stableford calculator, `calcScoringPointsNet()`, handicap edit, round history list; `parseDateGB()` used app-wide; `renderMatesFeed()` generates the home-screen activity highlights feed |
 | `leaderboard.js` | Nine season-filtered ranking panels; imports `calcStableford` and `isBufferOrBetter` from `stats.js`; `filterRounds()` excludes rounds before a player's `joinedAt` date |
 | `players.js` | Onboarding/sign-in, player management, initials generation, "who's playing today" selector, avatar upload |
@@ -151,6 +152,7 @@ group_members — player_id (FK players.name), group_id, joined_at (timestamptz,
 user_sessions — id (sessionId), user_id, device_hint, last_seen_at
 active_matches — live round state for real-time sharing
 courses       — external_course_id, name, location, country, tees (JSONB), green_coords (JSONB), has_hole_data, ...
+competitions   — id (TEXT PK), code (COMP+2 letters+4 digits), name, created_by, admin_players TEXT[], format ('stableford'|'stroke_gross'|'stroke_net'|'matchplay'), team_format BOOLEAN, team_a/team_b TEXT[], rounds_config JSONB, players TEXT[], status ('setup'|'active'|'complete'), created_at
 api_call_log  — timestamp, endpoint, course_name, was_cache_hit, details (JSONB)
 ```
 
@@ -369,6 +371,7 @@ All variables are set in the Netlify dashboard. None are ever sent to the browse
 
 | Date | Change |
 |---|---|
+| 2026-03-29 | **Competition mode setup** — `competitions` table added to Supabase (code format COMP+2 letters+4 digits); `js/competition-setup.js` created with create/join/lookup flows; `netlify/functions/supabase.js` gains `createCompetition`, `lookupCompetition`, `joinCompetition` actions; "Coming soon" replaced with working create modal and join flow |
 | 2026-03-29 | **Activity highlights feed** — `renderMatesFeed()` in `stats.js` rewritten from static mini-leaderboard to event-driven feed showing birdies (2+), eagles, net eagles, season-best net rounds, and stableford >36 alerts from the last 7 days |
 | 2026-03-29 | **Custom practice requests** — free-text input (`#practice-custom-input`) added below the area grid; `generatePracticePlan(area, customRequest)` in `practice.js` accepts optional custom focus text passed to the AI prompt |
 | 2026-03-29 | **Sign-up toggle restyle** — onboarding theme/distance toggles swapped from `.tab-bar`/`.tab` to `.theme-toggle-wrap`/`.theme-tab` classes to match settings page |

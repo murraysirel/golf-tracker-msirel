@@ -17,6 +17,7 @@ import { exportXlsx } from './export.js';
 import { openAdminSettings, closeAdminSettings, verifyAdminPw, adminPopulateRounds, adminDeleteRound, adminSeedDemo } from './admin.js';
 import { copyGroupCode, leaveGroup, toggleGroupCodeRequired, addSeason, deleteSeason, confirmDeleteMyData, deleteMyData, copyAppUrl, rebuildSeasonSelector, initJoinGroup, lookupGroupByCode, confirmJoinGroup, showBoardPage, initCreateGroup, submitGroupName, confirmBoardSetup, initGroupSettings, saveGroupName, hideGSModal, confirmGSModal } from './group.js';
 import { initCompetition } from './competition.js';
+import { renderCompetitionSetupModal, handleJoinCompetition } from './competition-setup.js';
 import { state } from './state.js';
 import { initCaddieButton } from './caddie.js';
 import { setGameMode, updateFormatUI, confirmWolfOrder, showWolfScoreboard } from './gamemodes.js';
@@ -240,16 +241,9 @@ document.getElementById('photo-inp')?.addEventListener('change', function () { h
 document.getElementById('parse-btn')?.addEventListener('click', parsePhoto);
 
 // Competitions section
-document.getElementById('setup-competition-btn')?.addEventListener('click', () => {
-  const panel = document.getElementById('setup-competition-soon');
-  if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-});
-document.getElementById('join-competition-btn')?.addEventListener('click', () => {
-  const code = document.getElementById('comp-join-code')?.value?.trim().toUpperCase();
-  const msg = document.getElementById('comp-join-msg');
-  if (!code) { if (msg) { msg.style.color = 'var(--double)'; msg.textContent = 'Please enter a competition code.'; } return; }
-  if (msg) { msg.style.color = 'var(--dim)'; msg.textContent = 'Competition joining is coming soon.'; }
-});
+document.getElementById('setup-competition-btn')?.addEventListener('click', renderCompetitionSetupModal);
+document.getElementById('join-competition-btn')?.addEventListener('click', handleJoinCompetition);
+document.getElementById('comp-join-code')?.addEventListener('keydown', e => { if (e.key === 'Enter') handleJoinCompetition(); });
 
 // Course API search
 document.getElementById('api-search-btn')?.addEventListener('click', searchCourseAPI);

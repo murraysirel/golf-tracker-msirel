@@ -610,12 +610,9 @@
           <!-- Set up -->
           <div style="margin-bottom:18px">
             <button id="setup-competition-btn" style="display:block;width:100%;padding:15px 18px;border-radius:12px;background:var(--mid);border:1px solid var(--border);color:var(--cream);font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent">
-              <span style="font-size:18px;margin-right:10px">🏆</span>Set up a Competition
-              <span style="float:right;color:var(--dimmer);font-size:12px;font-weight:400;margin-top:2px">Coming soon →</span>
+              <span style="font-size:18px;margin-right:10px">🏆</span>Create a Competition
+              <span style="float:right;color:var(--gold);font-size:12px;font-weight:400;margin-top:2px">New →</span>
             </button>
-            <div id="setup-competition-soon" style="display:none;margin-top:10px;padding:14px 16px;border-radius:10px;background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.2);font-size:12px;color:var(--dim);line-height:1.7">
-              Competition mode is on the way. You'll be able to run strokeplay and Stableford comps for your group with a live leaderboard and prizes.
-            </div>
           </div>
 
           <!-- Join -->
@@ -1411,6 +1408,11 @@
         <button class="btn" id="correction-submit-btn">Submit report</button>
         <div id="correction-msg" style="font-size:11px;margin-top:8px;color:var(--dim)"></div>
       </div>
+    </div>
+
+    <!-- Competition Setup Modal -->
+    <div id="comp-setup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9000;align-items:center;justify-content:center">
+      <div id="comp-setup-content" style="background:var(--mid);border:1px solid rgba(201,168,76,.3);border-radius:16px;padding:24px;margin:20px;width:100%;max-width:440px;max-height:85vh;overflow-y:auto"></div>
     </div>
 
     <!-- Admin Settings Modal -->
