@@ -674,6 +674,53 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true, alreadyJoined: false }) };
     }
 
+    // ── getCompetition ─────────────────────────────────────────────────
+    if (action === 'getCompetition') {
+      const { id, code } = data;
+      if (!id && !code) return { statusCode: 400, headers, body: JSON.stringify({ error: 'id or code required' }) };
+      let query = supabase.from('competitions').select('*');
+      if (id) query = query.eq('id', id);
+      else query = query.eq('code', code.toUpperCase().trim());
+      const { data: row, error: gErr } = await query.maybeSingle();
+      if (gErr) throw gErr;
+      if (!row) return { statusCode: 200, headers, body: JSON.stringify({ found: false }) };
+      return { statusCode: 200, headers, body: JSON.stringify({ found: true, competition: row }) };
+    }
+
+    // ── getMyCompetitions ────────────────────────────────────────────
+    if (action === 'getMyCompetitions') {
+      const { playerName } = data;
+      if (!playerName) return { statusCode: 400, headers, body: JSON.stringify({ error: 'playerName required' }) };
+      const { data: rows, error: mcErr } = await supabase
+        .from('competitions')
+        .select('id, code, name, format, status, players, rounds_config, created_by, admin_players')
+        .contains('players', [playerName])
+        .order('created_at', { ascending: false });
+      if (mcErr) throw mcErr;
+      return { statusCode: 200, headers, body: JSON.stringify({ competitions: rows || [] }) };
+    }
+
+    // ── updateCompetition ────────────────────────────────────────────
+    if (action === 'updateCompetition') {
+      const { competitionId, playerName, updates } = data;
+      if (!competitionId || !playerName) return { statusCode: 400, headers, body: JSON.stringify({ error: 'competitionId and playerName required' }) };
+      // Auth check: player must be in admin_players
+      const { data: comp } = await supabase.from('competitions').select('admin_players').eq('id', competitionId).maybeSingle();
+      if (!comp || !(comp.admin_players || []).includes(playerName)) {
+        return { statusCode: 403, headers, body: JSON.stringify({ error: 'Not authorized — admin access required' }) };
+      }
+      const allowed = {};
+      if (updates.hcp_overrides !== undefined) allowed.hcp_overrides = updates.hcp_overrides;
+      if (updates.admin_players !== undefined) allowed.admin_players = updates.admin_players;
+      if (updates.status !== undefined) allowed.status = updates.status;
+      if (updates.team_a !== undefined) allowed.team_a = updates.team_a;
+      if (updates.team_b !== undefined) allowed.team_b = updates.team_b;
+      if (updates.rounds_config !== undefined) allowed.rounds_config = updates.rounds_config;
+      const { error: uErr } = await supabase.from('competitions').update(allowed).eq('id', competitionId);
+      if (uErr) throw uErr;
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+    }
+
     // ── getApiCallLog ─────────────────────────────────────────────────
     if (action === 'getApiCallLog') {
       const { data: rows, error: logErr } = await supabase

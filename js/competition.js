@@ -1,9 +1,10 @@
 // ─────────────────────────────────────────────────────────────────
-// COMPETITION MODE — Live activity feed + today's leaderboard
+// COMPETITION MODE — Live activity feed, today's leaderboard,
+// competition-specific leaderboard, admin panel
 // Also exports getMatchLeaderboard for group match standings
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
-import { loadAppData } from './api.js';
+import { loadAppData, querySupabase } from './api.js';
 import { calcStableford, parseDateGB } from './stats.js';
 import { initials, avatarHtml } from './players.js';
 import { getCourseByRef } from './courses.js';
@@ -43,9 +44,7 @@ function diffSnapshots(oldSnap, newSnap) {
     const oldIds = new Set(oldRounds.map(r => r.id));
     (player.rounds || []).filter(r => r.date === today).forEach(r => {
       if (!oldIds.has(r.id)) {
-        // New round submitted today
         events.push({ type: 'round', player: name, course: r.course, score: r.totalScore, diff: r.diff, ts: now });
-        // Also surface birdies/eagles from this round
         if (r.scores && r.pars) {
           for (let h = 0; h < 18; h++) {
             const s = r.scores[h], p = r.pars[h];
@@ -84,28 +83,38 @@ async function pollAndUpdate() {
   }
   _lastSnapshot = JSON.parse(JSON.stringify(state.gd));
   _lastPollTime = Date.now();
-  renderCompLeaderboard();
+
+  // Render the appropriate leaderboard
+  if (state.activeCompetitionId) {
+    renderCompetitionLeaderboard();
+  } else {
+    renderCompLeaderboard();
+  }
   updatePollStatus();
-  // Refresh match overlay with latest scores from Gist
   import('./overlay.js').then(({ refreshMatchOverlay }) => refreshMatchOverlay());
 }
 
-export function initCompetition() {
-  // Take initial snapshot for diffing on next poll
+export async function initCompetition() {
   if (!_lastSnapshot) {
     _lastSnapshot = JSON.parse(JSON.stringify(state.gd));
   }
   _lastPollTime = Date.now();
 
-  // Wire up format toggles
   document.getElementById('comp-fmt-stab')?.addEventListener('click', () => setFormat('stableford'));
   document.getElementById('comp-fmt-gross')?.addEventListener('click', () => setFormat('gross'));
 
-  renderCompLeaderboard();
+  // Load competition selector
+  await renderCompSelector();
+
+  if (state.activeCompetitionId) {
+    renderCompetitionLeaderboard();
+  } else {
+    renderCompLeaderboard();
+  }
   renderActivityFeed();
+  renderCompAdmin();
   updatePollStatus();
 
-  // Start polling if not already running
   if (!_pollInterval) {
     _pollInterval = setInterval(pollAndUpdate, 45000);
   }
@@ -115,8 +124,284 @@ function setFormat(fmt) {
   _format = fmt;
   document.getElementById('comp-fmt-stab')?.classList.toggle('active', fmt === 'stableford');
   document.getElementById('comp-fmt-gross')?.classList.toggle('active', fmt === 'gross');
-  renderCompLeaderboard();
+  if (state.activeCompetitionId) {
+    renderCompetitionLeaderboard();
+  } else {
+    renderCompLeaderboard();
+  }
 }
+
+// ── Competition selector (pill strip) ────────────────────────────
+
+async function renderCompSelector() {
+  const el = document.getElementById('comp-selector');
+  if (!el) return;
+
+  let comps = [];
+  try {
+    const res = await querySupabase('getMyCompetitions', { playerName: state.me });
+    comps = res?.competitions || [];
+  } catch { /* ignore */ }
+
+  if (!comps.length) { el.innerHTML = ''; return; }
+
+  el.innerHTML = `<button class="fpill ${!state.activeCompetitionId ? 'active' : ''}" data-comp-id="">Today</button>` +
+    comps.map(c =>
+      `<button class="fpill ${state.activeCompetitionId === c.id ? 'active' : ''}" data-comp-id="${c.id}">${c.name}</button>`
+    ).join('');
+
+  el.querySelectorAll('.fpill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.compId || null;
+      state.activeCompetitionId = id;
+      state.activeCompetition = id ? comps.find(c => c.id === id) || null : null;
+      el.querySelectorAll('.fpill').forEach(b => b.classList.toggle('active', b === btn));
+      if (id) {
+        renderCompetitionLeaderboard();
+      } else {
+        renderCompLeaderboard();
+      }
+      renderCompAdmin();
+    });
+  });
+}
+
+// ── Competition-specific leaderboard ─────────────────────────────
+
+async function renderCompetitionLeaderboard() {
+  const el = document.getElementById('comp-lb');
+  if (!el) return;
+
+  let comp = state.activeCompetition;
+  if (!comp && state.activeCompetitionId) {
+    try {
+      const res = await querySupabase('getCompetition', { id: state.activeCompetitionId });
+      if (res?.found) { comp = res.competition; state.activeCompetition = comp; }
+    } catch { /* ignore */ }
+  }
+  if (!comp) { el.innerHTML = '<div style="text-align:center;padding:20px 0;color:var(--dimmer);font-size:12px">Competition not found.</div>'; return; }
+
+  const fmt = comp.format || 'stableford';
+  const roundsConfig = comp.rounds_config || [];
+  const hcpOverrides = comp.hcp_overrides || {};
+  const totalRounds = roundsConfig.length || 1;
+  const posClass = ['gold', 'silver', 'bronze'];
+
+  // Match rounds by date (DD/MM/YYYY in rounds_config) to player rounds
+  const configDates = new Set(roundsConfig.map(rc => rc.date).filter(Boolean));
+
+  const entries = (comp.players || []).map(name => {
+    const playerData = state.gd.players?.[name];
+    const allRounds = playerData?.rounds || [];
+    // Match rounds: if config has dates, filter by those dates; otherwise include all rounds
+    const compRounds = configDates.size > 0
+      ? allRounds.filter(r => configDates.has(r.date))
+      : allRounds;
+
+    if (!compRounds.length) return { name, roundsPlayed: 0, aggregate: null, handicap: hcpOverrides[name] ?? playerData?.handicap ?? 0 };
+
+    const handicap = hcpOverrides[name] ?? playerData?.handicap ?? 0;
+    let aggregate = 0;
+
+    if (fmt === 'stableford') {
+      compRounds.forEach(r => {
+        if (!r.scores || !r.pars) return;
+        const s = calcStableford(r.scores, r.pars, handicap, r.slope, null);
+        if (s != null) aggregate += s;
+      });
+    } else if (fmt === 'stroke_gross') {
+      compRounds.forEach(r => { if (r.totalScore) aggregate += r.totalScore; });
+    } else if (fmt === 'stroke_net') {
+      compRounds.forEach(r => {
+        if (!r.totalScore) return;
+        const php = Math.round(handicap * (r.slope || 113) / 113);
+        aggregate += r.totalScore - php;
+      });
+    } else {
+      // matchplay fallback — show gross
+      compRounds.forEach(r => { if (r.totalScore) aggregate += r.totalScore; });
+    }
+
+    return { name, roundsPlayed: compRounds.length, aggregate, handicap };
+  });
+
+  // Sort
+  if (fmt === 'stableford') {
+    entries.sort((a, b) => (b.aggregate ?? -1) - (a.aggregate ?? -1));
+  } else {
+    entries.sort((a, b) => {
+      if (a.roundsPlayed === 0 && b.roundsPlayed === 0) return 0;
+      if (a.roundsPlayed === 0) return 1;
+      if (b.roundsPlayed === 0) return -1;
+      return (a.aggregate ?? 999) - (b.aggregate ?? 999);
+    });
+  }
+
+  // Round progress subtitle
+  const completedRounds = configDates.size > 0
+    ? [...configDates].filter(d => entries.some(e => e.roundsPlayed > 0 && state.gd.players?.[e.name]?.rounds?.some(r => r.date === d))).length
+    : Math.max(...entries.map(e => e.roundsPlayed), 0);
+  const subtitle = totalRounds > 1
+    ? `<div style="font-size:10px;color:var(--dimmer);margin-bottom:10px">Round ${Math.min(completedRounds, totalRounds)} of ${totalRounds}</div>`
+    : '';
+
+  if (!entries.some(e => e.roundsPlayed > 0)) {
+    el.innerHTML = subtitle + '<div style="text-align:center;padding:20px 0;color:var(--dimmer);font-size:12px">No rounds submitted yet.</div>';
+    return;
+  }
+
+  let metricLabel;
+  if (fmt === 'stableford') metricLabel = 'pts';
+  else if (fmt === 'stroke_net') metricLabel = 'net';
+  else metricLabel = 'gross';
+
+  el.innerHTML = subtitle + entries.map((e, i) => {
+    const isMe = e.name === state.me;
+    const pc = posClass[i] || '';
+    let val, valColor;
+    if (e.roundsPlayed === 0) {
+      val = '—'; valColor = 'var(--dimmer)';
+    } else if (fmt === 'stableford') {
+      val = e.aggregate; valColor = 'var(--gold)';
+    } else {
+      val = e.aggregate; valColor = 'var(--cream)';
+    }
+    return `<div class="lb-row${isMe ? ' lb-me' : ''}">
+      <div class="lb-pos ${pc}">${e.roundsPlayed > 0 ? i + 1 : ''}</div>
+      ${avatarHtml(e.name, 36, isMe)}
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:7px">
+          <span class="lb-name" style="${isMe ? 'color:var(--gold)' : ''}">${e.name}</span>
+          ${isMe ? '<span class="lb-you-badge">You</span>' : ''}
+        </div>
+        <div class="lb-meta">${e.roundsPlayed}/${totalRounds} round${totalRounds !== 1 ? 's' : ''} · HCP ${e.handicap}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div class="lb-score" style="color:${valColor}">${val}</div>
+        <div style="font-size:9px;color:var(--dimmer);margin-top:1px">${metricLabel}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Admin panel ──────────────────────────────────────────────────
+
+function renderCompAdmin() {
+  const section = document.getElementById('comp-admin-section');
+  if (!section) return;
+
+  const comp = state.activeCompetition;
+  if (!comp || !(comp.admin_players || []).includes(state.me)) {
+    section.style.display = 'none';
+    return;
+  }
+
+  section.style.display = 'block';
+  const hcpOverrides = comp.hcp_overrides || {};
+  const players = comp.players || [];
+
+  section.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" id="comp-admin-toggle">
+      <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase">Admin</div>
+      <div style="font-size:12px;color:var(--dimmer)" id="comp-admin-chevron">&#9662;</div>
+    </div>
+    <div id="comp-admin-body" style="display:none;margin-top:12px">
+      <!-- Player roster + handicap overrides -->
+      <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">Players &amp; Handicap Overrides</div>
+      <div id="comp-admin-roster"></div>
+      <button id="comp-admin-save-hcp" class="btn btn-ghost" style="font-size:11px;padding:6px 14px;margin-top:8px">Save Handicaps</button>
+      <div id="comp-admin-hcp-msg" style="font-size:11px;color:var(--dim);margin-top:4px"></div>
+
+      <!-- Share admin -->
+      <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:14px">
+        <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">Share Admin Access</div>
+        <div style="display:flex;gap:8px">
+          <select id="comp-admin-add-sel" style="flex:1;font-size:12px">
+            <option value="">— Select player —</option>
+            ${players.filter(p => !(comp.admin_players || []).includes(p)).map(p => `<option value="${p}">${p}</option>`).join('')}
+          </select>
+          <button id="comp-admin-add-btn" class="btn" style="width:auto;padding:0 14px;font-size:12px">Make Admin</button>
+        </div>
+        <div id="comp-admin-add-msg" style="font-size:11px;color:var(--dim);margin-top:4px"></div>
+      </div>
+    </div>
+  `;
+
+  // Roster
+  const roster = document.getElementById('comp-admin-roster');
+  if (roster) {
+    players.forEach(name => {
+      const playerData = state.gd.players?.[name];
+      const roundsPlayed = (playerData?.rounds || []).length;
+      const hcp = hcpOverrides[name] ?? playerData?.handicap ?? 0;
+      const isAdmin = (comp.admin_players || []).includes(name);
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)';
+      row.innerHTML = `
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;color:var(--cream)">${name}${isAdmin ? ' <span style="font-size:9px;color:var(--gold)">(admin)</span>' : ''}</div>
+          <div style="font-size:10px;color:var(--dimmer)">${roundsPlayed} round${roundsPlayed !== 1 ? 's' : ''}</div>
+        </div>
+        <input type="number" class="comp-hcp-input" data-player="${name}" value="${hcp}" style="width:50px;font-size:12px;text-align:center" step="0.1">
+      `;
+      roster.appendChild(row);
+    });
+  }
+
+  // Toggle collapse
+  document.getElementById('comp-admin-toggle')?.addEventListener('click', () => {
+    const body = document.getElementById('comp-admin-body');
+    const chev = document.getElementById('comp-admin-chevron');
+    if (body) body.style.display = body.style.display === 'none' ? 'block' : 'none';
+    if (chev) chev.textContent = body?.style.display === 'none' ? '\u25BE' : '\u25B4';
+  });
+
+  // Save handicaps
+  document.getElementById('comp-admin-save-hcp')?.addEventListener('click', async () => {
+    const msg = document.getElementById('comp-admin-hcp-msg');
+    const newOverrides = { ...hcpOverrides };
+    document.querySelectorAll('.comp-hcp-input').forEach(inp => {
+      newOverrides[inp.dataset.player] = parseFloat(inp.value) || 0;
+    });
+    try {
+      await querySupabase('updateCompetition', {
+        competitionId: comp.id,
+        playerName: state.me,
+        updates: { hcp_overrides: newOverrides }
+      });
+      comp.hcp_overrides = newOverrides;
+      state.activeCompetition = comp;
+      if (msg) msg.innerHTML = '<span style="color:var(--par)">Saved.</span>';
+      renderCompetitionLeaderboard();
+    } catch {
+      if (msg) msg.textContent = 'Error saving. Try again.';
+    }
+  });
+
+  // Make admin
+  document.getElementById('comp-admin-add-btn')?.addEventListener('click', async () => {
+    const sel = document.getElementById('comp-admin-add-sel');
+    const msg = document.getElementById('comp-admin-add-msg');
+    const newAdmin = sel?.value;
+    if (!newAdmin) { if (msg) msg.textContent = 'Select a player.'; return; }
+    const updated = [...(comp.admin_players || []), newAdmin];
+    try {
+      await querySupabase('updateCompetition', {
+        competitionId: comp.id,
+        playerName: state.me,
+        updates: { admin_players: updated }
+      });
+      comp.admin_players = updated;
+      state.activeCompetition = comp;
+      if (msg) msg.innerHTML = `<span style="color:var(--par)">${newAdmin} is now an admin.</span>`;
+      renderCompAdmin();
+    } catch {
+      if (msg) msg.textContent = 'Error. Try again.';
+    }
+  });
+}
+
+// ── Today's leaderboard (existing) ───────────────────────────────
 
 function renderActivityFeed() {
   const el = document.getElementById('comp-feed');
@@ -151,7 +436,7 @@ function renderActivityFeed() {
   }).join('');
 }
 
-// ── Group Match Leaderboard ───────────────────────────────────────
+// ── Group Match Leaderboard ──────────────────────────────────────
 
 export function getMatchLeaderboard(matchId) {
   const match = state.gd.matches?.[matchId];
@@ -167,7 +452,6 @@ export function getMatchLeaderboard(matchId) {
     };
   });
 
-  // Sort: players with holes played first (by netTotal asc), 0-holes at bottom
   entries.sort((a, b) => {
     if (a.holesPlayed === 0 && b.holesPlayed === 0) return 0;
     if (a.holesPlayed === 0) return 1;
@@ -175,7 +459,6 @@ export function getMatchLeaderboard(matchId) {
     return (a.netTotal ?? 999) - (b.netTotal ?? 999);
   });
 
-  // Assign positions; ties share the same number
   let pos = 1;
   for (let i = 0; i < entries.length; i++) {
     if (entries[i].holesPlayed === 0) {
@@ -202,7 +485,6 @@ function renderCompLeaderboard() {
   const entries = Object.entries(state.gd.players || {}).map(([name, player]) => {
     const todayRounds = (player.rounds || []).filter(r => r.date === today);
     if (!todayRounds.length) return null;
-    // Use the round with highest id (most recently submitted)
     const r = todayRounds.reduce((a, b) => ((b.id || 0) > (a.id || 0) ? b : a));
     let stab = null;
     if (r.scores && r.pars) {

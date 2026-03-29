@@ -169,36 +169,101 @@ export function renderCompetitionSetupModal() {
   });
 }
 
-// ── Join flow (called from app.js) ───────────────────────────────
-export async function handleJoinCompetition() {
-  const input = document.getElementById('comp-join-code');
-  const msg = document.getElementById('comp-join-msg');
-  const code = input?.value?.trim()?.toUpperCase();
-  if (!code) { if (msg) msg.textContent = 'Enter a competition code.'; return; }
+// ── Join modal ───────────────────────────────────────────────────
+const COMP_CODE_RE = /^COMP[A-Z]{2}\d{4}$/;
 
-  if (msg) msg.innerHTML = '<span class="spin"></span> Looking up...';
+export function renderJoinCompetitionModal() {
+  const modal = document.getElementById('comp-setup-modal');
+  if (!modal) return;
+  modal.style.display = 'flex';
 
-  try {
-    const lookup = await lookupCompetition(code);
-    if (!lookup?.found) {
-      if (msg) msg.textContent = 'Competition not found. Check the code.';
+  const content = document.getElementById('comp-setup-content');
+  if (!content) return;
+
+  content.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase">Join Competition</div>
+      <button id="comp-join-close" style="background:none;border:none;color:var(--dim);font-size:18px;cursor:pointer">&times;</button>
+    </div>
+    <div style="font-size:12px;color:var(--dim);margin-bottom:14px;line-height:1.5">Enter the competition code shared by your organiser.</div>
+    <input type="text" id="comp-join-modal-code" placeholder="e.g. COMPAB1234" style="text-transform:uppercase;letter-spacing:3px;font-size:16px;text-align:center;margin-bottom:6px" maxlength="10">
+    <div id="comp-join-modal-preview" style="min-height:40px;margin-bottom:10px"></div>
+    <button id="comp-join-modal-btn" class="btn" style="width:100%;border-radius:40px" disabled>Join Competition</button>
+    <div id="comp-join-modal-msg" style="margin-top:8px;font-size:11px;color:var(--dim);text-align:center"></div>
+  `;
+
+  let lookedUpComp = null;
+
+  // Close
+  document.getElementById('comp-join-close')?.addEventListener('click', () => { modal.style.display = 'none'; });
+
+  // Live validation + preview on input
+  const codeInput = document.getElementById('comp-join-modal-code');
+  const preview = document.getElementById('comp-join-modal-preview');
+  const joinBtn = document.getElementById('comp-join-modal-btn');
+
+  codeInput?.addEventListener('input', async () => {
+    const code = codeInput.value.trim().toUpperCase();
+    lookedUpComp = null;
+    if (joinBtn) joinBtn.disabled = true;
+
+    if (!code) { if (preview) preview.innerHTML = ''; return; }
+
+    if (!COMP_CODE_RE.test(code)) {
+      if (preview) preview.innerHTML = '<div style="font-size:11px;color:var(--dimmer)">Format: COMP + 2 letters + 4 digits</div>';
       return;
     }
 
-    const comp = lookup.competition;
-    if (comp.players?.includes(state.me)) {
-      if (msg) msg.innerHTML = `You're already in <strong>${comp.name}</strong>.`;
+    if (preview) preview.innerHTML = '<div style="font-size:11px;color:var(--dim)"><span class="spin"></span> Looking up...</div>';
+
+    try {
+      const res = await lookupCompetition(code);
+      if (res?.found) {
+        lookedUpComp = res.competition;
+        const playerCount = res.competition.players?.length || 0;
+        const fmt = res.competition.format?.replace('_', ' ') || '';
+        if (preview) preview.innerHTML = `
+          <div style="padding:10px 12px;background:var(--mid);border-radius:8px;border:1px solid rgba(201,168,76,.2)">
+            <div style="font-size:14px;font-weight:600;color:var(--cream)">${res.competition.name}</div>
+            <div style="font-size:11px;color:var(--dim);margin-top:3px">${fmt} · ${playerCount} player${playerCount !== 1 ? 's' : ''}</div>
+          </div>`;
+        if (joinBtn) joinBtn.disabled = false;
+      } else {
+        if (preview) preview.innerHTML = '<div style="font-size:11px;color:var(--double)">Competition not found. Check the code.</div>';
+      }
+    } catch {
+      if (preview) preview.innerHTML = '<div style="font-size:11px;color:var(--double)">Network error.</div>';
+    }
+  });
+
+  // Join button
+  joinBtn?.addEventListener('click', async () => {
+    if (!lookedUpComp) return;
+    const msg = document.getElementById('comp-join-modal-msg');
+    const code = codeInput?.value?.trim()?.toUpperCase();
+
+    if (lookedUpComp.players?.includes(state.me)) {
+      if (msg) msg.innerHTML = `You're already in <strong>${lookedUpComp.name}</strong>.`;
       return;
     }
 
-    const res = await joinCompetition(code);
-    if (res?.ok) {
-      if (msg) msg.innerHTML = `<span style="color:var(--par)">Joined <strong>${comp.name}</strong>!</span>`;
-      if (input) input.value = '';
-    } else {
-      if (msg) msg.textContent = 'Could not join. Try again.';
+    if (joinBtn) { joinBtn.disabled = true; joinBtn.textContent = 'Joining...'; }
+
+    try {
+      const res = await joinCompetition(code);
+      if (res?.ok) {
+        if (msg) msg.innerHTML = `<span style="color:var(--par)">Joined <strong>${lookedUpComp.name}</strong>!</span>`;
+        if (joinBtn) { joinBtn.textContent = 'Done'; }
+      } else {
+        if (msg) msg.textContent = 'Could not join. Try again.';
+        if (joinBtn) { joinBtn.disabled = false; joinBtn.textContent = 'Join Competition'; }
+      }
+    } catch {
+      if (msg) msg.textContent = 'Network error. Try again.';
+      if (joinBtn) { joinBtn.disabled = false; joinBtn.textContent = 'Join Competition'; }
     }
-  } catch {
-    if (msg) msg.textContent = 'Network error. Try again.';
-  }
+  });
+
+  // Enter key
+  codeInput?.addEventListener('keydown', e => { if (e.key === 'Enter' && !joinBtn?.disabled) joinBtn?.click(); });
 }

@@ -8,6 +8,8 @@ export const state = {
   cpars: Array(18).fill(4),
   stee: '',
   photoFile: null,
+  activeCompetitionId: null,  // competition id being viewed in #pg-competition
+  activeCompetition: null,    // cached competition object
   CH: {},
   statsFilter: '5',
   liveState: {

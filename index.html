@@ -606,24 +606,15 @@
           <div style="font-size:11px;color:var(--dimmer);margin-top:3px;line-height:1.4">Multi-group golf days, Ryder Cups, and tournaments. Join with a code or WhatsApp link.</div>
         </div>
         <div class="card" style="margin-bottom:8px">
-
-          <!-- Set up -->
-          <div style="margin-bottom:18px">
-            <button id="setup-competition-btn" style="display:block;width:100%;padding:15px 18px;border-radius:12px;background:var(--mid);border:1px solid var(--border);color:var(--cream);font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent">
-              <span style="font-size:18px;margin-right:10px">🏆</span>Create a Competition
-              <span style="float:right;color:var(--gold);font-size:12px;font-weight:400;margin-top:2px">New →</span>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <button id="setup-competition-btn" class="round-entry-card">
+              <span style="font-size:22px">🏆</span>
+              <span>Create</span>
             </button>
-          </div>
-
-          <!-- Join -->
-          <div style="border-top:1px solid var(--border);padding-top:18px">
-            <div style="font-size:10px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--dim);margin-bottom:10px">Join a Competition</div>
-            <div style="font-size:12px;color:var(--dim);margin-bottom:10px">Enter the code shared by your organiser.</div>
-            <div style="display:flex;gap:8px">
-              <input type="text" id="comp-join-code" placeholder="Enter code" style="flex:1;text-transform:uppercase;letter-spacing:3px;font-size:15px">
-              <button id="join-competition-btn" class="btn" style="width:auto;padding:0 20px;white-space:nowrap">Join</button>
-            </div>
-            <div id="comp-join-msg" style="margin-top:8px;font-size:11px;color:var(--dim)"></div>
+            <button id="join-competition-modal-btn" class="round-entry-card">
+              <span style="font-size:22px">🤝</span>
+              <span>Join</span>
+            </button>
           </div>
         </div>
 
@@ -782,8 +773,10 @@
           </div>
           <div id="comp-poll-status" style="font-size:10px;color:var(--dimmer);text-align:right"></div>
         </div>
+        <!-- Competition selector -->
+        <div id="comp-selector" style="margin-top:10px;display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none"></div>
         <!-- Format toggle -->
-        <div style="display:flex;gap:5px;margin-top:10px">
+        <div style="display:flex;gap:5px;margin-top:8px">
           <button class="fpill active" id="comp-fmt-stab" data-fmt="stableford">Stableford</button>
           <button class="fpill" id="comp-fmt-gross" data-fmt="gross">Gross</button>
         </div>
@@ -810,6 +803,9 @@
         </div>
         <div id="comp-feed"></div>
       </div>
+
+      <!-- Admin panel (visible to competition admins only) -->
+      <div id="comp-admin-section" class="card" style="display:none;margin:12px 0"></div>
     </div>
 
     <!-- STATS -->

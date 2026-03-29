@@ -17,7 +17,7 @@ import { exportXlsx } from './export.js';
 import { openAdminSettings, closeAdminSettings, verifyAdminPw, adminPopulateRounds, adminDeleteRound, adminSeedDemo } from './admin.js';
 import { copyGroupCode, leaveGroup, toggleGroupCodeRequired, addSeason, deleteSeason, confirmDeleteMyData, deleteMyData, copyAppUrl, rebuildSeasonSelector, initJoinGroup, lookupGroupByCode, confirmJoinGroup, showBoardPage, initCreateGroup, submitGroupName, confirmBoardSetup, initGroupSettings, saveGroupName, hideGSModal, confirmGSModal } from './group.js';
 import { initCompetition } from './competition.js';
-import { renderCompetitionSetupModal, handleJoinCompetition } from './competition-setup.js';
+import { renderCompetitionSetupModal, renderJoinCompetitionModal } from './competition-setup.js';
 import { state } from './state.js';
 import { initCaddieButton } from './caddie.js';
 import { setGameMode, updateFormatUI, confirmWolfOrder, showWolfScoreboard } from './gamemodes.js';
@@ -242,8 +242,7 @@ document.getElementById('parse-btn')?.addEventListener('click', parsePhoto);
 
 // Competitions section
 document.getElementById('setup-competition-btn')?.addEventListener('click', renderCompetitionSetupModal);
-document.getElementById('join-competition-btn')?.addEventListener('click', handleJoinCompetition);
-document.getElementById('comp-join-code')?.addEventListener('keydown', e => { if (e.key === 'Enter') handleJoinCompetition(); });
+document.getElementById('join-competition-modal-btn')?.addEventListener('click', renderJoinCompetitionModal);
 
 // Course API search
 document.getElementById('api-search-btn')?.addEventListener('click', searchCourseAPI);
