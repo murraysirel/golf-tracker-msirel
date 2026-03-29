@@ -212,7 +212,7 @@ export function populateCourseFilter(allRounds) {
 // Plus handicaps are stored as negative numbers (e.g. +1.2 = −1.2).
 // fmtHcp() converts: −1.2 → "+1.2", 9.8 → "9.8", 0/null → "—"
 function fmtHcp(h) {
-  if (h == null || h === 0) return '—';
+  if (h == null) return '—';
   return h < 0 ? '+' + Math.abs(h) : String(h);
 }
 
@@ -234,6 +234,7 @@ export function saveHandicap() {
   if (!state.gd.players[state.me]) state.gd.players[state.me] = { handicap: v, rounds: [] };
   else state.gd.players[state.me].handicap = v;
   pushData();
+  pushSupabase('updateHandicap', { playerName: state.me, handicap: v });
   document.getElementById('hcp-edit-row').style.display = 'none';
   renderStats();
 }
