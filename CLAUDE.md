@@ -252,7 +252,7 @@ Key component classes: `.btn` `.btn-o` `.btn-ghost`, `.card` `.ct`, `.fpill`, `.
 
 Home screen KPI grid classes: `.home-kpi-grid` (2×2 CSS grid, `padding:12px 16px 0`), `.home-kpi-card` (individual card, `var(--mid)` bg, 12px radius), `.home-kpi-val` (28px Cormorant serif value), `.home-kpi-lbl` (9px uppercase label), `.home-kpi-delta` (11px trend line). Split card: `.home-kpi-split` + `.home-kpi-split-inner` + `.home-kpi-divider` (absolute-positioned SVG diagonal line) + `.home-kpi-split-top` / `.home-kpi-split-bot` (each `max-width:46%; overflow:hidden`; value font 20px, delta font 9px inside split). Avatar circles: `.avatar` and `.lb-avatar-me` both use DM Sans 13px/700 — do not use Cormorant Garamond for initials.
 
-Cormorant Garamond is restricted to: `.home-kpi-val`, stats breakdown header (`#st-avg`, `#st-best` etc.), and `.lb-score`/`.bv`. Do not use it in live scoring, GPS, or game mode UI.
+Cormorant Garamond is restricted to **splash screen only** (`#splash-app-name`). All other numeric displays (`.home-kpi-val`, `.lb-score`, `.bv`, `.tv`, `.hs`) use DM Sans 700. Text size tokens: `--text-xs` (9px) through `--text-3xl` (36px). Utility classes: `.text-upper`, `.text-section`, `.delta-up`, `.delta-dn`.
 
 ---
 

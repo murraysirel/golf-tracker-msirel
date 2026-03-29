@@ -1,3 +1,4 @@
+/* Cormorant: splash screen only — do not use elsewhere */
 /* ── Reset & Root ─────────────────────────────────────────────── */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -26,6 +27,16 @@
   --wa-2:  rgba(255,255,255,.2);
   --chart-tick:#8899bb;
   --chart-grid:rgba(255,255,255,.3);
+
+  /* ── Text size scale ───────────────────────────────────────── */
+  --text-xs:  9px;
+  --text-sm:  11px;
+  --text-base:13px;
+  --text-md:  15px;
+  --text-lg:  18px;
+  --text-xl:  24px;
+  --text-2xl: 28px;
+  --text-3xl: 36px;
 }
 html,body{height:100%;overflow:hidden}
 body{
@@ -361,14 +372,15 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
   cursor:pointer;
 }
 .home-kpi-val{
-  font-family:'Cormorant Garamond',serif;
-  font-size:28px;font-weight:700;color:var(--cream);line-height:1;
+  font-family:'DM Sans',sans-serif;
+  font-size:var(--text-2xl);font-weight:700;color:var(--cream);
+  letter-spacing:-0.5px;line-height:1;
 }
 .home-kpi-lbl{
-  font-size:9px;font-weight:600;color:var(--dim);
-  text-transform:uppercase;letter-spacing:0.07em;
+  font-size:var(--text-xs);font-weight:600;color:var(--dim);
+  text-transform:uppercase;letter-spacing:0.8px;
 }
-.home-kpi-delta{font-size:11px;color:var(--par)}
+.home-kpi-delta{font-size:var(--text-sm);font-weight:600;color:var(--par);margin-top:5px;display:flex;align-items:center;gap:3px}
 /* GIR/FIR diagonal split card */
 .home-kpi-split{position:relative;overflow:hidden;padding:0;min-height:110px}
 .home-kpi-split-inner{position:relative;width:100%;height:100%;min-height:110px}
@@ -527,7 +539,7 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
 }
 .tv{
   font-size:28px;font-weight:700;color:var(--gold);
-  font-family:'Cormorant Garamond',serif;
+  font-family:'DM Sans',sans-serif;
 }
 .tl{font-size:10px;color:var(--dim);margin-bottom:2px}
 
@@ -539,7 +551,7 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
   border:1px solid var(--wa-06);
   border-radius:10px;padding:10px 5px;
 }
-.bv{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;display:block;line-height:1}
+.bv{font-family:'DM Sans',sans-serif;font-size:28px;font-weight:700;display:block;line-height:1}
 .bl{font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
 .ec{color:var(--eagle)}.bc{color:var(--birdie)}.prc{color:var(--par)}.bgc{color:var(--bogey)}.dc{color:var(--double)}
 
@@ -553,7 +565,7 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
 .hm{font-size:10px;color:var(--dim);margin-top:2px}
 .hs{
   font-size:24px;font-weight:700;color:var(--gold);
-  font-family:'Cormorant Garamond',serif;
+  font-family:'DM Sans',sans-serif;
 }
 .hd{font-size:10px;color:var(--dim);text-align:right;margin-top:2px}
 .tdot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:3px;vertical-align:middle}
@@ -657,7 +669,7 @@ details[open] summary::after{content:' ▾'}
   text-transform:uppercase;letter-spacing:.8px;font-weight:600;
 }
 .lb-score{
-  font-family:'Cormorant Garamond',serif;
+  font-family:'DM Sans',sans-serif;
   font-size:22px;font-weight:700;
 }
 
@@ -1244,3 +1256,9 @@ details[open] summary::after{content:' ▾'}
 /* [data-design="v2"] .card { ... } */
 /* [data-design="v2"] .home-kpi-card { ... } */
 /* [data-design="v2"] .hdr { ... } */
+
+/* ── Typography & delta utilities ────────────────────────────── */
+.text-upper{font-size:var(--text-xs);font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--dim)}
+.text-section{font-size:var(--text-xs);font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--dim)}
+.delta-up{color:var(--par);display:flex;align-items:center;gap:3px}
+.delta-dn{color:var(--bogey);display:flex;align-items:center;gap:3px}
