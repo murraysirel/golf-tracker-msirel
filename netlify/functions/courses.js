@@ -499,11 +499,14 @@ exports.handler = async (event) => {
     parsed.has_hole_data = true;
 
     // Strip fields not yet in the courses table schema before writing.
-    // The full parsed object (with club_name, city, holes, has_gps etc.) is
-    // still returned to the frontend below. Run migration 001_courses_extra_columns.sql
-    // to store these fields in Supabase permanently.
-    const { club_name, city, holes, has_gps, data_source, data_quality, report_count, pars, stroke_indexes, ...dbSafe } = parsed;
+    // The full parsed object (with club_name, city, holes, has_gps, pars,
+    // stroke_indexes, overall_par, tee_types etc.) is still returned to
+    // the frontend below.
+    const { club_name, city, holes, has_gps, data_source, data_quality, report_count, pars, stroke_indexes, overall_par, tee_types, ...dbSafe } = parsed;
     const saved = await sbUpsert('courses', dbSafe);
+    if (!Array.isArray(saved)) {
+      console.error('[courses] Supabase upsert failed:', JSON.stringify(saved));
+    }
     const record = Array.isArray(saved)
       ? { ...saved[0], club_name, city, holes, has_gps, pars, stroke_indexes }
       : { ...parsed };
