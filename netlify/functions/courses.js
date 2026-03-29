@@ -356,35 +356,32 @@ exports.handler = async (event) => {
     }
 
     // 2. Supabase empty — fall back to GolfAPI.io (costs 0.1 credits per call)
-    let _debug = { golfapi_key_set: !!GOLFAPI_KEY, api_attempted: false, api_error: null, api_response_keys: null, clubs_count: 0, first_club: null, mapped_count: 0 };
     if (GOLFAPI_KEY) {
       try {
-        _debug.api_attempted = true;
         const apiRes = await golfApiSearchClubs(name, country);
-        _debug.api_response_keys = Object.keys(apiRes || {});
         const clubs  = apiRes?.clubs || apiRes?.data || [];
-        _debug.clubs_count = clubs.length;
         const requestsLeft = apiRes?.apiRequestsLeft ?? null;
         if (Array.isArray(clubs) && clubs.length > 0) {
-          _debug.first_club = JSON.parse(JSON.stringify(clubs[0]));
           const mapped = [];
           for (const club of clubs) {
+            const clubId = club.clubID || club.club_id || club.id || '';
+            const clubName = club.clubName || club.club_name || club.name || '';
             const coursesInClub = Array.isArray(club.courses) && club.courses.length > 0
               ? club.courses
-              : [{ id: club.id, course_name: club.club_name || club.name || '' }];
+              : [{ courseID: clubId, courseName: clubName }];
             for (const course of coursesInClub) {
-              if (!course.id) continue;
+              const cid = course.courseID || course.id || '';
+              if (!cid) continue;
               mapped.push({
-                external_course_id: String(course.id),
-                external_club_id:   String(club.club_id || club.id || ''),
-                name:      course.course_name || club.club_name || '',
-                location:  [club.city, club.state, club.country].filter(Boolean).join(', '),
+                external_course_id: String(cid),
+                external_club_id:   String(clubId),
+                name:      course.courseName || course.course_name || clubName,
+                location:  [club.city, club.state?.trim(), club.country].filter(Boolean).join(', '),
                 country:   club.country || country,
                 has_hole_data: false,
               });
             }
           }
-          _debug.mapped_count = mapped.length;
           if (mapped.length > 0) {
             // Cache results back to Supabase so next search hits DB (fire-and-forget)
             Promise.all(mapped.map(c => sbUpsert('courses', c))).catch(() => {});
@@ -393,7 +390,6 @@ exports.handler = async (event) => {
           }
         }
       } catch (apiErr) {
-        _debug.api_error = apiErr?.message;
         console.error('[courses] GolfAPI fallback error:', apiErr?.message);
       }
     }
@@ -403,7 +399,6 @@ exports.handler = async (event) => {
       courses: [],
       source: 'cache_empty',
       hint: 'No courses found. Try a different spelling or country filter.',
-      _debug,
     });
   }
 
