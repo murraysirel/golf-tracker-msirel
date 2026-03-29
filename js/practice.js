@@ -5,6 +5,9 @@ import { state } from './state.js';
 import { pushData, querySupabase } from './api.js';
 import { parseDateGB } from './stats.js';
 
+let _emptyState = null;
+try { const m = await import('./empty-states.js'); _emptyState = m.emptyState; } catch { /* not yet available */ }
+
 const AREA_LABELS = {
   putting: 'Putting', chipping: 'Chipping', pitching: 'Pitching',
   irons: 'Iron Play', driving: 'Driving',
@@ -49,7 +52,13 @@ function renderPracticeHistory() {
   const card = document.getElementById('c-practice-history');
   const list = document.getElementById('practice-history-list');
   if (!card || !list) return;
-  if (!sessions.length) { card.style.display = 'none'; return; }
+  if (!sessions.length) {
+    card.style.display = 'block';
+    list.innerHTML = typeof _emptyState === 'function'
+      ? _emptyState('🎯', 'No practice sessions yet', 'Generate a plan, work through the drills, and your sessions log here.', 'Build a practice plan', "import('./practice.js').then(m=>m.selectPracticeArea('ai_recommended'))")
+      : '<div style="font-size:12px;color:var(--dimmer);padding:12px 0;text-align:center">No sessions logged yet.</div>';
+    return;
+  }
   card.style.display = 'block';
   list.innerHTML = '';
   [...sessions].reverse().slice(0, 10).forEach(s => {

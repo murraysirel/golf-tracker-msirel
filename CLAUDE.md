@@ -63,6 +63,7 @@ Netlify hosts both the static frontend and all serverless functions. No build st
 | `admin.js` | Password-protected admin panel — round deletion (logged to `deletionLog`), course-correction application, GolfAPI usage check, demo seeding |
 | `export.js` | XLSX export using global `XLSX` — two sheets: All Rounds + Hole Data |
 | `gamemodes.js` | Wolf / Match Play / Sixes game mode engines; `setGameMode()`, `updateFormatUI()`, Wolf state init/scoring/banners/scoreboard, Sixes 3-ball net points (4-2-0 scoring), `initSixesState()`, `getSixesStandings()` |
+| `empty-states.js` | `emptyState(icon, headline, subline, ctaText, ctaAction)` — reusable empty state renderer used across home, stats, leaderboard, practice |
 | `caddie.js` | `initCaddieButton()` — floating caddie pill button initialisation |
 | `demo.js` | `enterDemoMode()`, `exitDemoMode()`, `isDemoMode()` — demo group loaded from `/.netlify/functions/demo-data` with no auth |
 

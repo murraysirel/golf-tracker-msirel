@@ -6,6 +6,10 @@ import { TC } from './constants.js';
 import { pushData, pushSupabase } from './api.js';
 import { initials, refreshAvatarUI, avatarHtml } from './players.js';
 
+// Empty state — guarded import so app works if file is added incrementally
+let _emptyState = null;
+try { const m = await import('./empty-states.js'); _emptyState = m.emptyState; } catch { /* not yet available */ }
+
 // Chart instances container
 const CH = {};
 
@@ -576,7 +580,9 @@ function renderMatesFeed() {
   matesEl.innerHTML = '';
 
   if (!capped.length) {
-    matesEl.innerHTML = '<div style="background:var(--mid);border-radius:12px;padding:14px;font-size:10px;color:var(--dimmer);text-align:center">No group activity yet — rounds will appear here</div>';
+    matesEl.innerHTML = typeof _emptyState === 'function'
+      ? _emptyState('👥', 'Quiet out there', 'When your group posts rounds, birdies and milestones appear here.', 'See the leaderboard', "import('./nav.js').then(m=>m.goTo('leaderboard'))")
+      : '<div style="background:var(--mid);border-radius:12px;padding:14px;font-size:10px;color:var(--dimmer);text-align:center">No group activity yet — rounds will appear here</div>';
     return;
   }
 
@@ -656,10 +662,9 @@ export function renderHomeStats() {
   const recent = document.getElementById('home-recent');
   if (!recent) return;
   if (!rs.length) {
-    // Graceful empty state — check for empty-states module or use inline fallback
-    let emptyHtml = '<div style="font-size:12px;color:var(--dimmer);padding:12px 0;text-align:center">No rounds yet — add your first!</div>';
-    if (typeof window._emptyStateRounds === 'function') emptyHtml = window._emptyStateRounds();
-    recent.innerHTML = emptyHtml;
+    recent.innerHTML = typeof _emptyState === 'function'
+      ? _emptyState('⛳', 'No rounds yet', 'Play your first round and your stats will build up here automatically.', 'Record a round', "import('./nav.js').then(m=>m.goTo('round'))")
+      : '<div style="font-size:12px;color:var(--dimmer);padding:12px 0;text-align:center">No rounds yet — add your first!</div>';
     return;
   }
   recent.innerHTML = '';
@@ -1123,7 +1128,12 @@ export function renderStats() {
   }
 
   const hist = document.getElementById('st-hist');
-  if (!allSorted.length) { hist.innerHTML = '<div class="empty">No rounds yet</div>'; return; }
+  if (!allSorted.length) {
+    hist.innerHTML = typeof _emptyState === 'function'
+      ? _emptyState('⛳', 'No rounds yet', 'Play your first round and your stats will build up here automatically.', 'Record a round', "import('./nav.js').then(m=>m.goTo('round'))")
+      : '<div class="empty">No rounds yet</div>';
+    return;
+  }
   hist.innerHTML = '';
   const histRounds = [...allSorted].reverse();
   const displayRounds = roundHistExpanded ? histRounds : histRounds.slice(0, 5);

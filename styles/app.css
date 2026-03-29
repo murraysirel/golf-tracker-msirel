@@ -1257,6 +1257,13 @@ details[open] summary::after{content:' ▾'}
 /* [data-design="v2"] .home-kpi-card { ... } */
 /* [data-design="v2"] .hdr { ... } */
 
+/* ── Empty states ────────────────────────────────────────────── */
+.empty-state{text-align:center;padding:32px 24px}
+.empty-icon{font-size:32px;margin-bottom:12px}
+.empty-headline{font-size:15px;font-weight:700;color:var(--cream);margin-bottom:6px}
+.empty-sub{font-size:12px;color:var(--dim);line-height:1.5;margin-bottom:18px;max-width:220px;margin-left:auto;margin-right:auto}
+.empty-state .btn{width:auto;padding:10px 24px;border-radius:40px;font-size:13px}
+
 /* ── Typography & delta utilities ────────────────────────────── */
 .text-upper{font-size:var(--text-xs);font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--dim)}
 .text-section{font-size:var(--text-xs);font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--dim)}
