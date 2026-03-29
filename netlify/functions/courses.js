@@ -156,16 +156,16 @@ function validateHoleData(tees) {
 function parseCourseDetail(clubData, rawCourseData, coordData) {
   const courseData = rawCourseData?.course || rawCourseData?.data || rawCourseData;
 
-  // Parse course-level pars and stroke indexes (comma-separated strings)
-  const parseMenStr    = courseData.parsMen    || '';
-  const parseWomenStr  = courseData.parsWomen  || '';
-  const idxMenStr      = courseData.indexesMen   || '';
-  const idxWomenStr    = courseData.indexesWomen  || '';
-
-  const parsMen   = parseMenStr.split(',').map(v => parseInt(v) || 0).filter(v => v > 0);
-  const parsWomen = parseWomenStr.split(',').map(v => parseInt(v) || 0).filter(v => v > 0);
-  const idxMen    = idxMenStr.split(',').map(v => parseInt(v) || 0);
-  const idxWomen  = idxWomenStr.split(',').map(v => parseInt(v) || 0);
+  // Parse course-level pars and stroke indexes (may be comma-separated strings or arrays)
+  function toIntArray(val) {
+    if (Array.isArray(val)) return val.map(v => parseInt(v) || 0);
+    if (typeof val === 'string') return val.split(',').map(v => parseInt(v) || 0);
+    return [];
+  }
+  const parsMen   = toIntArray(courseData.parsMen).filter(v => v > 0);
+  const parsWomen = toIntArray(courseData.parsWomen).filter(v => v > 0);
+  const idxMen    = toIntArray(courseData.indexesMen);
+  const idxWomen  = toIntArray(courseData.indexesWomen);
 
   // Use men's pars if available, else women's
   const pars = parsMen.length === 18 ? parsMen : (parsWomen.length === 18 ? parsWomen : Array(18).fill(4));
