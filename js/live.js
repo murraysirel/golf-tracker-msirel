@@ -964,7 +964,6 @@ async function liveGroupSave() {
   if (!course) { alert('No course selected.'); return; }
   const tees = Array.isArray(course.tees) ? course.tees : [];
   const teeData = tees.find(t => t.colour === state.stee) || tees[0] || {};
-  if (!teeData.colour) { alert('Tee data not found.'); return; }
 
   const _rawDate = document.getElementById('r-date')?.value || '';
   const date = _rawDate
