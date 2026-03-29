@@ -368,9 +368,11 @@ exports.handler = async (event) => {
     }
 
     // 2. Supabase empty — fall back to GolfAPI.io (costs 0.1 credits per call)
+    console.log('[courses] GolfAPI key set:', !!GOLFAPI_KEY, '| first chars:', (GOLFAPI_KEY || '').slice(0, 10));
     if (GOLFAPI_KEY) {
       try {
         const apiRes = await golfApiSearchClubs(name, country);
+        console.log('[courses] GolfAPI response keys:', Object.keys(apiRes || {}), '| clubs type:', typeof (apiRes?.clubs), '| raw:', JSON.stringify(apiRes).slice(0, 500));
         const clubs  = apiRes?.clubs || apiRes?.data || [];
         const requestsLeft = apiRes?.apiRequestsLeft ?? null;
         if (Array.isArray(clubs) && clubs.length > 0) {
@@ -522,6 +524,21 @@ exports.handler = async (event) => {
     logCall('fetch', parsed.name, false, { courseId, source: 'api', tees: parsed.tees.length, apiRequestsLeft: fetchRequestsLeft ?? null });
 
     return respond(200, { course: record, source: 'api' });
+  }
+
+  // ── ACTION: diagnose-search ─────────────────────────────────────────────────
+  if (action === 'diagnose-search') {
+    const testName = event.queryStringParameters?.name || 'croham';
+    const diag = { keySet: !!GOLFAPI_KEY, keyPrefix: (GOLFAPI_KEY || '').slice(0, 10) };
+    try {
+      const raw = await golfApiSearchClubs(testName, 'all');
+      diag.responseKeys = Object.keys(raw || {});
+      diag.clubsCount = (raw?.clubs || raw?.data || []).length;
+      diag.raw = JSON.stringify(raw).slice(0, 1000);
+    } catch (e) {
+      diag.error = e.message;
+    }
+    return respond(200, diag);
   }
 
   // ── ACTION: fix-bad-data ────────────────────────────────────────────────────
