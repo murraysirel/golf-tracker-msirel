@@ -370,11 +370,9 @@ exports.handler = async (event) => {
     }
 
     // 2. Supabase empty — fall back to GolfAPI.io (costs 0.1 credits per call)
-    console.log('[courses] GolfAPI key set:', !!GOLFAPI_KEY, '| first chars:', (GOLFAPI_KEY || '').slice(0, 10));
     if (GOLFAPI_KEY) {
       try {
         const apiRes = await golfApiSearchClubs(name, country);
-        console.log('[courses] GolfAPI response keys:', Object.keys(apiRes || {}), '| clubs type:', typeof (apiRes?.clubs), '| raw:', JSON.stringify(apiRes).slice(0, 500));
         const clubs  = apiRes?.clubs || apiRes?.data || [];
         const requestsLeft = apiRes?.apiRequestsLeft ?? null;
         if (Array.isArray(clubs) && clubs.length > 0) {
@@ -394,6 +392,7 @@ exports.handler = async (event) => {
                 name:      clubName && course.courseName && course.courseName !== clubName
                              ? `${clubName} — ${course.courseName}`
                              : course.courseName || course.course_name || clubName,
+                club_name: clubName || '',
                 location:  [club.city, club.state?.trim(), club.country].filter(Boolean).join(', '),
                 country:   club.country || country,
                 has_hole_data: false,
@@ -502,25 +501,17 @@ exports.handler = async (event) => {
     // 5. Validation passed — mark as having good data and save
     parsed.has_hole_data = true;
 
-    // Only send fields known to exist in the courses table schema.
-    // The full parsed object is still returned to the frontend below.
-    const dbSafe = {
-      external_course_id: parsed.external_course_id,
-      external_club_id:   parsed.external_club_id,
-      name:               parsed.name,
-      location:           parsed.location,
-      country:            parsed.country,
-      tees:               parsed.tees,
-      has_hole_data:      parsed.has_hole_data,
-    };
-    console.log('[courses] Upserting course:', dbSafe.name, '| fields:', Object.keys(dbSafe).join(', '));
+    // Strip only the 2 fields that don't exist in the courses table.
+    // All other parsed fields (club_name, city, holes, tees, pars, stroke_indexes,
+    // green_coords, has_gps, data_source, data_quality, report_count, has_hole_data)
+    // DO exist in the schema — verified via information_schema audit 2026-03-29.
+    const { overall_par, tee_types, ...dbSafe } = parsed;
     const saved = await sbUpsert('courses', dbSafe);
-    console.log('[courses] Upsert response type:', typeof saved, '| isArray:', Array.isArray(saved), '| value:', JSON.stringify(saved).slice(0, 300));
     if (!Array.isArray(saved)) {
       console.error('[courses] Supabase upsert failed:', JSON.stringify(saved));
     }
     const record = Array.isArray(saved)
-      ? { ...saved[0], ...parsed }
+      ? { ...saved[0], overall_par, tee_types }
       : { ...parsed };
 
     logCall('fetch', parsed.name, false, { courseId, source: 'api', tees: parsed.tees.length, apiRequestsLeft: fetchRequestsLeft ?? null });
