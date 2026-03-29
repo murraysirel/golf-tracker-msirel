@@ -523,19 +523,28 @@ function renderMatesFeed() {
     return;
   }
 
-  const now = Date.now();
-  const sevenDays = 7 * 24 * 60 * 60 * 1000;
-  const currentYear = String(new Date().getFullYear());
+  const today = new Date();
+  const currentYear = String(today.getFullYear());
   const events = [];
+
+  // parseDateGB returns YYYYMMDD as integer — build a comparable cutoff
+  const cutoffDate = new Date(today);
+  cutoffDate.setDate(cutoffDate.getDate() - 7);
+  const cutoffInt = cutoffDate.getFullYear() * 10000 + (cutoffDate.getMonth() + 1) * 100 + cutoffDate.getDate();
+  const todayInt = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
 
   for (const [name, p] of allPlayers) {
     const seasonRounds = (p.rounds || []).filter(r => r.date?.split('/')?.[2] === currentYear);
     for (const r of seasonRounds) {
       const rd = parseDateGB(r.date);
-      if (!rd || isNaN(rd)) continue;
-      if (now - rd.getTime() > sevenDays) continue;
+      if (!rd) continue;
+      if (rd < cutoffInt) continue;
 
-      const ago = Math.floor((now - rd.getTime()) / 86400000);
+      const diffDays = Math.round((todayInt - rd) / 1.1); // approximate days (YYYYMMDD diff isn't exact but close enough for display)
+      // More precise: parse to real Date for day diff
+      const dp = r.date?.split('/');
+      const realDate = dp?.length === 3 ? new Date(+dp[2], +dp[1] - 1, +dp[0]) : null;
+      const ago = realDate ? Math.floor((today - realDate) / 86400000) : 0;
       const when = ago === 0 ? 'today' : ago === 1 ? 'yesterday' : ago + 'd ago';
       const course = r.course?.split(' — ')?.[0] || r.course || '';
 
