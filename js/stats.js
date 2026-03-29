@@ -517,8 +517,11 @@ function renderMatesFeed() {
   const matesEl = document.getElementById('home-mates-list');
   if (!section || !matesEl) return;
   const allPlayers = Object.entries(state.gd.players || {});
-  if (allPlayers.length <= 1) { section.style.display = 'none'; return; }
   section.style.display = '';
+  if (allPlayers.length <= 1) {
+    matesEl.innerHTML = '<div style="background:var(--mid);border-radius:12px;padding:14px;font-size:10px;color:var(--dimmer);text-align:center">No group activity yet — rounds will appear here</div>';
+    return;
+  }
 
   const now = Date.now();
   const sevenDays = 7 * 24 * 60 * 60 * 1000;
