@@ -995,7 +995,7 @@ async function liveGroupSave() {
     const tp = state.cpars.reduce((a, b) => a + b, 0);
     const d = ts - tp;
     const rnd = {
-      id: Date.now() + Math.random(),
+      id: Date.now() + Math.floor(Math.random() * 1000),
       player: playerName,
       course: course.name,
       loc: course.loc || course.location || '',
@@ -1043,7 +1043,7 @@ async function liveGroupSave() {
       const tp = state.cpars.reduce((a, b) => a + b, 0);
       const d = ts - tp;
       const rnd = {
-        id: Date.now() + Math.random(),
+        id: Date.now() + Math.floor(Math.random() * 1000),
         player: playerName,
         course: course.name,
         loc: course.loc || course.location || '',

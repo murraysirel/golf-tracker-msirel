@@ -509,7 +509,9 @@ exports.handler = async (event) => {
       tees:               parsed.tees,
       has_hole_data:      parsed.has_hole_data,
     };
+    console.log('[courses] Upserting course:', dbSafe.name, '| fields:', Object.keys(dbSafe).join(', '));
     const saved = await sbUpsert('courses', dbSafe);
+    console.log('[courses] Upsert response type:', typeof saved, '| isArray:', Array.isArray(saved), '| value:', JSON.stringify(saved).slice(0, 300));
     if (!Array.isArray(saved)) {
       console.error('[courses] Supabase upsert failed:', JSON.stringify(saved));
     }
