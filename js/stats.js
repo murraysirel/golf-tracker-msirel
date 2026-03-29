@@ -621,7 +621,13 @@ function renderMatesFeed() {
 
 export function renderHomeStats() {
   const p = state.gd.players[state.me];
-  if (!p) return;
+  if (!p) {
+    console.warn('[renderHomeStats] No player data for', state.me, '— players:', Object.keys(state.gd.players || {}));
+    // Still show empty states so the page isn't blank
+    const recent = document.getElementById('home-recent');
+    if (recent) recent.innerHTML = '<div style="font-size:12px;color:var(--dimmer);padding:12px 0;text-align:center">Loading your rounds...</div>';
+    return;
+  }
   const rs = p.rounds || [];
 
   // ── Slim header greeting + meta ──────────────────────────────
