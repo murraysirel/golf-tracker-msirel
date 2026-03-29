@@ -356,7 +356,7 @@ exports.handler = async (event) => {
     }
 
     // 2. Supabase empty — fall back to GolfAPI.io (costs 0.1 credits per call)
-    let _debug = { golfapi_key_set: !!GOLFAPI_KEY, api_attempted: false, api_error: null, api_response_keys: null, clubs_count: 0 };
+    let _debug = { golfapi_key_set: !!GOLFAPI_KEY, api_attempted: false, api_error: null, api_response_keys: null, clubs_count: 0, first_club: null, mapped_count: 0 };
     if (GOLFAPI_KEY) {
       try {
         _debug.api_attempted = true;
@@ -366,6 +366,7 @@ exports.handler = async (event) => {
         _debug.clubs_count = clubs.length;
         const requestsLeft = apiRes?.apiRequestsLeft ?? null;
         if (Array.isArray(clubs) && clubs.length > 0) {
+          _debug.first_club = JSON.parse(JSON.stringify(clubs[0]));
           const mapped = [];
           for (const club of clubs) {
             const coursesInClub = Array.isArray(club.courses) && club.courses.length > 0
@@ -383,6 +384,7 @@ exports.handler = async (event) => {
               });
             }
           }
+          _debug.mapped_count = mapped.length;
           if (mapped.length > 0) {
             // Cache results back to Supabase so next search hits DB (fire-and-forget)
             Promise.all(mapped.map(c => sbUpsert('courses', c))).catch(() => {});
