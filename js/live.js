@@ -766,30 +766,42 @@ export function liveUpdateRunning() {
   }
 
   if (isGroup) {
-    // Show all players' running totals (compact)
-    const parts = state.liveState.group.map(name => {
-      let tot = 0, par = 0, n = 0;
-      for (let h = 0; h < 18; h++) {
-        par += state.cpars[h];
-        const sc = state.liveState.groupScores[name]?.[h];
-        if (sc != null) { tot += sc; n++; }
-      }
-      if (!n) return `${name}: —`;
-      const d = tot - par;
-      return `${name.split(' ')[0]}: ${tot} (${d >= 0 ? '+' : ''}${d})`;
-    });
-    if (el) { el.textContent = parts[0] || '—'; el.style.color = 'var(--gold)'; }
-    if (vp) vp.textContent = parts.slice(1).join(' · ') || '';
-  } else {
-    let tot = 0, par = 0, n = 0;
+    // Show scoring-for player's gross vs par, with net below
+    const primary = state.scoringFor || state.liveState.group[0];
+    let tot = 0, par = 0, strokes = 0, n = 0;
     for (let h = 0; h < 18; h++) {
       par += state.cpars[h];
-      if (state.liveState.scores[h] != null) { tot += state.liveState.scores[h]; n++; }
+      const sc = state.liveState.groupScores[primary]?.[h];
+      if (sc != null) { tot += sc; strokes += getHcpStrokesOnHole(primary, h); n++; }
     }
-    if (!n) { if (el) { el.textContent = '—'; el.style.color = 'var(--gold)'; } if (vp) vp.textContent = 'vs par'; return; }
+    if (!n) {
+      if (el) { el.textContent = '—'; el.style.color = 'var(--gold)'; }
+      if (vp) vp.textContent = '';
+      return;
+    }
     const d = tot - par;
-    if (el) { el.textContent = tot; el.style.color = d < 0 ? 'var(--birdie)' : d > 0 ? 'var(--bogey)' : 'var(--gold)'; }
-    if (vp) vp.textContent = d === 0 ? 'Level' : (d > 0 ? '+' + d : d) + ' vs par';
+    const nd = d - strokes;
+    const fmtD = d === 0 ? 'E' : (d > 0 ? '+' + d : '' + d);
+    const fmtN = nd === 0 ? 'E' : (nd > 0 ? '+' + nd : '' + nd);
+    if (el) { el.textContent = fmtD; el.style.color = d < 0 ? 'var(--birdie)' : d > 0 ? 'var(--bogey)' : 'var(--gold)'; }
+    if (vp) vp.textContent = fmtN + ' net';
+  } else {
+    let tot = 0, par = 0, strokes = 0, n = 0;
+    for (let h = 0; h < 18; h++) {
+      par += state.cpars[h];
+      if (state.liveState.scores[h] != null) {
+        tot += state.liveState.scores[h];
+        strokes += getHcpStrokesOnHole(state.me, h);
+        n++;
+      }
+    }
+    if (!n) { if (el) { el.textContent = '—'; el.style.color = 'var(--gold)'; } if (vp) vp.textContent = ''; return; }
+    const d = tot - par;
+    const nd = d - strokes;
+    const fmtD = d === 0 ? 'E' : (d > 0 ? '+' + d : '' + d);
+    const fmtN = nd === 0 ? 'E' : (nd > 0 ? '+' + nd : '' + nd);
+    if (el) { el.textContent = fmtD; el.style.color = d < 0 ? 'var(--birdie)' : d > 0 ? 'var(--bogey)' : 'var(--gold)'; }
+    if (vp) vp.textContent = fmtN + ' net';
   }
 }
 

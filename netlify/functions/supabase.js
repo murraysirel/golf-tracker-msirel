@@ -547,7 +547,7 @@ exports.handler = async (event) => {
       if (!authUserId) return { statusCode: 400, headers, body: JSON.stringify({ error: 'authUserId required' }) };
       const { data: player } = await supabase
         .from('players')
-        .select('name, practice_sessions, stats_analysis, stats_analysis_date')
+        .select('name, dob, practice_sessions, stats_analysis, stats_analysis_date')
         .eq('auth_user_id', authUserId)
         .maybeSingle();
       if (!player) return { statusCode: 404, headers, body: JSON.stringify({ error: 'Player not found' }) };
@@ -561,6 +561,7 @@ exports.handler = async (event) => {
         body: JSON.stringify({
           name:               player.name,
           groupCodes,
+          dob:                player.dob || null,
           practiceSessions:   player.practice_sessions  || [],
           statsAnalysis:      player.stats_analysis     || null,
           statsAnalysisDate:  player.stats_analysis_date || null,
