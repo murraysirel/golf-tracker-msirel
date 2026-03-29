@@ -233,21 +233,28 @@ export function renderLeaderboard() {
     if (gcEl) gcEl.textContent = state.gd.activeGroupCode;
   }
 
-  function filterRounds(rounds) {
-    if (!seasonSel || seasonSel.value === 'all') return rounds;
+  function filterRounds(rounds, playerName) {
+    let filtered = rounds;
+    // Exclude rounds before the player joined this group
+    const joinedAt = state.gd.players?.[playerName]?.joinedAt;
+    if (joinedAt) {
+      const joinDate = new Date(joinedAt);
+      filtered = filtered.filter(r => parseDateGB(r.date) >= joinDate);
+    }
+    if (!seasonSel || seasonSel.value === 'all') return filtered;
     const val = seasonSel.value;
     if (val.startsWith('season:')) {
       const sname = val.slice(7);
       const season = (state.gd.seasons || []).find(s => s.name === sname);
-      if (!season) return rounds;
-      return rounds.filter(r => parseDateGB(r.date).toString().startsWith(season.year));
+      if (!season) return filtered;
+      return filtered.filter(r => parseDateGB(r.date).toString().startsWith(season.year));
     }
-    return rounds.filter(r => parseDateGB(r.date).toString().startsWith(val));
+    return filtered.filter(r => parseDateGB(r.date).toString().startsWith(val));
   }
 
   const players = Object.entries(state.gd.players).map(([name, p]) => {
     const allRs = p.rounds || [];
-    const rs = filterRounds(allRs);
+    const rs = filterRounds(allRs, name);
     if (!rs.length) return null;
     const handicap = p.handicap || 0;
     const sc = rs.map(r => r.totalScore).filter(Boolean);
@@ -415,7 +422,7 @@ export function renderLeaderboard() {
 
   // 7. Best single-round Stableford
   const bestStabPlayers = Object.entries(state.gd.players).map(([name, p]) => {
-    const rs = filterRounds(p.rounds || []).filter(r => r.scores && r.pars);
+    const rs = filterRounds(p.rounds || [], name).filter(r => r.scores && r.pars);
     if (!rs.length) return null;
     const handicap = p.handicap || 0;
     let best = null, bestR = null;
@@ -458,7 +465,7 @@ export function renderLeaderboard() {
 
   // 8. Most birdies in a single round
   const bestBirdiePlayers = Object.entries(state.gd.players).map(([name, p]) => {
-    const rs = filterRounds(p.rounds || []);
+    const rs = filterRounds(p.rounds || [], name);
     if (!rs.length) return null;
     let best = 0, bestR = null;
     rs.forEach(r => { if ((r.birdies || 0) > best) { best = r.birdies; bestR = r; } });
@@ -492,7 +499,7 @@ export function renderLeaderboard() {
 
   // 9. Best gross round
   const bestRoundPlayers = Object.entries(state.gd.players).map(([name, p]) => {
-    const rs = filterRounds(p.rounds || []).filter(r => r.totalScore);
+    const rs = filterRounds(p.rounds || [], name).filter(r => r.totalScore);
     if (!rs.length) return null;
     const bestR = rs.reduce((a, b) => b.totalScore < a.totalScore ? b : a);
     return { name, score: bestR.totalScore, diff: bestR.diff, round: bestR };
@@ -556,8 +563,8 @@ function renderH2H(filterRounds) {
   for (let i = 0; i < playerNames.length; i++) {
     for (let j = i + 1; j < playerNames.length; j++) {
       const pA = playerNames[i], pB = playerNames[j];
-      const rsA = filterRounds(state.gd.players[pA]?.rounds || []);
-      const rsB = filterRounds(state.gd.players[pB]?.rounds || []);
+      const rsA = filterRounds(state.gd.players[pA]?.rounds || [], pA);
+      const rsB = filterRounds(state.gd.players[pB]?.rounds || [], pB);
 
       // Find shared rounds (same date + course)
       let wA = 0, wB = 0, h = 0;

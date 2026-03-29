@@ -120,7 +120,7 @@ export async function loadGroupData(groupCode) {
       body: JSON.stringify({ action: 'read', groupCode })
     });
     if (!res.ok) throw new Error('Supabase read ' + res.status);
-    const { players, rounds, settings } = await res.json();
+    const { players, rounds, settings, memberJoinDates } = await res.json();
 
     const unsynced = localStorage.getItem('rr_unsynced_rounds');
     const s0 = settings || {};
@@ -144,11 +144,13 @@ export async function loadGroupData(groupCode) {
     // practiceSessions, statsAnalysis) that was loaded in loadAppData()
     const prevPlayers = state.gd.players || {};
     state.gd.players = {};
+    const joinDates = memberJoinDates || {};
     (players || []).forEach(p => {
       const prev = prevPlayers[p.name] || {};
       state.gd.players[p.name] = {
         handicap: p.handicap || 0,
         rounds: [],
+        ...(joinDates[p.name] ? { joinedAt: joinDates[p.name] } : {}),
         ...(p.email  ? { email:  p.email  } : {}),
         ...(p.dob    ? { dob:    p.dob    } : {}),
         ...(p.avatar_url ? { avatarImg: p.avatar_url } : (prev.avatarImg ? { avatarImg: prev.avatarImg } : {})),

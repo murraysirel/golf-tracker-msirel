@@ -74,7 +74,7 @@ export function selectPracticeArea(area) {
   generatePracticePlan(area);
 }
 
-export async function generatePracticePlan(area) {
+export async function generatePracticePlan(area, customRequest) {
   const msg = document.getElementById('practice-gen-msg');
   const planCard = document.getElementById('c-practice-plan');
   msg.innerHTML = '<div class="alert"><span class="spin"></span> Building your session plan...</div>';
@@ -100,9 +100,10 @@ export async function generatePracticePlan(area) {
     : '';
 
   const areaLabel = AREA_LABELS[area] || area;
+  const focusText = customRequest || areaLabel;
   const prompt = `You are an expert golf coach. Build a focused practice session for ${state.me} (handicap: ${p?.handicap || '?'}, avg vs par: ${avgDiff ? (avgDiff >= 0 ? '+' : '') + avgDiff : '?'}, GIR: ${avgGIR != null ? avgGIR + '%' : '?'}, putts/round: ${avgPutts || '?'}).
 ${reviewContext}
-Focus: ${areaLabel}. Total shots: 50. Be specific and concise — no filler sentences.
+Focus: ${focusText}. Total shots: 50. Be specific and concise — no filler sentences.
 
 Respond ONLY with valid JSON:
 {

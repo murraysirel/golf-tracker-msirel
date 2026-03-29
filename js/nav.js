@@ -76,9 +76,9 @@ export function switchEntry(t) {
   if (panel) panel.style.display = t ? 'block' : 'none';
   document.getElementById('entry-manual').style.display = t === 'manual' ? 'block' : 'none';
   document.getElementById('entry-photo').style.display = t === 'photo' ? 'block' : 'none';
-  document.getElementById('entry-course').style.display = t === 'course' ? 'block' : 'none';
+  const ec = document.getElementById('entry-course'); if (ec) ec.style.display = t === 'course' ? 'block' : 'none';
   // Update active state on entry cards
-  ['manual','photo','course'].forEach(type => {
+  ['manual','photo'].forEach(type => {
     document.getElementById('entry-btn-' + type)?.classList.toggle('active', type === t);
   });
 }

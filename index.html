@@ -168,15 +168,15 @@
     <div style="font-size:12px;color:var(--dim);margin-bottom:20px;line-height:1.5">Customise Looper to suit how you play.</div>
 
     <div style="font-size:12px;font-weight:600;color:var(--cream);margin-bottom:8px">Appearance</div>
-    <div class="tab-bar" style="margin-bottom:20px">
-      <button class="tab" id="pref-theme-dark">Dark</button>
-      <button class="tab" id="pref-theme-light">Light</button>
+    <div class="theme-toggle-wrap" style="margin-bottom:20px">
+      <button class="theme-tab active" id="pref-theme-dark">Dark</button>
+      <button class="theme-tab" id="pref-theme-light">Light</button>
     </div>
 
     <div style="font-size:12px;font-weight:600;color:var(--cream);margin-bottom:8px">Distance unit</div>
-    <div class="tab-bar" style="margin-bottom:24px">
-      <button class="tab active" id="pref-unit-yards">Yards</button>
-      <button class="tab" id="pref-unit-metres">Metres</button>
+    <div class="theme-toggle-wrap" style="margin-bottom:24px">
+      <button class="theme-tab active" id="pref-unit-yards">Yards</button>
+      <button class="theme-tab" id="pref-unit-metres">Metres</button>
     </div>
 
     <button class="btn" id="onb-prefs-submit-btn" style="border-radius:40px;width:100%">Continue →</button>
@@ -461,7 +461,7 @@
       <div id="home-mates-section" style="padding:12px 16px 0">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <div style="font-size:11px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:0.07em">In the Leagues</div>
-          <div style="font-size:10px;color:var(--dimmer)">Season · avg vs par</div>
+          <div style="font-size:10px;color:var(--dimmer)">Recent highlights</div>
         </div>
         <div id="home-mates-list"></div>
       </div>
@@ -532,7 +532,7 @@
 
           <!-- Log a completed round -->
           <div style="font-size:10px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--dim);margin-bottom:12px">Log a completed round</div>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
             <button class="round-entry-card" id="entry-btn-manual">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               <span>Type it in</span>
@@ -540,10 +540,6 @@
             <button class="round-entry-card" id="entry-btn-photo">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
               <span>Scan<br>scorecard</span>
-            </button>
-            <button class="round-entry-card" id="entry-btn-course">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
-              <span>Add a<br>course</span>
             </button>
           </div>
         </div>
@@ -599,65 +595,6 @@
             </div>
           </div>
 
-          <div id="entry-course" style="display:none">
-            <div class="card">
-              <div class="ct">Search Course Database</div>
-              <div style="font-size:12px;color:var(--dim);margin-bottom:12px;line-height:1.6">
-                Search thousands of courses worldwide. Hole pars, yardages, ratings and slopes imported automatically.
-              </div>
-              <div style="display:flex;gap:8px;margin-bottom:10px">
-                <input type="text" id="api-course-search" placeholder="e.g. Croham Hurst" style="flex:1">
-                <button class="btn" id="api-search-btn" style="width:auto;padding:0 18px;white-space:nowrap">Search</button>
-              </div>
-              <div id="api-search-msg" style="font-size:11px;color:var(--dim);margin-bottom:6px"></div>
-              <div id="api-search-results"></div>
-            </div>
-            <div class="card">
-              <div class="ct">📸 Scan Course Scorecard</div>
-              <div style="font-size:12px;color:var(--dim);margin-bottom:12px;line-height:1.6">
-                Photograph the printed scorecard from any course. AI reads the course name, all 18 hole pars, distances and stroke indexes — then saves it permanently to your group's course list.
-              </div>
-              <div class="pdrop" id="course-card-drop">
-                <div style="margin-bottom:10px;color:var(--dim)"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg></div>
-                <div style="font-size:13px;color:var(--dim)">Tap to photograph the course card</div>
-                <div style="font-size:11px;color:var(--dimmer);margin-top:4px">Works with any printed scorecard</div>
-              </div>
-              <input type="file" id="course-card-inp" accept="image/*" capture="environment" style="display:none">
-              <img id="course-card-prev" style="display:none;width:100%;border-radius:9px;margin-bottom:10px;border:1px solid var(--wa-08)">
-              <div id="course-scan-msg"></div>
-              <button class="btn" id="course-scan-btn" style="display:none"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>Read Course Card with AI</button>
-            </div>
-            <div id="course-review" style="display:none">
-              <div class="card">
-                <div class="ct">Review Scanned Course</div>
-                <div style="font-size:11px;color:var(--dim);margin-bottom:12px;line-height:1.5">Check and correct anything before saving. This course will be available to everyone in your group.</div>
-                <label>Course Name</label>
-                <input type="text" id="sc-name" placeholder="e.g. Croham Hurst Golf Club" class="mb8">
-                <label>Location</label>
-                <input type="text" id="sc-loc" placeholder="e.g. Croydon, Surrey" class="mb8">
-                <div style="display:flex;gap:8px;margin-bottom:10px">
-                  <div style="flex:1"><label>Total Par</label><input type="number" id="sc-par" min="60" max="80" placeholder="72"></div>
-                  <div style="flex:1"><label>Rating</label><input type="number" id="sc-rating" step="0.1" placeholder="70.2"></div>
-                  <div style="flex:1"><label>Slope</label><input type="number" id="sc-slope" placeholder="121"></div>
-                </div>
-                <div id="tee-ratings-detail" style="margin-bottom:12px"></div>
-                <label style="margin-bottom:6px">Hole Pars — tap any to correct</label>
-                <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:5px;margin-bottom:4px" id="par-edit-grid"></div>
-                <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:5px;margin-bottom:4px" id="par-edit-grid-in"></div>
-                <div style="font-size:10px;color:var(--gold);margin-bottom:12px;text-align:right" id="par-total-disp"></div>
-                <label style="margin-bottom:8px">Tees available at this course</label>
-                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
-                  <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#5dade2;margin-bottom:0"><input type="checkbox" id="tee-blue" checked style="width:auto;accent-color:#5dade2"> Blue</label>
-                  <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#f4d03f;margin-bottom:0"><input type="checkbox" id="tee-yellow" checked style="width:auto;accent-color:#f4d03f"> Yellow</label>
-                  <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#f0e8d0;margin-bottom:0"><input type="checkbox" id="tee-white" style="width:auto;accent-color:#f0e8d0"> White</label>
-                  <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#e74c3c;margin-bottom:0"><input type="checkbox" id="tee-red" style="width:auto;accent-color:#e74c3c"> Red</label>
-                </div>
-                <button class="btn mb8" id="save-course-btn">Save Course to Group List</button>
-                <button id="cancel-course-btn" class="btn btn-ghost">Cancel</button>
-                <div id="course-save-msg" style="margin-top:8px;font-size:11px;color:var(--dim)"></div>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- ── SECTION 2: COMPETITIONS ── -->
@@ -1070,6 +1007,18 @@
             <span class="parea-sub">Based on your data</span>
           </button>
         </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+          <div style="flex:1;border-top:1px solid var(--border)"></div>
+          <span style="font-size:10px;color:var(--dimmer);text-transform:uppercase;letter-spacing:1.5px">or</span>
+          <div style="flex:1;border-top:1px solid var(--border)"></div>
+        </div>
+        <div style="margin-top:12px">
+          <div style="font-size:11px;color:var(--dim);margin-bottom:8px">Describe what you want to work on</div>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="practice-custom-input" placeholder="e.g. learn to hit a draw with irons" style="flex:1;font-size:13px">
+            <button class="btn" id="practice-custom-btn" style="width:auto;padding:0 18px;white-space:nowrap">Go</button>
+          </div>
+        </div>
         <div id="practice-gen-msg"></div>
       </div>
 
@@ -1405,11 +1354,6 @@
         <input type="text" id="add-username" placeholder="Username (optional)" class="mb8">
         <button class="btn" id="add-player-btn">Add Player</button>
         <div id="add-msg" style="margin-top:7px;font-size:11px;color:var(--dim)"></div>
-      </div>
-      <div class="card" id="scanned-courses-card" style="display:none">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><div style="width:28px;height:28px;border-radius:8px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg></div><span style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase">Scanned Courses</span></div>
-        <div style="font-size:11px;color:var(--dim);margin-bottom:10px">Courses added by photo scan. Tap to edit or delete.</div>
-        <div id="scanned-courses-list"></div>
       </div>
       <div class="card">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><div style="width:28px;height:28px;border-radius:8px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/></svg></div><span style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase">Sync Status</span></div>

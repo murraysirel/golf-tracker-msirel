@@ -9,7 +9,7 @@ import { buildSC, recalc, saveRound, toggleSCExtras } from './scorecard.js';
 import { renderStats, setFilter, toggleHcpEdit, saveHandicap, renderHomeStats, openScorecardModal, openKpiPicker, closeKpiPicker } from './stats.js';
 import { renderLeaderboard, initLeaderboard } from './leaderboard.js';
 import { renderLogin, enterAs, signOut, addPlayer, renderAllPlayers, renderPlayersToday, showSignupStep, submitProfile, agreePrivacy, submitCompleteProfile, showGroupFork, goBackToFork, forkNotNow, forkJoinGroup, forkCreateGroup, refreshAvatarUI, uploadAvatar, setPrefTheme, setPrefUnit, submitPrefs } from './players.js';
-import { renderPracticePage, selectPracticeArea, startPracticeSession, regeneratePlan, logPracticeShots, completePracticeSession } from './practice.js';
+import { renderPracticePage, selectPracticeArea, generatePracticePlan, startPracticeSession, regeneratePlan, logPracticeShots, completePracticeSession } from './practice.js';
 import { initLiveRound, liveGoto, liveSaveNote, liveNextOrFinish, toggleGroupPlayer, startGroupRound, toggleMatchPlay, openCorrectionModal, submitCorrectionReport, cancelRound } from './live.js';
 import { generateAIReview, generateStatsAnalysis, clearStatsAnalysis, parsePhoto, handlePhoto } from './ai.js';
 import { stopGPS, gpsSetTarget, pinTeePosition, markDriveTap, logDrive } from './gps.js';
@@ -321,6 +321,16 @@ document.getElementById('ai-stats-clear-btn')?.addEventListener('click', clearSt
 // ── Practice ──────────────────────────────────────────────────────
 document.querySelectorAll('.parea-btn').forEach(btn => {
   btn.addEventListener('click', () => selectPracticeArea(btn.dataset.area));
+});
+document.getElementById('practice-custom-btn')?.addEventListener('click', () => {
+  const input = document.getElementById('practice-custom-input');
+  const text = input?.value?.trim();
+  if (!text) return;
+  document.querySelectorAll('.parea-btn').forEach(b => b.classList.remove('selected'));
+  generatePracticePlan('custom', text);
+});
+document.getElementById('practice-custom-input')?.addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('practice-custom-btn')?.click();
 });
 document.getElementById('practice-start-btn')?.addEventListener('click', startPracticeSession);
 document.getElementById('practice-regen-btn')?.addEventListener('click', regeneratePlan);

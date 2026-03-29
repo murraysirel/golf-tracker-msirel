@@ -498,7 +498,7 @@ export function closeKpiPicker(save) {
   }
 }
 
-// ── Mates board feed ─────────────────────────────────────────────
+// ── Mates activity feed — recent highlights ─────────────────────
 function renderMatesFeed() {
   const section = document.getElementById('home-mates-section');
   const matesEl = document.getElementById('home-mates-list');
@@ -506,32 +506,82 @@ function renderMatesFeed() {
   const allPlayers = Object.entries(state.gd.players || {});
   if (allPlayers.length <= 1) { section.style.display = 'none'; return; }
   section.style.display = '';
+
+  const now = Date.now();
+  const sevenDays = 7 * 24 * 60 * 60 * 1000;
   const currentYear = String(new Date().getFullYear());
-  const matesData = allPlayers.map(([name, p]) => {
-    const sRounds = (p.rounds || []).filter(r => r.date?.split('/')?.[2] === currentYear);
-    const diffs = sRounds.map(r => r.diff).filter(v => v != null && !isNaN(v));
-    const avgDiff = diffs.length ? diffs.reduce((a, b) => a + b, 0) / diffs.length : null;
-    return { name, rounds: sRounds.length, avgDiff };
-  }).filter(m => m.rounds > 0).sort((a, b) => (a.avgDiff ?? 99) - (b.avgDiff ?? 99));
-  if (!matesData.length) { section.style.display = 'none'; return; }
-  const posColors = ['var(--eagle)', 'var(--dim)', '#a07850', 'var(--dimmer)'];
+  const events = [];
+
+  for (const [name, p] of allPlayers) {
+    const seasonRounds = (p.rounds || []).filter(r => r.date?.split('/')?.[2] === currentYear);
+    for (const r of seasonRounds) {
+      const rd = parseDateGB(r.date);
+      if (!rd || isNaN(rd)) continue;
+      if (now - rd.getTime() > sevenDays) continue;
+
+      const ago = Math.floor((now - rd.getTime()) / 86400000);
+      const when = ago === 0 ? 'today' : ago === 1 ? 'yesterday' : ago + 'd ago';
+      const course = r.course?.split(' — ')?.[0] || r.course || '';
+
+      // Eagles
+      if (r.eagles > 0) {
+        events.push({ ts: rd, icon: '🦅', text: `${name} made ${r.eagles} eagle${r.eagles > 1 ? 's' : ''} at ${course}`, when, color: 'var(--eagle)' });
+      }
+      // Birdies (2+)
+      if (r.birdies >= 2) {
+        events.push({ ts: rd, icon: '🐦', text: `${name} made ${r.birdies} birdies at ${course}`, when, color: 'var(--birdie)' });
+      }
+      // Net eagles — count holes where (score - par - hcpStrokes) <= -2
+      if (r.scores && r.pars) {
+        const hcp = p.handicap || 0;
+        const slope = r.slope || 113;
+        const php = Math.round(hcp * slope / 113);
+        let netEagles = 0;
+        for (let h = 0; h < 18; h++) {
+          if (r.scores[h] == null || r.pars[h] == null) continue;
+          const strokes = Math.floor(php / 18) + ((h + 1) <= (php % 18) ? 1 : 0);
+          if (r.scores[h] - r.pars[h] - strokes <= -2) netEagles++;
+        }
+        if (netEagles > 0) {
+          events.push({ ts: rd, icon: '⭐', text: `${name} made ${netEagles} net eagle${netEagles > 1 ? 's' : ''} at ${course}`, when, color: 'var(--gold)' });
+        }
+      }
+      // Season-best net round
+      const netDiff = r.diff != null ? r.diff - Math.round((p.handicap || 0) * (r.slope || 113) / 113) : null;
+      if (netDiff != null) {
+        const otherNets = seasonRounds.filter(o => o !== r && o.diff != null).map(o =>
+          o.diff - Math.round((p.handicap || 0) * (o.slope || 113) / 113)
+        );
+        if (otherNets.length > 0 && netDiff < Math.min(...otherNets)) {
+          const fmtNet = netDiff === 0 ? 'level par net' : (netDiff > 0 ? '+' + netDiff : netDiff) + ' net';
+          events.push({ ts: rd, icon: '🏆', text: `${name} shot their best net round of the season (${fmtNet}) at ${course}`, when, color: 'var(--gold2)' });
+        }
+      }
+      // Stableford > 36
+      const stab = calcStableford(r.scores, r.pars, p.handicap || 0, r.slope, null);
+      if (stab != null && stab > 36) {
+        events.push({ ts: rd, icon: '🚨', text: `${name} scored ${stab} stableford points! Check their handicap is cut!`, when, color: 'var(--bogey)' });
+      }
+    }
+  }
+
+  events.sort((a, b) => b.ts - a.ts);
+  const capped = events.slice(0, 10);
   matesEl.innerHTML = '';
-  matesData.forEach((m, i) => {
-    const isMe = m.name === state.me;
-    const diff = m.avgDiff != null ? (m.avgDiff >= 0 ? '+' : '') + m.avgDiff.toFixed(1) : '—';
-    const diffColor = m.avgDiff != null && m.avgDiff < 0 ? 'var(--birdie)' : m.avgDiff === 0 ? 'var(--par)' : 'var(--bogey)';
+
+  if (!capped.length) {
+    matesEl.innerHTML = '<div style="font-size:12px;color:var(--dimmer);padding:12px 0;text-align:center">No highlights this week — get out and play!</div>';
+    return;
+  }
+
+  capped.forEach(ev => {
     const row = document.createElement('div');
-    row.style.cssText = `display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:10px;margin-bottom:6px;${isMe ? 'background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.15)' : 'background:var(--wa-03);border:1px solid var(--wa-06)'}`;
+    row.style.cssText = 'display:flex;align-items:flex-start;gap:10px;padding:8px 12px;border-radius:10px;margin-bottom:6px;background:var(--wa-03);border:1px solid var(--wa-06)';
     row.innerHTML = `
-      <div style="font-size:11px;font-weight:700;color:${posColors[i] || 'var(--dimmer)'};width:16px;text-align:center;flex-shrink:0">${i + 1}</div>
-      ${avatarHtml(m.name, 28, isMe)}
+      <div style="font-size:18px;flex-shrink:0;line-height:1">${ev.icon}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:${isMe ? '600' : '400'};color:${isMe ? 'var(--gold)' : 'var(--cream)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.name}</div>
-        <div style="font-size:10px;color:var(--dimmer)">${m.rounds} round${m.rounds !== 1 ? 's' : ''}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0">
-        <div style="font-size:15px;font-weight:700;color:${diffColor}">${diff}</div>
-        <div style="font-size:9px;color:var(--dimmer)">avg</div>
+        <div style="font-size:12px;color:var(--cream);line-height:1.5">${ev.text}</div>
+        <div style="font-size:10px;color:var(--dimmer);margin-top:2px">${ev.when}</div>
       </div>`;
     matesEl.appendChild(row);
   });

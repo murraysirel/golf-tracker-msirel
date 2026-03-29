@@ -64,10 +64,12 @@ exports.handler = async (event) => {
 
       // Get all member names for this group.
       const { data: memberRows, error: mErr } = await supabase
-        .from('group_members').select('player_id').eq('group_id', groupId);
+        .from('group_members').select('player_id, joined_at').eq('group_id', groupId);
       if (mErr) throw mErr;
 
       const memberNames = (memberRows || []).map(m => m.player_id);
+      const memberJoinDates = {};
+      (memberRows || []).forEach(m => { if (m.joined_at) memberJoinDates[m.player_id] = m.joined_at; });
 
       if (memberNames.length === 0) {
         const { data: matches } = await supabase
@@ -98,7 +100,8 @@ exports.handler = async (event) => {
           players: [...(playersRes.data || []), ...syntheticPlayers],
           rounds:  roundsRes.data  || [],
           matches: matchesRes.data || [],
-          settings
+          settings,
+          memberJoinDates
         })
       };
     }
