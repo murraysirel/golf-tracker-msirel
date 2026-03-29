@@ -245,7 +245,7 @@ export function saveHandicap() {
 
 // ── KPI Tile System ───────────────────────────────────────────────
 const KPI_TILE_LS = 'rr_kpi_tiles';
-const KPI_TILE_DEFAULT = ['avgPar', 'bestRound', 'birdies', 'girFir'];
+const KPI_TILE_DEFAULT = ['avgPar', 'bestRound'];
 const TILE_META = {
   avgPar:       'AVG VS PAR',
   bestRound:    'BEST ROUND',
@@ -260,7 +260,7 @@ const TILE_META = {
 function getKpiTiles() {
   try {
     const s = JSON.parse(localStorage.getItem(KPI_TILE_LS));
-    if (Array.isArray(s) && s.length === 4 && s.every(id => TILE_META[id])) return s;
+    if (Array.isArray(s) && s.length === 2 && s.every(id => TILE_META[id])) return s;
   } catch (_) {}
   return [...KPI_TILE_DEFAULT];
 }
