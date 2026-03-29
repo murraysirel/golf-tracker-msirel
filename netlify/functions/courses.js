@@ -453,9 +453,10 @@ exports.handler = async (event) => {
 
     // DEBUG: log raw GolfAPI response structure
     const _raw = courseData?.course || courseData?.data || courseData;
+    console.log('[courses] RAW top-level keys:', Object.keys(_raw || {}));
+    console.log('[courses] RAW par fields:', Object.keys(_raw || {}).filter(k => k.startsWith('par')));
+    console.log('[courses] RAW holes:', _raw?.holes?.length ?? 'no holes array');
     console.log('[courses] RAW tees[0] keys:', Object.keys(_raw?.tees?.[0] || {}));
-    console.log('[courses] RAW tees[0] holes[0]:', JSON.stringify(_raw?.tees?.[0]?.holes?.[0] || 'no holes'));
-    console.log('[courses] RAW tees[0] hole count:', _raw?.tees?.[0]?.holes?.length ?? 'n/a');
 
     // 3. Parse the response
     const unwrapped = courseData?.course || courseData?.data || courseData;
@@ -483,9 +484,9 @@ exports.handler = async (event) => {
       });
       return respond(422, {
         error: 'Course details incomplete — please try again.',
-        _raw_tee0_keys: Object.keys(unwrapped?.tees?.[0] || {}),
-        _raw_tee0_hole0: unwrapped?.tees?.[0]?.holes?.[0] || 'no holes',
-        _raw_tee0_hole_count: unwrapped?.tees?.[0]?.holes?.length ?? 'n/a',
+        _raw_top_keys: Object.keys(unwrapped || {}),
+        _raw_par_fields: Object.keys(unwrapped || {}).filter(k => k.startsWith('par') || k.startsWith('hcp') || k.startsWith('hole') || k.startsWith('si') || k.startsWith('stroke')),
+        _raw_holes: unwrapped?.holes?.length ?? 'no holes array',
         debug: validation.reason,
       });
     }
