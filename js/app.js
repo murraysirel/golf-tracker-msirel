@@ -229,14 +229,7 @@ document.getElementById('entry-btn-course')?.addEventListener('click', () => swi
 // Home screen CTA — Play with the Caddie
 document.getElementById('home-caddie-cta')?.addEventListener('click', () => goTo('live'));
 
-// Play with the Caddie CTA
-document.getElementById('caddie-play-btn')?.addEventListener('click', () => {
-  if (!getCourseByRef()) {
-    document.getElementById('caddie-inline-setup')?.style && (document.getElementById('caddie-inline-setup').style.display = 'block');
-  } else {
-    goTo('live');
-  }
-});
+// Let's Go — launch live round
 document.getElementById('caddie-letsgo-btn')?.addEventListener('click', () => goTo('live'));
 document.getElementById('save-round-btn')?.addEventListener('click', saveRound);
 document.getElementById('sc-extras-toggle')?.addEventListener('click', toggleSCExtras);

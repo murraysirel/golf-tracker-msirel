@@ -148,34 +148,46 @@ function validateHoleData(tees) {
   return { valid: true, reason: 'ok' };
 }
 
-// ── Parse full course detail from GolfAPI response ────────────────────────────
+// ── Parse full course detail from GolfAPI v2.3 response ───────────────────────
+// GolfAPI v2.3 structure:
+//   Course level: parsMen, parsWomen, indexesMen, indexesWomen (comma-separated strings)
+//   Tee level:    teeName, teeColor, length1–length18, courseRatingMen, slopeMen, etc.
+//   No holes[] sub-array — yardage is flat fields per tee.
 function parseCourseDetail(clubData, rawCourseData, coordData) {
-  // GolfAPI may wrap in { course: {...} } or { data: {...} } — unwrap defensively
   const courseData = rawCourseData?.course || rawCourseData?.data || rawCourseData;
 
-  console.log('[courses] parseCourseDetail top-level keys:', Object.keys(courseData || {}));
-  console.log('[courses] tees count:', (courseData?.tees || []).length,
-    '| first-tee holes:', courseData?.tees?.[0]?.holes?.length ?? 'n/a');
+  // Parse course-level pars and stroke indexes (comma-separated strings)
+  const parseMenStr    = courseData.parsMen    || '';
+  const parseWomenStr  = courseData.parsWomen  || '';
+  const idxMenStr      = courseData.indexesMen   || '';
+  const idxWomenStr    = courseData.indexesWomen  || '';
 
-  const tees = (courseData.tees || []).map(t => ({
-    colour:         mapTeeColour(t.teeName || t.name || ''),
-    name:           t.teeName || t.name || 'Unknown',
-    yardage:        t.totalLength || t.yardage || null,
-    rating:         parseFloat(t.courseRating || t.rating) || null,
-    slope:          parseInt(t.slopeRating   || t.slope)   || null,
-    yards_per_hole: (t.holes || []).map(h => h.length || h.yards || 0),
-    pars_per_hole:  (t.holes || []).map(h => parseInt(h.par)   || 4),
-    si_per_hole:    (() => { const arr = (t.holes || []).map(h => parseInt(h.strokeIndex || h.handicap) || 0); return arr.some(v => v > 0) ? arr : null; })(),
-  }));
+  const parsMen   = parseMenStr.split(',').map(v => parseInt(v) || 0).filter(v => v > 0);
+  const parsWomen = parseWomenStr.split(',').map(v => parseInt(v) || 0).filter(v => v > 0);
+  const idxMen    = idxMenStr.split(',').map(v => parseInt(v) || 0);
+  const idxWomen  = idxWomenStr.split(',').map(v => parseInt(v) || 0);
 
-  const firstTee = courseData.tees?.[0];
-  const pars = firstTee?.holes?.length === 18
-    ? firstTee.holes.map(h => parseInt(h.par) || 4)
-    : Array(18).fill(4);
+  // Use men's pars if available, else women's
+  const pars = parsMen.length === 18 ? parsMen : (parsWomen.length === 18 ? parsWomen : Array(18).fill(4));
+  const si   = idxMen.length === 18 && idxMen.some(v => v > 0) ? idxMen : (idxWomen.length === 18 && idxWomen.some(v => v > 0) ? idxWomen : []);
 
-  const si = firstTee?.holes?.[0]?.strokeIndex !== undefined
-    ? firstTee.holes.map(h => parseInt(h.strokeIndex || h.handicap) || 0)
-    : [];
+  // Parse tees — yardage is in flat fields length1–length18
+  const tees = (courseData.tees || []).map(t => {
+    const yards = [];
+    for (let i = 1; i <= 18; i++) yards.push(parseInt(t[`length${i}`]) || 0);
+    const totalYards = yards.reduce((a, b) => a + b, 0);
+
+    return {
+      colour:         mapTeeColour(t.teeName || t.teeColor || ''),
+      name:           t.teeName || t.teeColor || 'Unknown',
+      yardage:        totalYards || null,
+      rating:         parseFloat(t.courseRatingMen || t.courseRatingWomen || t.courseRating) || null,
+      slope:          parseInt(t.slopeMen || t.slopeWomen || t.slopeRating) || null,
+      yards_per_hole: yards,
+      pars_per_hole:  pars,
+      si_per_hole:    si.length === 18 && si.some(v => v > 0) ? si : null,
+    };
+  });
 
   const greenCoords = coordData?.coordinates
     ? parseCoordinates(coordData.coordinates)
@@ -375,7 +387,9 @@ exports.handler = async (event) => {
               mapped.push({
                 external_course_id: String(cid),
                 external_club_id:   String(clubId),
-                name:      course.courseName || course.course_name || clubName,
+                name:      clubName && course.courseName && course.courseName !== clubName
+                             ? `${clubName} — ${course.courseName}`
+                             : course.courseName || course.course_name || clubName,
                 location:  [club.city, club.state?.trim(), club.country].filter(Boolean).join(', '),
                 country:   club.country || country,
                 has_hole_data: false,
@@ -451,13 +465,6 @@ exports.handler = async (event) => {
       return respond(502, { error: 'Course details incomplete — please try again.' });
     }
 
-    // DEBUG: log raw GolfAPI response structure
-    const _raw = courseData?.course || courseData?.data || courseData;
-    console.log('[courses] RAW top-level keys:', Object.keys(_raw || {}));
-    console.log('[courses] RAW par fields:', Object.keys(_raw || {}).filter(k => k.startsWith('par')));
-    console.log('[courses] RAW holes:', _raw?.holes?.length ?? 'no holes array');
-    console.log('[courses] RAW tees[0] keys:', Object.keys(_raw?.tees?.[0] || {}));
-
     // 3. Parse the response
     const unwrapped = courseData?.course || courseData?.data || courseData;
     const clubData = {
@@ -484,9 +491,6 @@ exports.handler = async (event) => {
       });
       return respond(422, {
         error: 'Course details incomplete — please try again.',
-        _raw_top_keys: Object.keys(unwrapped || {}),
-        _raw_par_fields: Object.keys(unwrapped || {}).filter(k => k.startsWith('par') || k.startsWith('hcp') || k.startsWith('hole') || k.startsWith('si') || k.startsWith('stroke')),
-        _raw_holes: unwrapped?.holes?.length ?? 'no holes array',
         debug: validation.reason,
       });
     }
