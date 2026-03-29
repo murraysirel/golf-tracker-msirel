@@ -42,6 +42,20 @@ export async function lookupCompetition(code) {
   return querySupabase('lookupCompetition', { code });
 }
 
+// ── Course search helper (lightweight, no global state) ─────────
+let _searchTimer = null;
+async function searchCourses(query) {
+  if (!query || query.length < 2) return [];
+  try {
+    const res = await fetch(`/.netlify/functions/courses?action=search&name=${encodeURIComponent(query)}`);
+    const data = await res.json();
+    return data?.courses || [];
+  } catch { return []; }
+}
+
+// Tee colour dot map
+const TEE_DOTS = { blue:'#5dade2', yellow:'#f4d03f', white:'#f0e8d0', red:'#e74c3c', black:'#333' };
+
 // ── Setup modal ──────────────────────────────────────────────────
 export function renderCompetitionSetupModal() {
   const modal = document.getElementById('comp-setup-modal');
@@ -58,64 +72,146 @@ export function renderCompetitionSetupModal() {
     </div>
 
     <label style="font-size:12px;color:var(--dim);margin-bottom:6px;display:block">Competition Name</label>
-    <input type="text" id="comp-setup-name" placeholder="e.g. Spring Invitational 2026" style="margin-bottom:14px">
+    <input type="text" id="comp-setup-name" placeholder="e.g. Spring Invitational 2026" style="margin-bottom:16px">
 
-    <label style="font-size:12px;color:var(--dim);margin-bottom:6px;display:block">Format</label>
-    <div class="theme-toggle-wrap" id="comp-format-wrap" style="margin-bottom:14px">
-      <button class="theme-tab active" data-fmt="stableford">Stableford</button>
-      <button class="theme-tab" data-fmt="stroke_gross">Gross</button>
-      <button class="theme-tab" data-fmt="stroke_net">Net</button>
-      <button class="theme-tab" data-fmt="matchplay">Match Play</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <label style="font-size:12px;color:var(--dim);margin:0">Rounds</label>
+      <button id="comp-add-round-btn" class="btn btn-ghost" style="font-size:10px;padding:4px 12px;width:auto">+ Add round</button>
+    </div>
+    <div id="comp-rounds-list" style="margin-bottom:16px"></div>
+
+    <label style="font-size:12px;color:var(--dim);margin-bottom:6px;display:block">Scoring</label>
+    <div class="theme-toggle-wrap" id="comp-scoring-wrap" style="margin-bottom:12px">
+      <button class="theme-tab active" data-scoring="stableford">Stableford</button>
+      <button class="theme-tab" data-scoring="stroke">Stroke</button>
+      <button class="theme-tab" data-scoring="matchplay">Match Play</button>
     </div>
 
-    <label style="font-size:12px;color:var(--dim);margin-bottom:6px;display:block">Rounds</label>
-    <div id="comp-rounds-list" style="margin-bottom:10px"></div>
-    <button id="comp-add-round-btn" class="btn btn-ghost" style="font-size:11px;padding:6px 14px;margin-bottom:16px">+ Add round</button>
+    <label style="font-size:12px;color:var(--dim);margin-bottom:6px;display:block">Handicap</label>
+    <div class="theme-toggle-wrap" id="comp-hcp-wrap" style="margin-bottom:18px">
+      <button class="theme-tab active" data-hcp="net">Net</button>
+      <button class="theme-tab" data-hcp="gross">Gross</button>
+    </div>
 
     <button id="comp-create-btn" class="btn" style="width:100%;border-radius:40px">Create Competition</button>
     <div id="comp-setup-msg" style="margin-top:8px;font-size:11px;color:var(--dim);text-align:center"></div>
   `;
 
   // State
-  let selectedFormat = 'stableford';
+  let selectedScoring = 'stableford';
+  let selectedHcp = 'net';
   let rounds = [];
-  let roundCounter = 0;
 
-  // Format toggle
-  content.querySelectorAll('#comp-format-wrap .theme-tab').forEach(btn => {
-    btn.addEventListener('click', () => {
-      content.querySelectorAll('#comp-format-wrap .theme-tab').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      selectedFormat = btn.dataset.fmt;
+  // Toggle helpers
+  function wireToggle(wrapId, attr, setter) {
+    content.querySelectorAll(`#${wrapId} .theme-tab`).forEach(btn => {
+      btn.addEventListener('click', () => {
+        content.querySelectorAll(`#${wrapId} .theme-tab`).forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        setter(btn.dataset[attr]);
+      });
     });
-  });
+  }
+  wireToggle('comp-scoring-wrap', 'scoring', v => { selectedScoring = v; });
+  wireToggle('comp-hcp-wrap', 'hcp', v => { selectedHcp = v; });
 
   // Rounds list
   const roundsList = document.getElementById('comp-rounds-list');
+
   function renderRounds() {
     roundsList.innerHTML = '';
     if (!rounds.length) {
-      roundsList.innerHTML = '<div style="font-size:11px;color:var(--dimmer);padding:4px 0">No rounds added yet.</div>';
+      roundsList.innerHTML = '<div style="font-size:11px;color:var(--dimmer);padding:8px 0;text-align:center">No rounds added yet — tap "+ Add round"</div>';
       return;
     }
     rounds.forEach((r, i) => {
-      const row = document.createElement('div');
-      row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--mid);border-radius:8px;margin-bottom:6px';
-      row.innerHTML = `
-        <div style="font-size:12px;color:var(--gold);font-weight:600;width:20px;flex-shrink:0">R${i + 1}</div>
-        <input type="date" value="${r.date || ''}" style="flex:1;font-size:12px" data-idx="${i}" class="comp-round-date">
-        <input type="text" placeholder="Course" value="${r.course || ''}" style="flex:2;font-size:12px" data-idx="${i}" class="comp-round-course">
-        <button data-idx="${i}" class="comp-round-del" style="background:none;border:none;color:var(--dimmer);font-size:16px;cursor:pointer;padding:0 4px">&times;</button>
+      const teeHtml = (r.tees || []).map(t => {
+        const dot = TEE_DOTS[t.colour] || '#888';
+        const sel = r.tee === t.colour;
+        return `<button class="comp-tee-pill" data-idx="${i}" data-tee="${t.colour}" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:14px;font-size:10px;border:1px solid ${sel ? 'rgba(201,168,76,.5)' : 'var(--wa-12)'};background:${sel ? 'rgba(201,168,76,.08)' : 'transparent'};color:${sel ? 'var(--gold)' : 'var(--dim)'};cursor:pointer;font-family:'DM Sans',sans-serif"><span style="width:6px;height:6px;border-radius:50%;background:${dot}"></span>${t.colour}</button>`;
+      }).join('');
+
+      const card = document.createElement('div');
+      card.style.cssText = 'background:var(--mid);border-radius:10px;padding:12px;margin-bottom:8px';
+      card.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:12px;font-weight:600;color:var(--gold)">Round ${i + 1}</div>
+          <button data-idx="${i}" class="comp-round-del" style="background:none;border:none;color:var(--dimmer);font-size:16px;cursor:pointer;padding:0 4px">&times;</button>
+        </div>
+        <label style="font-size:10px;color:var(--dimmer);margin-bottom:4px;display:block">Date</label>
+        <input type="date" value="${r.date || ''}" style="width:100%;margin-bottom:10px;font-size:14px;padding:10px 12px" data-idx="${i}" class="comp-round-date">
+        <label style="font-size:10px;color:var(--dimmer);margin-bottom:4px;display:block">Course</label>
+        <div style="position:relative">
+          <input type="text" placeholder="Search courses..." value="${r.course || ''}" style="width:100%;font-size:13px;padding:10px 12px" data-idx="${i}" class="comp-round-course">
+          <div class="comp-course-results" data-idx="${i}" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:10;background:var(--card);border:1px solid var(--wa-12);border-radius:0 0 9px 9px;max-height:150px;overflow-y:auto"></div>
+        </div>
+        ${teeHtml ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${teeHtml}</div>` : ''}
       `;
-      roundsList.appendChild(row);
+      roundsList.appendChild(card);
     });
-    // Bind inputs
+
+    // Bind date inputs
     roundsList.querySelectorAll('.comp-round-date').forEach(inp => {
       inp.addEventListener('change', () => { rounds[parseInt(inp.dataset.idx)].date = inp.value; });
     });
+
+    // Bind course search inputs
     roundsList.querySelectorAll('.comp-round-course').forEach(inp => {
-      inp.addEventListener('input', () => { rounds[parseInt(inp.dataset.idx)].course = inp.value; });
+      inp.addEventListener('input', () => {
+        const idx = parseInt(inp.dataset.idx);
+        rounds[idx].course = inp.value;
+        clearTimeout(_searchTimer);
+        const resultsEl = roundsList.querySelector(`.comp-course-results[data-idx="${idx}"]`);
+        if (inp.value.length < 2) { if (resultsEl) resultsEl.style.display = 'none'; return; }
+        _searchTimer = setTimeout(async () => {
+          const results = await searchCourses(inp.value);
+          if (!resultsEl) return;
+          if (!results.length) { resultsEl.style.display = 'none'; return; }
+          resultsEl.style.display = 'block';
+          resultsEl.innerHTML = results.slice(0, 6).map((c, ri) =>
+            `<div class="comp-course-result" data-idx="${idx}" data-ri="${ri}" style="padding:8px 10px;cursor:pointer;border-bottom:1px solid var(--wa-06);font-size:12px;color:var(--cream)">${c.name}<div style="font-size:10px;color:var(--dimmer)">${c.location || ''}</div></div>`
+          ).join('');
+          // Store results for selection
+          resultsEl._results = results.slice(0, 6);
+          resultsEl.querySelectorAll('.comp-course-result').forEach(row => {
+            row.addEventListener('click', async () => {
+              const ri = parseInt(row.dataset.ri);
+              const selected = resultsEl._results[ri];
+              rounds[idx].course = selected.name;
+              rounds[idx].courseId = selected.external_course_id;
+              // Fetch full course detail for tees
+              try {
+                const fetchRes = await fetch(`/.netlify/functions/courses?action=fetch&courseId=${encodeURIComponent(selected.external_course_id)}&clubId=${encodeURIComponent(selected.external_club_id || '')}`);
+                const fetchData = await fetchRes.json();
+                if (fetchData?.course?.tees) {
+                  rounds[idx].tees = fetchData.course.tees;
+                  rounds[idx].tee = fetchData.course.tees[0]?.colour || '';
+                }
+              } catch { /* tee fetch failed — continue without */ }
+              renderRounds();
+            });
+          });
+        }, 400);
+      });
+      // Hide dropdown on blur (slight delay so click registers)
+      inp.addEventListener('blur', () => {
+        setTimeout(() => {
+          const resultsEl = roundsList.querySelector(`.comp-course-results[data-idx="${inp.dataset.idx}"]`);
+          if (resultsEl) resultsEl.style.display = 'none';
+        }, 200);
+      });
     });
+
+    // Bind tee pills
+    roundsList.querySelectorAll('.comp-tee-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.idx);
+        rounds[idx].tee = btn.dataset.tee;
+        renderRounds();
+      });
+    });
+
+    // Bind delete
     roundsList.querySelectorAll('.comp-round-del').forEach(btn => {
       btn.addEventListener('click', () => { rounds.splice(parseInt(btn.dataset.idx), 1); renderRounds(); });
     });
@@ -124,8 +220,7 @@ export function renderCompetitionSetupModal() {
 
   // Add round
   document.getElementById('comp-add-round-btn')?.addEventListener('click', () => {
-    roundCounter++;
-    rounds.push({ day: roundCounter, date: '', course: '', tee: '' });
+    rounds.push({ date: '', course: '', courseId: '', tee: '', tees: [] });
     renderRounds();
   });
 
@@ -140,6 +235,12 @@ export function renderCompetitionSetupModal() {
     const msg = document.getElementById('comp-setup-msg');
     if (!name) { if (msg) msg.textContent = 'Please enter a competition name.'; return; }
 
+    // Combine scoring + handicap into format string
+    let format;
+    if (selectedScoring === 'matchplay') format = 'matchplay';
+    else if (selectedScoring === 'stableford') format = selectedHcp === 'gross' ? 'stableford_gross' : 'stableford';
+    else format = selectedHcp === 'net' ? 'stroke_net' : 'stroke_gross';
+
     const btn = document.getElementById('comp-create-btn');
     if (btn) { btn.disabled = true; btn.textContent = 'Creating...'; }
 
@@ -147,16 +248,16 @@ export function renderCompetitionSetupModal() {
       day: i + 1,
       date: r.date ? r.date.split('-').reverse().join('/') : '',
       course: r.course || '',
+      courseId: r.courseId || '',
       tee: r.tee || '',
     }));
 
     try {
-      const res = await createCompetition(name, selectedFormat, roundsConfig);
+      const res = await createCompetition(name, format, roundsConfig);
       if (res?.ok && res.competition) {
         const code = res.competition.code;
         if (msg) msg.innerHTML = `<span style="color:var(--par)">Created!</span> Share code: <strong style="color:var(--gold);letter-spacing:2px">${code}</strong>`;
         if (btn) { btn.textContent = 'Done'; btn.disabled = true; }
-        // Copy code to clipboard
         navigator.clipboard?.writeText(code).catch(() => {});
       } else {
         if (msg) msg.textContent = 'Error creating competition. Try again.';

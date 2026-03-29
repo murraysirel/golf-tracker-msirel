@@ -67,7 +67,7 @@ function updateNotificationDot() {
 // ── Profile panel tab switching ──────────────────────────────────
 
 export function initProfileTabs() {
-  const tabs = document.querySelectorAll('.profile-tab-btn');
+  const tabs = document.querySelectorAll('.profile-pill');
   tabs.forEach(btn => {
     btn.addEventListener('click', () => {
       tabs.forEach(b => b.classList.toggle('active', b === btn));
