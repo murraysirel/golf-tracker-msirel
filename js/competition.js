@@ -255,10 +255,8 @@ async function renderCompetitionLeaderboard() {
 
   if (!entries.some(e => e.roundsPlayed > 0)) {
     el.innerHTML = subtitle + `<div style="text-align:center;padding:20px 0;color:var(--dimmer);font-size:12px">No rounds submitted yet.</div>
-      <button id="comp-score-round-btn" class="btn" style="width:100%;border-radius:40px;margin-top:10px">Score a Round</button>`;
-    document.getElementById('comp-score-round-btn')?.addEventListener('click', () => {
-      import('./nav.js').then(({ goTo }) => goTo('round'));
-    });
+      <button id="comp-score-round-btn" class="btn" style="width:100%;border-radius:40px;margin-top:10px">Score this Competition Round</button>`;
+    document.getElementById('comp-score-round-btn')?.addEventListener('click', () => startCompetitionRound(comp));
     return;
   }
 
@@ -297,10 +295,100 @@ async function renderCompetitionLeaderboard() {
 
   // "Score a round" CTA below leaderboard
   el.innerHTML += `<div style="margin-top:14px;text-align:center">
-    <button id="comp-score-round-btn" class="btn" style="width:100%;border-radius:40px">Score a Round</button>
+    <button id="comp-score-round-btn" class="btn" style="width:100%;border-radius:40px">Score this Competition Round</button>
   </div>`;
-  document.getElementById('comp-score-round-btn')?.addEventListener('click', () => {
-    import('./nav.js').then(({ goTo }) => goTo('round'));
+  document.getElementById('comp-score-round-btn')?.addEventListener('click', () => startCompetitionRound(comp));
+}
+
+// ── Start competition round ──────────────────────────────────────
+
+async function startCompetitionRound(comp) {
+  if (!comp) return;
+  const { goTo } = await import('./nav.js');
+
+  // Determine which round to score — find the next unplayed round from rounds_config
+  const roundsConfig = comp.rounds_config || [];
+  const myRounds = state.gd.players?.[state.me]?.rounds || [];
+
+  let nextRound = roundsConfig[0]; // default to first
+  for (const rc of roundsConfig) {
+    if (!rc.date) continue;
+    const played = myRounds.some(r => r.date === rc.date);
+    if (!played) { nextRound = rc; break; }
+  }
+
+  // Pre-load the course if specified in the round config
+  if (nextRound?.courseId || nextRound?.course) {
+    try {
+      const courseId = nextRound.courseId;
+      if (courseId) {
+        const res = await fetch(`/.netlify/functions/courses?action=fetch&courseId=${encodeURIComponent(courseId)}`);
+        const data = await res.json();
+        if (data?.course) {
+          const { _applyCourse } = await import('./courses.js');
+          if (typeof _applyCourse === 'function') _applyCourse(data.course);
+        }
+      }
+    } catch { /* course fetch failed — user can select manually */ }
+
+    // Set tee from round config
+    if (nextRound.tee) state.stee = nextRound.tee;
+  }
+
+  // Set the date if specified
+  const dateInput = document.getElementById('r-date');
+  if (dateInput && nextRound?.date) {
+    // rounds_config stores DD/MM/YYYY, date input needs YYYY-MM-DD
+    const parts = nextRound.date.split('/');
+    if (parts.length === 3) dateInput.value = `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+
+  // Navigate to live page
+  goTo('live');
+
+  // Wait for DOM to render, then pre-select all competition players
+  requestAnimationFrame(() => {
+    const players = comp.players || [];
+
+    // Ensure all competition players exist in state.gd.players
+    players.forEach(name => {
+      if (!state.gd.players[name]) state.gd.players[name] = { handicap: 0, rounds: [] };
+    });
+
+    // Set the group to all competition players
+    state.liveState.group = [...players];
+    state.gameMode = 'stroke';
+
+    // Apply handicap overrides from competition
+    const hcpOverrides = comp.hcp_overrides || {};
+    state.liveState.hcpOverrides = {};
+    players.forEach(name => {
+      state.liveState.hcpOverrides[name] = hcpOverrides[name] ?? state.gd.players[name]?.handicap ?? 0;
+    });
+
+    // Render the player chips as selected
+    const chipContainer = document.getElementById('live-group-chips');
+    if (chipContainer) {
+      chipContainer.querySelectorAll('[data-player]').forEach(chip => {
+        const name = chip.dataset.player;
+        const inComp = players.includes(name);
+        chip.classList.toggle('selected', inComp);
+        chip.style.borderColor = inComp ? 'var(--gold)' : '';
+        chip.style.background = inComp ? 'rgba(201,168,76,.15)' : '';
+        chip.style.color = inComp ? 'var(--gold)' : '';
+      });
+    }
+
+    // Show competition context banner
+    const setup = document.getElementById('live-group-setup');
+    if (setup) {
+      const banner = document.createElement('div');
+      banner.style.cssText = 'padding:10px 14px;border-radius:10px;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.25);margin-bottom:12px;font-size:12px;color:var(--cream)';
+      banner.innerHTML = `<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:4px">Competition Round</div>
+        <strong>${comp.name}</strong>${nextRound?.course ? ` · ${nextRound.course}` : ''}
+        <div style="font-size:10px;color:var(--dim);margin-top:3px">${players.length} player${players.length !== 1 ? 's' : ''} · All players pre-selected</div>`;
+      setup.insertBefore(banner, setup.firstChild);
+    }
   });
 }
 
