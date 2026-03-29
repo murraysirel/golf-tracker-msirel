@@ -770,9 +770,8 @@ export function liveUpdateRunning() {
     const primary = state.scoringFor || state.liveState.group[0];
     let tot = 0, par = 0, strokes = 0, n = 0;
     for (let h = 0; h < 18; h++) {
-      par += state.cpars[h];
       const sc = state.liveState.groupScores[primary]?.[h];
-      if (sc != null) { tot += sc; strokes += getHcpStrokesOnHole(primary, h); n++; }
+      if (sc != null) { tot += sc; par += state.cpars[h]; strokes += getHcpStrokesOnHole(primary, h); n++; }
     }
     if (!n) {
       if (el) { el.textContent = '—'; el.style.color = 'var(--gold)'; }
@@ -788,9 +787,9 @@ export function liveUpdateRunning() {
   } else {
     let tot = 0, par = 0, strokes = 0, n = 0;
     for (let h = 0; h < 18; h++) {
-      par += state.cpars[h];
       if (state.liveState.scores[h] != null) {
         tot += state.liveState.scores[h];
+        par += state.cpars[h];
         strokes += getHcpStrokesOnHole(state.me, h);
         n++;
       }
