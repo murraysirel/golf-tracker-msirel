@@ -417,70 +417,76 @@ function buildTileEl(tileId, ctx) {
   if (!builder) return null;
   const tile = builder(ctx);
   const card = document.createElement('div');
-  if (tile.split) {
-    card.className = 'home-kpi-card home-kpi-split';
-    card.innerHTML = `<div class="home-kpi-split-inner">
-      <svg class="home-kpi-divider" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-        <line x1="100" y1="0" x2="0" y2="100" stroke="var(--border)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
-      </svg>
-      <div class="home-kpi-split-top">
-        <div class="home-kpi-val">${tile.top.val}</div>
-        <div class="home-kpi-lbl">${tile.top.lbl}</div>
-        <div class="home-kpi-delta">${tile.top.deltaHtml || ''}</div>
-      </div>
-      <div class="home-kpi-split-bot">
-        <div class="home-kpi-val">${tile.bot.val}</div>
-        <div class="home-kpi-lbl">${tile.bot.lbl}</div>
-        <div class="home-kpi-delta">${tile.bot.deltaHtml || ''}</div>
-      </div>
-    </div>`;
-  } else {
-    card.className = 'home-kpi-card';
-    card.innerHTML = `<div style="display:flex;align-items:center;gap:6px">
-      ${tile.iconHtml || ''}
-      <div class="home-kpi-val">${tile.val}</div>
-    </div>
+  card.className = 'home-kpi-card';
+  // Compact card: value, label, one meta line
+  const metaLine = tile.deltaHtml || '';
+  card.innerHTML = `
+    <div class="home-kpi-val">${tile.val}</div>
     <div class="home-kpi-lbl">${tile.lbl}</div>
-    <div class="home-kpi-delta" style="font-size:11px">${tile.deltaHtml || ''}</div>`;
-  }
+    <div style="font-size:10px;color:var(--dim);margin-top:3px">${metaLine}</div>`;
   return card;
+}
+
+function renderGirFirCard(ctx) {
+  const el = document.getElementById('home-gir-fir');
+  if (!el) return;
+  const tile = buildTile_girFir(ctx);
+  if (!tile.split) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div style="background:var(--mid);border-radius:14px;padding:14px 16px;display:flex;align-items:center">
+    <div style="flex:1;text-align:center">
+      <div class="home-kpi-val">${tile.top.val}</div>
+      <div class="home-kpi-lbl">${tile.top.lbl}</div>
+      <div class="home-kpi-delta">${tile.top.deltaHtml || ''}</div>
+    </div>
+    <div style="width:1px;height:40px;background:var(--border);margin:0 12px"></div>
+    <div style="flex:1;text-align:center">
+      <div class="home-kpi-val">${tile.bot.val}</div>
+      <div class="home-kpi-lbl">${tile.bot.lbl}</div>
+      <div class="home-kpi-delta">${tile.bot.deltaHtml || ''}</div>
+    </div>
+  </div>`;
 }
 
 function renderKpiGrid(ctx) {
   const grid = document.getElementById('home-kpis');
   if (!grid) return;
   grid.innerHTML = '';
-  getKpiTiles().forEach(id => {
+  // Only render first 2 customisable tiles (skip girFir — rendered separately)
+  const tiles = getKpiTiles().filter(id => id !== 'girFir').slice(0, 2);
+  tiles.forEach(id => {
     const el = buildTileEl(id, ctx);
     if (el) grid.appendChild(el);
   });
+  // Fixed GIR/FIR wide card
+  renderGirFirCard(ctx);
 }
 
 // ── Tile picker ───────────────────────────────────────────────────
 let _pickerSelected = [];
 
 export function openKpiPicker() {
-  _pickerSelected = [...getKpiTiles()];
+  _pickerSelected = [...getKpiTiles()].filter(id => id !== 'girFir').slice(0, 2);
   const optionsEl = document.getElementById('kpi-tile-options');
   if (!optionsEl) return;
   optionsEl.innerHTML = '';
   Object.entries(TILE_META).forEach(([id, label]) => {
+    if (id === 'girFir') return; // GIR/FIR is fixed — not customisable
     const chip = document.createElement('div');
     const isSel = _pickerSelected.includes(id);
-    chip.className = 'kpi-tile-chip' + (isSel ? ' selected' : '') + (!isSel && _pickerSelected.length >= 4 ? ' disabled' : '');
+    chip.className = 'kpi-tile-chip' + (isSel ? ' selected' : '') + (!isSel && _pickerSelected.length >= 2 ? ' disabled' : '');
     chip.dataset.id = id;
     chip.textContent = label;
     chip.addEventListener('click', () => {
       if (_pickerSelected.includes(id)) {
         _pickerSelected = _pickerSelected.filter(x => x !== id);
         chip.classList.remove('selected');
-      } else if (_pickerSelected.length < 4) {
+      } else if (_pickerSelected.length < 2) {
         _pickerSelected.push(id);
         chip.classList.add('selected');
       }
       document.querySelectorAll('.kpi-tile-chip').forEach(c => {
         const cId = c.dataset.id;
-        c.classList.toggle('disabled', !_pickerSelected.includes(cId) && _pickerSelected.length >= 4);
+        c.classList.toggle('disabled', !_pickerSelected.includes(cId) && _pickerSelected.length >= 2);
       });
     });
     optionsEl.appendChild(chip);
@@ -492,7 +498,7 @@ export function openKpiPicker() {
 export function closeKpiPicker(save) {
   const sheet = document.getElementById('kpi-picker-sheet');
   if (sheet) sheet.style.display = 'none';
-  if (save && _pickerSelected.length === 4) {
+  if (save && _pickerSelected.length === 2) {
     saveKpiTiles(_pickerSelected);
     renderHomeStats();
   }
@@ -566,25 +572,40 @@ function renderMatesFeed() {
   }
 
   events.sort((a, b) => b.ts - a.ts);
-  const capped = events.slice(0, 10);
+  const capped = events.slice(0, 3);
   matesEl.innerHTML = '';
 
   if (!capped.length) {
-    matesEl.innerHTML = '<div style="font-size:12px;color:var(--dimmer);padding:12px 0;text-align:center">No highlights this week — get out and play!</div>';
+    matesEl.innerHTML = '<div style="background:var(--mid);border-radius:12px;padding:14px;font-size:10px;color:var(--dimmer);text-align:center">No group activity yet — rounds will appear here</div>';
     return;
   }
 
-  capped.forEach(ev => {
+  const card = document.createElement('div');
+  card.style.cssText = 'background:var(--mid);border-radius:12px;padding:10px 14px';
+
+  capped.forEach((ev, i) => {
+    // Determine dot colour
+    let dotColor = 'var(--dim)';
+    if (ev.text.includes('birdie')) dotColor = 'var(--birdie)';
+    else if (ev.text.includes('eagle')) dotColor = 'var(--birdie)';
+    else if (ev.text.includes('stableford')) dotColor = 'var(--gold)';
+    else if (ev.text.includes('best') || ev.text.includes('net')) dotColor = 'var(--par)';
+
+    // Extract player name (first word before space or " made" / " scored" / " shot")
+    const nameMatch = ev.text.match(/^(.+?) (?:made|scored|shot)/);
+    const playerName = nameMatch ? nameMatch[1] : '';
+    const restText = playerName ? ev.text.slice(playerName.length) : ev.text;
+
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:flex-start;gap:10px;padding:8px 12px;border-radius:10px;margin-bottom:6px;background:var(--wa-03);border:1px solid var(--wa-06)';
+    row.style.cssText = `display:flex;align-items:center;gap:8px;padding:7px 0${i < capped.length - 1 ? ';border-bottom:1px solid var(--border)' : ''}`;
     row.innerHTML = `
-      <div style="font-size:18px;flex-shrink:0;line-height:1">${ev.icon}</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:12px;color:var(--cream);line-height:1.5">${ev.text}</div>
-        <div style="font-size:10px;color:var(--dimmer);margin-top:2px">${ev.when}</div>
-      </div>`;
-    matesEl.appendChild(row);
+      <div style="width:6px;height:6px;border-radius:50%;background:${dotColor};flex-shrink:0"></div>
+      <div style="flex:1;min-width:0;font-size:10px;color:var(--dim);line-height:1.4"><span style="color:var(--cream);font-weight:600">${playerName}</span>${restText}</div>
+      <div style="font-size:9px;color:var(--dimmer);flex-shrink:0">${ev.when}</div>`;
+    card.appendChild(row);
   });
+
+  matesEl.appendChild(card);
 }
 
 export function renderHomeStats() {
@@ -631,36 +652,35 @@ export function renderHomeStats() {
   // ── Mates board feed ─────────────────────────────────────────
   renderMatesFeed();
 
-  // ── Recent rounds ────────────────────────────────────────────
+  // ── Recent rounds (2 most recent) ────────────────────────────
   const recent = document.getElementById('home-recent');
+  if (!recent) return;
   if (!rs.length) {
-    recent.innerHTML = '<div class="empty"><div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg></div>No rounds yet \u2014 add your first!</div>';
+    // Graceful empty state — check for empty-states module or use inline fallback
+    let emptyHtml = '<div style="font-size:12px;color:var(--dimmer);padding:12px 0;text-align:center">No rounds yet — add your first!</div>';
+    if (typeof window._emptyStateRounds === 'function') emptyHtml = window._emptyStateRounds();
+    recent.innerHTML = emptyHtml;
     return;
   }
   recent.innerHTML = '';
-  const recentSorted = [...rs].sort((a, b) => parseDateGB(b.date) - parseDateGB(a.date)).slice(0, 3);
+  const recentSorted = [...rs].sort((a, b) => parseDateGB(b.date) - parseDateGB(a.date)).slice(0, 2);
   recentSorted.forEach(r => {
     const diff = r.diff;
     const dv = diff >= 0 ? '+' + diff : '' + diff;
-    const diffColor = diff <= -3 ? 'var(--birdie)' : diff <= 3 ? 'var(--par)' : diff <= 10 ? 'var(--bogey)' : 'var(--double)';
+    const diffColor = diff <= -2 ? 'var(--birdie)' : diff === 0 ? 'var(--par)' : diff <= 3 ? 'var(--bogey)' : 'var(--double)';
     const dot = TC[r.tee]?.d || '#888';
     const shortCourse = (r.course || '').replace(' Golf Club', '').replace(' Golf Course', '').replace(' Golf Links', '');
     const d = document.createElement('div');
-    d.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px;background:var(--wa-03);border:1px solid var(--wa-07);border-radius:12px;margin-bottom:8px;transition:border-color .2s,background .2s;cursor:pointer';
-    d.addEventListener('mouseenter', () => { d.style.background = 'rgba(201,168,76,.04)'; d.style.borderColor = 'rgba(201,168,76,.2)'; });
-    d.addEventListener('mouseleave', () => { d.style.background = 'var(--wa-03)'; d.style.borderColor = 'var(--wa-07)'; });
+    d.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--mid);border-radius:10px;margin-bottom:6px;cursor:pointer';
     d.addEventListener('click', () => openScorecardModal(r));
     d.innerHTML = `
       <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:13px;font-weight:500;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${shortCourse}</span>
-          <span style="width:8px;height:8px;border-radius:50%;background:${dot};flex-shrink:0;display:inline-block"></span>
-        </div>
-        <div style="font-size:11px;color:var(--dim);margin-top:3px">${r.date} \u00B7 Par ${r.totalPar}</div>
+        <div style="font-size:13px;font-weight:600;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${shortCourse}</div>
+        <div style="font-size:10px;color:var(--dim);margin-top:2px"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${dot};margin-right:4px;vertical-align:middle"></span>${r.tee || ''} · ${r.date}</div>
       </div>
       <div style="text-align:right;flex-shrink:0">
-        <div style="font-size:26px;font-weight:700;color:var(--gold);line-height:1;font-family:'Cormorant Garamond',serif">${r.totalScore}</div>
-        <div style="font-size:12px;font-weight:600;color:${diffColor}">${dv}</div>
+        <div style="font-size:18px;font-weight:700;color:var(--cream);line-height:1">${r.totalScore}</div>
+        <div style="font-size:10px;font-weight:600;color:${diffColor};margin-top:1px">${dv}</div>
       </div>`;
     recent.appendChild(d);
   });

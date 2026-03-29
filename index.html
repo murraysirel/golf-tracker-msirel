@@ -439,44 +439,46 @@
     <!-- HOME -->
     <div id="pg-home">
 
-      <!-- 2×2 KPI grid — cards rendered dynamically by renderKpiGrid() in stats.js -->
-      <div class="home-kpi-grid" id="home-kpis"></div>
+      <!-- Top row: two compact KPI cards (customisable slots) -->
+      <div id="home-kpis" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 16px 0"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;padding:0 16px">
         <div style="font-size:9px;color:var(--dimmer)">Tap grid for full Stats</div>
         <button id="kpi-customise-btn" style="font-size:9px;color:var(--gold);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;padding:0;letter-spacing:0.03em">✎ Customise</button>
       </div>
 
+      <!-- Wide GIR/FIR card (fixed, not customisable) -->
+      <div id="home-gir-fir" style="padding:8px 16px 0"></div>
+
       <!-- Tile picker bottom sheet -->
       <div id="kpi-picker-sheet" style="display:none;position:fixed;inset:0;z-index:300;align-items:flex-end">
         <div id="kpi-picker-backdrop" style="position:absolute;inset:0;background:rgba(0,0,0,.55)"></div>
         <div style="position:relative;background:var(--card);border-radius:20px 20px 0 0;padding:20px 20px calc(20px + var(--safe-bot));width:100%;max-height:75vh;overflow-y:auto">
-          <div style="font-size:15px;font-weight:600;color:var(--cream);margin-bottom:4px">Choose your 4 tiles</div>
-          <div style="font-size:11px;color:var(--dim);margin-bottom:16px">Tap to select · max 4</div>
+          <div style="font-size:15px;font-weight:600;color:var(--cream);margin-bottom:4px">Choose your 2 tiles</div>
+          <div style="font-size:11px;color:var(--dim);margin-bottom:16px">Tap to select · max 2</div>
           <div id="kpi-tile-options" class="kpi-tile-options"></div>
           <button class="btn" id="kpi-picker-done" style="margin-top:16px">Done</button>
         </div>
       </div>
 
-      <!-- Mates on the boards -->
-      <div id="home-mates-section" style="padding:12px 16px 0">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div style="font-size:11px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:0.07em">In the Leagues</div>
-          <div style="font-size:10px;color:var(--dimmer)">Recent highlights</div>
-        </div>
-        <div id="home-mates-list"></div>
-      </div>
-
       <!-- Recent rounds -->
-      <div style="padding:16px 16px 0">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="padding:14px 16px 0">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <div style="font-size:11px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:0.07em">Recent Rounds</div>
           <button id="home-go-stats-link" style="font-size:12px;color:var(--gold);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none">See all</button>
         </div>
         <div id="home-recent"></div>
       </div>
 
+      <!-- Group activity -->
+      <div id="home-mates-section" style="padding:12px 16px 0">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:11px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:0.07em">Group Activity</div>
+        </div>
+        <div id="home-mates-list"></div>
+      </div>
+
       <!-- Play with the Caddie CTA -->
-      <button id="home-caddie-cta" style="display:block;width:calc(100% - 32px);margin:16px 16px calc(var(--safe-bot) + 12px);padding:16px;border-radius:14px;background:var(--gold);color:var(--navy);font-size:15px;font-weight:700;letter-spacing:0.02em;border:none;cursor:pointer;text-align:center;-webkit-tap-highlight-color:transparent;font-family:'DM Sans',sans-serif">Play with the Caddie 🏌️</button>
+      <button id="home-caddie-cta" style="display:block;width:calc(100% - 32px);margin:10px 16px calc(var(--safe-bot) + 12px);padding:16px;border-radius:14px;background:var(--gold);color:var(--navy);font-size:15px;font-weight:700;letter-spacing:0.02em;border:none;cursor:pointer;text-align:center;-webkit-tap-highlight-color:transparent;font-family:'DM Sans',sans-serif">Play with the Caddie 🏌️</button>
     </div>
 
     <!-- ROUND ENTRY -->
