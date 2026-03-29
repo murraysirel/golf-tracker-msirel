@@ -498,17 +498,23 @@ exports.handler = async (event) => {
     // 5. Validation passed — mark as having good data and save
     parsed.has_hole_data = true;
 
-    // Strip fields not yet in the courses table schema before writing.
-    // The full parsed object (with club_name, city, holes, has_gps, pars,
-    // stroke_indexes, overall_par, tee_types etc.) is still returned to
-    // the frontend below.
-    const { club_name, city, holes, has_gps, data_source, data_quality, report_count, pars, stroke_indexes, overall_par, tee_types, ...dbSafe } = parsed;
+    // Only send fields known to exist in the courses table schema.
+    // The full parsed object is still returned to the frontend below.
+    const dbSafe = {
+      external_course_id: parsed.external_course_id,
+      external_club_id:   parsed.external_club_id,
+      name:               parsed.name,
+      location:           parsed.location,
+      country:            parsed.country,
+      tees:               parsed.tees,
+      has_hole_data:      parsed.has_hole_data,
+    };
     const saved = await sbUpsert('courses', dbSafe);
     if (!Array.isArray(saved)) {
       console.error('[courses] Supabase upsert failed:', JSON.stringify(saved));
     }
     const record = Array.isArray(saved)
-      ? { ...saved[0], club_name, city, holes, has_gps, pars, stroke_indexes }
+      ? { ...saved[0], ...parsed }
       : { ...parsed };
 
     logCall('fetch', parsed.name, false, { courseId, source: 'api', tees: parsed.tees.length, apiRequestsLeft: fetchRequestsLeft ?? null });

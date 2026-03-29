@@ -144,7 +144,7 @@ exports.handler = async (event) => {
     if (action === 'saveRound') {
       const { round, playerData } = data;
 
-      await supabase.from('players').upsert({
+      const { error: plErr } = await supabase.from('players').upsert({
         name: playerData.name,
         email: playerData.email || null,
         dob: playerData.dob || null,
@@ -152,8 +152,9 @@ exports.handler = async (event) => {
         match_code: playerData.matchCode || null
         // group_code intentionally omitted — nullable audit-only column post-migration
       }, { onConflict: 'name' });
+      if (plErr) console.error('[saveRound] player upsert failed:', plErr.message);
 
-      await supabase.from('rounds').upsert({
+      const { error: roundErr } = await supabase.from('rounds').upsert({
         id: round.id,
         player_name: round.player,
         group_code: groupCode,
@@ -185,6 +186,11 @@ exports.handler = async (event) => {
         match_result: round.matchResult || null,
         ...(round.sixesResult != null ? { sixes_result: round.sixesResult } : {})
       }, { onConflict: 'id' });
+
+      if (roundErr) {
+        console.error('[saveRound] rounds upsert failed:', roundErr.message, roundErr.details);
+        return { statusCode: 500, headers, body: JSON.stringify({ error: 'Round save failed: ' + roundErr.message }) };
+      }
 
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     }

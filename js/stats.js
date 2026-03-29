@@ -870,7 +870,7 @@ export function renderStats() {
 
   const fullR = rs.filter(r => (r.scores || []).filter(Boolean).length === 18);
   const girTot = fullR.reduce((a, r) => a + (r.gir || []).filter(v => v === 'Yes').length, 0);
-  const girPoss = fullR.length * 18;
+  const girPoss = fullR.reduce((a, r) => a + (r.gir || []).filter(v => v === 'Yes' || v === 'No').length, 0);
   document.getElementById('st-gir').textContent = girPoss ? Math.round(girTot / girPoss * 100) + '%' : '—';
 
   const has = rs.length > 0;

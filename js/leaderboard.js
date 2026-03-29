@@ -244,8 +244,11 @@ export function renderLeaderboard() {
     // Exclude rounds before the player joined this group
     const joinedAt = state.gd.players?.[playerName]?.joinedAt;
     if (joinedAt) {
-      const joinDate = new Date(joinedAt);
-      filtered = filtered.filter(r => parseDateGB(r.date) >= joinDate);
+      // joinedAt is ISO timestamp (e.g. "2026-03-15T10:00:00Z")
+      // parseDateGB returns YYYYMMDD integer — convert joinedAt to same format
+      const jd = new Date(joinedAt);
+      const joinInt = jd.getFullYear() * 10000 + (jd.getMonth() + 1) * 100 + jd.getDate();
+      filtered = filtered.filter(r => parseDateGB(r.date) >= joinInt);
     }
     if (!seasonSel || seasonSel.value === 'all') return filtered;
     const val = seasonSel.value;
