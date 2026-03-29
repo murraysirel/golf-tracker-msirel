@@ -519,7 +519,7 @@ function renderMatesFeed() {
   const allPlayers = Object.entries(state.gd.players || {});
   section.style.display = '';
   if (allPlayers.length <= 1) {
-    matesEl.innerHTML = '<div style="background:var(--mid);border-radius:12px;padding:14px;font-size:10px;color:var(--dimmer);text-align:center">No group activity yet — rounds will appear here</div>';
+    matesEl.innerHTML = '<div style="background:var(--mid);border-radius:12px;padding:16px;text-align:center"><div style="font-size:14px;margin-bottom:4px">🏌️</div><div style="font-size:11px;color:var(--dimmer);line-height:1.5">Nobody has gone low yet — birdies, eagles and milestones from your group will show up here.</div></div>';
     return;
   }
 
@@ -587,7 +587,7 @@ function renderMatesFeed() {
 
   if (!capped.length) {
     matesEl.innerHTML = _es('👥', 'Quiet out there', 'When your group posts rounds, birdies and milestones appear here.', 'See the leaderboard', "import('./nav.js').then(m=>m.goTo('leaderboard'))")
-      || '<div style="background:var(--mid);border-radius:12px;padding:14px;font-size:10px;color:var(--dimmer);text-align:center">No group activity yet — rounds will appear here</div>';
+      || '<div style="background:var(--mid);border-radius:12px;padding:16px;text-align:center"><div style="font-size:14px;margin-bottom:4px">🏌️</div><div style="font-size:11px;color:var(--dimmer);line-height:1.5">Nobody has gone low yet — birdies, eagles and milestones from your group will show up here.</div></div>';
     return;
   }
 
