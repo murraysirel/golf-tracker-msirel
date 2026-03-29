@@ -356,10 +356,14 @@ exports.handler = async (event) => {
     }
 
     // 2. Supabase empty — fall back to GolfAPI.io (costs 0.1 credits per call)
+    let _debug = { golfapi_key_set: !!GOLFAPI_KEY, api_attempted: false, api_error: null, api_response_keys: null, clubs_count: 0 };
     if (GOLFAPI_KEY) {
       try {
+        _debug.api_attempted = true;
         const apiRes = await golfApiSearchClubs(name, country);
+        _debug.api_response_keys = Object.keys(apiRes || {});
         const clubs  = apiRes?.clubs || apiRes?.data || [];
+        _debug.clubs_count = clubs.length;
         const requestsLeft = apiRes?.apiRequestsLeft ?? null;
         if (Array.isArray(clubs) && clubs.length > 0) {
           const mapped = [];
@@ -387,6 +391,7 @@ exports.handler = async (event) => {
           }
         }
       } catch (apiErr) {
+        _debug.api_error = apiErr?.message;
         console.error('[courses] GolfAPI fallback error:', apiErr?.message);
       }
     }
@@ -396,6 +401,7 @@ exports.handler = async (event) => {
       courses: [],
       source: 'cache_empty',
       hint: 'No courses found. Try a different spelling or country filter.',
+      _debug,
     });
   }
 
