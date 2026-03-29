@@ -62,14 +62,16 @@ exports.handler = async (event) => {
       const groupId  = groupRow.id;
       const settings = groupRow.settings || {};
 
-      // Get all member names for this group.
+      // Get all approved member names for this group (pending members excluded from leaderboards).
       const { data: memberRows, error: mErr } = await supabase
-        .from('group_members').select('player_id, joined_at').eq('group_id', groupId);
+        .from('group_members').select('player_id, joined_at, status').eq('group_id', groupId);
       if (mErr) throw mErr;
 
-      const memberNames = (memberRows || []).map(m => m.player_id);
+      // Include members with status 'approved' or NULL (backwards compat for rows without status column)
+      const approvedRows = (memberRows || []).filter(m => !m.status || m.status === 'approved');
+      const memberNames = approvedRows.map(m => m.player_id);
       const memberJoinDates = {};
-      (memberRows || []).forEach(m => { if (m.joined_at) memberJoinDates[m.player_id] = m.joined_at; });
+      approvedRows.forEach(m => { if (m.joined_at) memberJoinDates[m.player_id] = m.joined_at; });
 
       if (memberNames.length === 0) {
         const { data: matches } = await supabase
@@ -336,7 +338,7 @@ exports.handler = async (event) => {
       if (!groupId) return { statusCode: 400, headers, body: JSON.stringify({ error: 'groupId required' }) };
       const { data: members, error: mErr } = await supabase
         .from('group_members')
-        .select('player_id, joined_at')
+        .select('player_id, joined_at, status')
         .eq('group_id', groupId);
       if (mErr) throw mErr;
       if (!members?.length) return { statusCode: 200, headers, body: JSON.stringify({ members: [] }) };
@@ -353,7 +355,8 @@ exports.handler = async (event) => {
           members: members.map(m => ({
             playerId: m.player_id,
             handicap: hcpMap[m.player_id] ?? null,
-            joinedAt: m.joined_at
+            joinedAt: m.joined_at,
+            status: m.status || 'approved'
           }))
         })
       };
@@ -485,16 +488,60 @@ exports.handler = async (event) => {
       }
       const { data: existing } = await supabase
         .from('group_members')
-        .select('id')
+        .select('id, status')
         .eq('group_id', groupId)
         .eq('player_id', playerName)
         .maybeSingle();
-      if (existing) return { statusCode: 200, headers, body: JSON.stringify({ ok: true, alreadyMember: true }) };
+      if (existing) {
+        return { statusCode: 200, headers, body: JSON.stringify({ ok: true, alreadyMember: true, status: existing.status || 'approved' }) };
+      }
+      // Insert as pending — admin must approve
       const { error: insErr } = await supabase
         .from('group_members')
-        .insert({ group_id: groupId, player_id: playerName });
+        .insert({ group_id: groupId, player_id: playerName, status: 'pending' });
       if (insErr) throw insErr;
-      return { statusCode: 200, headers, body: JSON.stringify({ ok: true, alreadyMember: false }) };
+      // Notify the group admin
+      const { data: grp } = await supabase.from('groups').select('admin_id, name').eq('id', groupId).maybeSingle();
+      if (grp?.admin_id) {
+        await supabase.from('notifications').insert({
+          to_player: grp.admin_id,
+          from_player: playerName,
+          type: 'join_request',
+          payload: { groupId, groupName: grp.name || '' }
+        }).catch(() => {});
+      }
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true, alreadyMember: false, status: 'pending' }) };
+    }
+
+    // ── approveGroupMember ───────────────────────────────────────────
+    if (action === 'approveGroupMember') {
+      const { groupId, playerName, adminId, approve } = data;
+      if (!groupId || !playerName || !adminId) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'groupId, playerName, adminId required' }) };
+      }
+      const { data: grp } = await supabase.from('groups').select('admin_id').eq('id', groupId).maybeSingle();
+      if (!grp || grp.admin_id !== adminId) {
+        return { statusCode: 403, headers, body: JSON.stringify({ error: 'Not authorized' }) };
+      }
+      if (approve) {
+        const { error } = await supabase.from('group_members')
+          .update({ status: 'approved' })
+          .eq('group_id', groupId).eq('player_id', playerName);
+        if (error) throw error;
+        // Notify the player they were approved
+        await supabase.from('notifications').insert({
+          to_player: playerName,
+          from_player: adminId,
+          type: 'join_approved',
+          payload: { groupId, groupName: '' }
+        }).catch(() => {});
+      } else {
+        // Decline — remove the pending member
+        await supabase.from('group_members')
+          .delete()
+          .eq('group_id', groupId).eq('player_id', playerName).eq('status', 'pending');
+      }
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     }
 
     // ── checkGroupMembership ──────────────────────────────────────────

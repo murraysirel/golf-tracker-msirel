@@ -198,7 +198,9 @@ function parseCourseDetail(clubData, rawCourseData, coordData) {
   return {
     external_club_id:   String(clubData.clubID   || ''),
     external_course_id: String(courseData.courseID || ''),
-    name:        courseData.courseName || clubData.clubName || 'Unknown Course',
+    name:        clubData.clubName && courseData.courseName && courseData.courseName !== clubData.clubName
+                   ? `${clubData.clubName} — ${courseData.courseName}`
+                   : courseData.courseName || clubData.clubName || 'Unknown Course',
     club_name:   clubData.clubName || '',
     location:    [clubData.city?.trim(), clubData.state, clubData.country].filter(Boolean).join(', '),
     country:     clubData.country || '',

@@ -416,6 +416,19 @@ export async function confirmJoinGroup() {
     });
     const json = await res.json();
     if (!json.ok) throw new Error(json.error || 'Join failed');
+
+    // If pending approval, show message and don't add to active groups yet
+    if (json.status === 'pending') {
+      if (btn) { btn.disabled = true; btn.textContent = 'Request sent'; }
+      const errEl = document.getElementById('join-group-error');
+      if (errEl) {
+        errEl.style.display = 'block';
+        errEl.style.color = 'var(--par)';
+        errEl.textContent = 'Request sent! The league admin needs to approve you before you can see the boards.';
+      }
+      return;
+    }
+
     state.gd.groupId = _pendingGroupJoin.id;
     if (!state.gd.groupCodes) state.gd.groupCodes = [];
     if (!state.gd.groupCodes.includes(_pendingGroupJoin.code)) state.gd.groupCodes.push(_pendingGroupJoin.code);
@@ -545,6 +558,7 @@ export function copyAppUrl() {
 let _settingsGroup = null;
 let _settingsActiveBoards = new Set();
 let _settingsMembers = [];
+let _settingsPendingMembers = [];
 let _modalConfirmCb = null;
 
 export async function initGroupSettings() {
@@ -565,7 +579,9 @@ export async function initGroupSettings() {
 
   // Then fill members when data arrives
   const res = await membersFetch;
-  _settingsMembers = res?.members || [];
+  const allMembers = res?.members || [];
+  _settingsMembers = allMembers.filter(m => m.status === 'approved' || !m.status);
+  _settingsPendingMembers = allMembers.filter(m => m.status === 'pending');
   _renderGSMembersSection();
 }
 
@@ -659,11 +675,26 @@ async function _applyBoardToggle(id, enable) {
 function _renderGSMembersSection() {
   const list = document.getElementById('gs-members-list');
   if (!list) return;
-  if (!_settingsMembers.length) {
+
+  // Show pending members awaiting approval (if any)
+  const pendingMembers = (_settingsPendingMembers || []);
+  let pendingHtml = '';
+  if (pendingMembers.length) {
+    pendingHtml = '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin:8px 16px 6px">Pending Approval</div>';
+    pendingHtml += pendingMembers.map(m =>
+      `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border)">
+        <div style="flex:1;font-size:13px;color:var(--cream)">${_esc(m.playerId)}</div>
+        <button class="gs-approve" data-player="${_esc(m.playerId)}" class="btn" style="padding:4px 12px;border-radius:16px;font-size:10px;background:var(--gold);color:var(--navy);border:none;cursor:pointer;font-family:'DM Sans',sans-serif">Approve</button>
+        <button class="gs-decline" data-player="${_esc(m.playerId)}" style="padding:4px 12px;border-radius:16px;font-size:10px;background:transparent;border:1px solid rgba(231,76,60,.4);color:#e74c3c;cursor:pointer;font-family:'DM Sans',sans-serif">Decline</button>
+      </div>`
+    ).join('');
+  }
+
+  if (!_settingsMembers.length && !pendingMembers.length) {
     list.innerHTML = '<div style="padding:16px;font-size:13px;color:var(--dim)">No members yet.</div>';
     return;
   }
-  list.innerHTML = _settingsMembers.map((m, i) => {
+  list.innerHTML = pendingHtml + _settingsMembers.map((m, i) => {
     const isMe = m.playerId === state.me;
     const hcp = m.handicap != null ? 'HCP ' + m.handicap : '';
     const joinDate = m.joinedAt ? new Date(m.joinedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
@@ -680,6 +711,24 @@ function _renderGSMembersSection() {
   }).join('');
   list.querySelectorAll('.gs-rm').forEach(btn => {
     btn.addEventListener('click', () => _handleRemoveMember(btn.dataset.player));
+  });
+  // Approve/decline pending members
+  list.querySelectorAll('.gs-approve').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true; btn.textContent = '...';
+      await querySupabase('approveGroupMember', { groupId: _settingsGroup.id, adminId: state.me, playerName: btn.dataset.player, approve: true });
+      _settingsPendingMembers = _settingsPendingMembers.filter(m => m.playerId !== btn.dataset.player);
+      _settingsMembers.push({ playerId: btn.dataset.player, status: 'approved' });
+      _renderGSMembersSection();
+    });
+  });
+  list.querySelectorAll('.gs-decline').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true; btn.textContent = '...';
+      await querySupabase('approveGroupMember', { groupId: _settingsGroup.id, adminId: state.me, playerName: btn.dataset.player, approve: false });
+      _settingsPendingMembers = _settingsPendingMembers.filter(m => m.playerId !== btn.dataset.player);
+      _renderGSMembersSection();
+    });
   });
 }
 

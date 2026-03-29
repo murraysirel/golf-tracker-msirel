@@ -150,6 +150,34 @@ export function renderLeaderboard() {
       import('./group.js').then(m => m.initGroupSettings());
     };
   }
+  // "Who's in?" button — visible to all members
+  const membersBtn = document.getElementById('lb-members-btn');
+  if (membersBtn) {
+    membersBtn.style.display = isInGroup ? 'inline-block' : 'none';
+    membersBtn.onclick = async () => {
+      const popup = document.getElementById('lb-members-popup');
+      if (!popup) return;
+      if (popup.style.display === 'block') { popup.style.display = 'none'; return; }
+      popup.innerHTML = '<div style="padding:12px;font-size:11px;color:var(--dim)"><span class="spin"></span> Loading...</div>';
+      popup.style.display = 'block';
+      try {
+        const res = await querySupabase('getGroupMembers', { groupId: group.id });
+        const members = res?.members || [];
+        if (!members.length) { popup.innerHTML = '<div class="card" style="font-size:12px;color:var(--dimmer);text-align:center;padding:16px">No members yet.</div>'; return; }
+        popup.innerHTML = `<div class="card"><div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase;margin-bottom:10px">Players in this League</div>` +
+          members.map(m => {
+            const isMe = m.playerId === state.me;
+            return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--wa-06)">
+              ${avatarHtml(m.playerId, 32, isMe)}
+              <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:${isMe ? '600' : '400'};color:${isMe ? 'var(--gold)' : 'var(--cream)'}">${m.playerId}${isMe ? ' <span style="font-size:9px;color:var(--dim)">(you)</span>' : ''}</div></div>
+              <div style="font-size:11px;color:var(--dim)">HCP ${m.handicap ?? '?'}</div>
+            </div>`;
+          }).join('') + '</div>';
+      } catch {
+        popup.innerHTML = '<div class="card" style="font-size:12px;color:var(--dimmer);text-align:center;padding:16px">Could not load members.</div>';
+      }
+    };
+  }
 
   // Solo prompt: shown when not in a group
   // Join/create prompt — always visible so you can join/create additional groups
