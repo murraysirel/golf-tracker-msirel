@@ -428,7 +428,10 @@ function buildTileEl(tileId, ctx) {
   // Compact card: value, label, one meta line
   const metaLine = tile.deltaHtml || '';
   card.innerHTML = `
-    <div class="home-kpi-val">${tile.val}</div>
+    <div style="display:flex;align-items:center;gap:6px">
+      ${tile.iconHtml || ''}
+      <div class="home-kpi-val">${tile.val}</div>
+    </div>
     <div class="home-kpi-lbl">${tile.lbl}</div>
     <div style="font-size:10px;color:var(--dim);margin-top:3px">${metaLine}</div>`;
   return card;
@@ -531,7 +534,6 @@ function renderMatesFeed() {
   const cutoffDate = new Date(today);
   cutoffDate.setDate(cutoffDate.getDate() - 7);
   const cutoffInt = cutoffDate.getFullYear() * 10000 + (cutoffDate.getMonth() + 1) * 100 + cutoffDate.getDate();
-  const todayInt = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
 
   for (const [name, p] of allPlayers) {
     const seasonRounds = (p.rounds || []).filter(r => r.date?.split('/')?.[2] === currentYear);
@@ -540,8 +542,7 @@ function renderMatesFeed() {
       if (!rd) continue;
       if (rd < cutoffInt) continue;
 
-      const diffDays = Math.round((todayInt - rd) / 1.1); // approximate days (YYYYMMDD diff isn't exact but close enough for display)
-      // More precise: parse to real Date for day diff
+      // Parse to real Date for day diff
       const dp = r.date?.split('/');
       const realDate = dp?.length === 3 ? new Date(+dp[2], +dp[1] - 1, +dp[0]) : null;
       const ago = realDate ? Math.floor((today - realDate) / 86400000) : 0;

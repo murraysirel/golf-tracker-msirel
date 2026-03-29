@@ -254,7 +254,11 @@ async function renderCompetitionLeaderboard() {
     : '';
 
   if (!entries.some(e => e.roundsPlayed > 0)) {
-    el.innerHTML = subtitle + '<div style="text-align:center;padding:20px 0;color:var(--dimmer);font-size:12px">No rounds submitted yet.</div>';
+    el.innerHTML = subtitle + `<div style="text-align:center;padding:20px 0;color:var(--dimmer);font-size:12px">No rounds submitted yet.</div>
+      <button id="comp-score-round-btn" class="btn" style="width:100%;border-radius:40px;margin-top:10px">Score a Round</button>`;
+    document.getElementById('comp-score-round-btn')?.addEventListener('click', () => {
+      import('./nav.js').then(({ goTo }) => goTo('round'));
+    });
     return;
   }
 
@@ -290,6 +294,14 @@ async function renderCompetitionLeaderboard() {
       </div>
     </div>`;
   }).join('');
+
+  // "Score a round" CTA below leaderboard
+  el.innerHTML += `<div style="margin-top:14px;text-align:center">
+    <button id="comp-score-round-btn" class="btn" style="width:100%;border-radius:40px">Score a Round</button>
+  </div>`;
+  document.getElementById('comp-score-round-btn')?.addEventListener('click', () => {
+    import('./nav.js').then(({ goTo }) => goTo('round'));
+  });
 }
 
 // ── Admin panel ──────────────────────────────────────────────────

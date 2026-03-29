@@ -17,7 +17,7 @@ import { exportXlsx } from './export.js';
 import { openAdminSettings, closeAdminSettings, verifyAdminPw, adminPopulateRounds, adminDeleteRound, adminSeedDemo } from './admin.js';
 import { copyGroupCode, leaveGroup, toggleGroupCodeRequired, addSeason, deleteSeason, confirmDeleteMyData, deleteMyData, copyAppUrl, rebuildSeasonSelector, initJoinGroup, lookupGroupByCode, confirmJoinGroup, showBoardPage, initCreateGroup, submitGroupName, confirmBoardSetup, initGroupSettings, saveGroupName, hideGSModal, confirmGSModal } from './group.js';
 import { initCompetition } from './competition.js';
-import { renderCompetitionSetupModal, renderJoinCompetitionModal } from './competition-setup.js';
+import { renderCompetitionSetupModal, renderJoinCompetitionModal, renderMyCompetitions } from './competition-setup.js';
 import { state } from './state.js';
 import { initCaddieButton } from './caddie.js';
 import { initProfileTabs, startNotificationPolling } from './friends.js';
@@ -59,6 +59,7 @@ registerNavHandlers({
     if (page === 'round') {
       const wrap = document.getElementById('course-search-container');
       if (wrap && !wrap.querySelector('.cs-wrap')) initCourseSearch();
+      renderMyCompetitions();
     }
   },
   closeProfilePanel

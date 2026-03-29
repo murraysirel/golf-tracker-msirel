@@ -270,6 +270,58 @@ export function renderCompetitionSetupModal() {
   });
 }
 
+// ── My Competitions list (shown in Round tab) ───────────────────
+
+export async function renderMyCompetitions() {
+  const el = document.getElementById('my-competitions-list');
+  if (!el) return;
+  if (!state.me) { el.innerHTML = ''; return; }
+
+  let comps = [];
+  try {
+    const res = await querySupabase('getMyCompetitions', { playerName: state.me });
+    comps = res?.competitions || [];
+  } catch { /* ignore */ }
+
+  if (!comps.length) {
+    el.innerHTML = '';
+    return;
+  }
+
+  const statusLabel = { setup: 'Setting up', active: 'Live', complete: 'Complete' };
+  const statusColor = { setup: 'var(--dim)', active: 'var(--par)', complete: 'var(--gold)' };
+
+  el.innerHTML = `<div style="font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:8px;padding:0 2px">My Competitions</div>` +
+    comps.map(c => {
+      const players = c.players?.length || 0;
+      const rounds = c.rounds_config?.length || 0;
+      const fmt = (c.format || '').replace('_', ' ');
+      const status = statusLabel[c.status] || c.status;
+      const sColor = statusColor[c.status] || 'var(--dim)';
+      return `<div class="comp-list-item" data-comp-id="${c.id}" style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--mid);border-radius:10px;margin-bottom:6px;cursor:pointer;border:1px solid var(--wa-06);transition:border-color .15s">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</div>
+          <div style="font-size:10px;color:var(--dim);margin-top:2px">${fmt} · ${players} player${players !== 1 ? 's' : ''} · ${rounds} round${rounds !== 1 ? 's' : ''}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:10px;font-weight:600;color:${sColor}">${status}</div>
+          <div style="font-size:10px;color:var(--dimmer);margin-top:1px">${c.code}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+  // Wire click → navigate to competition view
+  el.querySelectorAll('.comp-list-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const compId = item.dataset.compId;
+      const comp = comps.find(c => c.id === compId);
+      state.activeCompetitionId = compId;
+      state.activeCompetition = comp || null;
+      import('./nav.js').then(({ goTo }) => goTo('competition'));
+    });
+  });
+}
+
 // ── AI Commentary ────────────────────────────────────────────────
 
 async function callAI(prompt) {
