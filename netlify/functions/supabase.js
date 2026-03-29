@@ -716,6 +716,7 @@ exports.handler = async (event) => {
       if (updates.team_a !== undefined) allowed.team_a = updates.team_a;
       if (updates.team_b !== undefined) allowed.team_b = updates.team_b;
       if (updates.rounds_config !== undefined) allowed.rounds_config = updates.rounds_config;
+      if (updates.commentary !== undefined) allowed.commentary = updates.commentary;
       const { error: uErr } = await supabase.from('competitions').update(allowed).eq('id', competitionId);
       if (uErr) throw uErr;
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };

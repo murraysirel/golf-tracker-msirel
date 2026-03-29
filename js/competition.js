@@ -9,6 +9,12 @@ import { calcStableford, parseDateGB } from './stats.js';
 import { initials, avatarHtml } from './players.js';
 import { getCourseByRef } from './courses.js';
 
+let _compCommentaryGenerators = null;
+try {
+  const m = await import('./competition-setup.js');
+  _compCommentaryGenerators = { preview: m.generateCompPreview, halftime: m.generateHalftimeSummary, final: m.generateFinalSummary };
+} catch { /* not yet available */ }
+
 let _lastSnapshot = null;
 let _pollInterval = null;
 let _feed = [];
@@ -113,6 +119,8 @@ export async function initCompetition() {
   }
   renderActivityFeed();
   renderCompAdmin();
+  renderCompCommentary();
+  if (state.activeCompetitionId) checkAutoCommentary();
   updatePollStatus();
 
   if (!_pollInterval) {
@@ -162,6 +170,7 @@ async function renderCompSelector() {
         renderCompLeaderboard();
       }
       renderCompAdmin();
+      renderCompCommentary();
     });
   });
 }
@@ -399,6 +408,161 @@ function renderCompAdmin() {
       if (msg) msg.textContent = 'Error. Try again.';
     }
   });
+}
+
+// ── AI Commentary ────────────────────────────────────────────────
+
+function renderCommentaryCard(type, label, text, comp, isAdmin) {
+  const regen = isAdmin ? `<button class="btn btn-ghost comp-regen-btn" data-type="${type}" style="font-size:10px;padding:4px 12px;margin-top:8px">Regenerate</button>` : '';
+  const copy = `<button class="comp-copy-btn" style="background:none;border:none;color:var(--gold);font-size:10px;cursor:pointer;margin-top:8px;margin-left:8px" data-text="${text.replace(/"/g, '&quot;')}">Copy to share</button>`;
+  return `<div style="border:1px solid rgba(201,168,76,.3);border-radius:14px;padding:16px;margin-bottom:10px;background:rgba(201,168,76,.04)">
+    <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:8px">${label}</div>
+    <div style="font-size:13px;color:var(--cream);line-height:1.6">${text}</div>
+    <div style="display:flex;align-items:center">${regen}${copy}</div>
+  </div>`;
+}
+
+function renderCompCommentary() {
+  const el = document.getElementById('comp-commentary');
+  if (!el) return;
+  const comp = state.activeCompetition;
+  if (!comp) { el.innerHTML = ''; return; }
+
+  const commentary = comp.commentary || {};
+  const isAdmin = (comp.admin_players || []).includes(state.me);
+  let html = '';
+
+  if (commentary.preview) html += renderCommentaryCard('preview', 'Preview', commentary.preview, comp, isAdmin);
+  if (commentary.halftime) html += renderCommentaryCard('halftime', 'Half-time', commentary.halftime, comp, isAdmin);
+  if (commentary.final) html += renderCommentaryCard('final', 'Final Summary', commentary.final, comp, isAdmin);
+
+  // Admin-only: Generate preview button (only if no preview exists yet)
+  if (isAdmin && !commentary.preview) {
+    html += `<button class="btn btn-ghost" id="comp-gen-preview-btn" style="width:100%;font-size:12px;margin-bottom:10px">Generate Preview Card</button>`;
+  }
+
+  el.innerHTML = html;
+
+  // Wire regenerate buttons
+  el.querySelectorAll('.comp-regen-btn').forEach(btn => {
+    btn.addEventListener('click', async () => { await triggerCommentary(btn.dataset.type); });
+  });
+  // Wire copy buttons
+  el.querySelectorAll('.comp-copy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      navigator.clipboard?.writeText(btn.dataset.text).then(() => { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'Copy to share'; }, 2000); });
+    });
+  });
+  // Wire generate preview
+  document.getElementById('comp-gen-preview-btn')?.addEventListener('click', async () => { await triggerCommentary('preview'); });
+}
+
+async function triggerCommentary(type) {
+  if (!_compCommentaryGenerators) return;
+  const comp = state.activeCompetition;
+  if (!comp) return;
+
+  const el = document.getElementById('comp-commentary');
+  if (el) {
+    const existing = el.innerHTML;
+    el.innerHTML = `<div style="text-align:center;padding:16px;font-size:12px;color:var(--dim)"><span class="spin"></span> Generating ${type} commentary...</div>` + existing;
+  }
+
+  let text = '';
+  try {
+    if (type === 'preview') {
+      text = await _compCommentaryGenerators.preview(comp);
+    } else {
+      // Build standings for halftime/final
+      const standings = getCompStandings(comp);
+      if (type === 'halftime') text = await _compCommentaryGenerators.halftime(comp, standings);
+      else text = await _compCommentaryGenerators.final(comp, standings);
+    }
+  } catch { text = 'Commentary generation failed.'; }
+
+  if (!text) text = 'No commentary generated.';
+
+  // Save to competition
+  const commentary = { ...(comp.commentary || {}), [type]: text };
+  try {
+    await querySupabase('updateCompetition', {
+      competitionId: comp.id,
+      playerName: state.me,
+      updates: { commentary }
+    });
+    comp.commentary = commentary;
+    state.activeCompetition = comp;
+  } catch { /* save failed — still show locally */ }
+
+  renderCompCommentary();
+}
+
+// Build standings array for commentary prompts
+function getCompStandings(comp) {
+  const fmt = comp.format || 'stableford';
+  const roundsConfig = comp.rounds_config || [];
+  const hcpOverrides = comp.hcp_overrides || {};
+  const configDates = new Set(roundsConfig.map(rc => rc.date).filter(Boolean));
+
+  const entries = (comp.players || []).map(name => {
+    const playerData = state.gd.players?.[name];
+    const allRounds = playerData?.rounds || [];
+    const compRounds = configDates.size > 0 ? allRounds.filter(r => configDates.has(r.date)) : allRounds;
+    const handicap = hcpOverrides[name] ?? playerData?.handicap ?? 0;
+    let aggregate = 0;
+
+    if (fmt === 'stableford') {
+      compRounds.forEach(r => {
+        if (!r.scores || !r.pars) return;
+        const s = calcStableford(r.scores, r.pars, handicap, r.slope, null);
+        if (s != null) aggregate += s;
+      });
+    } else if (fmt === 'stroke_net') {
+      compRounds.forEach(r => {
+        if (!r.totalScore) return;
+        aggregate += r.totalScore - Math.round(handicap * (r.slope || 113) / 113);
+      });
+    } else {
+      compRounds.forEach(r => { if (r.totalScore) aggregate += r.totalScore; });
+    }
+
+    return { name, roundsPlayed: compRounds.length, aggregate, handicap };
+  });
+
+  if (fmt === 'stableford') entries.sort((a, b) => (b.aggregate ?? -1) - (a.aggregate ?? -1));
+  else entries.sort((a, b) => {
+    if (a.roundsPlayed === 0) return 1; if (b.roundsPlayed === 0) return -1;
+    return (a.aggregate ?? 999) - (b.aggregate ?? 999);
+  });
+
+  return entries;
+}
+
+// Auto-trigger halftime/final commentary when conditions are met
+async function checkAutoCommentary() {
+  const comp = state.activeCompetition;
+  if (!comp || !_compCommentaryGenerators) return;
+  if (!(comp.admin_players || []).includes(state.me)) return;
+
+  const roundsConfig = comp.rounds_config || [];
+  if (roundsConfig.length < 2) return;
+
+  const commentary = comp.commentary || {};
+  const standings = getCompStandings(comp);
+  const playersWithRounds = standings.filter(s => s.roundsPlayed > 0);
+
+  // Halftime: all players completed round 1, no one started round 2, no halftime yet
+  const allDoneR1 = playersWithRounds.length === (comp.players || []).length && playersWithRounds.every(s => s.roundsPlayed >= 1);
+  const noR2Yet = playersWithRounds.every(s => s.roundsPlayed <= 1);
+  if (allDoneR1 && noR2Yet && !commentary.halftime) {
+    await triggerCommentary('halftime');
+  }
+
+  // Final: all players completed all rounds, no final yet
+  const allDone = playersWithRounds.length === (comp.players || []).length && playersWithRounds.every(s => s.roundsPlayed >= roundsConfig.length);
+  if (allDone && !commentary.final) {
+    await triggerCommentary('final');
+  }
 }
 
 // ── Today's leaderboard (existing) ───────────────────────────────

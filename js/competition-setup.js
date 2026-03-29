@@ -169,6 +169,69 @@ export function renderCompetitionSetupModal() {
   });
 }
 
+// ── AI Commentary ────────────────────────────────────────────────
+
+async function callAI(prompt) {
+  const res = await fetch('/.netlify/functions/ai', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 300,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  const data = await res.json();
+  return data?.content?.[0]?.text || data?.error || '';
+}
+
+function buildPlayerSummary(comp) {
+  const players = comp.players || [];
+  return players.map(name => {
+    const p = state.gd.players?.[name];
+    const hcp = comp.hcp_overrides?.[name] ?? p?.handicap ?? '?';
+    const recentWith = (p?.rounds || []).slice(-5).flatMap(r => r.playedWith || []);
+    const rivals = [...new Set(recentWith)].filter(n => players.includes(n)).slice(0, 2);
+    return `${name} (HCP ${hcp})${rivals.length ? ' — recently played with ' + rivals.join(', ') : ''}`;
+  }).join('\n');
+}
+
+export async function generateCompPreview(comp) {
+  const courses = (comp.rounds_config || []).map(r => r.course).filter(Boolean).join(', ') || 'TBC';
+  const numRounds = (comp.rounds_config || []).length || '?';
+  const fmt = (comp.format || '').replace('_', ' ');
+  const prompt = `Competition: "${comp.name}"
+Format: ${fmt}, ${numRounds} round(s), Course(s): ${courses}
+Players:
+${buildPlayerSummary(comp)}
+
+Write a short, punchy, tongue-in-cheek competition preview for a group of amateur golfers. 2-3 sentences max. Mention 1-2 players by name. Tone: sports desk meets golf club bar. End with a one-line call to action to join. Do not use markdown formatting.`;
+  return callAI(prompt);
+}
+
+export async function generateHalftimeSummary(comp, standings) {
+  const fmt = (comp.format || '').replace('_', ' ');
+  const leader = standings[0];
+  const leaderStr = leader ? `${leader.name} leads with ${leader.aggregate} ${fmt === 'stableford' ? 'pts' : 'total'}` : 'No clear leader';
+  const prompt = `Competition: "${comp.name}" (${fmt})
+Current standings after round 1:
+${standings.map((s, i) => `${i + 1}. ${s.name} — ${s.aggregate} (${s.roundsPlayed} round(s))`).join('\n')}
+
+Write a half-time summary for an amateur golf competition. 2-3 sentences. Tongue-in-cheek tone. Mention the leader by name, one notable performance (good or bad), and raise the stakes for the next round. Do not use markdown formatting.`;
+  return callAI(prompt);
+}
+
+export async function generateFinalSummary(comp, standings) {
+  const fmt = (comp.format || '').replace('_', ' ');
+  const winner = standings[0];
+  const prompt = `Competition: "${comp.name}" (${fmt})
+Final standings:
+${standings.map((s, i) => `${i + 1}. ${s.name} — ${s.aggregate} (${s.roundsPlayed} round(s))`).join('\n')}
+
+Write the final summary for an amateur golf competition. 3-4 sentences. Announce the winner by name. Mention one heroic moment and one disaster. Tone: mock-serious sports commentary. End with a one-liner that will get a laugh in the group chat. Do not use markdown formatting.`;
+  return callAI(prompt);
+}
+
 // ── Join modal ───────────────────────────────────────────────────
 const COMP_CODE_RE = /^COMP[A-Z]{2}\d{4}$/;
 
