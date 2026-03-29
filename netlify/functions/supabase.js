@@ -241,31 +241,43 @@ exports.handler = async (event) => {
     // ── publishLiveRound ─────────────────────────────────────────────
     if (action === 'publishLiveRound') {
       const { round } = data;
-      await supabase.from('active_rounds').upsert({
-        id: round.id,
-        group_code: groupCode,
-        host: round.host,
-        players: round.players,
-        course: round.course || '',
-        tee: round.tee || '',
-        hole: round.hole || 0,
-        scores: round.scores || {},
-        putts: round.putts || {},
-        pars: round.pars || [],
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'id' });
+      try {
+        await supabase.from('active_rounds').upsert({
+          id: round.id,
+          group_code: groupCode,
+          host: round.host,
+          players: round.players,
+          course: round.course || '',
+          tee: round.tee || '',
+          hole: round.hole || 0,
+          scores: round.scores || {},
+          putts: round.putts || {},
+          pars: round.pars || [],
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
+      } catch (e) {
+        console.warn('[publishLiveRound]', e.message);
+      }
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     }
 
     // ── pollGroupInvites ─────────────────────────────────────────────
     if (action === 'pollGroupInvites') {
-      const { data: rows, error } = await supabase
-        .from('active_rounds')
-        .select('*')
-        .eq('group_code', groupCode)
-        .order('updated_at', { ascending: false });
-      if (error) throw error;
-      return { statusCode: 200, headers, body: JSON.stringify({ rounds: rows || [] }) };
+      try {
+        const { data: rows, error } = await supabase
+          .from('active_rounds')
+          .select('*')
+          .eq('group_code', groupCode)
+          .order('updated_at', { ascending: false });
+        if (error) {
+          // Graceful: return empty instead of 500 (table may not exist yet)
+          console.warn('[pollGroupInvites]', error.message);
+          return { statusCode: 200, headers, body: JSON.stringify({ rounds: [] }) };
+        }
+        return { statusCode: 200, headers, body: JSON.stringify({ rounds: rows || [] }) };
+      } catch (e) {
+        return { statusCode: 200, headers, body: JSON.stringify({ rounds: [] }) };
+      }
     }
 
     // ── fetchLiveRound ───────────────────────────────────────────────
