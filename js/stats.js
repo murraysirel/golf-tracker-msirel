@@ -6,9 +6,12 @@ import { TC } from './constants.js';
 import { pushData, pushSupabase } from './api.js';
 import { initials, refreshAvatarUI, avatarHtml } from './players.js';
 
-// Empty state — guarded import so app works if file is added incrementally
+// Empty state — lazy-loaded on first use (no top-level await)
 let _emptyState = null;
-try { const m = await import('./empty-states.js'); _emptyState = m.emptyState; } catch { /* not yet available */ }
+function _es(icon, headline, sub, ctaText, ctaAction) {
+  if (_emptyState === null) { import('./empty-states.js').then(m => { _emptyState = m.emptyState; }).catch(() => { _emptyState = false; }); }
+  return typeof _emptyState === 'function' ? _emptyState(icon, headline, sub, ctaText, ctaAction) : null;
+}
 
 // Chart instances container
 const CH = {};
@@ -580,9 +583,8 @@ function renderMatesFeed() {
   matesEl.innerHTML = '';
 
   if (!capped.length) {
-    matesEl.innerHTML = typeof _emptyState === 'function'
-      ? _emptyState('👥', 'Quiet out there', 'When your group posts rounds, birdies and milestones appear here.', 'See the leaderboard', "import('./nav.js').then(m=>m.goTo('leaderboard'))")
-      : '<div style="background:var(--mid);border-radius:12px;padding:14px;font-size:10px;color:var(--dimmer);text-align:center">No group activity yet — rounds will appear here</div>';
+    matesEl.innerHTML = _es('👥', 'Quiet out there', 'When your group posts rounds, birdies and milestones appear here.', 'See the leaderboard', "import('./nav.js').then(m=>m.goTo('leaderboard'))")
+      || '<div style="background:var(--mid);border-radius:12px;padding:14px;font-size:10px;color:var(--dimmer);text-align:center">No group activity yet — rounds will appear here</div>';
     return;
   }
 
@@ -662,9 +664,8 @@ export function renderHomeStats() {
   const recent = document.getElementById('home-recent');
   if (!recent) return;
   if (!rs.length) {
-    recent.innerHTML = typeof _emptyState === 'function'
-      ? _emptyState('⛳', 'No rounds yet', 'Play your first round and your stats will build up here automatically.', 'Record a round', "import('./nav.js').then(m=>m.goTo('round'))")
-      : '<div style="font-size:12px;color:var(--dimmer);padding:12px 0;text-align:center">No rounds yet — add your first!</div>';
+    recent.innerHTML = _es('⛳', 'No rounds yet', 'Play your first round and your stats will build up here automatically.', 'Record a round', "import('./nav.js').then(m=>m.goTo('round'))")
+      || '<div style="font-size:12px;color:var(--dimmer);padding:12px 0;text-align:center">No rounds yet — add your first!</div>';
     return;
   }
   recent.innerHTML = '';
@@ -1129,9 +1130,8 @@ export function renderStats() {
 
   const hist = document.getElementById('st-hist');
   if (!allSorted.length) {
-    hist.innerHTML = typeof _emptyState === 'function'
-      ? _emptyState('⛳', 'No rounds yet', 'Play your first round and your stats will build up here automatically.', 'Record a round', "import('./nav.js').then(m=>m.goTo('round'))")
-      : '<div class="empty">No rounds yet</div>';
+    hist.innerHTML = _es('⛳', 'No rounds yet', 'Play your first round and your stats will build up here automatically.', 'Record a round', "import('./nav.js').then(m=>m.goTo('round'))")
+      || '<div class="empty">No rounds yet</div>';
     return;
   }
   hist.innerHTML = '';

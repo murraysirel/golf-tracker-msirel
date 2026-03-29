@@ -6,7 +6,10 @@ import { pushData, querySupabase } from './api.js';
 import { parseDateGB } from './stats.js';
 
 let _emptyState = null;
-try { const m = await import('./empty-states.js'); _emptyState = m.emptyState; } catch { /* not yet available */ }
+function _es(icon, headline, sub, ctaText, ctaAction) {
+  if (_emptyState === null) { import('./empty-states.js').then(m => { _emptyState = m.emptyState; }).catch(() => { _emptyState = false; }); }
+  return typeof _emptyState === 'function' ? _emptyState(icon, headline, sub, ctaText, ctaAction) : null;
+}
 
 const AREA_LABELS = {
   putting: 'Putting', chipping: 'Chipping', pitching: 'Pitching',
@@ -54,9 +57,8 @@ function renderPracticeHistory() {
   if (!card || !list) return;
   if (!sessions.length) {
     card.style.display = 'block';
-    list.innerHTML = typeof _emptyState === 'function'
-      ? _emptyState('🎯', 'No practice sessions yet', 'Generate a plan, work through the drills, and your sessions log here.', 'Build a practice plan', "import('./practice.js').then(m=>m.selectPracticeArea('ai_recommended'))")
-      : '<div style="font-size:12px;color:var(--dimmer);padding:12px 0;text-align:center">No sessions logged yet.</div>';
+    list.innerHTML = _es('🎯', 'No practice sessions yet', 'Generate a plan, work through the drills, and your sessions log here.', 'Build a practice plan', "import('./practice.js').then(m=>m.selectPracticeArea('ai_recommended'))")
+      || '<div style="font-size:12px;color:var(--dimmer);padding:12px 0;text-align:center">No sessions logged yet.</div>';
     return;
   }
   card.style.display = 'block';

@@ -11,7 +11,10 @@ import { removeGroupFromList } from './group.js';
 import { goTo } from './nav.js';
 
 let _emptyState = null;
-try { const m = await import('./empty-states.js'); _emptyState = m.emptyState; } catch { /* not yet available */ }
+function _es(icon, headline, sub, ctaText, ctaAction) {
+  if (_emptyState === null) { import('./empty-states.js').then(m => { _emptyState = m.emptyState; }).catch(() => { _emptyState = false; }); }
+  return typeof _emptyState === 'function' ? _emptyState(icon, headline, sub, ctaText, ctaAction) : null;
+}
 
 // Maps CREATE_BOARDS ids → their wrapping card's data-board-id attribute
 const TOGGLEABLE_BOARD_IDS = ['season', 'scoring_gross', 'scoring_net', 'stableford', 'net_score', 'buffer', 'best_gross', 'fewest_doubles'];
@@ -311,9 +314,8 @@ export function renderLeaderboard() {
     };
   }).filter(Boolean).sort((a, b) => (a.avgDiff ?? 99) - (b.avgDiff ?? 99));
 
-  const emptyMsg = typeof _emptyState === 'function'
-    ? _emptyState('🏆', 'Leaderboard is waiting', 'Rankings appear once two or more players have recorded rounds.', 'Invite someone', "import('./group.js').then(m=>m.copyAppUrl())")
-    : '<div class="empty" style="padding:24px 0"><div style="font-size:28px;margin-bottom:8px">\u2014</div><div style="font-size:13px">No rounds this season yet</div></div>';
+  const emptyMsg = _es('🏆', 'Leaderboard is waiting', 'Rankings appear once two or more players have recorded rounds.', 'Invite someone', "import('./group.js').then(m=>m.copyAppUrl())")
+    || '<div class="empty" style="padding:24px 0"><div style="font-size:28px;margin-bottom:8px">\u2014</div><div style="font-size:13px">No rounds this season yet</div></div>';
 
   if (!players.length) {
     ['lb-list','lb-birdies','lb-scoring-net','lb-stableford','lb-net','lb-buffer','lb-best-stab','lb-best-birdies','lb-best-round','lb-doubles'].forEach(id => {

@@ -10,10 +10,9 @@ import { initials, avatarHtml } from './players.js';
 import { getCourseByRef } from './courses.js';
 
 let _compCommentaryGenerators = null;
-try {
-  const m = await import('./competition-setup.js');
+import('./competition-setup.js').then(m => {
   _compCommentaryGenerators = { preview: m.generateCompPreview, halftime: m.generateHalftimeSummary, final: m.generateFinalSummary };
-} catch { /* not yet available */ }
+}).catch(() => {});
 
 let _lastSnapshot = null;
 let _pollInterval = null;
