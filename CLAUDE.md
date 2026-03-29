@@ -46,17 +46,17 @@ Netlify hosts both the static frontend and all serverless functions. No build st
 | `nav.js` | SPA routing: `goTo(page)`, `switchEntry(type)`, `registerNavHandlers()` (circular-dep workaround) |
 | `api.js` | `loadAppData()` / `loadGroupData()` / `pushData()` / `pushSupabase()` / `querySupabase()` / `retryUnsyncedRounds()` — Supabase data sync; `ss()` updates the status dot |
 | `scorecard.js` | `buildSC()` renders the 18-hole input table; `saveRound()` collects DOM values, computes breakdown, appends to `state.gd`, calls `pushData()` then `pushSupabase()` fire-and-forget |
-| `live.js` | Hole-by-hole live scoring UI; multi-player group mode; match play tracking; `publishLiveState()` for real-time sharing; `cancelRound()` resets live state; syncs back to manual scorecard before saving |
+| `live.js` | Hole-by-hole live scoring UI; running score shows gross vs par (big) + net vs par (small); multi-player group mode; match play tracking; `publishLiveState()` for real-time sharing; `cancelRound()` resets live state; `liveGroupSave()` saves group rounds directly (tee data is optional — missing tee never blocks save) |
 | `live-invite.js` | Real-time round invite polling, toast dismissal, join/leave live round, view/edit mode toggle; `startInvitePolling()`, `joinLiveRound()`, `minimiseLiveView()`, `submitEditorScore()` |
 | `overlay.js` | Match overlay display and controls; `initMatchOverlay()`, `showMatchOverlay()`, `hideMatchOverlay()`, `showEndRoundConfirm()` |
 | `competition.js` | Competition tab — activity feed (eagles, birdies, submissions) + live leaderboard; polls Supabase every 45 s; supports Stableford and Gross modes |
-| `stats.js` | KPI cards, five Chart.js charts, Stableford calculator, `calcScoringPointsNet()`, handicap edit, round history list; `parseDateGB()` used app-wide |
-| `leaderboard.js` | Nine season-filtered ranking panels; imports `calcStableford` and `isBufferOrBetter` from `stats.js` |
+| `stats.js` | KPI cards, five Chart.js charts, Stableford calculator, `calcScoringPointsNet()`, handicap edit, round history list; `parseDateGB()` used app-wide; `renderMatesFeed()` generates the home-screen activity highlights feed |
+| `leaderboard.js` | Nine season-filtered ranking panels; imports `calcStableford` and `isBufferOrBetter` from `stats.js`; `filterRounds()` excludes rounds before a player's `joinedAt` date |
 | `players.js` | Onboarding/sign-in, player management, initials generation, "who's playing today" selector, avatar upload |
-| `courses.js` | Course search UI (`initCourseSearch()` mounts into `#course-search-container`), `getCourseByRef()` returns active course object, `clearCourseSelection()` resets it; AI course-card scanner; custom course CRUD; `_applyCourse()` sets `state.cpars`/`state.activeCourse` and rebuilds the scorecard |
+| `courses.js` | Course search UI (`initCourseSearch()` mounts into `#course-search-container`), `getCourseByRef()` returns active course object, `clearCourseSelection()` resets it; `_applyCourse()` sets `state.cpars`/`state.activeCourse` and rebuilds the scorecard. Custom course creation has been removed — all courses come from GolfAPI. |
 | `gps.js` | `watchPosition` GPS, Haversine distance-to-green, tee/green coord pinning, drive logging stored in `state.gd` |
 | `ai.js` | Scorecard photo parsing, post-round coaching review, multi-round stats analysis — all via `/.netlify/functions/ai` |
-| `practice.js` | AI practice-plan generation (Claude), session logging with drill-by-drill shot counting |
+| `practice.js` | AI practice-plan generation (Claude) with preset areas or free-text custom requests, session logging with drill-by-drill shot counting |
 | `group.js` | Group code/season CRUD, board setup, "delete my data", clipboard helpers; `initJoinGroup()`, `initCreateGroup()`, `initGroupSettings()`, `showBoardPage()` |
 | `group-match.js` | Group match creation/joining modals and active-match badge; `openCreateMatchModal()`, `openJoinMatchModal()`, `updateGroupMatchButtonVisibility()`, `updateActiveMatchBadge()` |
 | `admin.js` | Password-protected admin panel — round deletion (logged to `deletionLog`), course-correction application, GolfAPI usage check, demo seeding |
@@ -147,7 +147,7 @@ state = {
 players       — name, email, auth_user_id, handicap, dob, avatar_url
 rounds        — player_id, group_code, date, course, scores[], pars[], putts[], fir[], gir[], rating, slope, wolf_result, sixes_result, ...
 groups        — code, name
-group_members — player_id (FK players.name), group_id
+group_members — player_id (FK players.name), group_id, joined_at (timestamptz, DEFAULT now())
 user_sessions — id (sessionId), user_id, device_hint, last_seen_at
 active_matches — live round state for real-time sharing
 courses       — external_course_id, name, location, country, tees (JSONB), green_coords (JSONB), has_hole_data, ...
@@ -163,6 +163,8 @@ api_call_log  — timestamp, endpoint, course_name, was_cache_hit, details (JSON
   players: {
     "Player Name": {
       handicap: number,
+      dob: string|null,
+      joinedAt: string|null,       // ISO timestamp from group_members.joined_at — rounds before this date excluded from leaderboards
       rounds: [ Round ],
       practiceSessions: [ PracticeSession ],
       statsAnalysis: { positive, negative, drill, handicap },
@@ -341,7 +343,7 @@ The browser never talks to Supabase directly. All auth (sign-in, sign-up, token 
 | `auth.js` | `/.netlify/functions/auth` | `SUPABASE_ANON_KEY` + `SUPABASE_SERVICE_KEY` (server) | Supabase Auth proxy — sign-in, sign-up, magic link, token refresh, sign-out, session listing |
 | `supabase.js` | `/.netlify/functions/supabase` | `SUPABASE_SERVICE_KEY` (server) | Supabase CRUD — read/saveRound/updateHandicap/deleteRound/saveMatch/active_matches |
 | `ai.js` | `/.netlify/functions/ai` | `ANTHROPIC_API_KEY` (server) | Photo OCR, coaching review, stats analysis via Claude |
-| `courses.js` | `/.netlify/functions/courses` | `GOLFAPI_KEY` (server) | GolfAPI.io search + detail fetch; results cached in Supabase; actions: search, fetch, usage, diagnose, fix-bad-data, report, inspect |
+| `courses.js` | `/.netlify/functions/courses` | `GOLFAPI_KEY` (server) | GolfAPI.io search + detail fetch; results cached in Supabase (fields `pars`, `stroke_indexes`, `overall_par`, `tee_types`, `club_name`, `city`, `holes`, `has_gps`, `data_source`, `data_quality`, `report_count` are stripped from upsert — not in DB schema); actions: search, fetch, usage, diagnose, fix-bad-data, report, inspect |
 | `demo-data.js` | `/.netlify/functions/demo-data` | None | Returns in-memory DEMO01 demo data (no DB, no auth) |
 | `seed-demo.js` | `/.netlify/functions/seed-demo` | `x-admin-key` header | Seeds DEMO01 group (8 players, 40 outings) into Supabase |
 | `run-seed-demo.js` | `/.netlify/functions/run-seed-demo` | Injected server-side | Admin trigger — proxies seed-demo with `SYNC_SECRET` |
@@ -367,6 +369,17 @@ All variables are set in the Netlify dashboard. None are ever sent to the browse
 
 | Date | Change |
 |---|---|
+| 2026-03-29 | **Activity highlights feed** — `renderMatesFeed()` in `stats.js` rewritten from static mini-leaderboard to event-driven feed showing birdies (2+), eagles, net eagles, season-best net rounds, and stableford >36 alerts from the last 7 days |
+| 2026-03-29 | **Custom practice requests** — free-text input (`#practice-custom-input`) added below the area grid; `generatePracticePlan(area, customRequest)` in `practice.js` accepts optional custom focus text passed to the AI prompt |
+| 2026-03-29 | **Sign-up toggle restyle** — onboarding theme/distance toggles swapped from `.tab-bar`/`.tab` to `.theme-toggle-wrap`/`.theme-tab` classes to match settings page |
+| 2026-03-29 | **Custom course creation removed** — "Add a course" button, `#entry-course` section (search/scan/review), `#scanned-courses-card` all removed from `index.html`; round entry grid changed to 2-column; `switchEntry('course')` path guarded in `nav.js` |
+| 2026-03-29 | **Leaderboard join-date filtering** — `group_members.joined_at` fetched via `read` action in `supabase.js`, returned as `memberJoinDates` map; stored as `state.gd.players[name].joinedAt` in `api.js`; `filterRounds(rounds, playerName)` in `leaderboard.js` excludes rounds before join date |
+| 2026-03-29 | **Live scoring vs par** — `liveUpdateRunning()` in `live.js` shows gross vs par (E/+3/−2) as primary display with net vs par below; par only accumulates for holes with scores entered (fixes −55 bug); HTML restructured to stack vertically |
+| 2026-03-29 | **Tee data non-blocking** — `liveGroupSave()` no longer blocks on missing tee data; tee lookup fixed from `course.tees[state.stee]` (object access) to `.find(t => t.colour === state.stee)` (array search); rating/slope are null if no tee matched |
+| 2026-03-29 | **Course Supabase persistence fix** — `overall_par` and `tee_types` stripped from upsert payload in `netlify/functions/courses.js` (columns don't exist in DB); added error logging on upsert failure |
+| 2026-03-29 | **DOB display fix** — `dob` added to `getPlayerByAuthId` SELECT and response in `supabase.js`; stored in `state.gd.players[me].dob` at boot in `api.js` |
+| 2026-03-29 | **Admin panel scroll fix** — `max-height:85vh; overflow-y:auto` added to admin modal inner container; duplicate `display:none` removed from outer div |
+| 2026-03-29 | **Group code removed from settings** — group code card (code display, copy button, require-code toggle) removed from profile panel; codes only appear in leagues tab |
 | 2026-03-28 | **Legacy Gist & field name cleanup** — deleted `sync.js`, `migrate-gist-to-supabase.js`, `run-migration.js` (all dead Netlify functions); removed `DEFAULT_GIST` and `API` constants from `constants.js`; removed `adminRunMigration()` and its admin panel UI; renamed `pushGist`→`pushData` across all 13 call-site modules; removed both migration aliases from `api.js`; normalised built-in course field names in `constants.js` (`par`→`pars_per_hole`, `r`→`rating`, `s`→`slope`, `y`→`yardage`, `hy`→`yards_per_hole`, `tp` removed); removed legacy `|| t.r` / `|| tee.hy` fallback guards from `courses.js`, `live.js`, `scorecard.js`, `admin.js`; fixed `rr_me`→`rrg_me` in `demo.js` |
 | 2026-03-28 | **Session persistence fix** — `refreshIfNeeded()` in `auth.js` no longer calls `clearSession()` on network errors (only on genuine 401); `loadGroupData()` failure in `api.js` now falls back to localStorage cache instead of bubbling to boot catch; boot catch in `app.js` now tries `enterAs()` with cached data before falling back to `renderLogin()` |
 | 2026-03-28 | **Course API fixes** — `sbSelect()` in `netlify/functions/courses.js` now throws on non-array Supabase responses so errors surface in logs; search action falls through to GolfAPI fallback on any Supabase error rather than returning `db_error`; removed `overall_par` and `tee_types` from `searchCache` SELECT (columns need migration); `pars` and `stroke_indexes` stripped from Supabase upsert (columns don't exist); GolfAPI search now expands `club.courses[]` into individual course entries with correct course IDs; `apiRequestsLeft` captured from GolfAPI responses; added `action=usage` (token balance) and `action=diagnose` endpoints; `cacheSucceeded` guard in `js/courses.js` prevents double-fetch on cache hit |
