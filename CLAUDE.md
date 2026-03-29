@@ -63,6 +63,7 @@ Netlify hosts both the static frontend and all serverless functions. No build st
 | `admin.js` | Password-protected admin panel — round deletion (logged to `deletionLog`), course-correction application, GolfAPI usage check, demo seeding |
 | `export.js` | XLSX export using global `XLSX` — two sheets: All Rounds + Hole Data |
 | `gamemodes.js` | Wolf / Match Play / Sixes game mode engines; `setGameMode()`, `updateFormatUI()`, Wolf state init/scoring/banners/scoreboard, Sixes 3-ball net points (4-2-0 scoring), `initSixesState()`, `getSixesStandings()` |
+| `friends.js` | Friends system — `sendFriendRequest()`, `respondToRequest()`, `pollNotifications()`, `startNotificationPolling()`, `initProfileTabs()`, `renderActionsTab()`, `renderFriendsTab()`, `getUnreadCount()` |
 | `empty-states.js` | `emptyState(icon, headline, subline, ctaText, ctaAction)` — reusable empty state renderer used across home, stats, leaderboard, practice |
 | `caddie.js` | `initCaddieButton()` — floating caddie pill button initialisation |
 | `demo.js` | `enterDemoMode()`, `exitDemoMode()`, `isDemoMode()` — demo group loaded from `/.netlify/functions/demo-data` with no auth |
@@ -154,6 +155,8 @@ user_sessions — id (sessionId), user_id, device_hint, last_seen_at
 active_matches — live round state for real-time sharing
 courses       — external_course_id, name, location, country, tees (JSONB), green_coords (JSONB), has_hole_data, ...
 competitions   — id (TEXT PK), code (COMP+2 letters+4 digits), name, created_by, admin_players TEXT[], format ('stableford'|'stroke_gross'|'stroke_net'|'matchplay'), team_format BOOLEAN, team_a/team_b TEXT[], rounds_config JSONB, players TEXT[], status ('setup'|'active'|'complete'), created_at
+friendships   — id (TEXT PK), requester, addressee, status ('pending'|'accepted'|'blocked'), created_at; UNIQUE(requester, addressee)
+notifications — id (TEXT PK), to_player, from_player, type ('friend_request'|'friend_accepted'), payload JSONB, read BOOLEAN, created_at
 api_call_log  — timestamp, endpoint, course_name, was_cache_hit, details (JSONB)
 ```
 
@@ -372,6 +375,7 @@ All variables are set in the Netlify dashboard. None are ever sent to the browse
 
 | Date | Change |
 |---|---|
+| 2026-03-29 | **Friends system** — `friendships` and `notifications` tables; `sendFriendRequest`, `respondFriendRequest`, `getFriends`, `getNotifications`, `markNotificationsRead` Supabase actions; `js/friends.js` with polling (60s), profile panel tabs (Settings/Actions/Friends), notification dot on avatar, accept/decline UI, add-friend flow with last-round display |
 | 2026-03-29 | **AI competition commentary** — `generateCompPreview()`, `generateHalftimeSummary()`, `generateFinalSummary()` in `competition-setup.js`; stored as `commentary: { preview, halftime, final }` JSONB on competition row; auto-triggers halftime/final when round milestones detected; admin-only generate/regenerate buttons; gold-bordered shareable cards with copy-to-clipboard; `commentary` added to `updateCompetition` allowed fields |
 | 2026-03-29 | **Competition mode phase 2** — `renderJoinCompetitionModal()` with client-side COMP code validation and live preview; `renderCompetitionLeaderboard()` aggregates scores across multi-round competitions by format (stableford/stroke_gross/stroke_net); `renderCompSelector()` pill strip switches between "Today" and active competitions; admin panel with handicap overrides, player roster, and share-admin flow; `getCompetition`, `getMyCompetitions`, `updateCompetition` Supabase actions; `hcp_overrides` JSONB column on competitions table; `activeCompetitionId`/`activeCompetition` added to state |
 | 2026-03-29 | **Competition mode setup** — `competitions` table added to Supabase (code format COMP+2 letters+4 digits); `js/competition-setup.js` created with create/join/lookup flows; `netlify/functions/supabase.js` gains `createCompetition`, `lookupCompetition`, `joinCompetition` actions; "Coming soon" replaced with working create modal and join flow |

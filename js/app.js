@@ -20,6 +20,7 @@ import { initCompetition } from './competition.js';
 import { renderCompetitionSetupModal, renderJoinCompetitionModal } from './competition-setup.js';
 import { state } from './state.js';
 import { initCaddieButton } from './caddie.js';
+import { initProfileTabs, startNotificationPolling } from './friends.js';
 import { setGameMode, updateFormatUI, confirmWolfOrder, showWolfScoreboard } from './gamemodes.js';
 import { openCreateMatchModal, openJoinMatchModal, updateGroupMatchButtonVisibility, updateActiveMatchBadge } from './group-match.js';
 import { initMatchOverlay, hideMatchOverlay, showEndRoundConfirm } from './overlay.js';
@@ -118,6 +119,7 @@ function closeProfilePanel() {
 document.getElementById('profile-icon-btn')?.addEventListener('click', openProfilePanel);
 document.getElementById('profile-panel-close')?.addEventListener('click', closeProfilePanel);
 document.getElementById('profile-backdrop')?.addEventListener('click', closeProfilePanel);
+initProfileTabs();
 
 // ── Onboard — 3-step sign-up flow ────────────────────────────────
 document.getElementById('onb-create-profile-btn')?.addEventListener('click', () => showSignupStep(1));
@@ -584,6 +586,7 @@ initMatchOverlay();
     updateActiveMatchBadge();
     updateUnsyncedBadge();
     startInvitePolling();
+    startNotificationPolling();
 
     // 5. Retry unsynced rounds silently; show prompt if still failing
     const syncedOk = await retryUnsyncedRounds();

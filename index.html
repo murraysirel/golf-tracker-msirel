@@ -401,9 +401,10 @@
       <span style="font-size:9px;letter-spacing:2px;font-weight:700;color:var(--gold);text-transform:uppercase">Demo</span>
       <button id="demo-exit-btn" style="display:none;background:none;border:none;color:var(--dim);font-size:11px;cursor:pointer;padding:0 0 0 4px;line-height:1" title="Exit demo">✕</button>
     </div>
-    <button class="profile-icon-btn avatar-btn" id="profile-icon-btn" title="Players &amp; Settings">
+    <button class="profile-icon-btn avatar-btn" id="profile-icon-btn" title="Players &amp; Settings" style="position:relative">
       <span class="avatar-initials" id="hdr-avatar-initials" style="font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;color:var(--gold)">?</span>
       <span class="avatar-close">✕</span>
+      <span id="profile-notif-dot" style="display:none;position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;border-radius:8px;background:var(--gold);color:var(--navy);font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 4px;font-family:'DM Sans',sans-serif">0</span>
     </button>
   </div>
 
@@ -1282,6 +1283,14 @@
       </div>
     </div>
     <input type="file" id="avatar-file-input" accept="image/*" style="display:none">
+    <!-- Profile tab strip -->
+    <div class="tab-bar" style="margin:0;padding:0 20px">
+      <button class="tab active profile-tab-btn" data-tab="settings">Settings</button>
+      <button class="tab profile-tab-btn" data-tab="actions">Actions <span id="profile-tab-actions-badge" style="display:none;background:var(--gold);color:var(--navy);border-radius:8px;padding:1px 5px;font-size:9px;font-weight:700;margin-left:4px">0</span></button>
+      <button class="tab profile-tab-btn" data-tab="friends">Friends</button>
+    </div>
+    <!-- Tab: Settings -->
+    <div id="profile-tab-settings">
     <!-- Appearance -->
     <div class="card" style="margin-bottom:13px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
@@ -1392,7 +1401,14 @@
           <button id="open-admin-btn" class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px;color:var(--dimmer)">🔒</button>
         </div>
       </div>
-    
+    </div><!-- /profile-tab-settings -->
+
+    <!-- Tab: Actions -->
+    <div id="profile-tab-actions" style="display:none;padding:0 20px 20px"></div>
+
+    <!-- Tab: Friends -->
+    <div id="profile-tab-friends" style="display:none;padding:0 20px 20px"></div>
+
   </div>
 
     <!-- Course Correction Report Modal -->

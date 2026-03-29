@@ -722,6 +722,101 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     }
 
+    // ── sendFriendRequest ──────────────────────────────────────────────
+    if (action === 'sendFriendRequest') {
+      const { from, to } = data;
+      if (!from || !to) return { statusCode: 400, headers, body: JSON.stringify({ error: 'from and to required' }) };
+      if (from === to) return { statusCode: 400, headers, body: JSON.stringify({ error: 'Cannot friend yourself' }) };
+      // Check for existing friendship in either direction
+      const { data: existing } = await supabase
+        .from('friendships')
+        .select('id, status')
+        .or(`and(requester.eq.${from},addressee.eq.${to}),and(requester.eq.${to},addressee.eq.${from})`)
+        .maybeSingle();
+      if (existing) {
+        return { statusCode: 200, headers, body: JSON.stringify({ ok: true, alreadyExists: true, status: existing.status }) };
+      }
+      const { data: row, error: fErr } = await supabase
+        .from('friendships')
+        .insert({ requester: from, addressee: to, status: 'pending' })
+        .select('*')
+        .single();
+      if (fErr) throw fErr;
+      // Create notification
+      await supabase.from('notifications').insert({
+        to_player: to,
+        from_player: from,
+        type: 'friend_request',
+        payload: { friendshipId: row.id }
+      });
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true, friendship: row }) };
+    }
+
+    // ── respondFriendRequest ─────────────────────────────────────────
+    if (action === 'respondFriendRequest') {
+      const { friendshipId, playerName, accept } = data;
+      if (!friendshipId || !playerName) return { statusCode: 400, headers, body: JSON.stringify({ error: 'friendshipId and playerName required' }) };
+      const newStatus = accept ? 'accepted' : 'blocked';
+      const { error: uErr } = await supabase
+        .from('friendships')
+        .update({ status: newStatus })
+        .eq('id', friendshipId)
+        .eq('addressee', playerName);
+      if (uErr) throw uErr;
+      // If accepted, notify the requester
+      if (accept) {
+        const { data: fr } = await supabase.from('friendships').select('requester').eq('id', friendshipId).maybeSingle();
+        if (fr?.requester) {
+          await supabase.from('notifications').insert({
+            to_player: fr.requester,
+            from_player: playerName,
+            type: 'friend_accepted',
+            payload: { friendshipId }
+          });
+        }
+      }
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+    }
+
+    // ── getFriends ───────────────────────────────────────────────────
+    if (action === 'getFriends') {
+      const { playerName } = data;
+      if (!playerName) return { statusCode: 400, headers, body: JSON.stringify({ error: 'playerName required' }) };
+      const { data: rows, error: fErr } = await supabase
+        .from('friendships')
+        .select('*')
+        .or(`requester.eq.${playerName},addressee.eq.${playerName}`);
+      if (fErr) throw fErr;
+      return { statusCode: 200, headers, body: JSON.stringify({ friendships: rows || [] }) };
+    }
+
+    // ── getNotifications ─────────────────────────────────────────────
+    if (action === 'getNotifications') {
+      const { playerName } = data;
+      if (!playerName) return { statusCode: 400, headers, body: JSON.stringify({ error: 'playerName required' }) };
+      const { data: rows, error: nErr } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('to_player', playerName)
+        .eq('read', false)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (nErr) throw nErr;
+      return { statusCode: 200, headers, body: JSON.stringify({ notifications: rows || [] }) };
+    }
+
+    // ── markNotificationsRead ────────────────────────────────────────
+    if (action === 'markNotificationsRead') {
+      const { ids } = data;
+      if (!ids?.length) return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+      const { error: mErr } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .in('id', ids);
+      if (mErr) throw mErr;
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+    }
+
     // ── getApiCallLog ─────────────────────────────────────────────────
     if (action === 'getApiCallLog') {
       const { data: rows, error: logErr } = await supabase
