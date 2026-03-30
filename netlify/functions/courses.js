@@ -370,6 +370,15 @@ exports.handler = async (event) => {
     }
 
     // 2. Supabase empty — fall back to GolfAPI.io (costs 0.1 credits per call)
+    //    Require 5+ chars before hitting the paid API to reduce costs in beta
+    if (name.length < 5) {
+      logCall('search', name, false, { country, results: 0, reason: 'below_api_threshold' });
+      return respond(200, {
+        courses: [],
+        source: 'cache_empty',
+        hint: 'Keep typing — we search the full course database once you enter 5+ characters.',
+      });
+    }
     if (GOLFAPI_KEY) {
       try {
         const apiRes = await golfApiSearchClubs(name, country);

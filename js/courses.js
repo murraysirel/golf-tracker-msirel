@@ -86,7 +86,7 @@ async function _runSearch(q) {
     // Built-in course fallback disabled — GolfAPI is live
 
     if (_lastResults.length === 0) {
-      _showResultsMsg('No courses found — try a different spelling or country filter.');
+      _showResultsMsg(data.hint || 'No courses found — try a different spelling or country filter.');
     } else {
       _renderResults(_lastResults);
     }
