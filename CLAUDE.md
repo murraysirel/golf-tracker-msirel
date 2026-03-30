@@ -46,7 +46,7 @@ Netlify hosts both the static frontend and all serverless functions. No build st
 | `nav.js` | SPA routing: `goTo(page)`, `switchEntry(type)`, `registerNavHandlers()` (circular-dep workaround) |
 | `api.js` | `loadAppData()` / `loadGroupData()` / `pushData()` / `pushSupabase()` / `querySupabase()` / `retryUnsyncedRounds()` — Supabase data sync; `ss()` updates the status dot |
 | `scorecard.js` | `buildSC()` renders the 18-hole input table; `saveRound()` collects DOM values, computes breakdown, appends to `state.gd`, calls `pushData()` then `pushSupabase()` fire-and-forget |
-| `live.js` | Hole-by-hole live scoring UI; running score shows gross vs par (big) + net vs par (small); multi-player group mode; match play tracking; `publishLiveState()` for real-time sharing; `cancelRound()` resets live state; `liveGroupSave()` saves group rounds directly (tee data is optional — missing tee never blocks save) |
+| `live.js` | Hole-by-hole live scoring UI — redesigned Caddie view with player-list-first layout, inline score adjusters, stat panel for selected player (`_statPlayer`), colour-coded pips, GPS card with tap-to-switch target; running score shows gross vs par (big) + net vs par (small); multi-player group mode; match play tracking; `publishLiveState()` for real-time sharing; `cancelRound()` resets live state; `liveGroupSave()` saves group rounds directly (tee data is optional — missing tee never blocks save) |
 | `live-invite.js` | Real-time round invite polling, toast dismissal, join/leave live round, view/edit mode toggle; `startInvitePolling()`, `joinLiveRound()`, `minimiseLiveView()`, `submitEditorScore()` |
 | `overlay.js` | Match overlay display and controls; `initMatchOverlay()`, `showMatchOverlay()`, `hideMatchOverlay()`, `showEndRoundConfirm()` |
 | `competition.js` | Competition tab — activity feed (eagles, birdies, submissions) + live leaderboard; polls Supabase every 45 s; supports Stableford and Gross modes |
@@ -54,7 +54,7 @@ Netlify hosts both the static frontend and all serverless functions. No build st
 | `stats.js` | KPI cards, five Chart.js charts, Stableford calculator, `calcScoringPointsNet()`, handicap edit, round history list; `parseDateGB()` used app-wide; `renderMatesFeed()` generates the home-screen activity highlights feed |
 | `leaderboard.js` | Nine season-filtered ranking panels; imports `calcStableford` and `isBufferOrBetter` from `stats.js`; `filterRounds()` excludes rounds before a player's `joinedAt` date |
 | `players.js` | Onboarding/sign-in, player management, initials generation, "who's playing today" selector, avatar upload |
-| `courses.js` | Course search UI (`initCourseSearch()` mounts into `#course-search-container`), `getCourseByRef()` returns active course object, `clearCourseSelection()` resets it; `_applyCourse()` sets `state.cpars`/`state.activeCourse` and rebuilds the scorecard. Custom course creation has been removed — all courses come from GolfAPI. |
+| `courses.js` | Course search UI (`initCourseSearch()` mounts into `#course-search-container`), `getCourseByRef()` returns active course object, `clearCourseSelection()` resets it; `_applyCourse()` sets `state.cpars`/`state.activeCourse` and rebuilds the scorecard. Custom course creation has been removed — all courses come from GolfAPI. Falls back to 20 built-in courses from `constants.js` when API is unavailable. |
 | `gps.js` | `watchPosition` GPS, Haversine distance-to-green, tee/green coord pinning, drive logging stored in `state.gd` |
 | `ai.js` | Scorecard photo parsing, post-round coaching review, multi-round stats analysis — all via `/.netlify/functions/ai` |
 | `practice.js` | AI practice-plan generation (Claude) with preset areas or free-text custom requests, session logging with drill-by-drill shot counting |
@@ -147,17 +147,18 @@ state = {
 ### Supabase — primary tables
 
 ```
-players       — name, email, auth_user_id, handicap, dob, avatar_url
-rounds        — player_id, group_code, date, course, scores[], pars[], putts[], fir[], gir[], rating, slope, wolf_result, sixes_result, ...
-groups        — code, name
-group_members — player_id (FK players.name), group_id, joined_at (timestamptz, DEFAULT now())
-user_sessions — id (sessionId), user_id, device_hint, last_seen_at
-active_matches — live round state for real-time sharing
-courses       — external_course_id, name, location, country, tees (JSONB), green_coords (JSONB), has_hole_data, ...
-competitions   — id (TEXT PK), code (COMP+2 letters+4 digits), name, created_by, admin_players TEXT[], format ('stableford'|'stroke_gross'|'stroke_net'|'matchplay'), team_format BOOLEAN, team_a/team_b TEXT[], rounds_config JSONB, players TEXT[], status ('setup'|'active'|'complete'), created_at
-friendships   — id (TEXT PK), requester, addressee, status ('pending'|'accepted'|'blocked'), created_at; UNIQUE(requester, addressee)
-notifications — id (TEXT PK), to_player, from_player, type ('friend_request'|'friend_accepted'), payload JSONB, read BOOLEAN, created_at
-api_call_log  — timestamp, endpoint, course_name, was_cache_hit, details (JSONB)
+players       — id (uuid), name (text, unique), email, auth_user_id (uuid), handicap (numeric), dob (text), avatar_url, match_code, group_code, practice_sessions (JSONB), stats_analysis (JSONB), stats_analysis_date
+rounds        — id (bigint PK), player_name (text NOT NULL), group_code (text NOT NULL), date, course, loc, tee, scores[], pars[], putts[], fir[], gir[], notes, total_score, total_par, diff, birdies, pars_count, bogeys, doubles, eagles, penalties, bunkers, chips, rating (numeric), slope (int), ai_review (JSONB), match_result (JSONB), wolf_result (JSONB), sixes_result (JSONB), played_with[], match_handicaps (JSONB), handicaps_used (bool), created_at
+groups        — id (uuid), code (text NOT NULL), name (text NOT NULL), admin_id, active_boards (text[]), season (int), settings (JSONB), created_at
+group_members — id (uuid), group_id (uuid FK), player_id (text), joined_at (timestamptz DEFAULT now()), status (text DEFAULT 'approved')
+active_matches — id (text PK), name, course, date, created_by, group_code, match_type, status, players (JSONB), scores (JSONB), tee_groups (JSONB), created_at
+active_rounds — id (text PK), group_code, host, players (text[]), course, tee, hole (int), scores (JSONB), putts (JSONB), pars (JSONB), updated_at
+courses       — id (bigint auto), external_course_id (text UNIQUE), external_club_id, name (text NOT NULL), club_name, location, country, city, holes (int), tees (JSONB), pars (JSONB), stroke_indexes (JSONB), green_coords (JSONB), has_gps (bool), has_hole_data (bool), data_source, data_quality, report_count (int), created_at, updated_at
+competitions  — id (text PK), code (text UNIQUE, COMP+2 letters+4 digits), name, created_by, admin_players (text[]), format ('stableford'|'stableford_gross'|'stroke_gross'|'stroke_net'|'matchplay'), team_format (bool), team_a/team_b (text[]), rounds_config (JSONB), players (text[]), status ('setup'|'active'|'complete'), hcp_overrides (JSONB), commentary (JSONB), created_at
+friendships   — id (text PK), requester, addressee, status ('pending'|'accepted'|'blocked'), created_at; UNIQUE(requester, addressee)
+notifications — id (text PK), to_player, from_player, type ('friend_request'|'friend_accepted'|'join_request'|'join_approved'), payload (JSONB), read (bool), created_at
+api_call_log  — id (serial), timestamp, endpoint, course_name, was_cache_hit (bool), details (JSONB)
+course_reports — id (bigint auto), course_id, player_name, group_code, issue (text NOT NULL), created_at
 ```
 
 `gt_localdata` localStorage key caches the full `state.gd` snapshot for offline fallback.
@@ -375,6 +376,21 @@ All variables are set in the Netlify dashboard. None are ever sent to the browse
 
 | Date | Change |
 |---|---|
+| 2026-03-30 | **League join-date enforcement** — removed admin bypass in `filterRounds()`; all players (including admin/creator) only see rounds from their `joinedAt` date onwards; admin's `joinedAt` equals group creation date, enforcing "only rounds from league creation date" rule |
+| 2026-03-30 | **Cache-busting headers** — `_headers` file added for Netlify; JS/CSS served with `Cache-Control: public, max-age=0, must-revalidate`; prevents Safari caching stale code after deploys; fresh login clears `gt_localdata` to prevent old data contamination |
+| 2026-03-30 | **Built-in course fallback** — course search falls back to 20 built-in courses from `constants.js` when GolfAPI returns empty (credits exhausted); built-in courses apply directly without API fetch |
+| 2026-03-30 | **Live scoring redesign** — `#pg-live` hole view rebuilt to Caddie mockup: hole header with par badge, thin colour-coded pip bars, GPS card with tap-to-switch target, player-list-first layout with inline score adjusters and running vs-par, collapsible stat panel for selected player (`_statPlayer`), full-width gold next-hole button; all existing features preserved (match/wolf/sixes/GPS/drive/invite) |
+| 2026-03-30 | **Competition UX cleanup** — format toggle hidden when viewing a competition (format locked at creation); read-only format label shown instead; "Today" renamed to "Group Activity"; dynamic leaderboard title; `setFormat()` only affects Group Activity view |
+| 2026-03-30 | **League player list** — "Who's in?" pill button visible to all group members (not just admin); toggleable popup showing all members with avatars and handicaps |
+| 2026-03-30 | **League join approval** — `joinGroup` inserts with `status: 'pending'`; admin gets `join_request` notification; `approveGroupMember` action for admin approve/decline; group settings shows pending members; only approved members appear in leaderboards; `group_members.status` column added |
+| 2026-03-30 | **Course name fix** — `parseCourseDetail()` uses "Club Name — Course Name" format when both differ (e.g. "Trevose Golf Club — Championship Course") |
+| 2026-03-30 | **Schema audit** — full code-to-schema alignment against `information_schema.columns` dump; courses upsert now sends all valid columns (only `overall_par`/`tee_types` stripped); `sixes_result` column added to rounds; `commentary` column added to competitions; `status` column added to `group_members`; `course_yardages` table dropped (unused) |
+| 2026-03-30 | **Critical data fixes** — `parseDateGB()` returns integer not Date (fixed `.getTime()` crash that broke entire boot sequence); top-level `await` removed from stats/leaderboard/practice/competition modules; `active_rounds` table created; round ID bigint overflow fixed (`Date.now() + Math.random()` → integer); `saveRound` error checking added; GIR% denominator fixed to count actual data points |
+| 2026-03-30 | **Competition setup rewrite** — new flow: Name → Rounds (card per round with date + course search + tee pills) → Scoring (Stableford/Stroke/Match Play) → Handicap (Net/Gross) → Create; course search with live dropdown per round; tee colour pills from course data |
+| 2026-03-30 | **My Competitions list** — `renderMyCompetitions()` shows all player's competitions below Create/Join buttons in Round tab; tappable cards navigate to competition view; competition scoring flow pre-configures live round with all players |
+| 2026-03-30 | **Profile tabs restyled** — `.tab-bar`/`.tab` replaced with `.profile-pills`/`.profile-pill` (hollow outline pills with gold active state) |
+| 2026-03-30 | **Home screen rebuild** — compact 2-card KPI grid (customisable, max 2) + fixed GIR/FIR wide card; 2 recent round rows; group activity card (3 events max); gold separator lines; birdie icon restored in KPI tiles |
+| 2026-03-30 | **Typography pass** — Cormorant retired from all CSS except splash; `--text-xs` through `--text-3xl` scale added; `.home-kpi-val`/`.lb-score`/`.bv`/`.tv`/`.hs` switched to DM Sans 700; `.text-upper`/`.text-section`/`.delta-up`/`.delta-dn` utility classes; `.empty-state` classes |
 | 2026-03-29 | **Friends system** — `friendships` and `notifications` tables; `sendFriendRequest`, `respondFriendRequest`, `getFriends`, `getNotifications`, `markNotificationsRead` Supabase actions; `js/friends.js` with polling (60s), profile panel tabs (Settings/Actions/Friends), notification dot on avatar, accept/decline UI, add-friend flow with last-round display |
 | 2026-03-29 | **AI competition commentary** — `generateCompPreview()`, `generateHalftimeSummary()`, `generateFinalSummary()` in `competition-setup.js`; stored as `commentary: { preview, halftime, final }` JSONB on competition row; auto-triggers halftime/final when round milestones detected; admin-only generate/regenerate buttons; gold-bordered shareable cards with copy-to-clipboard; `commentary` added to `updateCompetition` allowed fields |
 | 2026-03-29 | **Competition mode phase 2** — `renderJoinCompetitionModal()` with client-side COMP code validation and live preview; `renderCompetitionLeaderboard()` aggregates scores across multi-round competitions by format (stableford/stroke_gross/stroke_net); `renderCompSelector()` pill strip switches between "Today" and active competitions; admin panel with handicap overrides, player roster, and share-admin flow; `getCompetition`, `getMyCompetitions`, `updateCompetition` Supabase actions; `hcp_overrides` JSONB column on competitions table; `activeCompetitionId`/`activeCompetition` added to state |
