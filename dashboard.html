@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Looper Admin Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',-apple-system,sans-serif;background:#0a1628;color:#f0e8d0;padding:20px;max-width:960px;margin:0 auto}
+h1{font-size:24px;font-weight:700;color:#c9a84c;margin-bottom:4px}
+.subtitle{font-size:12px;color:#8899bb;margin-bottom:24px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:24px}
+.stat-card{background:#111e35;border:1px solid #1e3358;border-radius:12px;padding:16px}
+.stat-val{font-size:28px;font-weight:700;line-height:1;margin-bottom:4px}
+.stat-lbl{font-size:10px;color:#8899bb;text-transform:uppercase;letter-spacing:1px}
+.green{color:#2ecc71}.amber{color:#e67e22}.red{color:#e74c3c}.gold{color:#c9a84c}.blue{color:#3498db}
+.section{margin-bottom:28px}
+.section-title{font-size:14px;font-weight:700;color:#c9a84c;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #1e3358}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:8px 10px;color:#8899bb;font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #1e3358}
+td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.04);color:#f0e8d0}
+tr:hover td{background:rgba(201,168,76,.04)}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.badge-green{background:rgba(46,204,113,.15);color:#2ecc71}
+.badge-amber{background:rgba(230,126,34,.15);color:#e67e22}
+.badge-red{background:rgba(231,76,60,.15);color:#e74c3c}
+.badge-dim{background:rgba(136,153,187,.15);color:#8899bb}
+.btn{padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif}
+.btn-gold{background:#c9a84c;color:#0a1628}
+.btn-ghost{background:transparent;border:1px solid #1e3358;color:#8899bb}
+.btn-sm{padding:4px 10px;font-size:10px}
+.actions{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+#auth-gate{text-align:center;padding:80px 20px}
+#auth-gate input{background:#111e35;border:1px solid #1e3358;border-radius:8px;color:#f0e8d0;padding:12px 16px;font-size:16px;width:200px;text-align:center;margin:12px 0}
+#auth-gate input:focus{outline:none;border-color:rgba(201,168,76,.6)}
+#dashboard{display:none}
+.expand-row{display:none;background:#0a1628}
+.expand-row td{padding:12px;font-size:11px;color:#8899bb}
+.clickable{cursor:pointer}
+.msg{font-size:11px;color:#8899bb;padding:8px 0}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div id="auth-gate">
+  <h1>Looper Dashboard</h1>
+  <div class="subtitle">Admin access required</div>
+  <input type="password" id="pw-input" placeholder="Password" autofocus>
+  <br>
+  <button class="btn btn-gold" onclick="tryAuth()">Unlock</button>
+  <div id="pw-err" style="color:#e74c3c;font-size:11px;margin-top:8px"></div>
+</div>
+
+<div id="dashboard">
+  <h1>Looper Dashboard</h1>
+  <div class="subtitle">Management &amp; Monitoring</div>
+
+  <!-- API Health -->
+  <div class="section">
+    <div class="section-title">API Health</div>
+    <div class="grid" id="api-grid">
+      <div class="stat-card"><div class="stat-val gold" id="api-credits">—</div><div class="stat-lbl">Credits Left</div></div>
+      <div class="stat-card"><div class="stat-val" id="api-today">—</div><div class="stat-lbl">Calls Today</div></div>
+      <div class="stat-card"><div class="stat-val" id="api-week">—</div><div class="stat-lbl">This Week</div></div>
+      <div class="stat-card"><div class="stat-val" id="api-cache">—</div><div class="stat-lbl">Cache Hit Rate</div></div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-ghost" onclick="runPipelineTest()">Run Pipeline Test</button>
+      <button class="btn btn-ghost" onclick="runDiagnose()">Supabase Diagnostics</button>
+    </div>
+    <div id="test-result" class="msg"></div>
+  </div>
+
+  <!-- Player Overview -->
+  <div class="section">
+    <div class="section-title">Players</div>
+    <div class="grid" id="player-grid">
+      <div class="stat-card"><div class="stat-val gold" id="player-count">—</div><div class="stat-lbl">Total Players</div></div>
+      <div class="stat-card"><div class="stat-val" id="round-count">—</div><div class="stat-lbl">Total Rounds</div></div>
+    </div>
+    <table id="player-table"><thead><tr><th>Name</th><th>Handicap</th><th>Joined</th></tr></thead><tbody></tbody></table>
+  </div>
+
+  <!-- Course Repository -->
+  <div class="section">
+    <div class="section-title">Course Repository</div>
+    <div class="grid">
+      <div class="stat-card"><div class="stat-val gold" id="course-count">—</div><div class="stat-lbl">Total Courses</div></div>
+      <div class="stat-card"><div class="stat-val green" id="course-data">—</div><div class="stat-lbl">With Hole Data</div></div>
+      <div class="stat-card"><div class="stat-val blue" id="course-gps">—</div><div class="stat-lbl">With GPS</div></div>
+    </div>
+    <div class="actions">
+      <input type="text" id="course-filter" placeholder="Filter courses..." style="background:#111e35;border:1px solid #1e3358;border-radius:8px;color:#f0e8d0;padding:6px 12px;font-size:12px;width:200px">
+      <button class="btn btn-ghost" onclick="loadCourses()">Refresh</button>
+    </div>
+    <table id="course-table"><thead><tr><th>Name</th><th>Location</th><th>Country</th><th>Hole Data</th><th>Tees</th><th>GPS</th></tr></thead><tbody></tbody></table>
+  </div>
+
+  <!-- Reported Issues -->
+  <div class="section">
+    <div class="section-title">Course Reports</div>
+    <table id="report-table"><thead><tr><th>Course</th><th>Player</th><th>Issue</th><th>Date</th><th>Status</th><th></th></tr></thead><tbody></tbody></table>
+    <div id="report-empty" class="msg">No reports yet.</div>
+  </div>
+
+  <!-- Feedback -->
+  <div class="section">
+    <div class="section-title">App Feedback</div>
+    <table id="feedback-table"><thead><tr><th>Player</th><th>Type</th><th>Message</th><th>Rating</th><th>Date</th></tr></thead><tbody></tbody></table>
+    <div id="feedback-empty" class="msg">No feedback yet.</div>
+  </div>
+
+  <!-- System -->
+  <div class="section">
+    <div class="section-title">System</div>
+    <div class="actions">
+      <button class="btn btn-ghost" onclick="fixCourses()">Fix Corrupted Courses</button>
+      <button class="btn btn-ghost" onclick="cleanupGroups()">Cleanup Unnamed Groups</button>
+    </div>
+    <div id="sys-result" class="msg"></div>
+  </div>
+</div>
+
+<script>
+const API = '/.netlify/functions/supabase';
+const COURSES_API = '/.netlify/functions/courses';
+const ADMIN_PW = 'YorBorTrial!';
+
+function tryAuth() {
+  const pw = document.getElementById('pw-input').value;
+  if (pw === ADMIN_PW) {
+    document.getElementById('auth-gate').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    loadDashboard();
+  } else {
+    document.getElementById('pw-err').textContent = 'Incorrect password.';
+  }
+}
+document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') tryAuth(); });
+
+async function sbCall(action, data = {}) {
+  const res = await fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, data })
+  });
+  return res.json();
+}
+
+async function loadDashboard() {
+  try {
+    const stats = await sbCall('getDashboardStats');
+    // API
+    const credits = stats.apiLog?.creditsLeft;
+    const creditsEl = document.getElementById('api-credits');
+    creditsEl.textContent = credits ?? '—';
+    creditsEl.className = 'stat-val ' + (credits > 100 ? 'green' : credits > 20 ? 'amber' : 'red');
+    document.getElementById('api-today').textContent = stats.apiLog?.today ?? '—';
+    document.getElementById('api-week').textContent = stats.apiLog?.thisWeek ?? '—';
+    document.getElementById('api-cache').textContent = (stats.apiLog?.cacheHitRate ?? '—') + '%';
+    // Players
+    document.getElementById('player-count').textContent = stats.players?.count ?? '—';
+    document.getElementById('round-count').textContent = stats.rounds?.count ?? '—';
+    const ptb = document.querySelector('#player-table tbody');
+    ptb.innerHTML = (stats.players?.list || []).map(p => {
+      const d = p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : '—';
+      return `<tr><td>${p.name}</td><td>${p.handicap ?? '—'}</td><td>${d}</td></tr>`;
+    }).join('');
+    // Courses
+    document.getElementById('course-count').textContent = stats.courses?.count ?? '—';
+    document.getElementById('course-data').textContent = stats.courses?.withData ?? '—';
+    document.getElementById('course-gps').textContent = stats.courses?.withGps ?? '—';
+    // Reports
+    renderReports(stats.reports || []);
+  } catch (e) {
+    console.error('Dashboard load failed:', e);
+  }
+  loadCourses();
+  loadFeedback();
+}
+
+async function loadCourses() {
+  const res = await sbCall('getAllCourses');
+  const courses = res?.courses || [];
+  const filter = (document.getElementById('course-filter')?.value || '').toLowerCase();
+  const filtered = filter ? courses.filter(c => c.name?.toLowerCase().includes(filter)) : courses;
+  const tb = document.querySelector('#course-table tbody');
+  tb.innerHTML = filtered.map(c => {
+    const tees = Array.isArray(c.tees) ? c.tees : [];
+    return `<tr class="clickable" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='table-row'?'none':'table-row'">
+      <td>${c.name || '—'}</td><td>${c.location || '—'}</td><td>${c.country || '—'}</td>
+      <td>${c.has_hole_data ? '<span class="badge badge-green">Yes</span>' : '<span class="badge badge-dim">No</span>'}</td>
+      <td>${tees.length}</td>
+      <td>${c.has_gps ? '<span class="badge badge-green">GPS</span>' : '—'}</td>
+    </tr>
+    <tr class="expand-row"><td colspan="6">${tees.map(t => `<strong>${t.colour || t.name || '?'}</strong>: R${t.rating || '?'} / S${t.slope || '?'} / ${t.yardage || '?'}y`).join(' &nbsp;|&nbsp; ') || 'No tee data'}</td></tr>`;
+  }).join('');
+}
+document.getElementById('course-filter')?.addEventListener('input', loadCourses);
+
+function renderReports(reports) {
+  const tb = document.querySelector('#report-table tbody');
+  const empty = document.getElementById('report-empty');
+  if (!reports.length) { tb.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  tb.innerHTML = reports.map(r => {
+    const d = r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB') : '—';
+    const statusCls = r.status === 'resolved' ? 'badge-green' : r.status === 'reviewed' ? 'badge-amber' : 'badge-red';
+    return `<tr>
+      <td>${r.course_id || '—'}</td><td>${r.player_name || '—'}</td><td>${r.issue || '—'}</td><td>${d}</td>
+      <td><span class="badge ${statusCls}">${r.status || 'pending'}</span></td>
+      <td><button class="btn btn-sm btn-ghost" onclick="resolveReport('${r.id}')">Resolve</button></td>
+    </tr>`;
+  }).join('');
+}
+
+async function resolveReport(id) {
+  await sbCall('updateCourseReport', { reportId: id, status: 'resolved' });
+  const res = await sbCall('getCourseReports');
+  renderReports(res?.reports || []);
+}
+
+async function loadFeedback() {
+  const res = await sbCall('getFeedback');
+  const items = res?.feedback || [];
+  const tb = document.querySelector('#feedback-table tbody');
+  const empty = document.getElementById('feedback-empty');
+  if (!items.length) { tb.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  tb.innerHTML = items.map(f => {
+    const d = f.created_at ? new Date(f.created_at).toLocaleDateString('en-GB') : '—';
+    return `<tr><td>${f.player_name}</td><td>${f.type || '—'}</td><td>${f.message}</td><td>${f.rating ? '★'.repeat(f.rating) : '—'}</td><td>${d}</td></tr>`;
+  }).join('');
+}
+
+async function runPipelineTest() {
+  const el = document.getElementById('test-result');
+  el.textContent = 'Running pipeline test...';
+  try {
+    const res = await fetch(COURSES_API + '?action=test-api');
+    const data = await res.json();
+    el.innerHTML = data.step === 'done'
+      ? `<span class="green">Pipeline OK</span> — ${data.parsedName} | ${data.parsedTees} tees | ${data.parsedPars} pars | Upsert: ${data.upsertSuccess ? 'OK' : 'FAIL'}`
+      : `<span class="red">Failed at step: ${data.step}</span> — ${data.error || ''}`;
+  } catch (e) { el.innerHTML = `<span class="red">Error:</span> ${e.message}`; }
+}
+
+async function runDiagnose() {
+  const el = document.getElementById('test-result');
+  el.textContent = 'Running diagnostics...';
+  try {
+    const res = await fetch(COURSES_API + '?action=diagnose');
+    const data = await res.json();
+    el.innerHTML = `Supabase: ${data.supabase_url_set ? '<span class="green">OK</span>' : '<span class="red">MISSING</span>'} | GolfAPI: ${data.golfapi_key_set ? '<span class="green">OK</span>' : '<span class="red">MISSING</span>'}`;
+  } catch (e) { el.innerHTML = `<span class="red">Error:</span> ${e.message}`; }
+}
+
+async function fixCourses() {
+  const el = document.getElementById('sys-result');
+  el.textContent = 'Scanning...';
+  try {
+    const res = await fetch(COURSES_API + '?action=fix-bad-data&secret=');
+    const data = await res.json();
+    el.textContent = data.message || JSON.stringify(data);
+  } catch (e) { el.textContent = 'Error: ' + e.message; }
+}
+
+async function cleanupGroups() {
+  const el = document.getElementById('sys-result');
+  el.textContent = 'Cleaning...';
+  try {
+    const data = await sbCall('cleanupUnnamedGroups');
+    el.textContent = data.message || JSON.stringify(data);
+  } catch (e) { el.textContent = 'Error: ' + e.message; }
+}
+</script>
+</body>
+</html>

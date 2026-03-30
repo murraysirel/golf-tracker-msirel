@@ -893,6 +893,83 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers, body: JSON.stringify({ rows: rows || [] }) };
     }
 
+    // ── getDashboardStats ──────────────────────────────────────────
+    if (action === 'getDashboardStats') {
+      const [playersRes, roundsRes, coursesRes, reportsRes, logRes] = await Promise.all([
+        supabase.from('players').select('name, handicap, created_at', { count: 'exact' }),
+        supabase.from('rounds').select('id, player_name, date, created_at', { count: 'exact' }),
+        supabase.from('courses').select('id, name, has_hole_data, has_gps', { count: 'exact' }),
+        supabase.from('course_reports').select('*').order('created_at', { ascending: false }).limit(50),
+        supabase.from('api_call_log').select('*').order('timestamp', { ascending: false }).limit(200),
+      ]);
+      const logs = logRes.data || [];
+      const today = new Date().toISOString().split('T')[0];
+      const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+      return { statusCode: 200, headers, body: JSON.stringify({
+        players: { count: playersRes.count || 0, list: (playersRes.data || []).slice(0, 100) },
+        rounds: { count: roundsRes.count || 0 },
+        courses: {
+          count: coursesRes.count || 0,
+          withData: (coursesRes.data || []).filter(c => c.has_hole_data).length,
+          withGps: (coursesRes.data || []).filter(c => c.has_gps).length,
+        },
+        reports: reportsRes.data || [],
+        apiLog: {
+          total: logs.length,
+          today: logs.filter(l => l.timestamp?.startsWith(today)).length,
+          thisWeek: logs.filter(l => l.timestamp >= weekAgo).length,
+          cacheHitRate: logs.length ? Math.round(logs.filter(l => l.was_cache_hit).length / logs.length * 100) : 0,
+          lastCall: logs[0]?.timestamp || null,
+          creditsLeft: logs.find(l => l.details?.apiRequestsLeft != null)?.details?.apiRequestsLeft ?? null,
+        },
+      })};
+    }
+
+    // ── getAllCourses ─────────────────────────────────────────────────
+    if (action === 'getAllCourses') {
+      const { data: rows, error } = await supabase
+        .from('courses').select('*').order('name');
+      if (error) throw error;
+      return { statusCode: 200, headers, body: JSON.stringify({ courses: rows || [] }) };
+    }
+
+    // ── getCourseReports ─────────────────────────────────────────────
+    if (action === 'getCourseReports') {
+      const { data: rows, error } = await supabase
+        .from('course_reports').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      return { statusCode: 200, headers, body: JSON.stringify({ reports: rows || [] }) };
+    }
+
+    // ── updateCourseReport ───────────────────────────────────────────
+    if (action === 'updateCourseReport') {
+      const { reportId, status } = data;
+      if (!reportId) return { statusCode: 400, headers, body: JSON.stringify({ error: 'reportId required' }) };
+      await supabase.from('course_reports').update({ status }).eq('id', reportId);
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+    }
+
+    // ── submitFeedback ───────────────────────────────────────────────
+    if (action === 'submitFeedback') {
+      const { playerName, type, message, rating } = data;
+      if (!message) return { statusCode: 400, headers, body: JSON.stringify({ error: 'message required' }) };
+      await supabase.from('feedback').insert({
+        player_name: playerName || 'Anonymous',
+        type: type || 'general',
+        message,
+        rating: rating || null,
+      });
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+    }
+
+    // ── getFeedback ──────────────────────────────────────────────────
+    if (action === 'getFeedback') {
+      const { data: rows, error } = await supabase
+        .from('feedback').select('*').order('created_at', { ascending: false }).limit(100);
+      if (error) throw error;
+      return { statusCode: 200, headers, body: JSON.stringify({ feedback: rows || [] }) };
+    }
+
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Unknown action' }) };
 
   } catch (err) {
