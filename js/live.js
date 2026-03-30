@@ -650,6 +650,32 @@ function _autoGirCheck() {
   }
 }
 
+// Save live round state to localStorage on every change — protects against
+// accidental refresh, browser crash, or coming back hours later.
+function _saveLiveBackup() {
+  try {
+    localStorage.setItem('rr_live_backup', JSON.stringify({
+      savedAt: Date.now(),
+      hole: state.liveState.hole,
+      scores: state.liveState.scores,
+      putts: state.liveState.putts,
+      fir: state.liveState.fir,
+      gir: state.liveState.gir,
+      notes: state.liveState.notes,
+      group: state.liveState.group,
+      groupScores: state.liveState.groupScores,
+      groupPutts: state.liveState.groupPutts,
+      groupFir: state.liveState.groupFir,
+      groupGir: state.liveState.groupGir,
+      course: getCourseByRef()?.name || '',
+      tee: state.stee,
+      gameMode: state.gameMode,
+      wolfState: state.wolfState,
+      hcpOverrides: state.liveState.hcpOverrides,
+    }));
+  } catch (_) { /* localStorage full or unavailable */ }
+}
+
 function liveGroupAdj(playerName, field, delta) {
   const h = state.liveState.hole;
   const par = state.cpars[h];
@@ -699,6 +725,7 @@ function liveGroupAdj(playerName, field, delta) {
   const first = state.liveState.group[0];
   if (first) state.liveState.scores[h] = state.liveState.groupScores[first]?.[h] ?? null;
   liveRenderPips();
+  _saveLiveBackup();
 }
 
 function liveGroupToggle(playerName, field, val) {
@@ -707,6 +734,7 @@ function liveGroupToggle(playerName, field, val) {
   if (!store[playerName]) store[playerName] = Array(18).fill('');
   store[playerName][h] = store[playerName][h] === val ? '' : val;
   liveRenderGroupHole(h);
+  _saveLiveBackup();
 }
 
 // ── Match play ────────────────────────────────────────────────────
@@ -946,6 +974,7 @@ export function liveUpdateToggle(field, val) {
 
 export function liveSaveNote() {
   state.liveState.notes[state.liveState.hole] = document.getElementById('live-note').value;
+  _saveLiveBackup();
 }
 
 function liveSyncToManual(h) {
@@ -972,23 +1001,7 @@ export function liveNextOrFinish() {
   const advance = () => {
     if (h < 17) {
       liveGoto(h + 1);
-      localStorage.setItem('rr_live_backup', JSON.stringify({
-        savedAt: Date.now(),
-        hole: state.liveState.hole,
-        scores: state.liveState.scores,
-        putts: state.liveState.putts,
-        fir: state.liveState.fir,
-        gir: state.liveState.gir,
-        notes: state.liveState.notes,
-        group: state.liveState.group,
-        groupScores: state.liveState.groupScores,
-        groupPutts: state.liveState.groupPutts,
-        groupFir: state.liveState.groupFir,
-        groupGir: state.liveState.groupGir,
-        course: getCourseByRef()?.name || '',
-        gameMode: state.gameMode,
-        wolfState: state.wolfState
-      }));
+      _saveLiveBackup();
     } else {
       liveFinishAndSave();
     }
