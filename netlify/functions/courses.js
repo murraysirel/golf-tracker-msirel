@@ -534,6 +534,53 @@ exports.handler = async (event) => {
     return respond(200, diag);
   }
 
+  // ── ACTION: test-api ────────────────────────────────────────────────────────
+  // Uses GolfAPI's free test endpoints (don't consume credits) to verify the
+  // full fetch → parse → upsert pipeline works end-to-end.
+  // Usage: GET /.netlify/functions/courses?action=test-api
+  if (action === 'test-api') {
+    const TEST_CLUB   = '141520610397251566';
+    const TEST_COURSE = '012141520658891108829';
+    const diag = { step: 'start' };
+    try {
+      diag.step = 'fetch-course';
+      const courseData = await golfApiGetCourse(TEST_COURSE);
+      diag.courseKeys = Object.keys(courseData || {});
+      diag.courseName = courseData?.course?.courseName || courseData?.courseName || '?';
+      diag.apiRequestsLeft = courseData?.apiRequestsLeft ?? null;
+
+      diag.step = 'fetch-coords';
+      const coordData = await golfApiGetCoordinates(TEST_COURSE);
+      diag.coordKeys = Object.keys(coordData || {});
+      diag.coordCount = coordData?.coordinates?.length ?? 0;
+
+      diag.step = 'parse';
+      const clubData = { clubID: TEST_CLUB, clubName: courseData?.course?.clubName || courseData?.clubName || 'Test Club', city: '', state: '', country: 'UK' };
+      const parsed = parseCourseDetail(clubData, courseData, coordData);
+      diag.parsedName = parsed.name;
+      diag.parsedTees = parsed.tees?.length || 0;
+      diag.parsedPars = parsed.pars?.length || 0;
+      diag.parsedGreenCoords = Object.keys(parsed.green_coords || {}).length;
+
+      diag.step = 'validate';
+      const validation = validateHoleData(parsed.tees);
+      diag.validationResult = validation;
+
+      diag.step = 'upsert';
+      parsed.has_hole_data = true;
+      const { overall_par, tee_types, ...dbSafe } = parsed;
+      const saved = await sbUpsert('courses', dbSafe);
+      diag.upsertSuccess = Array.isArray(saved);
+      if (!Array.isArray(saved)) diag.upsertError = JSON.stringify(saved).slice(0, 300);
+      else diag.savedId = saved[0]?.id;
+
+      diag.step = 'done';
+    } catch (e) {
+      diag.error = e.message;
+    }
+    return respond(200, diag);
+  }
+
   // ── ACTION: fix-bad-data ────────────────────────────────────────────────────
   // Admin action: find all courses in Supabase where hole data is corrupted
   // (all pars = 4, or fewer than 18 holes, or invalid pars) and reset
