@@ -6,11 +6,43 @@ import { state } from './state.js';
 const GROUP_SETTINGS_KEYS = ['customCourses','teeCoords','greenCoords','seasons',
                               'deletionLog','courseCorrections','requireGroupCode'];
 
+// ── Retry queue for failed network writes ────────────────────────
+const _retryQueue = [];
+
 export function ss(status, msg) {
   const d = document.getElementById('sdot'), t = document.getElementById('stext');
   if (!d) return;
   d.className = 'sdot' + (status === 'syncing' ? ' syncing' : status === 'err' ? ' err' : status === 'warn' ? ' warn' : '');
   if (t) t.textContent = msg;
+}
+
+function _updateSyncStatus() {
+  if (!navigator.onLine) {
+    ss('err', 'Offline — will retry');
+  } else if (_retryQueue.length > 0) {
+    ss('warn', `Saving... (${_retryQueue.length} pending)`);
+  } else {
+    ss('ok', 'Synced \u2713');
+  }
+}
+
+export async function retryUnsyncedData() {
+  if (!navigator.onLine || !_retryQueue.length) return;
+  _updateSyncStatus();
+  const items = [..._retryQueue];
+  _retryQueue.length = 0;
+  for (const item of items) {
+    const ok = await pushSupabase(item.action, item.data);
+    if (!ok) _retryQueue.push(item);
+  }
+  _updateSyncStatus();
+  await retryUnsyncedRounds();
+}
+
+// Listen for connectivity changes
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => { retryUnsyncedData(); _updateSyncStatus(); });
+  window.addEventListener('offline', () => _updateSyncStatus());
 }
 
 // ── querySupabase — POST and return parsed response body ──────────
@@ -37,9 +69,15 @@ export async function pushSupabase(action, data) {
       body: JSON.stringify({ action, groupCode: state.gd?.activeGroupCode || '', data })
     });
     if (!res.ok) throw new Error('Supabase write failed: ' + res.status);
+    _updateSyncStatus();
     return true;
   } catch (err) {
     console.warn('Supabase write failed:', err.message);
+    // Queue for retry on network errors (not validation errors)
+    if (!navigator.onLine || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+      _retryQueue.push({ action, data });
+    }
+    _updateSyncStatus();
     return false;
   }
 }

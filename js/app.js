@@ -2,7 +2,7 @@
 // APP ENTRY POINT
 // Imports all modules, sets up event listeners, initialises app
 // ─────────────────────────────────────────────────────────────────
-import { loadAppData, pushData, querySupabase, ss, retryUnsyncedRounds, updateUnsyncedBadge } from './api.js';
+import { loadAppData, pushData, querySupabase, ss, retryUnsyncedRounds, retryUnsyncedData, updateUnsyncedBadge } from './api.js';
 import { goTo, switchEntry, registerNavHandlers } from './nav.js';
 import { getCourseByRef, scanCourseCard, saveCourse, cancelCourseScan, handleCoursePhoto, searchCourseAPI, initCourseSearch } from './courses.js';
 import { buildSC, recalc, saveRound, toggleSCExtras } from './scorecard.js';
@@ -61,6 +61,8 @@ registerNavHandlers({
       if (wrap && !wrap.querySelector('.cs-wrap')) initCourseSearch();
       renderMyCompetitions();
     }
+    // Retry any queued sync data on every page navigation
+    retryUnsyncedData().catch(() => {});
   },
   closeProfilePanel
 });

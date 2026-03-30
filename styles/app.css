@@ -1257,6 +1257,27 @@ details[open] summary::after{content:' ▾'}
 /* [data-design="v2"] .home-kpi-card { ... } */
 /* [data-design="v2"] .hdr { ... } */
 
+/* ── Global design tokens ────────────────────────────────────── */
+.gold-rule{height:1px;background:var(--gold);opacity:0.2;margin:12px 20px}
+.pulse-cell{background:var(--mid);border:1px solid var(--border);border-radius:10px;padding:10px;position:relative;overflow:hidden}
+.pulse-accent{position:absolute;bottom:0;left:0;right:0;height:2px}
+.pulse-val{font-size:20px;font-weight:700;color:var(--cream)}
+.pulse-lbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:0.4px;margin-top:3px}
+.pulse-delta{font-size:10px;margin-top:2px}
+.section-hdr{padding:0 20px 6px;display:flex;justify-content:space-between;align-items:center}
+.section-hdr-title{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:0.8px;font-weight:700}
+.section-hdr-link{font-size:11px;color:var(--gold);cursor:pointer}
+.ctx-btn{display:flex;align-items:center;gap:6px;background:var(--mid);border:1px solid var(--border);border-radius:20px;padding:5px 12px;cursor:pointer}
+.chart-callout-row{display:flex;border-top:1px solid var(--border);margin-top:10px;padding-top:10px}
+.chart-callout{flex:1;padding:0 12px;border-right:1px solid var(--border)}
+.chart-callout:first-child{padding-left:0}
+.chart-callout:last-child{border-right:none}
+.chart-callout-val{font-size:22px;font-weight:700;color:var(--cream);line-height:1}
+.chart-callout-lbl{font-size:11px;color:var(--dim);margin-top:3px}
+.f9b9-insight{display:flex;align-items:flex-start;gap:6px;padding:7px 8px;background:rgba(201,168,76,0.06);border-radius:8px;border:1px solid rgba(201,168,76,0.15);margin-top:6px}
+.f9b9-insight-text{font-size:11px;color:var(--dim);line-height:1.4}
+.f9b9-insight-text b{color:var(--gold);font-weight:600}
+
 /* ── Profile pills ───────────────────────────────────────────── */
 .profile-pills{display:flex;gap:6px;padding:10px 20px}
 .profile-pill{
