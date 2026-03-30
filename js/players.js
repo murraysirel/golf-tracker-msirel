@@ -59,7 +59,7 @@ export function refreshAvatarUI() {
   if (hcInput) hcInput.value = state.gd.players?.[state.me]?.homeCourse || '';
 }
 
-function resizeToDataURL(file, size = 64) {
+function resizeToDataURL(file, size = 256) {
   return new Promise(resolve => {
     const imgEl = new Image();
     const url = URL.createObjectURL(file);

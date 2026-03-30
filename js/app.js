@@ -57,6 +57,13 @@ registerNavHandlers({
   initCompScore,
   onPageChange: (page) => {
     if (page !== 'live') hideMatchOverlay();
+    // Clear course search text when navigating away from Round page
+    if (page !== 'round') {
+      const csInput = document.getElementById('cs-input');
+      if (csInput) csInput.value = '';
+      const csResults = document.getElementById('cs-results');
+      if (csResults) { csResults.innerHTML = ''; csResults.style.display = 'none'; }
+    }
     // Reinitialise course search if container is empty (guard against missing init)
     if (page === 'round') {
       const wrap = document.getElementById('course-search-container');
