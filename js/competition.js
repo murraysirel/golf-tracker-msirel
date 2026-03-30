@@ -110,6 +110,7 @@ export async function initCompetition() {
 
   // Load competition selector
   await renderCompSelector();
+  updateFormatToggleVisibility();
 
   if (state.activeCompetitionId) {
     renderCompetitionLeaderboard();
@@ -131,10 +132,26 @@ function setFormat(fmt) {
   _format = fmt;
   document.getElementById('comp-fmt-stab')?.classList.toggle('active', fmt === 'stableford');
   document.getElementById('comp-fmt-gross')?.classList.toggle('active', fmt === 'gross');
-  if (state.activeCompetitionId) {
-    renderCompetitionLeaderboard();
-  } else {
+  // Format toggle only affects Group Activity view — competitions use their stored format
+  if (!state.activeCompetitionId) {
     renderCompLeaderboard();
+  }
+}
+
+function updateFormatToggleVisibility() {
+  const fmtToggle = document.getElementById('comp-fmt-toggle');
+  const fmtLabel = document.getElementById('comp-fmt-label');
+  if (state.activeCompetitionId && state.activeCompetition) {
+    if (fmtToggle) fmtToggle.style.display = 'none';
+    if (fmtLabel) {
+      const fmt = state.activeCompetition.format || 'stableford';
+      const names = { stableford: 'Stableford', stableford_gross: 'Stableford (Gross)', stroke_gross: 'Stroke Play (Gross)', stroke_net: 'Stroke Play (Net)', matchplay: 'Match Play' };
+      fmtLabel.textContent = names[fmt] || fmt;
+      fmtLabel.style.display = 'block';
+    }
+  } else {
+    if (fmtToggle) fmtToggle.style.display = 'flex';
+    if (fmtLabel) fmtLabel.style.display = 'none';
   }
 }
 
@@ -152,7 +169,7 @@ async function renderCompSelector() {
 
   if (!comps.length) { el.innerHTML = ''; return; }
 
-  el.innerHTML = `<button class="fpill ${!state.activeCompetitionId ? 'active' : ''}" data-comp-id="">Today</button>` +
+  el.innerHTML = `<button class="fpill ${!state.activeCompetitionId ? 'active' : ''}" data-comp-id="">Group Activity</button>` +
     comps.map(c =>
       `<button class="fpill ${state.activeCompetitionId === c.id ? 'active' : ''}" data-comp-id="${c.id}">${c.name}</button>`
     ).join('');
@@ -163,6 +180,7 @@ async function renderCompSelector() {
       state.activeCompetitionId = id;
       state.activeCompetition = id ? comps.find(c => c.id === id) || null : null;
       el.querySelectorAll('.fpill').forEach(b => b.classList.toggle('active', b === btn));
+      updateFormatToggleVisibility();
       if (id) {
         renderCompetitionLeaderboard();
       } else {
@@ -179,6 +197,7 @@ async function renderCompSelector() {
 async function renderCompetitionLeaderboard() {
   const el = document.getElementById('comp-lb');
   if (!el) return;
+  const titleEl = document.getElementById('comp-lb-title');
 
   let comp = state.activeCompetition;
   if (!comp && state.activeCompetitionId) {
@@ -188,6 +207,7 @@ async function renderCompetitionLeaderboard() {
     } catch { /* ignore */ }
   }
   if (!comp) { el.innerHTML = '<div style="text-align:center;padding:20px 0;color:var(--dimmer);font-size:12px">Competition not found.</div>'; return; }
+  if (titleEl) titleEl.textContent = comp.name || 'Competition Standings';
 
   const fmt = comp.format || 'stableford';
   const roundsConfig = comp.rounds_config || [];
@@ -742,6 +762,8 @@ export function getMatchLeaderboard(matchId) {
 function renderCompLeaderboard() {
   const el = document.getElementById('comp-lb');
   if (!el) return;
+  const titleEl = document.getElementById('comp-lb-title');
+  if (titleEl) titleEl.textContent = "Today's Standings";
   const today = todayGB();
   const posClass = ['gold', 'silver', 'bronze'];
 

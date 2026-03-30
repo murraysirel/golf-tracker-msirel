@@ -269,14 +269,16 @@ export function renderLeaderboard() {
 
   function filterRounds(rounds, playerName) {
     let filtered = rounds;
-    // Exclude rounds before the player joined this group
-    const joinedAt = state.gd.players?.[playerName]?.joinedAt;
-    if (joinedAt) {
-      // joinedAt is ISO timestamp (e.g. "2026-03-15T10:00:00Z")
-      // parseDateGB returns YYYYMMDD integer — convert joinedAt to same format
-      const jd = new Date(joinedAt);
-      const joinInt = jd.getFullYear() * 10000 + (jd.getMonth() + 1) * 100 + jd.getDate();
-      filtered = filtered.filter(r => parseDateGB(r.date) >= joinInt);
+    // Exclude rounds before the player joined this group.
+    // Exception: group admin (creator) sees all their rounds — they founded the group.
+    const isGroupAdmin = group && group.admin_id === playerName;
+    if (!isGroupAdmin) {
+      const joinedAt = state.gd.players?.[playerName]?.joinedAt;
+      if (joinedAt) {
+        const jd = new Date(joinedAt);
+        const joinInt = jd.getFullYear() * 10000 + (jd.getMonth() + 1) * 100 + jd.getDate();
+        filtered = filtered.filter(r => parseDateGB(r.date) >= joinInt);
+      }
     }
     if (!seasonSel || seasonSel.value === 'all') return filtered;
     const val = seasonSel.value;
@@ -345,7 +347,7 @@ export function renderLeaderboard() {
     };
   }).filter(Boolean).sort((a, b) => (a.avgDiff ?? 99) - (b.avgDiff ?? 99));
 
-  const emptyMsg = _es('🏆', 'Leaderboard is waiting', 'Rankings appear once two or more players have recorded rounds.', 'Invite someone', "import('./group.js').then(m=>m.copyAppUrl())")
+  const emptyMsg = _es('🏆', 'Leaderboard is waiting', 'No rounds recorded yet for the current season.', 'Record a round', "import('./nav.js').then(m=>m.goTo('round'))")
     || '<div class="empty" style="padding:24px 0"><div style="font-size:28px;margin-bottom:8px">\u2014</div><div style="font-size:13px">No rounds this season yet</div></div>';
 
   if (!players.length) {
