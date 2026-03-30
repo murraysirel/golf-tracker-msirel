@@ -1278,6 +1278,11 @@ details[open] summary::after{content:' ▾'}
 .f9b9-insight-text{font-size:11px;color:var(--dim);line-height:1.4}
 .f9b9-insight-text b{color:var(--gold);font-weight:600}
 
+/* ── Leaderboard view pills (hide scrollbar) ────────────────── */
+#lb-view-pills::-webkit-scrollbar{display:none}
+.lb-vpill{background:var(--mid);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:600;color:var(--dim);cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;-webkit-tap-highlight-color:transparent;flex-shrink:0}
+.lb-vpill.active{background:rgba(201,168,76,0.15);border-color:var(--gold);color:var(--gold)}
+
 /* ── Profile pills ───────────────────────────────────────────── */
 .profile-pills{display:flex;gap:6px;padding:10px 20px}
 .profile-pill{

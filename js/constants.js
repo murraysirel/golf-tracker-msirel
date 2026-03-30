@@ -4,6 +4,28 @@
 
 export const PAGES = ['home','round','live','stats','leaderboard','practice','players','competition','group-settings'];
 
+// Source: USGA Handicap Research (2023), R&A Golf Around the World Report (2023).
+// Replace with group-derived averages once dataset exceeds 200 rounds.
+export const HANDICAP_BENCHMARKS = {
+  "scratch": { avgVsPar: 0,  fir: 68, gir: 62, puttsPerHole: 1.72, birdiesPerRound: 3.8, doublesPerRound: 0.4 },
+  "0-5":     { avgVsPar: 3,  fir: 63, gir: 55, puttsPerHole: 1.78, birdiesPerRound: 2.8, doublesPerRound: 0.7 },
+  "6-10":    { avgVsPar: 6,  fir: 57, gir: 44, puttsPerHole: 1.82, birdiesPerRound: 1.9, doublesPerRound: 1.2 },
+  "11-15":   { avgVsPar: 9,  fir: 51, gir: 34, puttsPerHole: 1.86, birdiesPerRound: 1.3, doublesPerRound: 1.8 },
+  "16-20":   { avgVsPar: 13, fir: 44, gir: 24, puttsPerHole: 1.91, birdiesPerRound: 0.8, doublesPerRound: 2.6 },
+  "21-28":   { avgVsPar: 18, fir: 37, gir: 16, puttsPerHole: 1.96, birdiesPerRound: 0.4, doublesPerRound: 3.4 },
+};
+
+export function getBenchmark(handicapIndex) {
+  if (handicapIndex == null) return HANDICAP_BENCHMARKS["16-20"];
+  const h = Math.abs(handicapIndex);
+  if (h <= 0) return HANDICAP_BENCHMARKS["scratch"];
+  if (h <= 5) return HANDICAP_BENCHMARKS["0-5"];
+  if (h <= 10) return HANDICAP_BENCHMARKS["6-10"];
+  if (h <= 15) return HANDICAP_BENCHMARKS["11-15"];
+  if (h <= 20) return HANDICAP_BENCHMARKS["16-20"];
+  return HANDICAP_BENCHMARKS["21-28"];
+}
+
 export const TC = {
   blue:   {l:'Blue',   d:'#5dade2'},
   yellow: {l:'Yellow', d:'#f4d03f'},

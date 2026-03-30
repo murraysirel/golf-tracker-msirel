@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────
-// LEADERBOARD
+// LEADERBOARD — unified podium + list layout
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
 import { COURSES } from './constants.js';
@@ -16,10 +16,25 @@ function _es(icon, headline, sub, ctaText, ctaAction) {
   return typeof _emptyState === 'function' ? _emptyState(icon, headline, sub, ctaText, ctaAction) : null;
 }
 
-// Maps CREATE_BOARDS ids → their wrapping card's data-board-id attribute
-const TOGGLEABLE_BOARD_IDS = ['season', 'scoring_gross', 'scoring_net', 'stableford', 'net_score', 'buffer', 'best_gross', 'fewest_doubles'];
+// ── Active view state ────────────────────────────────────────────
+let _activeView = 'stableford';
+let _computedPlayers = [];   // cached from last renderLeaderboard
+let _filterRoundsFn = null;  // cached filterRounds closure
 
-// Fetch group membership + config, then render
+// View definitions: label, sort fn, metric value/label/unit, bar colour
+const VIEWS = [
+  { id: 'stableford',     label: 'Stableford',     field: 'avgStab',      unit: 'pts avg',       sort: (a,b) => (b.avgStab ?? -1) - (a.avgStab ?? -1),         barCol: 'rgba(201,168,76,0.7)',  higherBetter: true },
+  { id: 'net_score',      label: 'Net score',       field: 'avgNet',       unit: 'avg net',       sort: (a,b) => (a.avgNet ?? 999) - (b.avgNet ?? 999),         barCol: 'rgba(201,168,76,0.7)',  higherBetter: false },
+  { id: 'birdies',        label: 'Birdies',         field: 'birdies',      unit: 'total',         sort: (a,b) => b.birdies - a.birdies,                          barCol: 'rgba(52,152,219,0.7)',  higherBetter: true },
+  { id: 'buffer',         label: 'Buffer+',         field: 'bufferCount',  unit: 'rounds',        sort: (a,b) => (b.bufferCount ?? -1) - (a.bufferCount ?? -1), barCol: 'rgba(46,204,113,0.7)',  higherBetter: true },
+  { id: 'pts_scoring',    label: 'Pts scoring',     field: 'pts',          unit: 'pts total',     sort: (a,b) => b.pts - a.pts,                                  barCol: 'rgba(201,168,76,0.7)',  higherBetter: true },
+  { id: 'best_round',     label: 'Best round',      field: 'best',         unit: 'gross',         sort: (a,b) => (a.best ?? 999) - (b.best ?? 999),             barCol: 'rgba(201,168,76,0.7)',  higherBetter: false },
+  { id: 'fewest_doubles', label: 'Fewest doubles',  field: 'avgDoubles',   unit: 'per round',     sort: (a,b) => (a.avgDoubles ?? 99) - (b.avgDoubles ?? 99),   barCol: 'rgba(231,76,60,0.5)',   higherBetter: false, invertBar: true },
+  { id: 'net_birdies',    label: 'Net birdies',     field: 'netPts',       unit: 'net pts',       sort: (a,b) => (b.netPts ?? -1) - (a.netPts ?? -1),           barCol: 'rgba(52,152,219,0.7)',  higherBetter: true },
+  { id: 'most_birdies',   label: 'Most birdies',    field: 'bestBirdies',  unit: 'in a round',    sort: (a,b) => (b.bestBirdies ?? -1) - (a.bestBirdies ?? -1), barCol: 'rgba(52,152,219,0.7)',  higherBetter: true },
+];
+
+// ── Fetch group membership + config, then render ─────────────────
 export async function initLeaderboard() {
   if (state.me && state.gd.activeGroupCode) {
     const res = await querySupabase('getGroupByCode', {
@@ -27,8 +42,7 @@ export async function initLeaderboard() {
       playerName: state.me
     });
     if (res?.found && res.isMember) {
-      state.gd.group = res.group; // { id, name, code, admin_id, active_boards }
-      // Cache the name for the switcher pill
+      state.gd.group = res.group;
       if (!state.gd.groupMeta) state.gd.groupMeta = {};
       if (res.group.name) state.gd.groupMeta[state.gd.activeGroupCode] = { name: res.group.name };
     } else {
@@ -37,11 +51,10 @@ export async function initLeaderboard() {
   } else {
     state.gd.group = null;
   }
-  // Fetch names for all other groups in the switcher (fire in parallel, non-blocking)
   const allCodes = state.gd.groupCodes || [];
   await Promise.all(allCodes.map(async code => {
-    if (code === state.gd.activeGroupCode) return; // already fetched above
-    if (state.gd.groupMeta?.[code]?.name) return; // already have it
+    if (code === state.gd.activeGroupCode) return;
+    if (state.gd.groupMeta?.[code]?.name) return;
     try {
       const r = await querySupabase('getGroupByCode', { code, playerName: state.me || '' });
       if (r?.found && r.group?.name) {
@@ -58,7 +71,6 @@ export async function switchActiveGroup(code) {
   if (state.gd.activeGroupCode === code) return;
   localStorage.setItem('gt_activegroup', code);
   state.gd.group = null;
-  // Reload all player/round data scoped to the new group
   await loadGroupData(code);
   if (state.me) {
     const res = await querySupabase('getGroupByCode', { code, playerName: state.me });
@@ -73,7 +85,6 @@ export async function switchActiveGroup(code) {
 }
 
 function renderGroupSwitcher() {
-  // 5a. Context button — shows active group + season
   const ctxLabel = document.getElementById('lb-ctx-label');
   const ctxSeason = document.getElementById('lb-ctx-season');
   const codes = state.gd.groupCodes || (state.gd.activeGroupCode ? [state.gd.activeGroupCode] : []);
@@ -82,16 +93,12 @@ function renderGroupSwitcher() {
   const seasonSel = document.getElementById('lb-season-sel');
   if (ctxSeason && seasonSel) ctxSeason.textContent = seasonSel.value === 'all' ? 'All time' : seasonSel.value + ' Season';
 
-  // Wire up toggle
   const ctxBtn = document.getElementById('lb-ctx-btn');
   const ctxPanel = document.getElementById('lb-ctx-panel');
   if (ctxBtn && ctxPanel) {
-    ctxBtn.onclick = () => {
-      ctxPanel.style.display = ctxPanel.style.display === 'block' ? 'none' : 'block';
-    };
+    ctxBtn.onclick = () => { ctxPanel.style.display = ctxPanel.style.display === 'block' ? 'none' : 'block'; };
   }
 
-  // Populate league pills
   const groupsEl = document.getElementById('lb-ctx-groups');
   if (groupsEl) {
     groupsEl.innerHTML = '';
@@ -103,15 +110,11 @@ function renderGroupSwitcher() {
       pill.className = 'fpill' + (isActive ? ' active' : '');
       pill.textContent = label;
       pill.style.cssText = 'font-size:11px;padding:5px 12px';
-      pill.addEventListener('click', () => {
-        if (ctxPanel) ctxPanel.style.display = 'none';
-        switchActiveGroup(code);
-      });
+      pill.addEventListener('click', () => { if (ctxPanel) ctxPanel.style.display = 'none'; switchActiveGroup(code); });
       groupsEl.appendChild(pill);
     });
   }
 
-  // Populate season pills
   const seasonsEl = document.getElementById('lb-ctx-seasons');
   if (seasonsEl) {
     seasonsEl.innerHTML = '';
@@ -137,71 +140,31 @@ function renderGroupSwitcher() {
     });
   }
 
-  // Keep hidden group-switcher bar empty for backward compat
   const bar = document.getElementById('group-switcher');
   if (bar) bar.style.display = 'none';
 }
 
-// Per-panel expanded state (persists across re-renders within the session)
-const leaderboardExpanded = {};
-
-function applyLBExpand(containerId) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
-  const rows = container.querySelectorAll('.lb-row');
-  if (rows.length <= 3) return;
-  if (!leaderboardExpanded[containerId]) {
-    rows.forEach((r, i) => { r.style.display = i >= 3 ? 'none' : ''; });
-  } else {
-    rows.forEach(r => { r.style.display = ''; });
-  }
-  // Remove any existing expand link before adding a fresh one
-  container.querySelector('.lb-expand-link')?.remove();
-  const link = document.createElement('div');
-  link.className = 'lb-expand-link';
-  link.style.cssText = 'font-size:13px;color:var(--gold);padding:8px 0 2px;cursor:pointer;text-align:left';
-  link.textContent = leaderboardExpanded[containerId] ? 'Collapse ↑' : `See full board →`;
-  link.addEventListener('click', () => {
-    leaderboardExpanded[containerId] = !leaderboardExpanded[containerId];
-    renderLeaderboard();
-  });
-  container.appendChild(link);
+// ── setLeaderboardView — switch active view pill ─────────────────
+export function setLeaderboardView(viewId) {
+  _activeView = viewId;
+  document.querySelectorAll('.lb-vpill').forEach(p => p.classList.toggle('active', p.dataset.view === viewId));
+  renderViewContent();
 }
 
+// ── Main render entry ────────────────────────────────────────────
 export function renderLeaderboard() {
-  // ── Part A/B/C/D: group state ──────────────────────────────────────
   const group = state.gd.group || null;
   const isInGroup = !!group;
-  const activeBoards = group?.active_boards || [];
   const isAdmin = isInGroup && group.admin_id === state.me;
 
-  // Stamp data-board-id onto each toggleable card (idempotent)
-  const BOARD_ID_MAP = {
-    'lb-list': 'season',
-    'lb-birdies': 'scoring_gross',
-    'lb-scoring-net': 'scoring_net',
-    'lb-stableford': 'stableford',
-    'lb-net': 'net_score',
-    'lb-buffer': 'buffer',
-    'lb-best-round': 'best_gross',
-    'lb-doubles': 'fewest_doubles',
-  };
-  Object.entries(BOARD_ID_MAP).forEach(([elId, boardId]) => {
-    const el = document.getElementById(elId);
-    if (el?.parentElement) el.parentElement.dataset.boardId = boardId;
-  });
-
-  // Header: title
+  // Header
   const titleEl = document.getElementById('lb-tab-title');
   if (titleEl) titleEl.textContent = 'The board';
   const gearBtn = document.getElementById('lb-settings-btn');
   if (gearBtn) {
     gearBtn.style.display = isAdmin ? 'inline-flex' : 'none';
-    gearBtn.onclick = () => {
-      import('./group.js').then(m => m.initGroupSettings());
-    };
+    gearBtn.onclick = () => { import('./group.js').then(m => m.initGroupSettings()); };
   }
-  // "Who's in?" button — visible to all members
   const membersBtn = document.getElementById('lb-members-btn');
   if (membersBtn) {
     membersBtn.style.display = isInGroup ? 'inline-block' : 'none';
@@ -224,14 +187,11 @@ export function renderLeaderboard() {
               <div style="font-size:11px;color:var(--dim)">HCP ${m.handicap ?? '?'}</div>
             </div>`;
           }).join('') + '</div>';
-      } catch {
-        popup.innerHTML = '<div class="card" style="font-size:12px;color:var(--dimmer);text-align:center;padding:16px">Could not load members.</div>';
-      }
+      } catch { popup.innerHTML = '<div class="card" style="font-size:12px;color:var(--dimmer);text-align:center;padding:16px">Could not load members.</div>'; }
     };
   }
 
-  // Solo prompt: shown when not in a group
-  // Join/create prompt — always visible so you can join/create additional groups
+  // Solo prompt
   const soloPrompt = document.getElementById('lb-solo-prompt');
   if (soloPrompt) {
     soloPrompt.style.display = 'block';
@@ -253,46 +213,28 @@ export function renderLeaderboard() {
     }
   }
 
-  // Group code card: shown when in a registered group OR when a legacy code exists
+  // Group code card (backward compat)
   const gcCard = document.getElementById('lb-group-code-card');
   const hasActiveCode = !!state.gd.activeGroupCode;
   const isLegacyGroup = hasActiveCode && !isInGroup;
   if (gcCard) {
     gcCard.style.display = (isInGroup || isLegacyGroup) ? 'block' : 'none';
-    // Show a callout for legacy/unregistered codes
     let legacyBanner = gcCard.querySelector('.lb-legacy-banner');
     if (isLegacyGroup) {
-      if (!legacyBanner) {
-        legacyBanner = document.createElement('div');
-        legacyBanner.className = 'lb-legacy-banner';
-        legacyBanner.style.cssText = 'margin-top:12px;padding:10px 12px;border-radius:8px;background:rgba(230,126,34,.08);border:1px solid rgba(230,126,34,.3)';
-        gcCard.appendChild(legacyBanner);
-      }
-      legacyBanner.innerHTML = `
-        <div style="font-size:12px;color:var(--bogey);font-weight:600;margin-bottom:3px">Legacy group code</div>
-        <div style="font-size:12px;color:var(--dim);margin-bottom:10px">This code isn't connected to a registered Looper group. Remove it to keep things tidy, or create a new group.</div>
-        <button id="lb-remove-legacy-btn" style="padding:7px 14px;border-radius:20px;background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.35);color:#e74c3c;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent">Remove this code</button>
-      `;
+      if (!legacyBanner) { legacyBanner = document.createElement('div'); legacyBanner.className = 'lb-legacy-banner'; gcCard.appendChild(legacyBanner); }
+      legacyBanner.innerHTML = `<div style="font-size:12px;color:var(--bogey);font-weight:600;margin-bottom:3px">Legacy group code</div>
+        <button id="lb-remove-legacy-btn" style="padding:7px 14px;border-radius:20px;background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.35);color:#e74c3c;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer">Remove this code</button>`;
       document.getElementById('lb-remove-legacy-btn')?.addEventListener('click', () => {
-        if (confirm(`Remove group code ${state.gd.activeGroupCode} from your list?`)) {
-          removeGroupFromList(state.gd.activeGroupCode);
-        }
+        if (confirm(`Remove group code ${state.gd.activeGroupCode} from your list?`)) removeGroupFromList(state.gd.activeGroupCode);
       });
-    } else if (legacyBanner) {
-      legacyBanner.remove();
-    }
+    } else if (legacyBanner) { legacyBanner.remove(); }
+  }
+  if (state.gd.activeGroupCode) {
+    const gcEl = document.getElementById('lb-group-code');
+    if (gcEl) gcEl.textContent = state.gd.activeGroupCode;
   }
 
-  // Board card visibility (only filtered when in a group)
-  TOGGLEABLE_BOARD_IDS.forEach(id => {
-    const card = document.querySelector(`[data-board-id="${id}"]`);
-    if (!card) return;
-    card.style.display = (!isInGroup || activeBoards.includes(id)) ? '' : 'none';
-  });
-
-  const lb = document.getElementById('lb-list');
-  const posClass = ['gold','silver','bronze'];
-
+  // ── Season selector (populate hidden select for filterRounds) ──
   const seasonSel = document.getElementById('lb-season-sel');
   const currentSeason = seasonSel?.value || 'all';
   const allYears = new Set();
@@ -305,24 +247,16 @@ export function renderLeaderboard() {
     const existing = [...seasonSel.options].map(o => o.value);
     sortedYears.forEach(yr => {
       if (!existing.includes(yr)) {
-        const o = document.createElement('option');
-        o.value = yr;
-        o.textContent = yr + ' Season';
+        const o = document.createElement('option'); o.value = yr; o.textContent = yr + ' Season';
         seasonSel.appendChild(o);
       }
     });
     if (currentSeason && currentSeason !== 'all') seasonSel.value = currentSeason;
   }
-  if (state.gd.activeGroupCode) {
-    const gcEl = document.getElementById('lb-group-code');
-    if (gcEl) gcEl.textContent = state.gd.activeGroupCode;
-  }
 
+  // ── filterRounds (preserved logic) ─────────────────────────────
   function filterRounds(rounds, playerName) {
     let filtered = rounds;
-    // Exclude rounds before the player joined this group (applies to everyone including admin).
-    // The admin's joinedAt IS the group creation date, so this also enforces
-    // "only rounds from league creation date onwards".
     const joinedAt = state.gd.players?.[playerName]?.joinedAt;
     if (joinedAt) {
       const jd = new Date(joinedAt);
@@ -339,8 +273,10 @@ export function renderLeaderboard() {
     }
     return filtered.filter(r => parseDateGB(r.date).toString().startsWith(val));
   }
+  _filterRoundsFn = filterRounds;
 
-  const players = Object.entries(state.gd.players).map(([name, p]) => {
+  // ── Compute player stats (preserved logic) ─────────────────────
+  _computedPlayers = Object.entries(state.gd.players).map(([name, p]) => {
     const allRs = p.rounds || [];
     const rs = filterRounds(allRs, name);
     if (!rs.length) return null;
@@ -378,10 +314,12 @@ export function renderLeaderboard() {
       return r.totalScore - playingHcp;
     });
     const avgNet = netScores.length ? +(netScores.reduce((a, b) => a + b, 0) / netScores.length).toFixed(1) : null;
-    const bestNet = netScores.length ? Math.min(...netScores) : null;
 
     const bufferCount = handicap > 0 ? rs.filter(r => isBufferOrBetter(r, handicap)).length : null;
-    const bufferPct = bufferCount != null && rs.length ? Math.round(bufferCount / rs.length * 100) : null;
+
+    // Best birdies in a single round
+    let bestBirdies = 0;
+    rs.forEach(r => { if ((r.birdies || 0) > bestBirdies) bestBirdies = r.birdies; });
 
     return {
       name, rounds: rs.length, handicap,
@@ -391,251 +329,149 @@ export function renderLeaderboard() {
       birdies, eagles, doubles, pts, avgDoubles,
       avgStab, stabCount: stabTotals.length,
       netPts, netPtsEagles, netPtsBirdies,
-      avgNet, bestNet, netCount: netScores.length,
-      bufferCount, bufferPct
+      avgNet, netCount: netScores.length,
+      bufferCount, bestBirdies
     };
-  }).filter(Boolean).sort((a, b) => (a.avgDiff ?? 99) - (b.avgDiff ?? 99));
+  }).filter(Boolean);
 
-  const emptyMsg = _es('trophy', 'Leaderboard is waiting', 'No rounds recorded yet for the current season.', 'Record a round', "import('./nav.js').then(m=>m.goTo('round'))")
-    || '<div class="empty" style="padding:24px 0"><div style="font-size:28px;margin-bottom:8px">\u2014</div><div style="font-size:13px">No rounds this season yet</div></div>';
-
-  if (!players.length) {
-    ['lb-list','lb-birdies','lb-scoring-net','lb-stableford','lb-net','lb-buffer','lb-best-stab','lb-best-birdies','lb-best-round','lb-doubles'].forEach(id => {
-      const el = document.getElementById(id); if (el) el.innerHTML = emptyMsg;
+  // ── Render view pills ──────────────────────────────────────────
+  const pillsEl = document.getElementById('lb-view-pills');
+  if (pillsEl) {
+    pillsEl.innerHTML = '';
+    VIEWS.forEach(v => {
+      const pill = document.createElement('button');
+      pill.className = 'lb-vpill' + (v.id === _activeView ? ' active' : '');
+      pill.dataset.view = v.id;
+      pill.textContent = v.label;
+      pill.addEventListener('click', () => setLeaderboardView(v.id));
+      pillsEl.appendChild(pill);
     });
+  }
+
+  // ── Render active view content ─────────────────────────────────
+  renderViewContent();
+
+  // ── H2H ────────────────────────────────────────────────────────
+  renderH2H(filterRounds);
+}
+
+// ── Render podium + list + spotlight for active view ─────────────
+function renderViewContent() {
+  const view = VIEWS.find(v => v.id === _activeView) || VIEWS[0];
+  const players = [..._computedPlayers];
+
+  // Filter out players without data for this view
+  const qualified = players.filter(p => p[view.field] != null);
+  qualified.sort(view.sort);
+
+  const podiumEl = document.getElementById('lb-podium');
+  const listEl = document.getElementById('lb-player-list');
+  const spotEl = document.getElementById('lb-spotlight');
+
+  if (!qualified.length) {
+    const emptyMsg = _es('trophy', 'Leaderboard is waiting', 'No rounds recorded yet for the current season.', 'Record a round', "import('./nav.js').then(m=>m.goTo('round'))")
+      || '<div style="padding:24px 0;text-align:center;font-size:13px;color:var(--dimmer)">No data yet</div>';
+    if (podiumEl) podiumEl.innerHTML = emptyMsg;
+    if (listEl) listEl.innerHTML = '';
+    if (spotEl) spotEl.innerHTML = '';
     return;
   }
 
-  const lbRow = (p, i, metricHtml) => {
-    const d = document.createElement('div');
-    const isMe = p.name === state.me;
-    d.className = 'lb-row' + (isMe ? ' lb-me' : '');
-    const pc = posClass[i] || '';
-    d.innerHTML = `<div class="lb-pos ${pc}">${i+1}</div>
-      ${avatarHtml(p.name, 36, isMe)}
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:7px">
-          <span class="lb-name" style="${isMe ? 'color:var(--gold)' : ''}">${p.name}</span>
-          ${isMe ? '<span class="lb-you-badge">You</span>' : ''}
-        </div>
-        <div class="lb-meta">${p.meta || ''}</div>
-      </div>
-      ${metricHtml}`;
-    return d;
+  const fmtVal = (p) => {
+    const v = p[view.field];
+    return v != null ? String(v) : '—';
   };
 
-  // 1. Avg vs par
-  lb.innerHTML = '';
-  players.forEach((p, i) => {
-    const diff = p.avgDiff != null ? (p.avgDiff >= 0 ? '+' + p.avgDiff : p.avgDiff.toString()) : '—';
-    const diffColor = p.avgDiff != null && p.avgDiff < 0 ? 'var(--birdie)' : p.avgDiff === 0 ? 'var(--par)' : 'var(--bogey)';
-    p.meta = `${p.rounds} round${p.rounds !== 1 ? 's' : ''} \u00B7 Best ${p.best ?? '—'} \u00B7 Avg ${p.avg ?? '—'}`;
-    lb.appendChild(lbRow(p, i, `<div style="text-align:right;flex-shrink:0">
-      <div class="lb-score" style="color:${diffColor}">${diff}</div>
-      <div style="font-size:9px;color:var(--dimmer);margin-top:1px">avg vs par</div>
-    </div>`));
-  });
+  // ── 1c. Podium ─────────────────────────────────────────────────
+  if (podiumEl) {
+    const top3 = qualified.slice(0, 3);
+    // Reorder: [2nd, 1st, 3rd] for visual podium
+    const ordered = top3.length >= 3 ? [top3[1], top3[0], top3[2]] : top3.length === 2 ? [top3[1], top3[0]] : [top3[0]];
+    const heights = [54, 74, 38];
+    const sizes = [34, 42, 34];
+    const positions = top3.length >= 3 ? [1, 0, 2] : top3.length === 2 ? [1, 0] : [0];
 
-  applyLBExpand('lb-list');
-
-  // 2. Scoring points
-  const byPts = [...players].sort((a, b) => b.pts - a.pts);
-  const bl = document.getElementById('lb-birdies'); bl.innerHTML = '';
-  byPts.forEach((p, i) => {
-    p.meta = `${p.eagles} eagle${p.eagles !== 1 ? "s" : ""} \u00B7 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg> ${p.birdies} birdie${p.birdies !== 1 ? "s" : ""}`;
-    bl.appendChild(lbRow(p, i, `<div style="text-align:right;flex-shrink:0">
-      <div class="lb-score" style="color:var(--eagle)">${p.pts}</div>
-      <div style="font-size:9px;color:var(--dimmer);margin-top:1px">points total</div>
-    </div>`));
-  });
-
-  applyLBExpand('lb-birdies');
-
-  // 2b. Scoring Points (Net)
-  const byNetPts = [...players].filter(p => p.netPts != null).sort((a, b) => b.netPts - a.netPts);
-  const snl = document.getElementById('lb-scoring-net'); if (snl) snl.innerHTML = '';
-  if (snl && !byNetPts.length) {
-    snl.innerHTML = '<div style="font-size:12px;color:var(--dimmer);padding:10px 0">Net scoring points calculated once hole-by-hole scores are available</div>';
+    podiumEl.innerHTML = `<div style="display:flex;align-items:flex-end;gap:6px;justify-content:center">` +
+      ordered.map((p, vi) => {
+        const pos = positions[vi];
+        const isFirst = pos === 0;
+        const isMe = p.name === state.me;
+        const sz = sizes[pos];
+        const ht = heights[pos];
+        const borderStyle = isFirst ? 'border:2px solid var(--gold)' : 'border:1px solid var(--border)';
+        const avatarColor = isFirst ? 'color:var(--gold);background:rgba(201,168,76,0.1)' : 'color:var(--dim);background:var(--mid)';
+        const blockBg = isFirst ? 'background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.3);color:var(--gold)' : 'background:var(--mid);border:1px solid var(--border);color:var(--dimmer)';
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div style="width:${sz}px;height:${sz}px;border-radius:50%;${borderStyle};${avatarColor};display:flex;align-items:center;justify-content:center;font-size:${isFirst ? 15 : 12}px;font-weight:700;font-family:'DM Sans',sans-serif">${initials(p.name)}</div>
+          <div style="font-size:11px;color:var(--dim);text-align:center;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}${isMe ? ' <span style="color:var(--gold);font-size:10px">you</span>' : ''}</div>
+          <div style="font-size:12px;font-weight:700;color:var(--gold)">${fmtVal(p)}</div>
+          <div style="width:100%;height:${ht}px;border-radius:6px 6px 0 0;${blockBg};display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700">${pos + 1}</div>
+        </div>`;
+      }).join('') + '</div>';
   }
-  byNetPts.forEach((p, i) => {
-    p.meta = `${p.netPtsEagles} net eagle${p.netPtsEagles !== 1 ? 's' : ''} \u00B7 ${p.netPtsBirdies} net birdie${p.netPtsBirdies !== 1 ? 's' : ''}`;
-    if (snl) snl.appendChild(lbRow(p, i, `<div style="text-align:right;flex-shrink:0">
-      <div class="lb-score" style="color:var(--eagle)">${p.netPts}</div>
-      <div style="font-size:9px;color:var(--dimmer);margin-top:1px">net pts total</div>
-    </div>`));
-  });
-  if (snl) applyLBExpand('lb-scoring-net');
 
-  // 3. Avg Stableford
-  const bySt = [...players].filter(p => p.avgStab != null).sort((a, b) => b.avgStab - a.avgStab);
-  const sl = document.getElementById('lb-stableford'); sl.innerHTML = '';
-  if (!bySt.length) { sl.innerHTML = '<div style="font-size:12px;color:var(--dimmer);padding:10px 0">Stableford calculated once hole-by-hole scores are available</div>'; }
-  bySt.forEach((p, i) => {
-    const diff = +(p.avgStab - 36).toFixed(1);
-    const diffStr = diff >= 0 ? '+' + diff : '' + diff;
-    const color = diff >= 0 ? 'var(--birdie)' : diff >= -4 ? 'var(--bogey)' : 'var(--double)';
-    p.meta = `${p.stabCount} round${p.stabCount !== 1 ? 's' : ''} \u00B7 HCP ${p.handicap || '—'}`;
-    sl.appendChild(lbRow(p, i, `<div style="text-align:right;flex-shrink:0">
-      <div class="lb-score" style="color:var(--gold)">${p.avgStab}</div>
-      <div style="font-size:9px;color:${color};margin-top:1px">${diffStr} vs 36</div>
-    </div>`));
-  });
-
-  applyLBExpand('lb-stableford');
-
-  // 4. Avg Net Score
-  const byNet = [...players].filter(p => p.avgNet != null).sort((a, b) => a.avgNet - b.avgNet);
-  const nl = document.getElementById('lb-net'); nl.innerHTML = '';
-  if (!byNet.length) { nl.innerHTML = '<div style="font-size:12px;color:var(--dimmer);padding:10px 0">Set your handicap in Stats to enable net scoring</div>'; }
-  byNet.forEach((p, i) => {
-    p.meta = `HCP ${p.handicap} \u00B7 Best net ${p.bestNet ?? '—'} \u00B7 ${p.netCount} round${p.netCount !== 1 ? 's' : ''}`;
-    nl.appendChild(lbRow(p, i, `<div style="text-align:right;flex-shrink:0">
-      <div class="lb-score" style="color:var(--cream)">${p.avgNet}</div>
-      <div style="font-size:9px;color:var(--dimmer);margin-top:1px">avg net</div>
-    </div>`));
-  });
-
-  applyLBExpand('lb-net');
-
-  // 5. Buffer or Better
-  const byBuf = [...players].filter(p => p.bufferCount != null).sort((a, b) => b.bufferCount - a.bufferCount);
-  const bbl = document.getElementById('lb-buffer'); bbl.innerHTML = '';
-  if (!byBuf.length) { bbl.innerHTML = '<div style="font-size:12px;color:var(--dimmer);padding:10px 0">Set your handicap in Stats to track buffer or better rounds</div>'; }
-  byBuf.forEach((p, i) => {
-    p.meta = `${p.bufferPct}% of ${p.rounds} round${p.rounds !== 1 ? 's' : ''} \u00B7 HCP ${p.handicap}`;
-    bbl.appendChild(lbRow(p, i, `<div style="text-align:right;flex-shrink:0">
-      <div class="lb-score" style="color:var(--birdie)">${p.bufferCount}</div>
-      <div style="font-size:9px;color:var(--dimmer);margin-top:1px">rounds buffer+</div>
-    </div>`));
-  });
-
-  // 7. Best single-round Stableford
-  const bestStabPlayers = Object.entries(state.gd.players).map(([name, p]) => {
-    const rs = filterRounds(p.rounds || [], name).filter(r => r.scores && r.pars);
-    if (!rs.length) return null;
-    const handicap = p.handicap || 0;
-    let best = null, bestR = null;
-    rs.forEach(r => {
-      const course = getCourseByRef(r.course) || Object.values(COURSES || []).find(c => c.name === r.course);
-      const si = course?.tees?.[r.tee]?.si || null;
-      const s = calcStableford(r.scores, r.pars, handicap, r.slope, si);
-      if (s != null && (best == null || s > best)) { best = s; bestR = r; }
+  // ── 1d. Remaining players list (4th+) ──────────────────────────
+  if (listEl) {
+    const rest = qualified.slice(3);
+    listEl.innerHTML = '';
+    rest.forEach((p, i) => {
+      const pos = i + 4;
+      const isMe = p.name === state.me;
+      const row = document.createElement('div');
+      const meBg = isMe ? 'background:rgba(201,168,76,0.05);border-radius:8px;padding:9px 8px;margin:0 -8px;' : '';
+      row.style.cssText = `display:flex;align-items:center;gap:8px;padding:9px 0;${i < rest.length - 1 ? 'border-bottom:1px solid var(--border);' : ''}${meBg}`;
+      row.innerHTML = `
+        <div style="font-size:12px;font-weight:700;color:var(--dimmer);width:16px;text-align:center">${pos}</div>
+        <div style="width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:var(--mid);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--dim);font-family:'DM Sans',sans-serif;flex-shrink:0">${initials(p.name)}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--cream)">${p.name}</div>
+          <div style="font-size:10px;color:var(--dim)">${p.rounds} round${p.rounds !== 1 ? 's' : ''}</div>
+        </div>
+        <div style="font-size:10px;font-weight:700;color:var(--dimmer);padding:2px 5px;border-radius:4px">–</div>
+        <div style="text-align:right">
+          <div style="font-size:16px;font-weight:700;color:var(--cream)">${fmtVal(p)}</div>
+          <div style="font-size:10px;color:var(--dim)">${view.unit}</div>
+        </div>`;
+      listEl.appendChild(row);
     });
-    if (best == null) return null;
-    return { name, bestStab: best, round: bestR };
-  }).filter(Boolean).sort((a, b) => b.bestStab - a.bestStab);
+  }
 
-  const bsl = document.getElementById('lb-best-stab'); bsl.innerHTML = '';
-  if (!bestStabPlayers.length) { bsl.innerHTML = emptyMsg; }
-  bestStabPlayers.forEach((p, i) => {
-    const diff = +(p.bestStab - 36).toFixed(0);
-    const diffStr = diff >= 0 ? '+' + diff : '' + diff;
-    const color = diff >= 0 ? 'var(--birdie)' : diff >= -4 ? 'var(--bogey)' : 'var(--double)';
-    const d = document.createElement('div');
-    const isMe = p.name === state.me;
-    d.className = 'lb-row' + (isMe ? ' lb-me' : '');
-    const pc = posClass[i] || '';
-    d.innerHTML = `<div class="lb-pos ${pc}">${i+1}</div>
-      ${avatarHtml(p.name, 36, isMe)}
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:7px">
-          <span class="lb-name" style="${isMe ? 'color:var(--gold)' : ''}">${p.name}</span>
-          ${isMe ? '<span class="lb-you-badge">You</span>' : ''}
+  // ── 1e. Stat spotlight card ────────────────────────────────────
+  if (spotEl) {
+    const seasonLabel = document.getElementById('lb-season-sel')?.value || 'all';
+    const seasonName = seasonLabel === 'all' ? 'All time' : seasonLabel + ' Season';
+    const maxVal = Math.max(...qualified.map(p => Math.abs(p[view.field] ?? 0)), 1);
+
+    let barHtml = '';
+    qualified.forEach((p, i) => {
+      const val = Math.abs(p[view.field] ?? 0);
+      let pct;
+      if (view.invertBar) {
+        pct = maxVal > 0 ? (1 - val / maxVal) * 100 : 0;
+      } else {
+        pct = maxVal > 0 ? (val / maxVal) * 100 : 0;
+      }
+      pct = Math.max(pct, 8); // minimum visible bar
+      const shortName = p.name.length > 12 ? p.name.slice(0, 12) + '…' : p.name;
+      barHtml += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        <div style="font-size:11px;color:var(--dimmer);width:12px;flex-shrink:0;text-align:right">${i + 1}</div>
+        <div style="flex:1;height:16px;background:var(--navy);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${view.barCol};border-radius:3px;display:flex;align-items:center;padding-left:6px">
+            <span style="font-size:10px;font-weight:600;color:var(--cream);white-space:nowrap">${shortName}</span>
+          </div>
         </div>
-        <div class="lb-meta">${p.round.course} \u00B7 ${p.round.date}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0">
-        <div class="lb-score" style="color:var(--gold)">${p.bestStab}</div>
-        <div style="font-size:9px;color:${color};margin-top:1px">${diffStr} vs 36</div>
+        <div style="font-size:11px;font-weight:700;color:var(--cream);min-width:28px;text-align:right;flex-shrink:0">${fmtVal(p)}</div>
       </div>`;
-    bsl.appendChild(d);
-  });
-  applyLBExpand('lb-best-stab');
+    });
 
-  // 8. Most birdies in a single round
-  const bestBirdiePlayers = Object.entries(state.gd.players).map(([name, p]) => {
-    const rs = filterRounds(p.rounds || [], name);
-    if (!rs.length) return null;
-    let best = 0, bestR = null;
-    rs.forEach(r => { if ((r.birdies || 0) > best) { best = r.birdies; bestR = r; } });
-    if (!bestR) return null;
-    return { name, bestBirdies: best, round: bestR };
-  }).filter(Boolean).sort((a, b) => b.bestBirdies - a.bestBirdies);
-
-  const bbl2 = document.getElementById('lb-best-birdies'); bbl2.innerHTML = '';
-  if (!bestBirdiePlayers.length) { bbl2.innerHTML = emptyMsg; }
-  bestBirdiePlayers.forEach((p, i) => {
-    const isMe = p.name === state.me;
-    const d = document.createElement('div');
-    d.className = 'lb-row' + (isMe ? ' lb-me' : '');
-    const pc = posClass[i] || '';
-    d.innerHTML = `<div class="lb-pos ${pc}">${i+1}</div>
-      ${avatarHtml(p.name, 36, isMe)}
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:7px">
-          <span class="lb-name" style="${isMe ? 'color:var(--gold)' : ''}">${p.name}</span>
-          ${isMe ? '<span class="lb-you-badge">You</span>' : ''}
-        </div>
-        <div class="lb-meta">${p.round.course} \u00B7 ${p.round.date} \u00B7 ${p.round.totalScore} gross</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0">
-        <div class="lb-score" style="color:var(--birdie)">${p.bestBirdies}</div>
-        <div style="font-size:9px;color:var(--dimmer);margin-top:1px">birdies in round</div>
-      </div>`;
-    bbl2.appendChild(d);
-  });
-  applyLBExpand('lb-best-birdies');
-
-  // 9. Best gross round
-  const bestRoundPlayers = Object.entries(state.gd.players).map(([name, p]) => {
-    const rs = filterRounds(p.rounds || [], name).filter(r => r.totalScore);
-    if (!rs.length) return null;
-    const bestR = rs.reduce((a, b) => b.totalScore < a.totalScore ? b : a);
-    return { name, score: bestR.totalScore, diff: bestR.diff, round: bestR };
-  }).filter(Boolean).sort((a, b) => a.diff - b.diff || a.score - b.score);
-
-  const brl = document.getElementById('lb-best-round'); brl.innerHTML = '';
-  if (!bestRoundPlayers.length) { brl.innerHTML = emptyMsg; }
-  bestRoundPlayers.forEach((p, i) => {
-    const isMe = p.name === state.me;
-    const d = document.createElement('div');
-    d.className = 'lb-row' + (isMe ? ' lb-me' : '');
-    const pc = posClass[i] || '';
-    const dStr = p.diff >= 0 ? '+' + p.diff : '' + p.diff;
-    const dCol = p.diff < 0 ? 'var(--birdie)' : p.diff === 0 ? 'var(--par)' : p.diff <= 3 ? 'var(--bogey)' : 'var(--double)';
-    d.innerHTML = `<div class="lb-pos ${pc}">${i+1}</div>
-      ${avatarHtml(p.name, 36, isMe)}
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:7px">
-          <span class="lb-name" style="${isMe ? 'color:var(--gold)' : ''}">${p.name}</span>
-          ${isMe ? '<span class="lb-you-badge">You</span>' : ''}
-        </div>
-        <div class="lb-meta">${p.round.course} \u00B7 ${p.round.date}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0">
-        <div class="lb-score" style="color:var(--gold)">${p.score}</div>
-        <div style="font-size:9px;color:${dCol};margin-top:1px">${dStr} par</div>
-      </div>`;
-    brl.appendChild(d);
-  });
-  applyLBExpand('lb-best-round');
-
-  // H2H
-  renderH2H(filterRounds);
-
-  // 6. Fewest doubles
-  const byDoubles = [...players].sort((a, b) => (a.avgDoubles ?? 99) - (b.avgDoubles ?? 99));
-  const dl = document.getElementById('lb-doubles'); dl.innerHTML = '';
-  byDoubles.forEach((p, i) => {
-    p.meta = `${p.doubles} total \u00B7 ${p.rounds} round${p.rounds !== 1 ? 's' : ''}`;
-    dl.appendChild(lbRow(p, i, `<div style="text-align:right;flex-shrink:0">
-      <div class="lb-score" style="color:var(--par)">${p.avgDoubles ?? '—'}</div>
-      <div style="font-size:9px;color:var(--dimmer);margin-top:1px">per round</div>
-    </div>`));
-  });
-  applyLBExpand('lb-doubles');
+    spotEl.innerHTML = `<div style="background:var(--mid);border:1px solid var(--border);border-radius:12px;padding:12px 14px">
+      <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">${view.label} leaders · ${seasonName}</div>
+      ${barHtml}
+    </div>`;
+  }
 }
 
+// ── H2H (preserved) ─────────────────────────────────────────────
 function renderH2H(filterRounds) {
   const el = document.getElementById('lb-h2h');
   if (!el) return;
@@ -647,51 +483,34 @@ function renderH2H(filterRounds) {
     return;
   }
 
-  // Build H2H records for all pairs
   const records = [];
   for (let i = 0; i < playerNames.length; i++) {
     for (let j = i + 1; j < playerNames.length; j++) {
       const pA = playerNames[i], pB = playerNames[j];
       const rsA = filterRounds(state.gd.players[pA]?.rounds || [], pA);
       const rsB = filterRounds(state.gd.players[pB]?.rounds || [], pB);
-
-      // Find shared rounds (same date + course)
-      let wA = 0, wB = 0, h = 0;
-      let hasMatchData = false;
-      let sharedRounds = 0;
+      let wA = 0, wB = 0, h = 0, hasMatchData = false, sharedRounds = 0;
 
       rsA.forEach(rA => {
         const rB = rsB.find(r => r.date === rA.date && r.course === rA.course);
         if (!rB) return;
         sharedRounds++;
-
-        // Check for real match outcome data first
         if (rA.matchOutcome) {
           hasMatchData = true;
           const mo = rA.matchOutcome;
-          if (mo.result === 'won') {
-            if (mo.leader === pA) wA++;
-            else wB++;
-          } else if (mo.result === 'halved') {
-            h++;
-          }
+          if (mo.result === 'won') { if (mo.leader === pA) wA++; else wB++; }
+          else if (mo.result === 'halved') h++;
         } else if (rB.matchOutcome) {
           hasMatchData = true;
           const mo = rB.matchOutcome;
-          if (mo.result === 'won') {
-            if (mo.leader === pB) wB++;
-            else wA++;
-          } else if (mo.result === 'halved') {
-            h++;
-          }
+          if (mo.result === 'won') { if (mo.leader === pB) wB++; else wA++; }
+          else if (mo.result === 'halved') h++;
         } else {
-          // Virtual: lower gross wins
           if (rA.diff < rB.diff) wA++;
           else if (rB.diff < rA.diff) wB++;
           else h++;
         }
       });
-
       if (!sharedRounds) continue;
       records.push({ pA, pB, wA, wB, h, hasMatchData, sharedRounds });
     }

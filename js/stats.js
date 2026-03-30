@@ -2,7 +2,7 @@
 // STATS + CHARTS
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
-import { TC } from './constants.js';
+import { TC, getBenchmark } from './constants.js';
 import { pushData, pushSupabase } from './api.js';
 import { initials, refreshAvatarUI, avatarHtml } from './players.js';
 
@@ -673,20 +673,11 @@ export function renderHomeStats() {
     return poss ? hits / poss * 100 : null;
   }
 
-  // ── 3c. Pulse stats row ──────────────────────────────────────
+  // ── Pulse stats row (customisable KPIs) ───────────────────────
   const pulseEl = document.getElementById('home-pulse');
   if (pulseEl) {
-    const diffs = last5.map(r => r.diff).filter(v => v != null && !isNaN(v));
-    const avgDiff = diffs.length ? (diffs.reduce((a, b) => a + b, 0) / diffs.length) : null;
-    const firPct = firRaw(last5);
-    const girPct = girRaw(last5);
-
-    // Previous 5 for delta calculation
-    const prev5 = sorted.slice(-10, -5);
-    const prevDiffs = prev5.map(r => r.diff).filter(v => v != null);
-    const prevAvgDiff = prevDiffs.length ? prevDiffs.reduce((a, b) => a + b, 0) / prevDiffs.length : null;
-    const prevFir = firRaw(prev5);
-    const prevGir = girRaw(prev5);
+    const last10 = sorted.slice(-10);
+    const prev10 = sorted.slice(-20, -10);
 
     function deltaStr(cur, prev, inverted) {
       if (cur === null || prev === null) return '';
@@ -696,25 +687,114 @@ export function renderHomeStats() {
       return `<span class="${good ? 'delta-up' : 'delta-dn'}">${good ? (inverted ? '' : '+') : ''}${d.toFixed(1)}</span>`;
     }
 
-    pulseEl.innerHTML = `
-      <div class="pulse-cell">
-        <div class="pulse-val">${avgDiff !== null ? (avgDiff >= 0 ? '+' : '') + avgDiff.toFixed(1) : '—'}</div>
-        <div class="pulse-lbl">Avg vs par</div>
-        <div class="pulse-delta">${deltaStr(avgDiff, prevAvgDiff, true)}</div>
-        <div class="pulse-accent" style="background:var(--gold)"></div>
-      </div>
-      <div class="pulse-cell">
-        <div class="pulse-val">${firPct !== null ? Math.round(firPct) + '%' : '—'}</div>
-        <div class="pulse-lbl">FIR</div>
-        <div class="pulse-delta">${deltaStr(firPct, prevFir, false)}</div>
-        <div class="pulse-accent" style="background:var(--gold)"></div>
-      </div>
-      <div class="pulse-cell">
-        <div class="pulse-val">${girPct !== null ? Math.round(girPct) + '%' : '—'}</div>
-        <div class="pulse-lbl">GIR</div>
-        <div class="pulse-delta">${deltaStr(girPct, prevGir, false)}</div>
-        <div class="pulse-accent" style="background:#3498db"></div>
+    function avgPuttsPerHole(rounds) {
+      let total = 0, holes = 0;
+      rounds.forEach(r => (r.putts || []).forEach(v => { if (v != null && !isNaN(v)) { total += v; holes++; } }));
+      return holes ? total / holes : null;
+    }
+    function avgBirdiesPerRound(rounds) {
+      if (!rounds.length) return null;
+      return rounds.reduce((a, r) => a + (r.birdies || 0), 0) / rounds.length;
+    }
+    function avgDoublesPerRound(rounds) {
+      if (!rounds.length) return null;
+      return rounds.reduce((a, r) => a + (r.doubles || 0), 0) / rounds.length;
+    }
+    function avgStableford(rounds) {
+      const hcp = p.handicap || 0;
+      const vals = rounds.filter(r => r.scores && r.pars).map(r => calcStableford(r.scores, r.pars, hcp, r.slope, null)).filter(v => v != null);
+      return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+    }
+    function avgDiffFn(rounds) {
+      const d = rounds.map(r => r.diff).filter(v => v != null && !isNaN(v));
+      return d.length ? d.reduce((a, b) => a + b, 0) / d.length : null;
+    }
+
+    const KPI_DEFS = {
+      avg_score:  { label: 'Avg score',     fn: avgDiffFn,           fmt: v => (v >= 0 ? '+' : '') + v.toFixed(1), inverted: true,  accent: 'var(--gold)' },
+      stableford: { label: 'Avg pts',       fn: avgStableford,       fmt: v => v.toFixed(1),                       inverted: false, accent: 'var(--gold)' },
+      fir:        { label: 'FIR %',         fn: r => firRaw(r),      fmt: v => Math.round(v) + '%',                inverted: false, accent: 'var(--gold)' },
+      gir:        { label: 'GIR %',         fn: r => girRaw(r),      fmt: v => Math.round(v) + '%',                inverted: false, accent: '#3498db' },
+      putts:      { label: 'Avg putts',     fn: avgPuttsPerHole,     fmt: v => v.toFixed(1),                       inverted: true,  accent: '#2ecc71' },
+      birdies:    { label: 'Birdies/round', fn: avgBirdiesPerRound,  fmt: v => v.toFixed(1),                       inverted: false, accent: '#3498db' },
+      doubles:    { label: 'Doubles/round', fn: avgDoublesPerRound,  fmt: v => v.toFixed(1),                       inverted: true,  accent: '#e74c3c' },
+    };
+
+    const HOME_KPI_LS = 'looper_home_kpis';
+    const HOME_KPI_DEFAULT = ['avg_score', 'fir', 'gir'];
+    function getHomeKpis() {
+      try {
+        const s = JSON.parse(localStorage.getItem(HOME_KPI_LS));
+        if (Array.isArray(s) && s.length === 3 && s.every(id => KPI_DEFS[id])) return s;
+      } catch (_) {}
+      return [...HOME_KPI_DEFAULT];
+    }
+
+    const activeKpis = getHomeKpis();
+
+    let cellsHtml = '';
+    activeKpis.forEach(kpiId => {
+      const def = KPI_DEFS[kpiId];
+      if (!def) return;
+      const cur = def.fn(last10);
+      const prev = def.fn(prev10);
+      const valStr = cur !== null ? def.fmt(cur) : '—';
+      cellsHtml += `<div class="pulse-cell">
+        <div class="pulse-val">${valStr}</div>
+        <div class="pulse-lbl">${def.label}</div>
+        <div class="pulse-delta">${deltaStr(cur, prev, def.inverted)}</div>
+        <div class="pulse-accent" style="background:${def.accent}"></div>
       </div>`;
+    });
+
+    // Edit icon
+    cellsHtml += `<div id="pulse-edit-trigger" style="position:absolute;top:4px;right:4px;cursor:pointer;padding:4px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="var(--dim)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 2.5a2 2 0 0 1 2.8 2.8L7 14.5l-4 1 1-4z"/></svg></div>`;
+
+    pulseEl.style.position = 'relative';
+    pulseEl.innerHTML = cellsHtml;
+
+    // Picker toggle
+    document.getElementById('pulse-edit-trigger')?.addEventListener('click', () => {
+      let picker = document.getElementById('pulse-kpi-picker');
+      if (picker) { picker.style.display = picker.style.display === 'none' ? 'block' : 'none'; return; }
+
+      picker = document.createElement('div');
+      picker.id = 'pulse-kpi-picker';
+      picker.style.cssText = 'background:var(--mid);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin:8px 16px 0';
+      let selected = [...activeKpis];
+
+      function renderPicker() {
+        picker.innerHTML = `<div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Choose 3 stats</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">${Object.entries(KPI_DEFS).map(([id, def]) => {
+            const sel = selected.includes(id);
+            return `<button data-kpi="${id}" class="fpill${sel ? ' active' : ''}" style="font-size:11px;padding:5px 12px">${def.label}</button>`;
+          }).join('')}</div>
+          <button id="pulse-kpi-done" class="btn" style="width:100%;font-size:12px;padding:8px">Done</button>`;
+
+        picker.querySelectorAll('[data-kpi]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.dataset.kpi;
+            if (selected.includes(id)) {
+              if (selected.length <= 3) return; // minimum 3
+              selected = selected.filter(x => x !== id);
+            } else {
+              if (selected.length >= 3) selected.shift(); // remove oldest
+              selected.push(id);
+            }
+            renderPicker();
+          });
+        });
+
+        picker.querySelector('#pulse-kpi-done')?.addEventListener('click', () => {
+          localStorage.setItem(HOME_KPI_LS, JSON.stringify(selected));
+          picker.style.display = 'none';
+          renderHomeStats();
+        });
+      }
+
+      renderPicker();
+      pulseEl.parentElement.insertBefore(picker, pulseEl.nextSibling);
+    });
   }
 
   // ── 3d. Last round card ──────────────────────────────────────
@@ -1095,6 +1175,15 @@ export function renderStats() {
             backgroundColor: 'transparent',
             pointRadius: 0, pointHoverRadius: 0, hitRadius: 0,
             tension: 0, fill: false
+          },
+          {
+            label: 'Hcp avg',
+            data: rs.map(() => getBenchmark(hcp).avgVsPar),
+            borderColor: 'rgba(255,255,255,0.2)',
+            borderDash: [6, 4],
+            backgroundColor: 'transparent',
+            pointRadius: 0, pointHoverRadius: 0, hitRadius: 0,
+            tension: 0, fill: false
           }
         ]
       },
@@ -1132,10 +1221,12 @@ export function renderStats() {
     if (trendInsight) {
       const bestCol = bestDiff != null && bestDiff < 0 ? 'var(--birdie)' : 'var(--cream)';
       const avgCol = avgDiffRaw != null ? (avgDiffRaw < 0 ? 'var(--birdie)' : avgDiffRaw > 3 ? 'var(--double)' : 'var(--bogey)') : 'var(--cream)';
+      const bm = getBenchmark(hcp);
       trendInsight.className = 'chart-callout-row';
       trendInsight.innerHTML = `
         <div class="chart-callout"><div class="chart-callout-val" style="color:${bestCol}">${bestDiff != null ? (bestDiff >= 0 ? '+' : '') + bestDiff : '—'}</div><div class="chart-callout-lbl">Best round this period</div></div>
-        <div class="chart-callout"><div class="chart-callout-val" style="color:${avgCol}">${avgDiffRaw != null ? (avgDiffRaw >= 0 ? '+' : '') + avgDiffRaw.toFixed(1) : '—'}</div><div class="chart-callout-lbl">Avg vs par</div></div>`;
+        <div class="chart-callout"><div class="chart-callout-val" style="color:${avgCol}">${avgDiffRaw != null ? (avgDiffRaw >= 0 ? '+' : '') + avgDiffRaw.toFixed(1) : '—'}</div><div class="chart-callout-lbl">Avg vs par</div></div>
+        <div class="chart-callout"><div class="chart-callout-val" style="color:var(--dimmer)">+${bm.avgVsPar}</div><div class="chart-callout-lbl" title="Average for a ${fmtHcp(hcp)} handicap golfer — source: USGA/R&A research data">Hcp avg</div></div>`;
     }
   }
 
@@ -1179,12 +1270,20 @@ export function renderStats() {
         data: {
           labels: ptLabels,
           datasets: [{
+            label: 'Total putts',
             data: ptData,
             borderColor: '#3498db',
             backgroundColor: 'rgba(52,152,219,.08)',
             pointBackgroundColor: '#c9a84c',
             pointRadius: 5, pointHoverRadius: 8, hitRadius: 20, pointBorderWidth: 0,
             tension: .3, fill: true
+          },
+          {
+            label: 'Hcp avg',
+            data: puttsRounds.map(() => Math.round(getBenchmark(hcp).puttsPerHole * 18)),
+            borderColor: 'rgba(255,255,255,0.2)', borderDash: [6, 4],
+            backgroundColor: 'transparent', pointRadius: 0, pointHoverRadius: 0, hitRadius: 0,
+            tension: 0, fill: false
           }]
         },
         options: {
@@ -1208,10 +1307,103 @@ export function renderStats() {
       const avgPuttsHole = avgPuttsRound / 18;
       const puttsInsight = document.getElementById('putts-insight-grid');
       if (puttsInsight) {
+        const pBm = getBenchmark(hcp);
         puttsInsight.className = 'chart-callout-row';
         puttsInsight.innerHTML = `
           <div class="chart-callout"><div class="chart-callout-val" style="color:var(--par)">${avgPuttsHole.toFixed(2)}</div><div class="chart-callout-lbl">Avg putts / hole</div></div>
-          <div class="chart-callout"><div class="chart-callout-val" style="color:var(--cream)">${avgPuttsRound.toFixed(1)}</div><div class="chart-callout-lbl">Avg putts / round</div></div>`;
+          <div class="chart-callout"><div class="chart-callout-val" style="color:var(--cream)">${avgPuttsRound.toFixed(1)}</div><div class="chart-callout-lbl">Avg putts / round</div></div>
+          <div class="chart-callout"><div class="chart-callout-val" style="color:var(--dimmer)">${pBm.puttsPerHole}</div><div class="chart-callout-lbl" title="Average for a ${fmtHcp(hcp)} handicap golfer — source: USGA/R&A research data">Hcp avg</div></div>`;
+      }
+    }
+
+    // ── 3d. Birdies & doubles trend chart ───────────────────────────
+    const bdRounds = allSorted.filter(r => r.birdies != null || r.doubles != null).slice(-10);
+    const cBd = document.getElementById('c-birdies-doubles');
+    if (cBd) cBd.style.display = bdRounds.length > 0 ? 'block' : 'none';
+    dc('birdiesDoubles');
+    if (bdRounds.length > 0) {
+      const bdLabels = bdRounds.map(r => {
+        const dp = r.date?.split('/');
+        return dp && dp.length === 3 ? MONTHS_SHORT[parseInt(dp[1], 10) - 1] + ' ' + parseInt(dp[0], 10) : r.date?.slice(0, 5) || '';
+      });
+      const bdBirdies = bdRounds.map(r => r.birdies || 0);
+      const bdDoubles = bdRounds.map(r => r.doubles || 0);
+      const bdBm = getBenchmark(hcp);
+      const bdGrid = cc('--chart-grid');
+
+      // Update header values
+      const bdHdr = document.getElementById('bd-hdr-vals');
+      if (bdHdr) {
+        const avgB = bdBirdies.length ? (bdBirdies.reduce((a, b) => a + b, 0) / bdBirdies.length).toFixed(1) : '—';
+        const avgD = bdDoubles.length ? (bdDoubles.reduce((a, b) => a + b, 0) / bdDoubles.length).toFixed(1) : '—';
+        bdHdr.innerHTML = `<span style="color:#3498db">${avgB}</span> <span style="color:var(--dimmer)">/</span> <span style="color:#e74c3c">${avgD}</span>`;
+      }
+
+      CH.birdiesDoubles = new Chart(document.getElementById('ch-birdies-doubles'), {
+        type: 'line',
+        data: {
+          labels: bdLabels,
+          datasets: [
+            {
+              label: 'Birdies',
+              data: bdBirdies,
+              borderColor: '#3498db', pointBackgroundColor: '#3498db',
+              tension: 0.35, pointRadius: 4, pointHoverRadius: 7, hitRadius: 20, pointBorderWidth: 0,
+              fill: false
+            },
+            {
+              label: 'Doubles',
+              data: bdDoubles,
+              borderColor: '#e74c3c', pointBackgroundColor: '#e74c3c',
+              borderDash: [4, 3],
+              tension: 0.35, pointRadius: 4, pointHoverRadius: 7, hitRadius: 20, pointBorderWidth: 0,
+              fill: false
+            },
+            {
+              label: 'Hcp birdie avg',
+              data: bdRounds.map(() => bdBm.birdiesPerRound),
+              borderColor: 'rgba(52,152,219,0.2)', borderDash: [6, 4],
+              backgroundColor: 'transparent', pointRadius: 0, pointHoverRadius: 0, hitRadius: 0,
+              tension: 0, fill: false
+            },
+            {
+              label: 'Hcp double avg',
+              data: bdRounds.map(() => bdBm.doublesPerRound),
+              borderColor: 'rgba(231,76,60,0.2)', borderDash: [6, 4],
+              backgroundColor: 'transparent', pointRadius: 0, pointHoverRadius: 0, hitRadius: 0,
+              tension: 0, fill: false
+            }
+          ]
+        },
+        options: {
+          ...co(),
+          plugins: {
+            legend: { display: true, position: 'top', labels: { color: cc('--chart-tick'), font: { size: 10 }, boxWidth: 10, padding: 8 } },
+            tooltip: {
+              filter: item => item.datasetIndex < 2,
+              callbacks: {
+                title: items => { const r = bdRounds[items[0].dataIndex]; return [r.date, r.course || '']; },
+                label: c => c.dataset.label + ': ' + c.raw
+              }
+            }
+          },
+          scales: {
+            x: { ticks: { color: cc('--chart-tick'), font: { size: 11 } }, grid: { color: bdGrid } },
+            y: { min: 0, ticks: { color: cc('--chart-tick'), font: { size: 11 }, stepSize: 1 }, grid: { color: bdGrid } }
+          }
+        }
+      });
+
+      // Callout row
+      const bdCallout = document.getElementById('bd-trend-callout');
+      if (bdCallout) {
+        const avgBR = bdBirdies.reduce((a, b) => a + b, 0) / bdBirdies.length;
+        const avgDR = bdDoubles.reduce((a, b) => a + b, 0) / bdDoubles.length;
+        bdCallout.innerHTML = `
+          <div class="chart-callout"><div class="chart-callout-val" style="color:#3498db">${avgBR.toFixed(1)}</div><div class="chart-callout-lbl">Avg birdies / round</div></div>
+          <div class="chart-callout"><div class="chart-callout-val" style="color:#e74c3c">${avgDR.toFixed(1)}</div><div class="chart-callout-lbl">Avg doubles / round</div></div>
+          <div class="chart-callout"><div class="chart-callout-val" style="color:var(--dimmer)">${bdBm.birdiesPerRound}</div><div class="chart-callout-lbl" title="Average for a ${fmtHcp(hcp)} handicap golfer — source: USGA/R&A research data">Hcp birdie avg</div></div>
+          <div class="chart-callout"><div class="chart-callout-val" style="color:var(--dimmer)">${bdBm.doublesPerRound}</div><div class="chart-callout-lbl" title="Average for a ${fmtHcp(hcp)} handicap golfer — source: USGA/R&A research data">Hcp double avg</div></div>`;
       }
     }
 
@@ -1264,6 +1456,20 @@ export function renderStats() {
               tension: 0.3, pointRadius: 5, pointHoverRadius: 8, hitRadius: 20,
               pointBackgroundColor: '#2ecc71', pointBorderWidth: 0,
               fill: false, spanGaps: false
+            },
+            {
+              label: 'Hcp FIR',
+              data: fgRounds.map(() => getBenchmark(hcp).fir),
+              borderColor: 'rgba(201,168,76,0.2)', borderDash: [6, 4],
+              backgroundColor: 'transparent', pointRadius: 0, pointHoverRadius: 0, hitRadius: 0,
+              tension: 0, fill: false
+            },
+            {
+              label: 'Hcp GIR',
+              data: fgRounds.map(() => getBenchmark(hcp).gir),
+              borderColor: 'rgba(52,152,219,0.2)', borderDash: [6, 4],
+              backgroundColor: 'transparent', pointRadius: 0, pointHoverRadius: 0, hitRadius: 0,
+              tension: 0, fill: false
             }
           ]
         },
@@ -1271,7 +1477,9 @@ export function renderStats() {
           ...co(),
           plugins: {
             legend: { display: true, position: 'top', labels: { color: cc('--chart-tick'), font: { size: 10 }, boxWidth: 10, padding: 8 } },
-            tooltip: { callbacks: {
+            tooltip: {
+              filter: item => item.datasetIndex < 2,
+              callbacks: {
               title: items => { const r = fgRounds[items[0].dataIndex]; return [r.date, r.course || '']; },
               label: c => c.dataset.label + ': ' + (c.raw !== null ? c.raw + '%' : '—')
             }}
@@ -1282,17 +1490,19 @@ export function renderStats() {
           }
         }
       });
-      // 4d. FIR/GIR callout row
+      // FIR/GIR callout row with benchmark
       const validFir = firData.filter(v => v !== null);
       const validGir = girData.filter(v => v !== null);
       const avgFir = validFir.length ? validFir.reduce((a, b) => a + b, 0) / validFir.length : null;
       const avgGir = validGir.length ? validGir.reduce((a, b) => a + b, 0) / validGir.length : null;
+      const fgBm = getBenchmark(hcp);
       const fgInsight = document.getElementById('fg-insight-grid');
       if (fgInsight) {
         fgInsight.className = 'chart-callout-row';
         fgInsight.innerHTML = `
           <div class="chart-callout"><div class="chart-callout-val" style="color:var(--gold)">${avgFir != null ? Math.round(avgFir) + '%' : '—'}</div><div class="chart-callout-lbl">Avg FIR</div></div>
-          <div class="chart-callout"><div class="chart-callout-val" style="color:#3498db">${avgGir != null ? Math.round(avgGir) + '%' : '—'}</div><div class="chart-callout-lbl">Avg GIR</div></div>`;
+          <div class="chart-callout"><div class="chart-callout-val" style="color:#3498db">${avgGir != null ? Math.round(avgGir) + '%' : '—'}</div><div class="chart-callout-lbl">Avg GIR</div></div>
+          <div class="chart-callout"><div class="chart-callout-val" style="color:var(--dimmer)">${fgBm.fir}% / ${fgBm.gir}%</div><div class="chart-callout-lbl" title="Average for a ${fmtHcp(hcp)} handicap golfer — source: USGA/R&A research data">Hcp avg FIR / GIR</div></div>`;
       }
     }
   }

@@ -393,8 +393,8 @@
   <!-- Header -->
   <div class="hdr">
     <div style="display:flex;flex-direction:column;gap:2px">
-      <div id="home-greeting" style="font-size:17px;font-weight:600;color:var(--cream)">Welcome</div>
-      <div id="home-hdr-meta" style="font-size:12px;color:var(--dim)">HCP — · — rounds this season</div>
+      <div id="hdr-greeting" style="font-size:17px;font-weight:600;color:var(--cream)">Welcome</div>
+      <div id="hdr-meta" style="font-size:12px;color:var(--dim)">HCP — · — rounds this season</div>
     </div>
     <!-- Demo mode badge — hidden by default, shown via demo.js -->
     <div id="demo-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.4)">
@@ -969,6 +969,16 @@
         <div class="chart-wrap" style="height:200px"><canvas id="ch-fg"></canvas></div>
         <div id="fg-insight-grid"></div>
       </div>
+      <!-- Birdies & Doubles trend -->
+      <div class="card" id="c-birdies-doubles" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <span style="font-size:11px;font-weight:600;color:var(--cream)">Birdies &amp; doubles — trend</span>
+          <span id="bd-hdr-vals" style="font-size:11px;font-weight:600"></span>
+        </div>
+        <div class="chart-wrap" style="height:80px"><canvas id="ch-birdies-doubles"></canvas></div>
+        <div class="chart-callout-row" id="bd-trend-callout"></div>
+      </div>
+
       <!-- Front 9 vs Back 9 -->
       <div class="card" id="c-f9b9" style="display:none">
         <div style="font-size:11px;font-weight:600;color:var(--cream);margin-bottom:10px">Front 9 vs Back 9</div>
@@ -1147,78 +1157,18 @@
       <select id="lb-season-sel" style="display:none"><option value="all">All Time</option></select>
       <div id="lb-group-code-card" style="display:none"><span id="lb-group-code"></span></div>
 
-      <div class="card" data-board-id="season">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
-          <div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></div>
-          <div><div style="font-size:14px;font-weight:500;color:var(--cream)">Season League</div><div style="font-size:10px;color:var(--dim)">Ranked by avg vs par</div></div>
-        </div>
-        <div id="lb-list"></div>
-      </div>
-      <div class="card">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
-          <div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
-          <div><div style="font-size:14px;font-weight:500;color:var(--cream)">Scoring Points</div><div style="font-size:10px;color:var(--dim);display:flex;align-items:center;gap:4px">Eagle = 3pts · <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg> Birdie = 1pt</div></div>
-        </div>
-        <div id="lb-birdies"></div>
-      </div>
-      <div class="card">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
-          <div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
-          <div><div style="font-size:14px;font-weight:500;color:var(--cream)">Scoring Points (Net)</div><div style="font-size:10px;color:var(--dim)">Net eagle = 3pts · Net birdie = 1pt</div></div>
-        </div>
-        <div id="lb-scoring-net"></div>
-      </div>
-      <div class="card">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
-          <div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
-          <div><div style="font-size:14px;font-weight:500;color:var(--cream)">Avg Stableford</div><div style="font-size:10px;color:var(--dim)">Points per round (2=par baseline)</div></div>
-        </div>
-        <div id="lb-stableford"></div>
-      </div>
-      <div class="card">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
-          <div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
-          <div><div style="font-size:14px;font-weight:500;color:var(--cream)">Avg Net Score</div><div style="font-size:10px;color:var(--dim)">Gross score minus handicap allowance</div></div>
-        </div>
-        <div id="lb-net"></div>
-      </div>
-      <div class="card">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
-          <div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg></div>
-          <div><div style="font-size:14px;font-weight:500;color:var(--cream)">Buffer or Better</div><div style="font-size:10px;color:var(--dim)">Old system: rounds on HCP or ≤2 over</div></div>
-        </div>
-        <div id="lb-buffer"></div>
-      </div>
+      <!-- 1b. View type pills -->
+      <div id="lb-view-pills" style="overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:0 16px 12px;display:flex;gap:6px"></div>
 
-      <div class="card">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
-          <div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
-          <div><div style="font-size:14px;font-weight:500;color:var(--cream)">Best Stableford Round</div><div style="font-size:10px;color:var(--dim)">Highest single-round Stableford score</div></div>
-        </div>
-        <div id="lb-best-stab"></div>
-      </div>
-      <div class="card">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
-          <div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg></div>
-          <div><div style="font-size:14px;font-weight:500;color:var(--cream)">Most Birdies in a Round</div><div style="font-size:10px;color:var(--dim)">Best single-round birdie count</div></div>
-        </div>
-        <div id="lb-best-birdies"></div>
-      </div>
-      <div class="card">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
-          <div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"/><path d="M5 21h14"/></svg></div>
-          <div><div style="font-size:14px;font-weight:500;color:var(--cream)">Best Round</div><div style="font-size:10px;color:var(--dim)">Lowest gross score in the season</div></div>
-        </div>
-        <div id="lb-best-round"></div>
-      </div>
+      <!-- 1c. Podium — top 3 -->
+      <div id="lb-podium" style="margin:0 16px 12px"></div>
 
-      <div class="card">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
-          <div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
-          <div><div style="font-size:14px;font-weight:500;color:var(--cream)">Fewest Doubles+</div><div style="font-size:10px;color:var(--dim)">Avg doubles per round</div></div>
-        </div>
-        <div id="lb-doubles"></div>
-      </div>
+      <!-- 1d. Remaining players list -->
+      <div id="lb-player-list" style="padding:0 16px"></div>
+
+      <!-- 1e. Stat spotlight card -->
+      <div id="lb-spotlight" style="margin:8px 16px 10px"></div>
+
       <!-- Head to Head -->
       <div class="card">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
@@ -1229,6 +1179,9 @@
         </div>
         <div id="lb-h2h"></div>
       </div>
+
+      <!-- Hidden containers for old board IDs (backward compat) -->
+      <div style="display:none"><div id="lb-list"></div><div id="lb-birdies"></div><div id="lb-scoring-net"></div><div id="lb-stableford"></div><div id="lb-net"></div><div id="lb-buffer"></div><div id="lb-best-stab"></div><div id="lb-best-birdies"></div><div id="lb-best-round"></div><div id="lb-doubles"></div></div>
 
       <!-- Group code + Leave group at bottom (rendered by JS if needed) -->
       <div id="lb-group-code-bottom"></div>
