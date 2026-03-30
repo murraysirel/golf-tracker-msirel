@@ -83,21 +83,7 @@ async function _runSearch(q) {
     const data = await res.json();
     _lastResults = data.courses || [];
 
-    // If API/cache returned nothing, fall back to built-in courses
-    if (_lastResults.length === 0) {
-      const ql = q.toLowerCase();
-      const builtinMatches = BUILTIN_COURSES
-        .filter(c => c.name !== 'Custom / Other' && c.name.toLowerCase().includes(ql))
-        .map(c => ({
-          name: c.name,
-          location: c.loc || '',
-          has_hole_data: true,
-          _builtin: true,
-          tees: Object.entries(c.tees).map(([colour, t]) => ({ colour, ...t })),
-          pars: (c.tees[c.def] || Object.values(c.tees)[0])?.pars_per_hole || [],
-        }));
-      if (builtinMatches.length) _lastResults = builtinMatches;
-    }
+    // Built-in course fallback disabled — GolfAPI is live
 
     if (_lastResults.length === 0) {
       _showResultsMsg('No courses found — try a different spelling or country filter.');
