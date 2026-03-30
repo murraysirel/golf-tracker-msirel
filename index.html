@@ -859,6 +859,7 @@
           <div style="display:flex;gap:5px" id="filter-pills">
             <button class="fpill active" data-f="5">5</button>
             <button class="fpill" data-f="10">10</button>
+            <button class="fpill" data-f="month">Month</button>
             <button class="fpill" data-f="all">All</button>
           </div>
         </div>
@@ -1317,6 +1318,17 @@
           </div>
         </div>
       </div>
+      <!-- Home course -->
+      <div class="card" style="margin-bottom:13px">
+        <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase;margin-bottom:10px">Home Course</div>
+        <div style="font-size:12px;color:var(--dim);margin-bottom:10px;line-height:1.5">Set your home course so friends can find you.</div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="home-course-input" placeholder="e.g. Croham Hurst" style="flex:1;font-size:13px">
+          <button id="home-course-save-btn" class="btn" style="width:auto;padding:8px 16px;font-size:12px">Save</button>
+        </div>
+        <div id="home-course-msg" style="font-size:10px;color:var(--dim);margin-top:4px"></div>
+      </div>
+
       <!-- Group access — join or create a group from the Players panel -->
       <div class="card" style="margin-bottom:13px">
         <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase;margin-bottom:10px">Find a Group</div>

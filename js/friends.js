@@ -149,13 +149,11 @@ export async function renderFriendsTab() {
   const accepted = _friendships.filter(f => f.status === 'accepted');
   const friendNames = accepted.map(f => f.requester === state.me ? f.addressee : f.requester);
 
-  // Add friend input
-  let html = `<div style="margin-bottom:14px">
+  // Add friend — live search
+  let html = `<div style="margin-bottom:14px;position:relative">
     <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase;margin-bottom:8px">Add Friend</div>
-    <div style="display:flex;gap:8px">
-      <input type="text" id="friend-add-input" placeholder="Enter player name" style="flex:1;font-size:13px">
-      <button class="btn" id="friend-add-btn" style="width:auto;padding:0 16px;font-size:12px">Send</button>
-    </div>
+    <input type="text" id="friend-search-input" placeholder="Search by name..." autocomplete="off" style="width:100%;font-size:13px;box-sizing:border-box">
+    <div id="friend-search-results" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:50;max-height:220px;overflow-y:auto;background:var(--card);border:1px solid var(--border);border-radius:0 0 10px 10px;box-shadow:0 8px 24px rgba(0,0,0,.4)"></div>
     <div id="friend-add-msg" style="font-size:11px;color:var(--dim);margin-top:4px"></div>
   </div>`;
 
@@ -183,25 +181,71 @@ export async function renderFriendsTab() {
 
   el.innerHTML = html;
 
-  // Wire add friend
-  document.getElementById('friend-add-btn')?.addEventListener('click', async () => {
-    const input = document.getElementById('friend-add-input');
-    const msg = document.getElementById('friend-add-msg');
-    const name = input?.value?.trim();
-    if (!name) { if (msg) msg.textContent = 'Enter a player name.'; return; }
+  // Wire live search
+  let _searchTimer = null;
+  const searchInput = document.getElementById('friend-search-input');
+  const resultsEl = document.getElementById('friend-search-results');
+  const msgEl = document.getElementById('friend-add-msg');
 
-    try {
-      const res = await sendFriendRequest(name);
-      if (res?.alreadyExists) {
-        if (msg) msg.textContent = `Already ${res.status === 'accepted' ? 'friends' : 'requested'}.`;
-      } else if (res?.ok) {
-        if (msg) msg.innerHTML = '<span style="color:var(--par)">Request sent!</span>';
-        if (input) input.value = '';
-      } else {
-        if (msg) msg.textContent = 'Could not send request.';
+  searchInput?.addEventListener('input', () => {
+    clearTimeout(_searchTimer);
+    const q = searchInput.value.trim();
+    if (q.length < 2) { if (resultsEl) resultsEl.style.display = 'none'; return; }
+    _searchTimer = setTimeout(async () => {
+      try {
+        const res = await querySupabase('searchPlayers', { query: q, excludeName: state.me });
+        const players = res?.players || [];
+        if (!players.length) {
+          resultsEl.style.display = 'block';
+          resultsEl.innerHTML = '<div style="padding:12px;font-size:12px;color:var(--dimmer);text-align:center">No players found</div>';
+          return;
+        }
+        resultsEl.style.display = 'block';
+        resultsEl.innerHTML = players.map(p => {
+          const alreadyFriend = friendNames.includes(p.name);
+          const courseStr = p.home_course ? ` · ${p.home_course}` : '';
+          return `<div class="friend-search-row" data-name="${p.name}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:${alreadyFriend ? 'default' : 'pointer'};border-bottom:1px solid var(--border);${alreadyFriend ? 'opacity:.5' : ''}">
+            ${avatarHtml(p.name, 32, false)}
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:600;color:var(--cream)">${p.name}</div>
+              <div style="font-size:10px;color:var(--dim)">HCP ${p.handicap ?? '?'}${courseStr}</div>
+            </div>
+            ${alreadyFriend ? '<span style="font-size:10px;color:var(--par)">Friends</span>' : '<span style="font-size:10px;color:var(--gold)">Add</span>'}
+          </div>`;
+        }).join('');
+        resultsEl.querySelectorAll('.friend-search-row').forEach(row => {
+          row.addEventListener('click', async () => {
+            const name = row.dataset.name;
+            if (friendNames.includes(name)) return;
+            row.style.opacity = '0.5';
+            row.querySelector('span:last-child').textContent = 'Sending...';
+            try {
+              const res = await sendFriendRequest(name);
+              if (res?.alreadyExists) {
+                if (msgEl) msgEl.textContent = `Already ${res.status === 'accepted' ? 'friends with' : 'requested'} ${name}.`;
+              } else if (res?.ok) {
+                if (msgEl) msgEl.innerHTML = `<span style="color:var(--par)">Request sent to ${name}!</span>`;
+              } else {
+                if (msgEl) msgEl.textContent = 'Could not send request.';
+              }
+            } catch {
+              if (msgEl) msgEl.textContent = 'Network error.';
+            }
+            resultsEl.style.display = 'none';
+            searchInput.value = '';
+          });
+        });
+      } catch {
+        resultsEl.style.display = 'block';
+        resultsEl.innerHTML = '<div style="padding:12px;font-size:12px;color:var(--dimmer);text-align:center">Search failed</div>';
       }
-    } catch {
-      if (msg) msg.textContent = 'Network error.';
-    }
+    }, 300);
   });
+
+  // Close search results on outside tap
+  document.addEventListener('click', e => {
+    if (resultsEl && !resultsEl.contains(e.target) && e.target !== searchInput) {
+      resultsEl.style.display = 'none';
+    }
+  }, { once: true });
 }

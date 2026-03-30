@@ -54,6 +54,9 @@ export function refreshAvatarUI() {
   if (dobEl) dobEl.textContent = state.gd.players?.[state.me]?.dob || 'Not set';
   const acctCard = document.getElementById('profile-account-card');
   if (acctCard) acctCard.style.display = 'block';
+  // Home course — populate input with stored value
+  const hcInput = document.getElementById('home-course-input');
+  if (hcInput) hcInput.value = state.gd.players?.[state.me]?.homeCourse || '';
 }
 
 function resizeToDataURL(file, size = 64) {

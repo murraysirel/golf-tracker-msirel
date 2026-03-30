@@ -172,6 +172,18 @@ document.addEventListener('createGroupShown', initCreateGroup);
 // Group fork entry points from within the main app
 document.getElementById('lb-group-fork-btn')?.addEventListener('click', () => showGroupFork(false));
 document.getElementById('panel-group-fork-btn')?.addEventListener('click', () => showGroupFork(false));
+// Home course save
+document.getElementById('home-course-save-btn')?.addEventListener('click', async () => {
+  const input = document.getElementById('home-course-input');
+  const msg = document.getElementById('home-course-msg');
+  const val = input?.value?.trim() || '';
+  try {
+    const { pushSupabase } = await import('./api.js');
+    await pushSupabase('updateHomeCourse', { playerName: state.me, homeCourse: val });
+    if (state.gd.players[state.me]) state.gd.players[state.me].homeCourse = val || null;
+    if (msg) msg.innerHTML = '<span style="color:var(--par)">Saved</span>';
+  } catch { if (msg) msg.textContent = 'Save failed'; }
+});
 // Avatar upload
 document.getElementById('avatar-file-input')?.addEventListener('change', e => {
   if (e.target.files[0]) uploadAvatar(e.target.files[0]);

@@ -104,6 +104,7 @@ export async function loadAppData(playerName, groupCode) {
       if (playerRes?.name) {
         if (!state.gd.players[playerName]) state.gd.players[playerName] = { handicap: 0, rounds: [] };
         state.gd.players[playerName].dob              = playerRes.dob             || null;
+        state.gd.players[playerName].homeCourse       = playerRes.homeCourse      || null;
         state.gd.players[playerName].practiceSessions = playerRes.practiceSessions || [];
         state.gd.players[playerName].statsAnalysis    = playerRes.statsAnalysis    || null;
         state.gd.players[playerName].statsAnalysisDate = playerRes.statsAnalysisDate || null;

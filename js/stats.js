@@ -656,6 +656,11 @@ export function renderHomeStats() {
   const avatarEl = document.getElementById('home-avatar');
   if (avatarEl) avatarEl.innerHTML = avatarHtml(state.me, 46, true);
   refreshAvatarUI();
+  // Populate app shell header bar
+  const hdrGreet = document.getElementById('hdr-greeting');
+  if (hdrGreet) hdrGreet.textContent = greeting + ', ' + firstName;
+  const hdrMeta = document.getElementById('hdr-meta');
+  if (hdrMeta) hdrMeta.textContent = `HCP ${hcpVal} \u00B7 ${seasonRounds.length} round${seasonRounds.length !== 1 ? 's' : ''} this season`;
 
   // ── Sorted rounds, last 5 ────────────────────────────────────
   const sorted = [...rs].sort((a, b) => parseDateGB(a.date) - parseDateGB(b.date));
@@ -1112,11 +1117,12 @@ export function renderStats() {
         { count: tBo, label: 'Bogey', color: 'var(--bogey)' },
         { count: tD, label: 'Dbl+', color: 'var(--double)' },
       ];
+      const maxBarH = 70; // max bar height in px
       bdPills.innerHTML = bars.map(b => {
-        const pct = maxCount > 0 ? Math.max(b.count / maxCount * 100, 4) : 4;
-        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+        const h = maxCount > 0 ? Math.max(Math.round(b.count / maxCount * maxBarH), 4) : 4;
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;justify-content:flex-end">
           <div style="font-size:11px;font-weight:600;color:${b.color}">${b.count}</div>
-          <div style="width:100%;height:${pct}%;min-height:4px;background:${b.color};border-radius:4px"></div>
+          <div style="width:100%;height:${h}px;background:${b.color};border-radius:4px"></div>
           <div style="font-size:8px;color:var(--dim);text-transform:uppercase">${b.label}</div>
         </div>`;
       }).join('');
@@ -1521,20 +1527,41 @@ export function renderStats() {
       const b9Avg = (b9Sum / fullR.length).toFixed(1);
       const f9Diff = (f9Sum - f9ParSum) / fullR.length;
       const b9Diff = (b9Sum - b9ParSum) / fullR.length;
+      const f9DiffStr = f9Diff === 0 ? 'E' : (f9Diff > 0 ? '+' : '') + f9Diff.toFixed(1);
+      const b9DiffStr = b9Diff === 0 ? 'E' : (b9Diff > 0 ? '+' : '') + b9Diff.toFixed(1);
       const f9Col = f9Diff < 0 ? 'var(--birdie)' : f9Diff <= 2 ? 'var(--bogey)' : 'var(--double)';
       const b9Col = b9Diff < 0 ? 'var(--birdie)' : b9Diff <= 2 ? 'var(--bogey)' : 'var(--double)';
+
+      // Proportional visual bars
+      const maxDiff = Math.max(Math.abs(f9Diff), Math.abs(b9Diff), 0.1);
+      const f9BarW = Math.round(Math.abs(f9Diff) / maxDiff * 100);
+      const b9BarW = Math.round(Math.abs(b9Diff) / maxDiff * 100);
 
       const halvesEl = document.getElementById('f9b9-halves');
       if (halvesEl) {
         halvesEl.innerHTML = `
-          <div style="flex:1;text-align:center">
-            <div style="font-size:22px;font-weight:700;color:${f9Col}">${f9Avg}</div>
-            <div style="font-size:10px;color:var(--dim);margin-top:2px">Front 9 avg</div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px">
+              <span style="font-size:12px;font-weight:600;color:var(--cream)">Front 9</span>
+              <span style="font-size:10px;color:var(--dim)">avg ${f9Avg}</span>
+            </div>
+            <div style="height:18px;background:var(--navy);border-radius:3px;overflow:hidden;margin-bottom:2px">
+              <div style="height:100%;width:${f9BarW}%;background:${f9Col};border-radius:3px;display:flex;align-items:center;padding-left:6px;min-width:24px">
+                <span style="font-size:10px;font-weight:700;color:var(--cream)">${f9DiffStr}</span>
+              </div>
+            </div>
           </div>
-          <div style="width:1px;height:40px;background:var(--border);margin:0 12px"></div>
-          <div style="flex:1;text-align:center">
-            <div style="font-size:22px;font-weight:700;color:${b9Col}">${b9Avg}</div>
-            <div style="font-size:10px;color:var(--dim);margin-top:2px">Back 9 avg</div>
+          <div style="width:16px"></div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px">
+              <span style="font-size:12px;font-weight:600;color:var(--cream)">Back 9</span>
+              <span style="font-size:10px;color:var(--dim)">avg ${b9Avg}</span>
+            </div>
+            <div style="height:18px;background:var(--navy);border-radius:3px;overflow:hidden;margin-bottom:2px">
+              <div style="height:100%;width:${b9BarW}%;background:${b9Col};border-radius:3px;display:flex;align-items:center;padding-left:6px;min-width:24px">
+                <span style="font-size:10px;font-weight:700;color:var(--cream)">${b9DiffStr}</span>
+              </div>
+            </div>
           </div>`;
       }
 
@@ -1546,9 +1573,9 @@ export function renderStats() {
         if (gap > 1.5) {
           textEl.innerHTML = `You score <b>${gap.toFixed(1)} shots better</b> on the back 9 — try arriving earlier to warm up properly.`;
         } else if (gap < -1.5) {
-          textEl.innerHTML = `You tend to <b>fade on the back 9</b> — focus on staying patient after the turn.`;
+          textEl.innerHTML = `You tend to <b>fade on the back 9</b> by <b>${Math.abs(gap).toFixed(1)} shots</b> — focus on staying patient after the turn.`;
         } else {
-          textEl.innerHTML = `Your scoring is <b>consistent across both halves</b> — a good sign of sustained focus.`;
+          textEl.innerHTML = `Your scoring is <b>consistent across both halves</b> (${Math.abs(gap).toFixed(1)} shot difference) — a good sign of sustained focus.`;
         }
       }
     }

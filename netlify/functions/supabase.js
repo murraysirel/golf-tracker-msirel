@@ -615,7 +615,7 @@ exports.handler = async (event) => {
       if (!authUserId) return { statusCode: 400, headers, body: JSON.stringify({ error: 'authUserId required' }) };
       const { data: player } = await supabase
         .from('players')
-        .select('name, dob, practice_sessions, stats_analysis, stats_analysis_date')
+        .select('name, dob, home_course, practice_sessions, stats_analysis, stats_analysis_date')
         .eq('auth_user_id', authUserId)
         .maybeSingle();
       if (!player) return { statusCode: 404, headers, body: JSON.stringify({ error: 'Player not found' }) };
@@ -630,6 +630,7 @@ exports.handler = async (event) => {
           name:               player.name,
           groupCodes,
           dob:                player.dob || null,
+          homeCourse:         player.home_course || null,
           practiceSessions:   player.practice_sessions  || [],
           statsAnalysis:      player.stats_analysis     || null,
           statsAnalysisDate:  player.stats_analysis_date || null,
@@ -784,6 +785,32 @@ exports.handler = async (event) => {
       if (updates.commentary !== undefined) allowed.commentary = updates.commentary;
       const { error: uErr } = await supabase.from('competitions').update(allowed).eq('id', competitionId);
       if (uErr) throw uErr;
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+    }
+
+    // ── searchPlayers — fuzzy name search for friend-add ──────────────
+    if (action === 'searchPlayers') {
+      const { query, excludeName } = data;
+      if (!query || query.length < 2) return { statusCode: 200, headers, body: JSON.stringify({ players: [] }) };
+      const { data: rows, error: sErr } = await supabase
+        .from('players')
+        .select('name, handicap, home_course')
+        .ilike('name', `%${query}%`)
+        .limit(15);
+      if (sErr) throw sErr;
+      const filtered = (rows || []).filter(r => r.name !== excludeName);
+      return { statusCode: 200, headers, body: JSON.stringify({ players: filtered }) };
+    }
+
+    // ── updateHomeCourse ────────────────────────────────────────────
+    if (action === 'updateHomeCourse') {
+      const { playerName, homeCourse } = data;
+      if (!playerName) return { statusCode: 400, headers, body: JSON.stringify({ error: 'playerName required' }) };
+      const { error: hErr } = await supabase
+        .from('players')
+        .update({ home_course: homeCourse || null })
+        .eq('name', playerName);
+      if (hErr) throw hErr;
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     }
 
