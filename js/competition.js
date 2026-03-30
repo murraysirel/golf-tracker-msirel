@@ -622,19 +622,21 @@ function getCompStandings(comp) {
   return entries;
 }
 
-// ── Start competition round (preserved) ──────────────────────────
+// ── Start competition round — routes to comp-score module ────────
 async function startCompetitionRound(comp) {
   if (!comp) return;
-  const { goTo } = await import('./nav.js');
   const roundsConfig = comp.rounds_config || [];
   const myRounds = state.gd.players?.[state.me]?.rounds || [];
 
   let nextRound = roundsConfig[0];
-  for (const rc of roundsConfig) {
+  let roundIdx = 0;
+  for (let i = 0; i < roundsConfig.length; i++) {
+    const rc = roundsConfig[i];
     if (!rc.date) continue;
-    if (!myRounds.some(r => r.date === rc.date)) { nextRound = rc; break; }
+    if (!myRounds.some(r => r.date === rc.date)) { nextRound = rc; roundIdx = i; break; }
   }
 
+  // Pre-load the course
   if (nextRound?.courseId) {
     try {
       const res = await fetch(`/.netlify/functions/courses?action=fetch&courseId=${encodeURIComponent(nextRound.courseId)}`);
@@ -647,55 +649,23 @@ async function startCompetitionRound(comp) {
     if (nextRound.tee) state.stee = nextRound.tee;
   }
 
-  const dateInput = document.getElementById('r-date');
-  if (dateInput && nextRound?.date) {
-    const parts = nextRound.date.split('/');
-    if (parts.length === 3) dateInput.value = `${parts[2]}-${parts[1]}-${parts[0]}`;
-  }
-
   // Determine tee group for current user
   const teeGroups = comp.tee_groups || {};
-  const roundIdx = roundsConfig.indexOf(nextRound);
   const roundKey = `round_${roundIdx + 1}`;
   const myGroup = (teeGroups[roundKey] || []).find(g => (g.players || []).includes(state.me));
   const groupPlayers = myGroup ? myGroup.players : (comp.players || []);
 
-  goTo('live');
-
-  requestAnimationFrame(() => {
-    groupPlayers.forEach(name => {
-      if (!state.gd.players[name]) state.gd.players[name] = { handicap: 0, rounds: [] };
-    });
-    state.liveState.group = [...groupPlayers];
-    state.gameMode = 'stroke';
-    const hcpOverrides = comp.hcp_overrides || {};
-    state.liveState.hcpOverrides = {};
-    groupPlayers.forEach(name => {
-      state.liveState.hcpOverrides[name] = hcpOverrides[name] ?? state.gd.players[name]?.handicap ?? 0;
-    });
-
-    const chipContainer = document.getElementById('live-group-chips');
-    if (chipContainer) {
-      chipContainer.querySelectorAll('[data-player]').forEach(chip => {
-        const name = chip.dataset.player;
-        const inComp = groupPlayers.includes(name);
-        chip.classList.toggle('selected', inComp);
-        chip.style.borderColor = inComp ? 'var(--gold)' : '';
-        chip.style.background = inComp ? 'rgba(201,168,76,.15)' : '';
-        chip.style.color = inComp ? 'var(--gold)' : '';
-      });
-    }
-
-    const setup = document.getElementById('live-group-setup');
-    if (setup) {
-      const banner = document.createElement('div');
-      banner.style.cssText = 'padding:10px 14px;border-radius:10px;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.25);margin-bottom:12px;font-size:12px;color:var(--cream)';
-      banner.innerHTML = `<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:4px">Competition Round</div>
-        <strong>${comp.name}</strong>${nextRound?.course ? ` · ${nextRound.course}` : ''}
-        <div style="font-size:10px;color:var(--dim);margin-top:3px">${groupPlayers.length} player${groupPlayers.length !== 1 ? 's' : ''}${myGroup ? ' · Tee group ' + ((teeGroups[roundKey] || []).indexOf(myGroup) + 1) : ''}</div>`;
-      setup.insertBefore(banner, setup.firstChild);
-    }
+  // Ensure all players exist in state
+  groupPlayers.forEach(name => {
+    if (!state.gd.players[name]) state.gd.players[name] = { handicap: 0, rounds: [] };
   });
+
+  // Prepare and navigate to comp-score
+  const { prepareCompScore } = await import('./comp-score.js');
+  prepareCompScore(comp, roundIdx, groupPlayers);
+
+  const { goTo } = await import('./nav.js');
+  goTo('comp-score');
 }
 
 // ── Admin panel (preserved) ──────────────────────────────────────

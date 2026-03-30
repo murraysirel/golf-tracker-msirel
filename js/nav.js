@@ -4,7 +4,7 @@
 import { PAGES } from './constants.js';
 
 // These are imported lazily to avoid circular deps — resolved at call time
-let _renderStats, _renderLeaderboard, _renderAllPlayers, _renderHomeStats, _renderPracticePage, _initLiveRound, _initCompetition, _onPageChange, _closeProfilePanel;
+let _renderStats, _renderLeaderboard, _renderAllPlayers, _renderHomeStats, _renderPracticePage, _initLiveRound, _initCompetition, _initCompScore, _onPageChange, _closeProfilePanel;
 
 export function registerNavHandlers(handlers) {
   _renderStats = handlers.renderStats;
@@ -14,6 +14,7 @@ export function registerNavHandlers(handlers) {
   _renderPracticePage = handlers.renderPracticePage;
   _initLiveRound = handlers.initLiveRound;
   _initCompetition = handlers.initCompetition;
+  _initCompScore = handlers.initCompScore || null;
   _onPageChange = handlers.onPageChange || null;
   _closeProfilePanel = handlers.closeProfilePanel || null;
 }
@@ -58,6 +59,7 @@ export function goTo(p) {
     if (p === 'practice' && _renderPracticePage) _renderPracticePage();
     if (p === 'live' && _initLiveRound) _initLiveRound();
     if (p === 'competition' && _initCompetition) _initCompetition();
+    if (p === 'comp-score' && _initCompScore) _initCompScore();
     if (_onPageChange) _onPageChange(p);
   }
 

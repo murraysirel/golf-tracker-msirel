@@ -18,6 +18,7 @@ import { openAdminSettings, closeAdminSettings, verifyAdminPw, adminPopulateRoun
 import { copyGroupCode, leaveGroup, toggleGroupCodeRequired, addSeason, deleteSeason, confirmDeleteMyData, deleteMyData, copyAppUrl, rebuildSeasonSelector, initJoinGroup, lookupGroupByCode, confirmJoinGroup, showBoardPage, initCreateGroup, submitGroupName, confirmBoardSetup, initGroupSettings, saveGroupName, hideGSModal, confirmGSModal } from './group.js';
 import { initCompetition } from './competition.js';
 import { renderCompetitionSetupModal, renderJoinCompetitionModal, renderMyCompetitions } from './competition-setup.js';
+import { initCompScore, compScoreNext, compScorePrev, compScoreSaveNote, compScoreCancel } from './comp-score.js';
 import { state } from './state.js';
 import { initCaddieButton } from './caddie.js';
 import { initProfileTabs, startNotificationPolling } from './friends.js';
@@ -53,6 +54,7 @@ registerNavHandlers({
   renderPracticePage,
   initLiveRound,
   initCompetition,
+  initCompScore,
   onPageChange: (page) => {
     if (page !== 'live') hideMatchOverlay();
     // Reinitialise course search if container is empty (guard against missing init)
@@ -246,6 +248,114 @@ document.getElementById('entry-btn-course')?.addEventListener('click', () => swi
 
 // Home screen CTA — Start a round
 document.getElementById('home-caddie-cta')?.addEventListener('click', () => goTo('round'));
+
+// ── Competition scoring ─────────────────────────────────────────
+document.getElementById('cs-next')?.addEventListener('click', compScoreNext);
+document.getElementById('cs-prev')?.addEventListener('click', compScorePrev);
+document.getElementById('cs-cancel')?.addEventListener('click', compScoreCancel);
+document.getElementById('cs-note')?.addEventListener('change', compScoreSaveNote);
+
+// ── Competition leaderboard sheet ───────────────────────────────
+const csLbPill = document.getElementById('cs-lb-pill');
+const csLbSheet = document.getElementById('cs-lb-sheet');
+const csLbContent = document.getElementById('cs-lb-content');
+const csLbBackdrop = document.getElementById('cs-lb-backdrop');
+
+function openLbSheet() {
+  if (!csLbSheet || !csLbContent) return;
+  // Populate leaderboard from comp-score state
+  import('./comp-score.js').then(m => {
+    // Render leaderboard content using competition.js standings
+    import('./competition.js').then(({ initCompetition: _ }) => {
+      // The sheet is populated by comp-score's comp reference
+      const csRows = document.getElementById('cs-lb-rows');
+      const csPills = document.getElementById('cs-lb-pills');
+      if (csRows && state.activeCompetition) {
+        const comp = state.activeCompetition;
+        const rc = comp.rounds_config || [];
+        const fmt = comp.format || 'stableford';
+        const hcpO = comp.hcp_overrides || {};
+        const configDates = rc.map(r => r.date).filter(Boolean);
+
+        // Pills
+        if (csPills) {
+          csPills.innerHTML = `<button class="lb-vpill active" data-rf="overall">Overall</button>` +
+            rc.map((_, i) => `<button class="lb-vpill" data-rf="r${i+1}">R${i+1}</button>`).join('');
+        }
+
+        // Standings
+        const entries = (comp.players || []).map(name => {
+          const pd = state.gd.players?.[name];
+          const hcp = hcpO[name] ?? pd?.handicap ?? 0;
+          const compRounds = configDates.length ? (pd?.rounds || []).filter(r => configDates.includes(r.date)) : (pd?.rounds || []);
+          let agg = 0;
+          compRounds.forEach(r => {
+            if (!r.scores || !r.pars) return;
+            import('./stats.js').then(({ calcStableford: cs2 }) => {});
+            // Inline stableford calc for sheet
+            const php = Math.round(hcp * (r.slope || 113) / 113);
+            const shots = Array(18).fill(0);
+            for (let h = 0; h < 18; h++) shots[h] = Math.floor(php / 18) + ((h + 1) <= (php % 18) ? 1 : 0);
+            let pts = 0;
+            for (let h = 0; h < 18; h++) {
+              if (r.scores[h] == null || r.pars[h] == null) continue;
+              const d = (r.scores[h] - shots[h]) - r.pars[h];
+              if (d <= -3) pts += 5; else if (d === -2) pts += 4; else if (d === -1) pts += 3; else if (d === 0) pts += 2; else if (d === 1) pts += 1;
+            }
+            agg += pts;
+          });
+          return { name, played: compRounds.length, agg, hcp };
+        });
+        entries.sort((a, b) => b.agg - a.agg);
+
+        csRows.innerHTML = entries.map((e, i) => {
+          const isMe = e.name === state.me;
+          return `<div style="display:flex;align-items:center;padding:10px 0;${i < entries.length - 1 ? 'border-bottom:1px solid var(--border)' : ''}${isMe ? ';background:rgba(201,168,76,.05);border-radius:8px;padding:10px 8px;margin:0 -8px' : ''}">
+            <div style="width:28px;font-size:13px;font-weight:700;color:${i < 3 ? 'var(--gold)' : 'var(--dimmer)'};text-align:center">${e.played > 0 ? i + 1 : ''}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:600;${isMe ? 'color:var(--gold)' : 'color:var(--cream)'}">${e.name} <span style="font-size:10px;color:var(--dim)">(${e.hcp})</span></div>
+            </div>
+            <div style="font-size:16px;font-weight:700;color:var(--gold);min-width:36px;text-align:right">${e.played > 0 ? e.agg : '—'}</div>
+          </div>`;
+        }).join('');
+      }
+    });
+  });
+
+  csLbSheet.style.display = 'block';
+  requestAnimationFrame(() => { requestAnimationFrame(() => { csLbContent.style.transform = 'translateY(0)'; }); });
+}
+
+function closeLbSheet() {
+  if (!csLbContent || !csLbSheet) return;
+  csLbContent.style.transform = 'translateY(100%)';
+  setTimeout(() => { csLbSheet.style.display = 'none'; }, 300);
+}
+
+if (csLbPill) csLbPill.addEventListener('click', openLbSheet);
+if (csLbBackdrop) csLbBackdrop.addEventListener('click', closeLbSheet);
+
+// Drag-to-dismiss on sheet content
+if (csLbContent) {
+  let startY = 0, currentY = 0, dragging = false;
+  csLbContent.addEventListener('touchstart', e => {
+    startY = e.touches[0].clientY;
+    dragging = true;
+    csLbContent.style.transition = 'none';
+  }, { passive: true });
+  csLbContent.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    currentY = e.touches[0].clientY - startY;
+    if (currentY > 0) csLbContent.style.transform = `translateY(${currentY}px)`;
+  }, { passive: true });
+  csLbContent.addEventListener('touchend', () => {
+    dragging = false;
+    csLbContent.style.transition = 'transform .3s ease';
+    if (currentY > window.innerHeight * 0.25) { closeLbSheet(); }
+    else { csLbContent.style.transform = 'translateY(0)'; }
+    currentY = 0;
+  });
+}
 
 // Let's Go — launch live round
 document.getElementById('caddie-letsgo-btn')?.addEventListener('click', () => goTo('live'));
