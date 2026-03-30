@@ -269,16 +269,14 @@ export function renderLeaderboard() {
 
   function filterRounds(rounds, playerName) {
     let filtered = rounds;
-    // Exclude rounds before the player joined this group.
-    // Exception: group admin (creator) sees all their rounds — they founded the group.
-    const isGroupAdmin = group && group.admin_id === playerName;
-    if (!isGroupAdmin) {
-      const joinedAt = state.gd.players?.[playerName]?.joinedAt;
-      if (joinedAt) {
-        const jd = new Date(joinedAt);
-        const joinInt = jd.getFullYear() * 10000 + (jd.getMonth() + 1) * 100 + jd.getDate();
-        filtered = filtered.filter(r => parseDateGB(r.date) >= joinInt);
-      }
+    // Exclude rounds before the player joined this group (applies to everyone including admin).
+    // The admin's joinedAt IS the group creation date, so this also enforces
+    // "only rounds from league creation date onwards".
+    const joinedAt = state.gd.players?.[playerName]?.joinedAt;
+    if (joinedAt) {
+      const jd = new Date(joinedAt);
+      const joinInt = jd.getFullYear() * 10000 + (jd.getMonth() + 1) * 100 + jd.getDate();
+      filtered = filtered.filter(r => parseDateGB(r.date) >= joinInt);
     }
     if (!seasonSel || seasonSel.value === 'all') return filtered;
     const val = seasonSel.value;
