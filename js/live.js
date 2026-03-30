@@ -9,6 +9,21 @@ import { recalc, scoreCol } from './scorecard.js';
 import { goTo } from './nav.js';
 // Wolf hooks loaded via dynamic import to avoid circular deps
 
+// ── Validation nudge toast ───────────────────────────────────────
+function _showLiveNudge(msg) {
+  let el = document.getElementById('live-nudge');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'live-nudge';
+    el.style.cssText = 'position:fixed;top:calc(var(--safe-top,0px) + 64px);left:50%;transform:translateX(-50%);background:var(--card);border:1px solid rgba(201,168,76,.4);border-radius:20px;padding:8px 20px;font-size:12px;font-family:"DM Sans",sans-serif;color:var(--cream);z-index:9999;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.4);white-space:nowrap;transition:opacity .3s;opacity:0';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = '1';
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => { el.style.opacity = '0'; }, 1500);
+}
+
 // ── Live publish helpers ──────────────────────────────────────────
 
 export function publishLiveState() {
@@ -416,68 +431,78 @@ export function liveRenderPips() {
 
 export function liveGoto(h) {
   if (h < 0 || h > 17) return;
-  state.liveState.hole = h;
-  // Pre-fill null scores to par on first visit to a hole
-  state.liveState.group.forEach(name => {
-    if (state.liveState.groupScores[name] && state.liveState.groupScores[name][h] === null) {
-      state.liveState.groupScores[name][h] = state.cpars[h];
+  try {
+    state.liveState.hole = h;
+    // Pre-fill null scores to par on first visit to a hole
+    state.liveState.group.forEach(name => {
+      if (state.liveState.groupScores[name] && state.liveState.groupScores[name][h] === null) {
+        state.liveState.groupScores[name][h] = state.cpars[h];
+      }
+    });
+    liveRenderPips();
+    _statPlayer = state.me; // Reset selected player on each hole advance
+    const par    = state.cpars[h];
+    const hYards = state.activeHoleYards?.length === 18 ? state.activeHoleYards : null;
+    const si     = state.scannedSI?.some(v => v != null) ? state.scannedSI : null;
+    const courseName = state.activeCourse?.name?.replace(/ Golf Club| Golf Course| Golf Links/g, '') || '';
+
+    const holeNumEl = document.getElementById('live-hole-num');
+    if (holeNumEl) holeNumEl.textContent = 'Hole ' + (h + 1);
+    const parEl = document.getElementById('live-par');
+    if (parEl) parEl.textContent = par;
+    const subParts = [];
+    if (si && si[h] > 0) subParts.push('SI ' + si[h]);
+    if (courseName) subParts.push(courseName);
+    const subEl = document.getElementById('live-hole-sub');
+    if (subEl) subEl.textContent = subParts.join(' · ') || '';
+
+    // Always use group rendering (handles 1 or more players)
+    liveRenderGroupHole(h);
+    liveRenderStatPanel(h);
+
+    const noteEl = document.getElementById('live-note');
+    if (noteEl) noteEl.value = state.liveState.notes[h] || '';
+
+    // Update GPS display for new hole
+    import('./gps.js').then(({ updateGPSDisplay, updateDriveBtn }) => {
+      if (state.gpsState.watching) updateGPSDisplay(h);
+      updateDriveBtn(h, true);
+    });
+
+    // Push live state update for remote viewers
+    publishLiveState();
+
+    const prevBtn = document.getElementById('live-prev');
+    if (prevBtn) prevBtn.disabled = h === 0;
+    const prevBtn2 = document.getElementById('live-btn-prev2');
+    if (prevBtn2) prevBtn2.disabled = h === 0;
+    const nextBtnOld = document.getElementById('live-next');
+    if (nextBtnOld) nextBtnOld.disabled = h === 17;
+    const nextBtn = document.getElementById('live-btn-next2');
+    if (nextBtn) nextBtn.textContent = h === 17 ? 'Finish & Save Round' : 'Next hole \u2192';
+
+    liveUpdateRunning();
+
+    // Refresh match overlay if active
+    import('./overlay.js').then(({ refreshMatchOverlay }) => refreshMatchOverlay());
+
+    // Wolf: update banner
+    if (state.gameMode === 'wolf') {
+      import('./gamemodes.js').then(({ updateWolfBanner }) => updateWolfBanner(h));
+    } else {
+      const wolfBar = document.getElementById('wolf-live-bar');
+      if (wolfBar) wolfBar.style.display = 'none';
     }
-  });
-  liveRenderPips();
-  _statPlayer = state.me; // Reset selected player on each hole advance
-  const par    = state.cpars[h];
-  const hYards = state.activeHoleYards?.length === 18 ? state.activeHoleYards : null;
-  const si     = state.scannedSI?.some(v => v != null) ? state.scannedSI : null;
-  const courseName = state.activeCourse?.name?.replace(/ Golf Club| Golf Course| Golf Links/g, '') || '';
 
-  document.getElementById('live-hole-num').textContent = 'Hole ' + (h + 1);
-  document.getElementById('live-par').textContent = par;
-  const subParts = [];
-  if (si && si[h] > 0) subParts.push('SI ' + si[h]);
-  if (courseName) subParts.push(courseName);
-  document.getElementById('live-hole-sub').textContent = subParts.join(' · ') || '';
-
-  // Always use group rendering (handles 1 or more players)
-  liveRenderGroupHole(h);
-  liveRenderStatPanel(h);
-
-  document.getElementById('live-note').value = state.liveState.notes[h] || '';
-
-  // Update GPS display for new hole
-  import('./gps.js').then(({ updateGPSDisplay, updateDriveBtn }) => {
-    if (state.gpsState.watching) updateGPSDisplay(h);
-    updateDriveBtn(h, true);
-  });
-
-  // Push live state update for remote viewers
-  publishLiveState();
-
-  document.getElementById('live-prev').disabled = h === 0;
-  const prevBtn2 = document.getElementById('live-btn-prev2');
-  if (prevBtn2) prevBtn2.disabled = h === 0;
-  document.getElementById('live-next').disabled = h === 17;
-  const nextBtn = document.getElementById('live-btn-next2');
-  if (nextBtn) nextBtn.textContent = h === 17 ? 'Finish & Save Round' : 'Next hole \u2192';
-
-  liveUpdateRunning();
-
-  // Refresh match overlay if active
-  import('./overlay.js').then(({ refreshMatchOverlay }) => refreshMatchOverlay());
-
-  // Wolf: update banner
-  if (state.gameMode === 'wolf') {
-    import('./gamemodes.js').then(({ updateWolfBanner }) => updateWolfBanner(h));
-  } else {
-    const wolfBar = document.getElementById('wolf-live-bar');
-    if (wolfBar) wolfBar.style.display = 'none';
-  }
-
-  // Sixes: update banner
-  if (state.gameMode === 'sixes') {
-    import('./gamemodes.js').then(({ updateSixesBanner }) => updateSixesBanner(h));
-  } else {
-    const sixesBar = document.getElementById('sixes-live-bar');
-    if (sixesBar) sixesBar.style.display = 'none';
+    // Sixes: update banner
+    if (state.gameMode === 'sixes') {
+      import('./gamemodes.js').then(({ updateSixesBanner }) => updateSixesBanner(h));
+    } else {
+      const sixesBar = document.getElementById('sixes-live-bar');
+      if (sixesBar) sixesBar.style.display = 'none';
+    }
+  } catch (e) {
+    console.error('[liveGoto] Error navigating to hole', h, e);
   }
 }
 
@@ -604,38 +629,33 @@ function liveRenderStatPanel(h) {
     }).join('');
   }
 
-  // Wire putts ±
-  document.getElementById('live-putt-minus')?.addEventListener('click', () => {
-    liveGroupAdj(_statPlayer, 'putts', -1);
-    liveRenderStatPanel(state.liveState.hole);
-    // AutoGir check
-    _autoGirCheck();
-  });
-  document.getElementById('live-putt-plus')?.addEventListener('click', () => {
-    liveGroupAdj(_statPlayer, 'putts', 1);
-    liveRenderStatPanel(state.liveState.hole);
-    _autoGirCheck();
-  });
+  // Wire putts ± (onclick assignment prevents listener accumulation)
+  const puttMinus = document.getElementById('live-putt-minus');
+  if (puttMinus) puttMinus.onclick = () => liveGroupAdj(_statPlayer, 'putts', -1);
+  const puttPlus = document.getElementById('live-putt-plus');
+  if (puttPlus) puttPlus.onclick = () => liveGroupAdj(_statPlayer, 'putts', 1);
 
-  // Wire FIR toggles
-  document.querySelectorAll('.live-fir-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const v = btn.dataset.val;
-      const cur = state.liveState.groupFir[_statPlayer]?.[state.liveState.hole];
-      liveGroupToggle(_statPlayer, 'fir', cur === v ? '' : v);
-      liveRenderStatPanel(state.liveState.hole);
-    });
-  });
+  // Wire FIR toggles (event delegation on parent)
+  const firParent = document.getElementById('live-fir-toggles');
+  if (firParent) firParent.onclick = (e) => {
+    const btn = e.target.closest('.live-fir-btn');
+    if (!btn) return;
+    const v = btn.dataset.val;
+    const cur = state.liveState.groupFir[_statPlayer]?.[state.liveState.hole];
+    liveGroupToggle(_statPlayer, 'fir', cur === v ? '' : v);
+    liveRenderStatPanel(state.liveState.hole);
+  };
 
-  // Wire GIR toggles
-  document.querySelectorAll('.live-gir-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const v = btn.dataset.val;
-      const cur = state.liveState.groupGir[_statPlayer]?.[state.liveState.hole];
-      liveGroupToggle(_statPlayer, 'gir', cur === v ? '' : v);
-      liveRenderStatPanel(state.liveState.hole);
-    });
-  });
+  // Wire GIR toggles (event delegation on parent)
+  const girParent = document.getElementById('live-gir-toggles');
+  if (girParent) girParent.onclick = (e) => {
+    const btn = e.target.closest('.live-gir-btn');
+    if (!btn) return;
+    const v = btn.dataset.val;
+    const cur = state.liveState.groupGir[_statPlayer]?.[state.liveState.hole];
+    liveGroupToggle(_statPlayer, 'gir', cur === v ? '' : v);
+    liveRenderStatPanel(state.liveState.hole);
+  };
 }
 
 function _autoGirCheck() {
@@ -643,11 +663,11 @@ function _autoGirCheck() {
   const par = state.cpars[h];
   const sc = state.liveState.groupScores[_statPlayer]?.[h];
   const pt = state.liveState.groupPutts[_statPlayer]?.[h];
-  if (sc != null && pt != null && (sc - pt) <= (par - 2)) {
-    if (!state.liveState.groupGir[_statPlayer]) state.liveState.groupGir[_statPlayer] = Array(18).fill('');
-    state.liveState.groupGir[_statPlayer][h] = 'Yes';
-    liveRenderStatPanel(h);
-  }
+  if (sc == null || pt == null || sc <= 0 || pt <= 0 || pt >= sc) return;
+  if (!state.liveState.groupGir[_statPlayer]) state.liveState.groupGir[_statPlayer] = Array(18).fill('');
+  const shotsToGreen = sc - pt;
+  state.liveState.groupGir[_statPlayer][h] = shotsToGreen <= (par - 2) ? 'Yes' : 'No';
+  liveRenderStatPanel(h);
 }
 
 // Save live round state to localStorage on every change — protects against
@@ -697,8 +717,10 @@ function liveGroupAdj(playerName, field, delta) {
   } else {
     const cur = state.liveState.groupPutts[playerName]?.[h] ?? 0;
     if (!state.liveState.groupPutts[playerName]) state.liveState.groupPutts[playerName] = Array(18).fill(null);
-    const maxPutts = state.liveState.groupScores[playerName]?.[h] ?? 6;
-    state.liveState.groupPutts[playerName][h] = Math.max(0, Math.min(maxPutts, cur + delta));
+    const maxPutts = state.liveState.groupScores[playerName]?.[h] ?? par;
+    const newVal = Math.max(0, Math.min(maxPutts, cur + delta));
+    if (delta > 0 && newVal === cur) _showLiveNudge("Putts can't exceed your score");
+    state.liveState.groupPutts[playerName][h] = newVal;
   }
   liveRenderGroupHole(h);
   liveRenderStatPanel(h);
@@ -720,6 +742,8 @@ function liveGroupAdj(playerName, field, delta) {
       import('./gamemodes.js').then(({ updateSixesBanner }) => updateSixesBanner(h));
     }
   }
+  // AutoGir check on putts changes too (not just score)
+  if (field === 'putts' && playerName === _statPlayer) _autoGirCheck();
   liveUpdateRunning();
   // Sync first player's scores into liveState.scores for pip colours
   const first = state.liveState.group[0];
