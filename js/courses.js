@@ -83,12 +83,24 @@ async function _runSearch(q) {
     const data = await res.json();
     _lastResults = data.courses || [];
 
-    if (_lastResults.length === 0 && data.source === 'cache_empty') {
+    // If API/cache returned nothing, fall back to built-in courses
+    if (_lastResults.length === 0) {
+      const ql = q.toLowerCase();
+      const builtinMatches = BUILTIN_COURSES
+        .filter(c => c.name !== 'Custom / Other' && c.name.toLowerCase().includes(ql))
+        .map(c => ({
+          name: c.name,
+          location: c.loc || '',
+          has_hole_data: true,
+          _builtin: true,
+          tees: Object.entries(c.tees).map(([colour, t]) => ({ colour, ...t })),
+          pars: (c.tees[c.def] || Object.values(c.tees)[0])?.pars_per_hole || [],
+        }));
+      if (builtinMatches.length) _lastResults = builtinMatches;
+    }
+
+    if (_lastResults.length === 0) {
       _showResultsMsg('No courses found — try a different spelling or country filter.');
-    } else if (_lastResults.length === 0 && data.source === 'db_error') {
-      _showResultsMsg('Course search is temporarily unavailable — please try again in a moment.');
-    } else if (_lastResults.length === 0) {
-      _showResultsMsg('No courses found — try a different spelling or check the country filter.');
     } else {
       _renderResults(_lastResults);
     }
@@ -141,6 +153,12 @@ async function _onSelectResult(idx) {
   if (!result) return;
 
   _hideResults();
+
+  // Built-in course: apply directly without API fetch
+  if (result._builtin) {
+    _applyCourse(result);
+    return;
+  }
 
   const fetchUrl = `${COURSES_API}?action=fetch&courseId=${encodeURIComponent(result.external_course_id)}&clubId=${encodeURIComponent(result.external_club_id || '')}`;
 
