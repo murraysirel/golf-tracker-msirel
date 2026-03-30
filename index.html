@@ -798,54 +798,8 @@
 
     <!-- COMPETITION MODE -->
     <!-- COMPETITION MODE -->
-    <div id="pg-competition" style="display:none" class="sec">
-      <div style="background:var(--mid);padding:10px 16px 8px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:0">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div>
-            <div style="font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase;margin-bottom:2px">Live</div>
-            <div style="font-size:18px;font-weight:700;color:var(--cream)">Competition</div>
-          </div>
-          <div id="comp-poll-status" style="font-size:10px;color:var(--dimmer);text-align:right"></div>
-        </div>
-        <!-- Competition selector -->
-        <div id="comp-selector" style="margin-top:10px;display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none"></div>
-        <!-- Format toggle (only visible for Group Activity view) -->
-        <div id="comp-fmt-toggle" style="display:flex;gap:5px;margin-top:8px">
-          <button class="fpill active" id="comp-fmt-stab" data-fmt="stableford">Stableford</button>
-          <button class="fpill" id="comp-fmt-gross" data-fmt="gross">Gross</button>
-        </div>
-        <!-- Format label (shown when viewing a competition — format is locked) -->
-        <div id="comp-fmt-label" style="display:none;margin-top:8px;font-size:11px;color:var(--dim);letter-spacing:0.5px"></div>
-      </div>
-
-      <!-- Today's leaderboard -->
-      <div class="card" style="margin:12px 0 0">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-          <div style="width:28px;height:28px;border-radius:8px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
-          </div>
-          <span id="comp-lb-title" style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase">Today's Standings</span>
-        </div>
-        <div id="comp-lb"></div>
-      </div>
-
-      <!-- Activity feed -->
-      <div class="card" style="margin:12px 0">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-          <div style="width:28px;height:28px;border-radius:8px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-          </div>
-          <span style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase">Activity Feed</span>
-        </div>
-        <div id="comp-feed"></div>
-      </div>
-
-      <!-- AI Commentary cards -->
-      <div id="comp-commentary" style="margin:12px 0"></div>
-
-      <!-- Admin panel (visible to competition admins only) -->
-      <div id="comp-admin-section" class="card" style="display:none;margin:12px 0"></div>
-    </div>
+    <!-- Competition — JS generates all content via initCompetition() -->
+    <div id="pg-competition" style="display:none" class="sec"></div>
 
     <!-- STATS -->
     <div id="pg-stats" style="display:none" class="sec">
