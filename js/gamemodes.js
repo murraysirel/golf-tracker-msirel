@@ -212,7 +212,7 @@ export function updateWolfBanner(holeIdx) {
   let statusHtml = '';
   if (setup?.locked) {
     if (setup.isSixPointer) {
-      statusHtml = '<span style="font-size:11px;color:var(--eagle)">⚡ 6-pointer</span>';
+      statusHtml = '<span style="font-size:11px;color:var(--eagle)"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:2px"><polygon points="10 1 4 10 9 10 8 17 14 8 9 8 10 1"/></svg>6-pointer</span>';
     } else if (setup.isLoneWolf) {
       statusHtml = '<span style="font-size:11px;color:var(--birdie)">Lone Wolf</span>';
     } else {
@@ -244,7 +244,7 @@ export function show6PointerModal(holeIdx) {
   inner.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <div style="font-size:16px;font-weight:700;color:var(--cream)">Declare Lone Wolf?</div>
-      <button id="sp-close" style="background:none;border:none;color:var(--dim);font-size:20px;cursor:pointer;line-height:1;padding:0 0 0 12px">✕</button>
+      <button id="sp-close" style="background:none;border:none;color:var(--dim);cursor:pointer;line-height:1;padding:0 0 0 12px"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="4" x2="14" y2="14"/><line x1="14" y1="4" x2="4" y2="14"/></svg></button>
     </div>
     <div style="font-size:13px;color:var(--dim);margin-bottom:20px;line-height:1.5">Win = 6 pts. Lose = 3 pts each to opponents. Once per round.</div>
     <button id="sp-yes" style="width:100%;padding:14px;border-radius:10px;background:var(--gold);border:none;color:var(--navy);font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;margin-bottom:8px;display:block">Yes — stake it</button>
@@ -284,7 +284,7 @@ export function showPartnerPrompt(holeIdx) {
   inner.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
       <div style="font-size:16px;font-weight:700;color:var(--cream)">${wolf} — pick your partner</div>
-      <button id="wp-close" style="background:none;border:none;color:var(--dim);font-size:20px;cursor:pointer;line-height:1;padding:0 0 0 12px">✕</button>
+      <button id="wp-close" style="background:none;border:none;color:var(--dim);cursor:pointer;line-height:1;padding:0 0 0 12px"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="4" x2="14" y2="14"/><line x1="14" y1="4" x2="4" y2="14"/></svg></button>
     </div>
     ${playerCards}
     <button id="wp-lone-wolf" style="width:100%;padding:14px;border-radius:10px;background:var(--mid);border:1px solid var(--border);color:var(--bogey);font-size:15px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;text-align:left;display:block">Go it alone — Lone Wolf</button>`;

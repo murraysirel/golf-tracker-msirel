@@ -63,7 +63,7 @@ function buildScorecardTable(primaryRound, group) {
     }
     if (hasWolf) {
       const wh = primaryRound.wolfResult.holes?.[i];
-      const wt = wh ? (wh.loneWolf ? '🐺' : wh.winner ? initials(wh.winner) : '') : '';
+      const wt = wh ? (wh.loneWolf ? 'W' : wh.winner ? initials(wh.winner) : '') : '';
       cells += `<td style="font-size:10px;color:var(--dim)">${wt}</td>`;
     }
     return `<tr>${cells}</tr>`;
@@ -86,7 +86,7 @@ function buildScorecardTable(primaryRound, group) {
     const tot = r.totalScore || r.scores?.reduce((a, b) => a + (b || 0), 0) || 0;
     const diff = tot - totalPar;
     const dStr = diff === 0 ? 'E' : (diff > 0 ? '+' + diff : '' + diff);
-    totCells += `<td><span style="color:var(--gold);font-weight:700;font-family:'Cormorant Garamond',serif">${tot}</span> <span style="font-size:10px;color:${scoreColor(diff)}">${dStr}</span></td>`;
+    totCells += `<td><span style="color:var(--gold);font-weight:700;font-family:'DM Sans',sans-serif">${tot}</span> <span style="font-size:10px;color:${scoreColor(diff)}">${dStr}</span></td>`;
   }
   if (hasWolf) {
     const w = primaryRound.wolfResult.winner || '';
@@ -522,7 +522,7 @@ function renderMatesFeed() {
   const allPlayers = Object.entries(state.gd.players || {});
   section.style.display = '';
   if (allPlayers.length <= 1) {
-    matesEl.innerHTML = '<div style="background:var(--mid);border-radius:12px;padding:16px;text-align:center"><div style="font-size:14px;margin-bottom:4px">🏌️</div><div style="font-size:11px;color:var(--dimmer);line-height:1.5">Nobody has gone low yet — birdies, eagles and milestones from your group will show up here.</div></div>';
+    matesEl.innerHTML = '<div style="background:var(--mid);border-radius:12px;padding:16px;text-align:center"><div style="margin-bottom:4px"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="var(--dim)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v14"/><path d="M4 2l9 3.5L4 9"/></svg></div><div style="font-size:11px;color:var(--dimmer);line-height:1.5">Nobody has gone low yet — birdies, eagles and milestones from your group will show up here.</div></div>';
     return;
   }
 
@@ -551,11 +551,11 @@ function renderMatesFeed() {
 
       // Eagles
       if (r.eagles > 0) {
-        events.push({ ts: rd, icon: '🦅', text: `${name} made ${r.eagles} eagle${r.eagles > 1 ? 's' : ''} at ${course}`, when, color: 'var(--eagle)' });
+        events.push({ ts: rd, icon: 'eagle', text: `${name} made ${r.eagles} eagle${r.eagles > 1 ? 's' : ''} at ${course}`, when, color: 'var(--eagle)', badge: 'Eagle' });
       }
       // Birdies (2+)
       if (r.birdies >= 2) {
-        events.push({ ts: rd, icon: '🐦', text: `${name} made ${r.birdies} birdies at ${course}`, when, color: 'var(--birdie)' });
+        events.push({ ts: rd, icon: 'birdie', text: `${name} made ${r.birdies} birdies at ${course}`, when, color: 'var(--birdie)', badge: 'Birdie' });
       }
       // Net eagles — count holes where (score - par - hcpStrokes) <= -2
       if (r.scores && r.pars) {
@@ -569,7 +569,7 @@ function renderMatesFeed() {
           if (r.scores[h] - r.pars[h] - strokes <= -2) netEagles++;
         }
         if (netEagles > 0) {
-          events.push({ ts: rd, icon: '⭐', text: `${name} made ${netEagles} net eagle${netEagles > 1 ? 's' : ''} at ${course}`, when, color: 'var(--gold)' });
+          events.push({ ts: rd, icon: 'star', text: `${name} made ${netEagles} net eagle${netEagles > 1 ? 's' : ''} at ${course}`, when, color: 'var(--gold)', badge: 'Net Eagle' });
         }
       }
       // Season-best net round
@@ -580,13 +580,13 @@ function renderMatesFeed() {
         );
         if (otherNets.length > 0 && netDiff < Math.min(...otherNets)) {
           const fmtNet = netDiff === 0 ? 'level par net' : (netDiff > 0 ? '+' + netDiff : netDiff) + ' net';
-          events.push({ ts: rd, icon: '🏆', text: `${name} shot their best net round of the season (${fmtNet}) at ${course}`, when, color: 'var(--gold2)' });
+          events.push({ ts: rd, icon: 'trophy', text: `${name} shot their best net round of the season (${fmtNet}) at ${course}`, when, color: 'var(--gold2)', badge: 'PB' });
         }
       }
       // Stableford > 36
       const stab = calcStableford(r.scores, r.pars, p.handicap || 0, r.slope, null);
       if (stab != null && stab > 36) {
-        events.push({ ts: rd, icon: '🚨', text: `${name} scored ${stab} stableford points! Check their handicap is cut!`, when, color: 'var(--bogey)' });
+        events.push({ ts: rd, icon: 'alert', text: `${name} scored ${stab} stableford points! Check their handicap is cut!`, when, color: 'var(--bogey)', badge: 'Round' });
       }
     }
   }
@@ -596,8 +596,8 @@ function renderMatesFeed() {
   matesEl.innerHTML = '';
 
   if (!capped.length) {
-    matesEl.innerHTML = _es('👥', 'Quiet out there', 'When your group posts rounds, birdies and milestones appear here.', 'See the leaderboard', "import('./nav.js').then(m=>m.goTo('leaderboard'))")
-      || '<div style="background:var(--mid);border-radius:12px;padding:16px;text-align:center"><div style="font-size:14px;margin-bottom:4px">🏌️</div><div style="font-size:11px;color:var(--dimmer);line-height:1.5">Nobody has gone low yet — birdies, eagles and milestones from your group will show up here.</div></div>';
+    matesEl.innerHTML = _es('people', 'Quiet out there', 'When your group posts rounds, birdies and milestones appear here.', 'See the leaderboard', "import('./nav.js').then(m=>m.goTo('leaderboard'))")
+      || '<div style="background:var(--mid);border-radius:12px;padding:16px;text-align:center"><div style="margin-bottom:4px"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="var(--dim)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v14"/><path d="M4 2l9 3.5L4 9"/></svg></div><div style="font-size:11px;color:var(--dimmer);line-height:1.5">Nobody has gone low yet — birdies, eagles and milestones from your group will show up here.</div></div>';
     return;
   }
 
@@ -605,14 +605,15 @@ function renderMatesFeed() {
   card.style.cssText = 'background:var(--mid);border-radius:12px;padding:10px 14px';
 
   capped.forEach((ev, i) => {
-    // Determine dot colour
-    let dotColor = 'var(--dim)';
-    if (ev.text.includes('birdie')) dotColor = 'var(--birdie)';
-    else if (ev.text.includes('eagle')) dotColor = 'var(--birdie)';
-    else if (ev.text.includes('stableford')) dotColor = 'var(--gold)';
-    else if (ev.text.includes('best') || ev.text.includes('net')) dotColor = 'var(--par)';
+    // Determine badge colour
+    let badgeColor = 'var(--dim)';
+    if (ev.icon === 'birdie') badgeColor = 'var(--birdie)';
+    else if (ev.icon === 'eagle') badgeColor = 'var(--eagle)';
+    else if (ev.icon === 'star') badgeColor = 'var(--gold)';
+    else if (ev.icon === 'trophy') badgeColor = 'var(--par)';
+    else if (ev.icon === 'alert') badgeColor = 'var(--bogey)';
 
-    // Extract player name (first word before space or " made" / " scored" / " shot")
+    // Extract player name
     const nameMatch = ev.text.match(/^(.+?) (?:made|scored|shot)/);
     const playerName = nameMatch ? nameMatch[1] : '';
     const restText = playerName ? ev.text.slice(playerName.length) : ev.text;
@@ -620,9 +621,9 @@ function renderMatesFeed() {
     const row = document.createElement('div');
     row.style.cssText = `display:flex;align-items:center;gap:8px;padding:7px 0${i < capped.length - 1 ? ';border-bottom:1px solid var(--border)' : ''}`;
     row.innerHTML = `
-      <div style="width:6px;height:6px;border-radius:50%;background:${dotColor};flex-shrink:0"></div>
-      <div style="flex:1;min-width:0;font-size:10px;color:var(--dim);line-height:1.4"><span style="color:var(--cream);font-weight:600">${playerName}</span>${restText}</div>
-      <div style="font-size:9px;color:var(--dimmer);flex-shrink:0">${ev.when}</div>`;
+      ${avatarHtml(playerName, 28, playerName === state.me)}
+      <div style="flex:1;min-width:0;font-size:10px;color:var(--dim);line-height:1.4"><span style="color:var(--cream);font-weight:600">${playerName}</span>${restText}<div style="font-size:9px;color:var(--dimmer);margin-top:1px">${ev.when}</div></div>
+      <div style="font-size:9px;padding:2px 8px;border-radius:10px;border:1px solid ${badgeColor};color:${badgeColor};white-space:nowrap;flex-shrink:0">${ev.badge || 'Round'}</div>`;
     card.appendChild(row);
   });
 
@@ -633,38 +634,37 @@ export function renderHomeStats() {
   const p = state.gd.players[state.me];
   if (!p) {
     console.warn('[renderHomeStats] No player data for', state.me, '— players:', Object.keys(state.gd.players || {}));
-    // Still show empty states so the page isn't blank
-    const recent = document.getElementById('home-recent');
-    if (recent) recent.innerHTML = '<div style="font-size:12px;color:var(--dimmer);padding:12px 0;text-align:center">Loading your rounds...</div>';
     return;
   }
   const rs = p.rounds || [];
 
-  // ── Slim header greeting + meta ──────────────────────────────
+  // ── 3a. Hero header ──────────────────────────────────────────
   const hr = new Date().getHours();
   const firstName = state.me.split(' ')[0];
   const greeting = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
-  const greetEl = document.getElementById('home-greeting');
-  const metaEl = document.getElementById('home-hdr-meta');
   const now = new Date();
   const currentYear = String(now.getFullYear());
-  const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
-  // Use parseDateGB-compatible split to get year/month — never new Date() on DD/MM/YYYY strings
   const seasonRounds = rs.filter(r => { const dp = r.date?.split('/'); return dp && dp[2] === currentYear; });
   const hcpVal = fmtHcp(p.handicap);
-  const seasonCount = seasonRounds.length;
-  if (greetEl) greetEl.textContent = greeting + ', ' + firstName;
-  if (metaEl) metaEl.textContent = `HCP ${hcpVal} · ${seasonCount} round${seasonCount !== 1 ? 's' : ''} this season`;
+
+  const greetEl = document.getElementById('home-greeting');
+  if (greetEl) greetEl.textContent = greeting;
+  const nameEl = document.getElementById('home-player-name');
+  if (nameEl) nameEl.textContent = firstName;
+  const hcpEl = document.getElementById('home-hcp-val');
+  if (hcpEl) hcpEl.textContent = hcpVal;
+  const avatarEl = document.getElementById('home-avatar');
+  if (avatarEl) avatarEl.innerHTML = avatarHtml(state.me, 46, true);
   refreshAvatarUI();
 
   // ── Sorted rounds, last 5 ────────────────────────────────────
   const sorted = [...rs].sort((a, b) => parseDateGB(a.date) - parseDateGB(b.date));
   const last5 = sorted.slice(-5);
 
-  // ── Raw GIR/FIR helpers (return floats for delta precision) ──
+  // ── Raw GIR/FIR helpers ──────────────────────────────────────
   function girRaw(rounds) {
     const hits = rounds.reduce((a, r) => a + (r.gir || []).filter(v => v === 'Yes').length, 0);
-    const poss = rounds.reduce((a, r) => a + (r.gir || []).length, 0);
+    const poss = rounds.reduce((a, r) => a + (r.gir || []).filter(v => v === 'Yes' || v === 'No').length, 0);
     return poss ? hits / poss * 100 : null;
   }
   function firRaw(rounds) {
@@ -672,43 +672,149 @@ export function renderHomeStats() {
     rounds.forEach(r => { (r.fir || []).forEach((v, h) => { if ((r.pars?.[h]) !== 3) { poss++; if (v === 'Yes') hits++; } }); });
     return poss ? hits / poss * 100 : null;
   }
-  // ── Dynamic KPI grid ─────────────────────────────────────────
-  const tileCtx = { p, rs, sorted, last5, seasonRounds, currentYear, currentMonth, now, girRaw, firRaw };
-  renderKpiGrid(tileCtx);
 
-  // ── Mates board feed ─────────────────────────────────────────
+  // ── 3c. Pulse stats row ──────────────────────────────────────
+  const pulseEl = document.getElementById('home-pulse');
+  if (pulseEl) {
+    const diffs = last5.map(r => r.diff).filter(v => v != null && !isNaN(v));
+    const avgDiff = diffs.length ? (diffs.reduce((a, b) => a + b, 0) / diffs.length) : null;
+    const firPct = firRaw(last5);
+    const girPct = girRaw(last5);
+
+    // Previous 5 for delta calculation
+    const prev5 = sorted.slice(-10, -5);
+    const prevDiffs = prev5.map(r => r.diff).filter(v => v != null);
+    const prevAvgDiff = prevDiffs.length ? prevDiffs.reduce((a, b) => a + b, 0) / prevDiffs.length : null;
+    const prevFir = firRaw(prev5);
+    const prevGir = girRaw(prev5);
+
+    function deltaStr(cur, prev, inverted) {
+      if (cur === null || prev === null) return '';
+      const d = cur - prev;
+      if (Math.abs(d) < 0.1) return '<span style="color:var(--dim)">--</span>';
+      const good = inverted ? d < 0 : d > 0;
+      return `<span class="${good ? 'delta-up' : 'delta-dn'}">${good ? (inverted ? '' : '+') : ''}${d.toFixed(1)}</span>`;
+    }
+
+    pulseEl.innerHTML = `
+      <div class="pulse-cell">
+        <div class="pulse-val">${avgDiff !== null ? (avgDiff >= 0 ? '+' : '') + avgDiff.toFixed(1) : '—'}</div>
+        <div class="pulse-lbl">Avg vs par</div>
+        <div class="pulse-delta">${deltaStr(avgDiff, prevAvgDiff, true)}</div>
+        <div class="pulse-accent" style="background:var(--gold)"></div>
+      </div>
+      <div class="pulse-cell">
+        <div class="pulse-val">${firPct !== null ? Math.round(firPct) + '%' : '—'}</div>
+        <div class="pulse-lbl">FIR</div>
+        <div class="pulse-delta">${deltaStr(firPct, prevFir, false)}</div>
+        <div class="pulse-accent" style="background:var(--gold)"></div>
+      </div>
+      <div class="pulse-cell">
+        <div class="pulse-val">${girPct !== null ? Math.round(girPct) + '%' : '—'}</div>
+        <div class="pulse-lbl">GIR</div>
+        <div class="pulse-delta">${deltaStr(girPct, prevGir, false)}</div>
+        <div class="pulse-accent" style="background:#3498db"></div>
+      </div>`;
+  }
+
+  // ── 3d. Last round card ──────────────────────────────────────
+  const lastRoundEl = document.getElementById('home-last-round');
+  if (lastRoundEl) {
+    if (!sorted.length) {
+      lastRoundEl.innerHTML = _es('flag', 'No rounds yet', 'Play your first round and your stats will build up here automatically.', 'Record a round', "import('./nav.js').then(m=>m.goTo('round'))")
+        || '<div style="font-size:12px;color:var(--dimmer);padding:12px 0;text-align:center">No rounds yet</div>';
+    } else {
+      const r = sorted[sorted.length - 1];
+      const diff = r.diff;
+      const dv = diff === 0 ? 'E' : (diff > 0 ? '+' + diff : '' + diff);
+      const diffCol = diff <= -2 ? 'var(--birdie)' : diff === 0 ? 'var(--par)' : diff <= 1 ? 'var(--bogey)' : 'var(--double)';
+      const dot = TC[r.tee]?.d || '#888';
+      const shortCourse = (r.course || '').replace(/ Golf Club| Golf Course| Golf Links/g, '');
+      const hcp = p.handicap || 0;
+      const pts = calcStableford(r.scores, r.pars, hcp, r.slope, null);
+
+      // Net birdies toggle
+      const netToggle = localStorage.getItem('looper_net_birdies') === 'true';
+      let birdieCount = r.birdies || 0;
+      if (netToggle && r.scores && r.pars) {
+        const slope = r.slope || 113;
+        const php = Math.round(hcp * slope / 113);
+        birdieCount = 0;
+        for (let h = 0; h < 18; h++) {
+          if (r.scores[h] == null || r.pars[h] == null) continue;
+          const str = Math.floor(php / 18) + ((h + 1) <= (php % 18) ? 1 : 0);
+          if ((r.scores[h] - str) - r.pars[h] === -1) birdieCount++;
+        }
+      }
+
+      const puttsArr = (r.putts || []).filter(v => v != null && !isNaN(v));
+      const avgPutts = puttsArr.length ? (puttsArr.reduce((a, b) => a + b, 0) / puttsArr.length).toFixed(1) : '—';
+
+      lastRoundEl.innerHTML = `
+        <div style="background:var(--mid);border:1px solid var(--border);border-radius:14px;padding:14px 16px;cursor:pointer" id="home-last-round-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div style="font-size:14px;font-weight:600;color:var(--cream)">${shortCourse}</div>
+            <div style="font-size:10px;color:var(--dim)">${r.date} · <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${dot};vertical-align:middle"></span> ${r.tee || ''}</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;text-align:center;gap:0">
+            <div style="border-right:1px solid var(--border);padding:4px 0">
+              <div style="font-size:18px;font-weight:700;color:${diffCol}">${dv}</div>
+              <div style="font-size:9px;color:var(--dim);text-transform:uppercase;margin-top:2px">vs par</div>
+            </div>
+            <div style="border-right:1px solid var(--border);padding:4px 0">
+              <div style="font-size:18px;font-weight:700;color:var(--gold)">${pts ?? '—'}</div>
+              <div style="font-size:9px;color:var(--dim);text-transform:uppercase;margin-top:2px">pts</div>
+            </div>
+            <div style="border-right:1px solid var(--border);padding:4px 0">
+              <div style="font-size:18px;font-weight:700;color:var(--birdie)">${birdieCount}</div>
+              <div style="font-size:9px;color:var(--dim);text-transform:uppercase;margin-top:2px">${netToggle ? 'net' : ''} birdies</div>
+            </div>
+            <div style="padding:4px 0">
+              <div style="font-size:18px;font-weight:700;color:var(--cream)">${avgPutts}</div>
+              <div style="font-size:9px;color:var(--dim);text-transform:uppercase;margin-top:2px">putts/hole</div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">
+            <div style="font-size:11px;color:var(--gold);cursor:pointer" id="home-view-review">View AI review →</div>
+            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:10px;color:var(--dim)">Net birdies
+              <span id="home-net-toggle" style="display:inline-block;width:22px;height:12px;border-radius:6px;background:${netToggle ? 'var(--gold)' : 'var(--border)'};position:relative;cursor:pointer;transition:background .2s"><span style="position:absolute;top:1px;${netToggle ? 'left:11px' : 'left:1px'};width:10px;height:10px;border-radius:50%;background:var(--cream);transition:left .2s"></span></span>
+            </label>
+          </div>
+        </div>`;
+
+      document.getElementById('home-last-round-card')?.addEventListener('click', e => {
+        if (e.target.closest('#home-view-review') || e.target.closest('#home-net-toggle') || e.target.closest('label')) return;
+        openScorecardModal(r);
+      });
+      document.getElementById('home-view-review')?.addEventListener('click', e => {
+        e.stopPropagation();
+        import('./nav.js').then(m => m.goTo('stats'));
+      });
+      document.getElementById('home-net-toggle')?.addEventListener('click', e => {
+        e.stopPropagation();
+        e.preventDefault();
+        const cur = localStorage.getItem('looper_net_birdies') === 'true';
+        localStorage.setItem('looper_net_birdies', !cur);
+        renderHomeStats();
+      });
+    }
+  }
+
+  // ── 3e. Group activity feed ──────────────────────────────────
   renderMatesFeed();
 
-  // ── Recent rounds (2 most recent) ────────────────────────────
-  const recent = document.getElementById('home-recent');
-  if (!recent) return;
-  if (!rs.length) {
-    recent.innerHTML = _es('⛳', 'No rounds yet', 'Play your first round and your stats will build up here automatically.', 'Record a round', "import('./nav.js').then(m=>m.goTo('round'))")
-      || '<div style="font-size:12px;color:var(--dimmer);padding:12px 0;text-align:center">No rounds yet — add your first!</div>';
-    return;
-  }
-  recent.innerHTML = '';
-  const recentSorted = [...rs].sort((a, b) => parseDateGB(b.date) - parseDateGB(a.date)).slice(0, 2);
-  recentSorted.forEach(r => {
-    const diff = r.diff;
-    const dv = diff >= 0 ? '+' + diff : '' + diff;
-    const diffColor = diff <= -2 ? 'var(--birdie)' : diff === 0 ? 'var(--par)' : diff <= 3 ? 'var(--bogey)' : 'var(--double)';
-    const dot = TC[r.tee]?.d || '#888';
-    const shortCourse = (r.course || '').replace(' Golf Club', '').replace(' Golf Course', '').replace(' Golf Links', '');
-    const d = document.createElement('div');
-    d.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--mid);border-radius:10px;margin-bottom:6px;cursor:pointer';
-    d.addEventListener('click', () => openScorecardModal(r));
-    d.innerHTML = `
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${shortCourse}</div>
-        <div style="font-size:10px;color:var(--dim);margin-top:2px"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${dot};margin-right:4px;vertical-align:middle"></span>${r.tee || ''} · ${r.date}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0">
-        <div style="font-size:18px;font-weight:700;color:var(--cream);line-height:1">${r.totalScore}</div>
-        <div style="font-size:10px;font-weight:600;color:${diffColor};margin-top:1px">${dv}</div>
-      </div>`;
-    recent.appendChild(d);
+  // "See all" link → competition tab
+  document.getElementById('home-see-all-activity')?.addEventListener('click', () => {
+    import('./nav.js').then(m => m.goTo('competition'));
   });
+
+  // ── 3f. Start a round CTA subtitle ───────────────────────────
+  const ctaSub = document.getElementById('home-cta-sub');
+  if (ctaSub && sorted.length) {
+    const last = sorted[sorted.length - 1];
+    const shortC = (last.course || '').replace(/ Golf Club| Golf Course| Golf Links/g, '');
+    ctaSub.textContent = shortC ? `Last played ${shortC}` : '';
+  }
 }
 
 function isRoundComplete(r) {
@@ -849,6 +955,10 @@ export function renderStats() {
   const hcpEl = document.getElementById('st-hcp-display');
   if (hcpEl) hcpEl.textContent = fmtHcp(hcp);
 
+  // 4a. Page header — player name
+  const nameEl = document.getElementById('st-player-name');
+  if (nameEl) nameEl.textContent = state.me + "'s game";
+
   populateCourseFilter(allRounds);
 
   const rs = getFilteredRounds(allRounds);
@@ -908,18 +1018,44 @@ export function renderStats() {
     const tP = rs.reduce((a, r) => a + (r.parsCount || 0), 0);
     const tBo = rs.reduce((a, r) => a + (r.bogeys || 0), 0);
     const tD = rs.reduce((a, r) => a + (r.doubles || 0), 0);
-    document.getElementById('bd-pills').innerHTML = `
-      <div class="bd"><span class="bv ec">${tE}</span><span class="bl">Eagle</span></div>
-      <div class="bd"><span class="bv bc">${tB}</span><span class="bl">Birdie</span></div>
-      <div class="bd"><span class="bv prc">${tP}</span><span class="bl">Par</span></div>
-      <div class="bd"><span class="bv bgc">${tBo}</span><span class="bl">Bogey</span></div>
-      <div class="bd"><span class="bv dc">${tD}</span><span class="bl">Dbl+</span></div>`;
+    const total = tE + tB + tP + tBo + tD;
+    const maxCount = Math.max(tE, tB, tP, tBo, tD, 1);
+    const holesPlayed = fullR.length * 18;
+
+    // 4b. Proportional bars
+    const bdPills = document.getElementById('bd-pills');
+    if (bdPills) {
+      const bars = [
+        { count: tE, label: 'Eagle', color: 'var(--eagle)' },
+        { count: tB, label: 'Birdie', color: 'var(--birdie)' },
+        { count: tP, label: 'Par', color: 'var(--par)' },
+        { count: tBo, label: 'Bogey', color: 'var(--bogey)' },
+        { count: tD, label: 'Dbl+', color: 'var(--double)' },
+      ];
+      bdPills.innerHTML = bars.map(b => {
+        const pct = maxCount > 0 ? Math.max(b.count / maxCount * 100, 4) : 4;
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div style="font-size:11px;font-weight:600;color:${b.color}">${b.count}</div>
+          <div style="width:100%;height:${pct}%;min-height:4px;background:${b.color};border-radius:4px"></div>
+          <div style="font-size:8px;color:var(--dim);text-transform:uppercase">${b.label}</div>
+        </div>`;
+      }).join('');
+    }
+    const bdMeta = document.getElementById('bd-meta');
+    if (bdMeta) bdMeta.textContent = `${rs.length} rounds · ${holesPlayed} holes`;
+
+    // Callouts: avg pts, avg vs par, handicap
+    const stabPts = rs.filter(r => r.scores && r.pars).map(r => calcStableford(r.scores, r.pars, hcp || 0, r.slope, null)).filter(v => v != null);
+    const avgStab = stabPts.length ? (stabPts.reduce((a, b) => a + b, 0) / stabPts.length).toFixed(1) : '—';
+    const avgDiffDisp = avgDiff != null ? (avgDiff >= 0 ? '+' + avgDiff : '' + avgDiff) : '—';
+    const bdCallouts = document.getElementById('bd-callouts');
+    if (bdCallouts) {
+      bdCallouts.innerHTML = `
+        <div class="chart-callout"><div class="chart-callout-val" style="color:var(--gold)">${avgStab}</div><div class="chart-callout-lbl">avg pts</div></div>
+        <div class="chart-callout"><div class="chart-callout-val" style="color:var(--bogey)">${avgDiffDisp}</div><div class="chart-callout-lbl">avg vs par</div></div>
+        <div class="chart-callout"><div class="chart-callout-val" style="color:#3498db">${fmtHcp(hcp)}</div><div class="chart-callout-lbl">handicap</div></div>`;
+    }
     dc('donut');
-    CH.donut = new Chart(document.getElementById('ch-donut'), {
-      type: 'doughnut',
-      data: { labels: ['Eagle','Birdie','Par','Bogey','Double+'], datasets: [{ data: [tE,tB,tP,tBo,tD], backgroundColor: ['#f1c40f','#3498db','#2ecc71','#e67e22','#e74c3c'], borderWidth: 0 }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: cc('--chart-tick'), font: { size: 10 }, boxWidth: 11, padding: 10 } } } }
-    });
   }
 
   if (rs.length > 1) {
@@ -989,12 +1125,18 @@ export function renderStats() {
       }
     });
 
-    const avgDiffRaw = diffs.length ? diffs.reduce((a, b) => a + b, 0) / diffs.length : null;
+    // 4c. Callout row below trend chart
     const bestDiff = diffs.length ? Math.min(...diffs) : null;
-    renderInsightGrid(document.getElementById('trend-insight-grid'), [
-      { val: avgDiffRaw, label: `Avg score vs par (${rs.length} rounds)`, type: 'score', fmt: v => (v >= 0 ? '+' : '') + v.toFixed(1) },
-      { val: bestDiff,   label: 'Best score vs par (this period)', type: 'score', fmt: v => (v >= 0 ? '+' : '') + v }
-    ]);
+    const avgDiffRaw = diffs.length ? diffs.reduce((a, b) => a + b, 0) / diffs.length : null;
+    const trendInsight = document.getElementById('trend-insight-grid');
+    if (trendInsight) {
+      const bestCol = bestDiff != null && bestDiff < 0 ? 'var(--birdie)' : 'var(--cream)';
+      const avgCol = avgDiffRaw != null ? (avgDiffRaw < 0 ? 'var(--birdie)' : avgDiffRaw > 3 ? 'var(--double)' : 'var(--bogey)') : 'var(--cream)';
+      trendInsight.className = 'chart-callout-row';
+      trendInsight.innerHTML = `
+        <div class="chart-callout"><div class="chart-callout-val" style="color:${bestCol}">${bestDiff != null ? (bestDiff >= 0 ? '+' : '') + bestDiff : '—'}</div><div class="chart-callout-lbl">Best round this period</div></div>
+        <div class="chart-callout"><div class="chart-callout-val" style="color:${avgCol}">${avgDiffRaw != null ? (avgDiffRaw >= 0 ? '+' : '') + avgDiffRaw.toFixed(1) : '—'}</div><div class="chart-callout-lbl">Avg vs par</div></div>`;
+    }
   }
 
   if (fullR.length) {
@@ -1060,13 +1202,17 @@ export function renderStats() {
           }
         }
       });
+      // 4e. Putts callout row
       const totalPuttsSum = ptData.reduce((a, b) => a + b, 0);
       const avgPuttsRound = totalPuttsSum / ptData.length;
       const avgPuttsHole = avgPuttsRound / 18;
-      renderInsightGrid(document.getElementById('putts-insight-grid'), [
-        { val: avgPuttsHole,  label: `Avg putts per hole (${puttsRounds.length} rounds)`, type: 'putts', fmt: v => v.toFixed(2) },
-        { val: avgPuttsRound, label: `Avg total putts per round`,                          type: null,    fmt: v => v.toFixed(1) }
-      ]);
+      const puttsInsight = document.getElementById('putts-insight-grid');
+      if (puttsInsight) {
+        puttsInsight.className = 'chart-callout-row';
+        puttsInsight.innerHTML = `
+          <div class="chart-callout"><div class="chart-callout-val" style="color:var(--par)">${avgPuttsHole.toFixed(2)}</div><div class="chart-callout-lbl">Avg putts / hole</div></div>
+          <div class="chart-callout"><div class="chart-callout-val" style="color:var(--cream)">${avgPuttsRound.toFixed(1)}</div><div class="chart-callout-lbl">Avg putts / round</div></div>`;
+      }
     }
 
   }
@@ -1136,20 +1282,71 @@ export function renderStats() {
           }
         }
       });
+      // 4d. FIR/GIR callout row
       const validFir = firData.filter(v => v !== null);
       const validGir = girData.filter(v => v !== null);
       const avgFir = validFir.length ? validFir.reduce((a, b) => a + b, 0) / validFir.length : null;
       const avgGir = validGir.length ? validGir.reduce((a, b) => a + b, 0) / validGir.length : null;
-      renderInsightGrid(document.getElementById('fg-insight-grid'), [
-        { val: avgFir, label: 'Avg FIR % — fairways hit',      type: 'fir', fmt: v => Math.round(v) + '%' },
-        { val: avgGir, label: 'Avg GIR % — greens in reg.',     type: 'gir', fmt: v => Math.round(v) + '%' }
-      ]);
+      const fgInsight = document.getElementById('fg-insight-grid');
+      if (fgInsight) {
+        fgInsight.className = 'chart-callout-row';
+        fgInsight.innerHTML = `
+          <div class="chart-callout"><div class="chart-callout-val" style="color:var(--gold)">${avgFir != null ? Math.round(avgFir) + '%' : '—'}</div><div class="chart-callout-lbl">Avg FIR</div></div>
+          <div class="chart-callout"><div class="chart-callout-val" style="color:#3498db">${avgGir != null ? Math.round(avgGir) + '%' : '—'}</div><div class="chart-callout-lbl">Avg GIR</div></div>`;
+      }
+    }
+  }
+
+  // 4f. Front 9 vs Back 9 card
+  const f9b9Card = document.getElementById('c-f9b9');
+  if (f9b9Card) {
+    f9b9Card.style.display = fullR.length > 0 ? 'block' : 'none';
+    if (fullR.length > 0) {
+      let f9Sum = 0, b9Sum = 0, f9ParSum = 0, b9ParSum = 0;
+      fullR.forEach(r => {
+        for (let h = 0; h < 9; h++) { f9Sum += (r.scores[h] || 0); f9ParSum += (r.pars[h] || 0); }
+        for (let h = 9; h < 18; h++) { b9Sum += (r.scores[h] || 0); b9ParSum += (r.pars[h] || 0); }
+      });
+      const f9Avg = (f9Sum / fullR.length).toFixed(1);
+      const b9Avg = (b9Sum / fullR.length).toFixed(1);
+      const f9Diff = (f9Sum - f9ParSum) / fullR.length;
+      const b9Diff = (b9Sum - b9ParSum) / fullR.length;
+      const f9Col = f9Diff < 0 ? 'var(--birdie)' : f9Diff <= 2 ? 'var(--bogey)' : 'var(--double)';
+      const b9Col = b9Diff < 0 ? 'var(--birdie)' : b9Diff <= 2 ? 'var(--bogey)' : 'var(--double)';
+
+      const halvesEl = document.getElementById('f9b9-halves');
+      if (halvesEl) {
+        halvesEl.innerHTML = `
+          <div style="flex:1;text-align:center">
+            <div style="font-size:22px;font-weight:700;color:${f9Col}">${f9Avg}</div>
+            <div style="font-size:10px;color:var(--dim);margin-top:2px">Front 9 avg</div>
+          </div>
+          <div style="width:1px;height:40px;background:var(--border);margin:0 12px"></div>
+          <div style="flex:1;text-align:center">
+            <div style="font-size:22px;font-weight:700;color:${b9Col}">${b9Avg}</div>
+            <div style="font-size:10px;color:var(--dim);margin-top:2px">Back 9 avg</div>
+          </div>`;
+      }
+
+      const insightEl = document.getElementById('f9b9-insight');
+      const textEl = document.getElementById('f9b9-text');
+      if (insightEl && textEl) {
+        insightEl.style.display = 'flex';
+        const gap = f9Diff - b9Diff;
+        if (gap > 1.5) {
+          textEl.innerHTML = `You score <b>${gap.toFixed(1)} shots better</b> on the back 9 — try arriving earlier to warm up properly.`;
+        } else if (gap < -1.5) {
+          textEl.innerHTML = `You tend to <b>fade on the back 9</b> — focus on staying patient after the turn.`;
+        } else {
+          textEl.innerHTML = `Your scoring is <b>consistent across both halves</b> — a good sign of sustained focus.`;
+        }
+      }
     }
   }
 
   const hist = document.getElementById('st-hist');
   if (!allSorted.length) {
-    hist.innerHTML = _es('⛳', 'No rounds yet', 'Play your first round and your stats will build up here automatically.', 'Record a round', "import('./nav.js').then(m=>m.goTo('round'))")
+    hist.innerHTML = _es('flag', 'No rounds yet', 'Play your first round and your stats will build up here automatically.', 'Record a round', "import('./nav.js').then(m=>m.goTo('round'))")
       || '<div class="empty">No rounds yet</div>';
     return;
   }

@@ -188,7 +188,7 @@ async function adminApplyFix(origIdx) {
   await pushData();
   renderAdminCorrections();
   const msg = document.getElementById('admin-del-msg');
-  if (msg) { msg.style.color = 'var(--par)'; msg.innerHTML = `<span style="color:#2ecc71">✅ Fix applied${!applied ? ' (custom course updated — built-in courses require a code change)' : ''}.</span>`; }
+  if (msg) { msg.style.color = 'var(--par)'; msg.innerHTML = `<span style="color:#2ecc71">Fix applied${!applied ? ' (custom course updated — built-in courses require a code change)' : ''}.</span>`; }
 }
 
 async function adminDismissCorrection(origIdx) {

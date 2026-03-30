@@ -73,7 +73,7 @@ export function updateActiveMatchBadge() {
   if (!badge) return;
   if (state.currentMatchId && state.gd.matches?.[state.currentMatchId]) {
     const m = state.gd.matches[state.currentMatchId];
-    badge.textContent = '🏆 Active match: ' + m.name;
+    badge.textContent = 'Active match: ' + m.name;
     badge.style.display = 'block';
   } else {
     badge.style.display = 'none';
@@ -103,7 +103,7 @@ function _renderScreen0(modal) {
         border:1.5px solid var(--border);background:var(--mid);cursor:pointer;
         text-align:center;font-family:'DM Sans',sans-serif;
         -webkit-tap-highlight-color:transparent">
-        <div style="font-size:28px;margin-bottom:6px">⛳</div>
+        <div style="margin-bottom:6px"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 18 18" fill="none" stroke="var(--gold)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v14"/><path d="M4 2l9 3.5L4 9"/></svg></div>
         <div style="font-size:14px;font-weight:700;color:var(--cream);margin-bottom:4px">4-Ball</div>
         <div style="font-size:11px;color:var(--dim);line-height:1.4">Up to 4 players,<br>one tee time</div>
       </button>
@@ -111,7 +111,7 @@ function _renderScreen0(modal) {
         border:1.5px solid var(--border);background:var(--mid);cursor:pointer;
         text-align:center;font-family:'DM Sans',sans-serif;
         -webkit-tap-highlight-color:transparent">
-        <div style="font-size:28px;margin-bottom:6px">🏆</div>
+        <div style="margin-bottom:6px"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 18 18" fill="none" stroke="var(--gold)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2h8v5a4 4 0 0 1-8 0V2z"/><path d="M5 4H3.5a2 2 0 0 0 0 4H5"/><path d="M13 4h1.5a2 2 0 0 1 0 4H13"/><path d="M9 11v3"/><path d="M6 16h6"/></svg></div>
         <div style="font-size:14px;font-weight:700;color:var(--cream);margin-bottom:4px">Multi-group</div>
         <div style="font-size:11px;color:var(--dim);line-height:1.4">5+ players across<br>multiple tee times</div>
       </button>

@@ -387,7 +387,7 @@ export async function lookupGroupByCode() {
       info.innerHTML =
         '<div style="font-size:18px;font-weight:700;color:var(--cream);font-family:\'DM Sans\',sans-serif;margin-bottom:8px">' + _esc(g.name) + '</div>' +
         '<div style="font-size:13px;color:var(--dim);display:flex;gap:16px;flex-wrap:wrap">' +
-        '<span>👥 ' + (g.memberCount || 0) + ' member' + ((g.memberCount || 0) !== 1 ? 's' : '') + '</span>' +
+        '<span><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><path d="M12 16v-1.5a3 3 0 0 0-3-3H5a3 3 0 0 0-3 3V16"/><circle cx="7" cy="5.5" r="3"/><path d="M16 16v-1.5a3 3 0 0 0-2.2-2.9"/><path d="M12 2.6a3 3 0 0 1 0 5.8"/></svg>' + (g.memberCount || 0) + ' member' + ((g.memberCount || 0) !== 1 ? 's' : '') + '</span>' +
         (g.created_by ? '<span>Led by ' + _esc(g.created_by) + '</span>' : '') +
         '</div>';
     }

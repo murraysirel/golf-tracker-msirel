@@ -834,7 +834,7 @@ function updateMatchBanner(h) {
   // Running match status
   if (mr.result === 'won') {
     const holesLeft = 17 - mr.holesPlayed;
-    if (statusEl) statusEl.textContent = `🏆 ${mr.leader} wins ${mr.holesUp}&${holesLeft}`;
+    if (statusEl) statusEl.textContent = `${mr.leader} wins ${mr.holesUp}&${holesLeft}`;
     banner.style.background = 'rgba(201,168,76,.18)';
   } else if (mr.result === 'halved') {
     if (statusEl) statusEl.textContent = 'Match halved after 18';
@@ -1320,6 +1320,6 @@ export async function submitCorrectionReport() {
   const { pushData } = await import('./api.js');
   await pushData();
 
-  if (msg) { msg.style.color = 'var(--par)'; msg.textContent = '✅ Report submitted — admin will review.'; }
+  if (msg) { msg.style.color = 'var(--par)'; msg.textContent = 'Report submitted — admin will review.'; }
   setTimeout(() => { document.getElementById('correction-modal').style.display = 'none'; }, 1500);
 }

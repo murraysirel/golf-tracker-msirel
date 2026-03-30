@@ -232,8 +232,8 @@ document.getElementById('entry-btn-manual')?.addEventListener('click', () => swi
 document.getElementById('entry-btn-photo')?.addEventListener('click', () => switchEntry('photo'));
 document.getElementById('entry-btn-course')?.addEventListener('click', () => switchEntry('course'));
 
-// Home screen CTA — Play with the Caddie
-document.getElementById('home-caddie-cta')?.addEventListener('click', () => goTo('live'));
+// Home screen CTA — Start a round
+document.getElementById('home-caddie-cta')?.addEventListener('click', () => goTo('round'));
 
 // Let's Go — launch live round
 document.getElementById('caddie-letsgo-btn')?.addEventListener('click', () => goTo('live'));

@@ -57,7 +57,7 @@ function renderPracticeHistory() {
   if (!card || !list) return;
   if (!sessions.length) {
     card.style.display = 'block';
-    list.innerHTML = _es('🎯', 'No practice sessions yet', 'Generate a plan, work through the drills, and your sessions log here.', 'Build a practice plan', "import('./practice.js').then(m=>m.selectPracticeArea('ai_recommended'))")
+    list.innerHTML = _es('target', 'No practice sessions yet', 'Generate a plan, work through the drills, and your sessions log here.', 'Build a practice plan', "import('./practice.js').then(m=>m.selectPracticeArea('ai_recommended'))")
       || '<div style="font-size:12px;color:var(--dimmer);padding:12px 0;text-align:center">No sessions logged yet.</div>';
     return;
   }

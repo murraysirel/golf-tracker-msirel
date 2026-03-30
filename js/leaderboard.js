@@ -73,22 +73,73 @@ export async function switchActiveGroup(code) {
 }
 
 function renderGroupSwitcher() {
-  const bar = document.getElementById('group-switcher');
-  if (!bar) return;
+  // 5a. Context button — shows active group + season
+  const ctxLabel = document.getElementById('lb-ctx-label');
+  const ctxSeason = document.getElementById('lb-ctx-season');
   const codes = state.gd.groupCodes || (state.gd.activeGroupCode ? [state.gd.activeGroupCode] : []);
-  if (codes.length <= 1) { bar.style.display = 'none'; return; }
-  bar.style.display = 'flex';
-  bar.innerHTML = '';
-  codes.forEach(code => {
-    const meta = state.gd.groupMeta?.[code];
-    const label = meta?.name ? meta.name : code;
-    const isActive = code === state.gd.activeGroupCode;
-    const pill = document.createElement('button');
-    pill.className = 'group-pill' + (isActive ? ' active' : '');
-    pill.textContent = label;
-    pill.addEventListener('click', () => switchActiveGroup(code));
-    bar.appendChild(pill);
-  });
+  const activeMeta = state.gd.groupMeta?.[state.gd.activeGroupCode];
+  if (ctxLabel) ctxLabel.textContent = activeMeta?.name || state.gd.activeGroupCode || 'No group';
+  const seasonSel = document.getElementById('lb-season-sel');
+  if (ctxSeason && seasonSel) ctxSeason.textContent = seasonSel.value === 'all' ? 'All time' : seasonSel.value + ' Season';
+
+  // Wire up toggle
+  const ctxBtn = document.getElementById('lb-ctx-btn');
+  const ctxPanel = document.getElementById('lb-ctx-panel');
+  if (ctxBtn && ctxPanel) {
+    ctxBtn.onclick = () => {
+      ctxPanel.style.display = ctxPanel.style.display === 'block' ? 'none' : 'block';
+    };
+  }
+
+  // Populate league pills
+  const groupsEl = document.getElementById('lb-ctx-groups');
+  if (groupsEl) {
+    groupsEl.innerHTML = '';
+    codes.forEach(code => {
+      const meta = state.gd.groupMeta?.[code];
+      const label = meta?.name || code;
+      const isActive = code === state.gd.activeGroupCode;
+      const pill = document.createElement('button');
+      pill.className = 'fpill' + (isActive ? ' active' : '');
+      pill.textContent = label;
+      pill.style.cssText = 'font-size:11px;padding:5px 12px';
+      pill.addEventListener('click', () => {
+        if (ctxPanel) ctxPanel.style.display = 'none';
+        switchActiveGroup(code);
+      });
+      groupsEl.appendChild(pill);
+    });
+  }
+
+  // Populate season pills
+  const seasonsEl = document.getElementById('lb-ctx-seasons');
+  if (seasonsEl) {
+    seasonsEl.innerHTML = '';
+    const allYearsSet = new Set();
+    Object.values(state.gd.players).forEach(p => (p.rounds || []).forEach(r => {
+      const yr = parseDateGB(r.date).toString().slice(0, 4);
+      if (yr && yr !== 'NaN') allYearsSet.add(yr);
+    }));
+    const sortedYears = ['all', ...[...allYearsSet].sort().reverse()];
+    const currentVal = seasonSel?.value || 'all';
+    sortedYears.forEach(yr => {
+      const pill = document.createElement('button');
+      pill.className = 'fpill' + (yr === currentVal ? ' active' : '');
+      pill.textContent = yr === 'all' ? 'All time' : yr;
+      pill.style.cssText = 'font-size:11px;padding:5px 12px';
+      pill.addEventListener('click', () => {
+        if (seasonSel) seasonSel.value = yr;
+        if (ctxPanel) ctxPanel.style.display = 'none';
+        renderGroupSwitcher();
+        renderLeaderboard();
+      });
+      seasonsEl.appendChild(pill);
+    });
+  }
+
+  // Keep hidden group-switcher bar empty for backward compat
+  const bar = document.getElementById('group-switcher');
+  if (bar) bar.style.display = 'none';
 }
 
 // Per-panel expanded state (persists across re-renders within the session)
@@ -140,9 +191,9 @@ export function renderLeaderboard() {
     if (el?.parentElement) el.parentElement.dataset.boardId = boardId;
   });
 
-  // Header: title + gear icon
+  // Header: title
   const titleEl = document.getElementById('lb-tab-title');
-  if (titleEl) titleEl.textContent = isInGroup ? group.name : 'Leagues';
+  if (titleEl) titleEl.textContent = 'The board';
   const gearBtn = document.getElementById('lb-settings-btn');
   if (gearBtn) {
     gearBtn.style.display = isAdmin ? 'inline-flex' : 'none';
@@ -345,7 +396,7 @@ export function renderLeaderboard() {
     };
   }).filter(Boolean).sort((a, b) => (a.avgDiff ?? 99) - (b.avgDiff ?? 99));
 
-  const emptyMsg = _es('🏆', 'Leaderboard is waiting', 'No rounds recorded yet for the current season.', 'Record a round', "import('./nav.js').then(m=>m.goTo('round'))")
+  const emptyMsg = _es('trophy', 'Leaderboard is waiting', 'No rounds recorded yet for the current season.', 'Record a round', "import('./nav.js').then(m=>m.goTo('round'))")
     || '<div class="empty" style="padding:24px 0"><div style="font-size:28px;margin-bottom:8px">\u2014</div><div style="font-size:13px">No rounds this season yet</div></div>';
 
   if (!players.length) {

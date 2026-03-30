@@ -137,7 +137,7 @@ function _renderResults(courses) {
       <div class="cs-result-meta">
         ${c.location || ''}${parBadge}
         ${c.holes && c.holes !== 18 ? ` · ${c.holes} holes` : ''}
-        ${c.has_gps ? ' · <span class="cs-gps-badge">📍 GPS</span>' : ''}
+        ${c.has_gps ? ' · <span class="cs-gps-badge"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M9 16s-5-4.3-5-8.5a5 5 0 0 1 10 0C14 11.7 9 16 9 16z"/><circle cx="9" cy="7.5" r="1.5"/></svg> GPS</span>' : ''}
       </div>
     </div>`;
   }).join('');
@@ -314,7 +314,7 @@ function _renderSelectedCard(course) {
     <div class="cs-card">
       <div class="cs-card-name">${course.name}</div>
       ${course.location ? `<div class="cs-card-loc">${course.location}</div>` : ''}
-      ${course.has_gps ? `<div class="cs-gps-confirmed">📍 GPS distances available for this course</div>` : `<div class="cs-gps-none">No GPS data — you can pin greens manually during your round</div>`}
+      ${course.has_gps ? `<div class="cs-gps-confirmed"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M9 16s-5-4.3-5-8.5a5 5 0 0 1 10 0C14 11.7 9 16 9 16z"/><circle cx="9" cy="7.5" r="1.5"/></svg> GPS distances available for this course</div>` : `<div class="cs-gps-none">No GPS data — you can pin greens manually during your round</div>`}
  
       ${tees.length > 0 ? `
         <div class="cs-tee-row">
@@ -613,10 +613,10 @@ Only include teeRatings entries that are visible on the card. Use null for any v
     });
 
     document.getElementById('course-review').style.display = 'block';
-    document.getElementById('course-scan-msg').innerHTML = '<div class="alert alert-ok">✅ Course read! Check details below and correct anything before saving.</div>';
+    document.getElementById('course-scan-msg').innerHTML = '<div class="alert alert-ok">&#10003; Course read! Check details below and correct anything before saving.</div>';
 
   } catch (e) {
-    document.getElementById('course-scan-msg').innerHTML = '<div class="alert alert-err">⚠️ Couldn\'t fully read the card — fill in manually below or try a clearer photo.</div>';
+    document.getElementById('course-scan-msg').innerHTML = '<div class="alert alert-err">&#9888; Couldn\'t fully read the card — fill in manually below or try a clearer photo.</div>';
     buildParEditGrid(Array(18).fill(4));
     document.getElementById('course-review').style.display = 'block';
   }
@@ -671,7 +671,7 @@ export function saveCourse() {
   state._scannedTeeRatings = null;
 
   import('./api.js').then(({ pushData }) => pushData()).then(ok => {
-    const msg = ok ? '✅ Course saved! It\'ll now appear in the course selector.' : '⚠️ Saved locally — will sync when connection is available.';
+    const msg = ok ? '&#10003; Course saved! It\'ll now appear in the course selector.' : '&#9888; Saved locally — will sync when connection is available.';
     document.getElementById('course-save-msg').textContent = msg;
     setTimeout(() => {
       cancelCourseScan();
@@ -715,8 +715,8 @@ export function renderScannedCourses() {
         <div style="font-size:10px;color:var(--dim);margin-top:2px">${c.loc || ''} · Par ${par} · ${tees.join(', ')} tees</div>
       </div>
       <div style="display:flex;gap:6px">
-        <button class="btn btn-ghost btn-sm" data-edit-course="${key.replace(/'/g, "\\'")}">✏️</button>
-        <button class="btn btn-ghost btn-sm" style="color:#e74c3c;border-color:rgba(231,76,60,.3)" data-delete-course="${key.replace(/'/g, "\\'")}">🗑</button>
+        <button class="btn btn-ghost btn-sm" data-edit-course="${key.replace(/'/g, "\\'")}"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 2.5a2 2 0 0 1 2.8 2.8L7 14.5l-4 1 1-4z"/></svg></button>
+        <button class="btn btn-ghost btn-sm" style="color:#e74c3c;border-color:rgba(231,76,60,.3)" data-delete-course="${key.replace(/'/g, "\\'")}"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h12"/><path d="M13 5v9a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 5 14V5"/><path d="M7 5V3.5A1.5 1.5 0 0 1 8.5 2h1A1.5 1.5 0 0 1 11 3.5V5"/></svg></button>
       </div>`;
     div.querySelector('[data-edit-course]').addEventListener('click',   () => editScannedCourse(key));
     div.querySelector('[data-delete-course]').addEventListener('click', () => deleteScannedCourse(key));
@@ -794,7 +794,7 @@ export async function searchCourseAPI() {
       results.appendChild(div);
     });
   } catch (e) {
-    msg.textContent = '⚠️ Search failed — check your connection and try again.';
+    msg.textContent = '&#9888; Search failed — check your connection and try again.';
     console.error('Course API search error:', e);
   }
 }
@@ -861,12 +861,12 @@ export async function importCourseFromAPI(courseId) {
     });
 
     document.getElementById('course-review').style.display = 'block';
-    msg.innerHTML = `<span style="color:#2ecc71">✅ ${name} imported — review below, then save.</span>`;
+    msg.innerHTML = `<span style="color:#2ecc71">&#10003; ${name} imported — review below, then save.</span>`;
     results.innerHTML = '';
     document.getElementById('course-review').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   } catch (e) {
-    msg.textContent = `⚠️ Import failed: ${e.message}`;
+    msg.textContent = `&#9888; Import failed: ${e.message}`;
     console.error('Course API import error:', e);
   }
 }
