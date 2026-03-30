@@ -269,6 +269,20 @@ document.getElementById('live-prev')?.addEventListener('click', () => liveGoto(s
 document.getElementById('live-next')?.addEventListener('click', () => liveGoto(state.liveState.hole + 1));
 document.getElementById('live-btn-prev2')?.addEventListener('click', () => liveGoto(state.liveState.hole - 1));
 document.getElementById('live-btn-next2')?.addEventListener('click', liveNextOrFinish);
+// GPS target switching
+document.querySelectorAll('.live-gps-tap').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.live-gps-tap').forEach(e => {
+      e.classList.remove('active-gps');
+      e.style.background = '';
+      e.querySelector('div')?.style && (e.querySelector('div').style.color = 'var(--cream)');
+    });
+    el.classList.add('active-gps');
+    el.style.background = 'rgba(201,168,76,.15)';
+    el.querySelector('div').style.color = 'var(--gold)';
+    state.gpsState.target = el.dataset.target;
+  });
+});
 document.getElementById('live-note')?.addEventListener('input', liveSaveNote);
 document.getElementById('live-flag-btn')?.addEventListener('click', openCorrectionModal);
 document.getElementById('correction-close-btn')?.addEventListener('click', () => { document.getElementById('correction-modal').style.display = 'none'; });

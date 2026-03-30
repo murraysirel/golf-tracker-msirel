@@ -668,108 +668,129 @@
       </div>
 
       <!-- Phase 2: Unified hole view (GPS + scoring) -->
-      <div id="live-hole-view" style="display:none">
+      <div id="live-hole-view" style="display:none;flex-direction:column;height:calc(100vh - 64px - var(--safe-top) - var(--safe-bot))">
 
-        <!-- Sticky header: hole nav + pips + running total -->
-        <div class="live-hdr" id="live-hole-view-hdr">
-          <div class="live-hole-nav">
-            <button class="live-nav-btn" id="live-prev">&#8249;</button>
-            <div>
-              <div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:2px;text-align:center">Hole</div>
-              <div class="live-hole-num" id="live-hole-num">1</div>
+        <!-- Hole header -->
+        <div style="background:var(--navy);padding:10px 20px 0">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div style="display:flex;align-items:center;gap:10px">
+              <button class="live-nav-btn" id="live-prev" style="width:30px;height:30px;font-size:16px">&#8249;</button>
+              <div>
+                <div id="live-hole-num" style="font-size:26px;font-weight:700;color:var(--cream)">Hole 1</div>
+                <div id="live-hole-sub" style="font-size:12px;color:var(--dim);margin-top:1px">SI — · —</div>
+              </div>
+              <button class="live-nav-btn" id="live-next" style="width:30px;height:30px;font-size:16px">&#8250;</button>
             </div>
-            <button class="live-nav-btn" id="live-next">&#8250;</button>
-          </div>
-          <div style="flex:1;margin:0 12px;min-width:0">
-            <div class="live-progress" id="live-pips"></div>
-            <div id="live-running" class="live-running-score" style="margin:8px 0 0;text-align:center">
-              <span id="live-run-score" style="font-size:22px;font-weight:700;color:var(--gold)">—</span>
-              <br>
-              <span id="live-run-vp" style="font-size:11px;color:var(--dim)"></span>
+            <div style="background:var(--mid);border:1px solid var(--border);border-radius:10px;padding:6px 14px;text-align:center">
+              <div id="live-par" style="font-size:18px;font-weight:700;color:var(--cream)">4</div>
+              <div style="font-size:10px;color:var(--dim);letter-spacing:0.5px;text-transform:uppercase">Par</div>
             </div>
           </div>
-          <button id="live-cancel-round-btn" title="End round"
-            style="display:inline-block;padding:6px 14px;border-radius:20px;
-              background:rgba(231,76,60,0.18);color:#e8a09a;
-              border:1px solid rgba(231,76,60,0.35);font-size:12px;font-weight:600;
-              letter-spacing:0.04em;cursor:pointer;font-family:'DM Sans',sans-serif;
-              margin-top:4px;-webkit-tap-highlight-color:transparent">End round</button>
+
+          <!-- Pip row -->
+          <div id="live-pips" style="display:flex;gap:4px;padding:10px 0 12px"></div>
         </div>
 
-        <!-- GPS distance block -->
-        <div class="live-gps-block">
-          <div class="live-dist-row">
-            <div class="live-dist-item">
-              <div class="live-dist-secondary" id="live-dist-front">—</div>
-              <div class="live-dist-lbl">Front</div>
-            </div>
-            <div class="live-dist-item">
-              <div class="live-dist-main" id="live-dist-mid">—</div>
-              <div class="live-dist-lbl" style="color:var(--gold)">Mid</div>
-            </div>
-            <div class="live-dist-item">
-              <div class="live-dist-secondary" id="live-dist-back">—</div>
-              <div class="live-dist-lbl">Back</div>
-            </div>
+        <!-- GPS card -->
+        <div style="margin:0 16px 10px;background:var(--mid);border:1px solid var(--border);border-radius:12px;padding:12px 16px;display:flex;justify-content:space-around;align-items:center">
+          <div class="live-gps-tap" data-target="front" style="text-align:center;cursor:pointer;padding:4px 8px;border-radius:8px">
+            <div id="live-dist-front" style="font-size:22px;font-weight:700;color:var(--cream)">—</div>
+            <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:0.5px;margin-top:1px">Front</div>
           </div>
-          <div class="live-hole-meta">
-            Par <strong id="live-par">4</strong>&nbsp;·&nbsp;SI <span id="live-si">—</span>&nbsp;·&nbsp;<span id="live-yards">—</span> yds
+          <div style="width:1px;height:32px;background:var(--border)"></div>
+          <div class="live-gps-tap active-gps" data-target="mid" style="text-align:center;cursor:pointer;padding:4px 8px;border-radius:8px;background:rgba(201,168,76,.15)">
+            <div id="live-dist-mid" style="font-size:22px;font-weight:700;color:var(--gold)">—</div>
+            <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:0.5px;margin-top:1px">Mid</div>
           </div>
-          <!-- Drive tracker — hidden until tee pinned + GPS active -->
-          <div id="drive-log-wrap" style="display:none;padding:6px 0 0">
-            <div id="drive-confirm-msg" style="font-size:11px;color:var(--par);text-align:center;min-height:14px;margin-bottom:4px"></div>
-            <div id="drive-club-row" style="display:none;align-items:center;justify-content:center;gap:8px;margin-bottom:6px">
-              <select id="drive-club-sel" style="font-family:'DM Sans',sans-serif;font-size:13px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--mid);color:var(--cream)">
-                <option>Driver</option>
-                <option>3-wood</option>
-                <option>5-wood</option>
-                <option>Hybrid</option>
-                <option>5-iron</option>
-                <option>Other</option>
-              </select>
-              <button id="drive-log-btn" class="btn" style="width:auto;padding:7px 18px;font-size:13px;border-radius:8px">Log it</button>
-            </div>
-            <button id="mark-drive-btn" style="width:100%;padding:7px;background:none;border:1px dashed rgba(201,168,76,.3);border-radius:8px;color:var(--dim);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent">🏌️ Mark drive</button>
+          <div style="width:1px;height:32px;background:var(--border)"></div>
+          <div class="live-gps-tap" data-target="back" style="text-align:center;cursor:pointer;padding:4px 8px;border-radius:8px">
+            <div id="live-dist-back" style="font-size:22px;font-weight:700;color:var(--cream)">—</div>
+            <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:0.5px;margin-top:1px">Back</div>
           </div>
         </div>
 
-        <!-- Wolf live bar (shown only in Wolf rounds) -->
-        <div id="wolf-live-bar" style="display:none;padding:10px 16px;background:rgba(201,168,76,.06);border-bottom:1px solid rgba(201,168,76,.18);flex-shrink:0;align-items:center;justify-content:space-between;gap:8px">
+        <!-- Drive tracker (hidden until tee pinned + GPS active) -->
+        <div id="drive-log-wrap" style="display:none;padding:0 16px 6px">
+          <div id="drive-confirm-msg" style="font-size:11px;color:var(--par);text-align:center;min-height:14px;margin-bottom:4px"></div>
+          <div id="drive-club-row" style="display:none;align-items:center;justify-content:center;gap:8px;margin-bottom:6px">
+            <select id="drive-club-sel" style="font-family:'DM Sans',sans-serif;font-size:13px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--mid);color:var(--cream)">
+              <option>Driver</option><option>3-wood</option><option>5-wood</option><option>Hybrid</option><option>5-iron</option><option>Other</option>
+            </select>
+            <button id="drive-log-btn" class="btn" style="width:auto;padding:7px 18px;font-size:13px;border-radius:8px">Log it</button>
+          </div>
+          <button id="mark-drive-btn" style="width:100%;padding:7px;background:none;border:1px dashed rgba(201,168,76,.3);border-radius:8px;color:var(--dim);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer">🏌️ Mark drive</button>
+        </div>
+
+        <!-- Wolf live bar -->
+        <div id="wolf-live-bar" style="display:none;padding:10px 16px;background:rgba(201,168,76,.06);border-bottom:1px solid rgba(201,168,76,.18);align-items:center;justify-content:space-between;gap:8px">
           <div id="wolf-hole-banner" style="flex:1;font-size:13px;color:var(--cream)"></div>
           <button id="wolf-6pointer-btn" style="display:none;white-space:nowrap;padding:6px 12px;border-radius:16px;border:1px solid rgba(231,76,60,.5);background:rgba(231,76,60,.1);color:var(--bogey);font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;flex-shrink:0">⚡ Lone Wolf?</button>
           <button id="wolf-scoreboard-btn" style="white-space:nowrap;padding:6px 12px;border-radius:16px;border:1px solid rgba(201,168,76,.4);background:rgba(201,168,76,.08);color:var(--gold);font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;flex-shrink:0">🐺 Points</button>
         </div>
 
-        <!-- Sixes live bar (shown only in Sixes rounds) -->
+        <!-- Sixes live bar -->
         <div id="sixes-live-bar" style="display:none;padding:10px 16px;background:rgba(46,204,113,.05);border-bottom:1px solid rgba(46,204,113,.2)">
           <div id="sixes-standings" style="font-size:13px;color:var(--cream);margin-bottom:3px"></div>
           <div id="sixes-hole-pts" style="font-size:11px;color:var(--dim)"></div>
         </div>
 
-        <!-- Scrollable scoring section -->
-        <div class="live-scoring-scroll">
-          <div id="live-group-rows"></div>
+        <!-- Scrollable content -->
+        <div style="flex:1;overflow-y:auto;padding-bottom:8px">
+
+          <!-- Player rows -->
+          <div id="live-group-rows" style="margin:0 16px"></div>
+
+          <!-- Match play banner -->
           <div id="live-match-banner" style="display:none;margin:8px 16px 4px;padding:12px;border-radius:12px;background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.3);text-align:center">
             <div id="live-match-status" style="font-size:13px;color:var(--gold);font-weight:600"></div>
             <div id="live-match-hole-result" style="font-size:11px;color:var(--dim);margin-top:4px"></div>
           </div>
-          <div style="padding:8px 16px">
-            <label style="font-size:11px;color:var(--dim);display:block;margin-bottom:4px">Hole note</label>
-            <input type="text" id="live-note" placeholder="e.g. 3-putt, OB off tee" style="font-size:13px">
+
+          <!-- Stat panel for selected player -->
+          <div id="live-stat-panel" style="margin:8px 16px;background:var(--mid);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+            <div style="padding:8px 14px;background:rgba(201,168,76,.08);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">
+              <span id="live-stat-who" style="font-size:12px;color:var(--gold);font-weight:600"></span>
+              <span style="font-size:11px;color:var(--dim)">· tap a player above to switch</span>
+            </div>
+            <div style="display:flex">
+              <div style="flex:1;padding:10px 8px;text-align:center;border-right:1px solid var(--border)">
+                <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Putts</div>
+                <div style="display:flex;align-items:center;gap:6px;justify-content:center">
+                  <button id="live-putt-minus" style="width:24px;height:24px;border-radius:6px;background:var(--navy);border:1px solid var(--border);color:var(--dim);font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer">−</button>
+                  <div id="live-putt-val" style="font-size:16px;font-weight:700;color:var(--cream);min-width:18px;text-align:center">2</div>
+                  <button id="live-putt-plus" style="width:24px;height:24px;border-radius:6px;background:var(--navy);border:1px solid var(--border);color:var(--dim);font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer">+</button>
+                </div>
+              </div>
+              <div style="flex:1;padding:10px 8px;text-align:center;border-right:1px solid var(--border)">
+                <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">FIR</div>
+                <div id="live-fir-toggles" style="display:flex;gap:4px;justify-content:center"></div>
+              </div>
+              <div style="flex:1;padding:10px 8px;text-align:center">
+                <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">GIR</div>
+                <div id="live-gir-toggles" style="display:flex;gap:4px;justify-content:center"></div>
+              </div>
+            </div>
           </div>
-          <div style="display:flex;justify-content:flex-end;padding:0 16px 8px">
-            <button id="live-flag-btn" title="Report an issue with this hole's data" style="background:none;border:none;cursor:pointer;color:var(--dimmer);padding:4px 6px;font-size:11px;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px">
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
-              Report issue
-            </button>
+
+          <!-- Hole note -->
+          <div style="padding:4px 16px">
+            <input type="text" id="live-note" placeholder="Hole note (optional)" style="font-size:12px;padding:8px 12px">
           </div>
         </div>
 
-        <!-- Footer: prev / next/finish -->
-        <div class="live-unified-footer">
-          <button class="btn btn-ghost" id="live-btn-prev2" style="flex:0 0 auto;width:auto;padding:14px 18px">← Back</button>
-          <button class="btn" id="live-btn-next2" style="flex:1">Next Hole →</button>
+        <!-- Next hole / finish button -->
+        <div style="padding:0 16px 8px">
+          <button id="live-btn-next2" style="width:100%;background:var(--gold);border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;color:var(--navy);cursor:pointer;letter-spacing:0.3px;font-family:'DM Sans',sans-serif">Next hole →</button>
+          <div style="text-align:center;margin-top:6px">
+            <button id="live-cancel-round-btn" style="background:none;border:none;color:var(--dimmer);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;padding:4px 8px">Cancel round</button>
+            <button id="live-flag-btn" style="background:none;border:none;cursor:pointer;color:var(--dimmer);padding:4px 6px;font-size:11px;font-family:'DM Sans',sans-serif">Report issue</button>
+          </div>
         </div>
+
+        <!-- Hidden elements for backwards compat -->
+        <button id="live-btn-prev2" style="display:none"></button>
+        <div id="live-run-score" style="display:none"></div>
+        <div id="live-run-vp" style="display:none"></div>
 
       </div>
     </div>

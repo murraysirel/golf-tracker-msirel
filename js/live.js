@@ -2,6 +2,8 @@
 // LIVE ROUND
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
+
+let _statPlayer = null; // Selected player for stat panel; defaults to state.me on each hole advance
 import { getCourseByRef } from './courses.js';
 import { recalc, scoreCol } from './scorecard.js';
 import { goTo } from './nav.js';
@@ -103,7 +105,7 @@ export function initLiveRound() {
     const setup = document.getElementById('live-group-setup');
     const holeView = document.getElementById('live-hole-view');
     if (setup) setup.style.display = 'none';
-    if (holeView) holeView.style.display = 'block';
+    if (holeView) holeView.style.display = 'flex';
     liveRenderPips();
     liveGoto(state.liveState.hole);
     return;
@@ -274,7 +276,7 @@ export function startGroupRound() {
         showWolfOrderSetup(state.liveState.group);
       });
     } else {
-      if (holeView) holeView.style.display = 'block';
+      if (holeView) holeView.style.display = 'flex';
       liveRenderPips();
       liveGoto(state.liveState.hole);
     }
@@ -388,20 +390,22 @@ export function liveRenderPips() {
   const isGroup = state.liveState.group.length > 1;
   for (let h = 0; h < 18; h++) {
     const pip = document.createElement('div');
-    pip.className = 'live-pip';
-    // For group mode use first player's scores for pip colouring
+    pip.style.cssText = 'flex:1;height:3px;border-radius:2px;cursor:pointer;transition:background .15s';
     const sc = isGroup
       ? (state.liveState.groupScores[state.liveState.group[0]]?.[h] ?? null)
       : state.liveState.scores[h];
     const par = state.cpars[h];
-    if (h === state.liveState.hole) pip.classList.add('active');
-    else if (sc != null) {
+    if (h === state.liveState.hole) {
+      pip.style.background = 'var(--gold)';
+    } else if (sc != null) {
       const d = sc - par;
-      if (d <= -2) pip.classList.add('eagle-pip');
-      else if (d === -1) pip.classList.add('birdie-pip');
-      else if (d === 1) pip.classList.add('bogey-pip');
-      else if (d >= 2) pip.classList.add('double-pip');
-      else pip.classList.add('done');
+      if (d <= -2) pip.style.background = 'var(--eagle)';
+      else if (d === -1) pip.style.background = 'var(--birdie)';
+      else if (d === 0) pip.style.background = 'var(--par)';
+      else if (d === 1) pip.style.background = 'var(--bogey)';
+      else pip.style.background = 'var(--double)';
+    } else {
+      pip.style.background = 'var(--border)';
     }
     pip.addEventListener('click', () => liveGoto(h));
     el.appendChild(pip);
@@ -420,17 +424,22 @@ export function liveGoto(h) {
     }
   });
   liveRenderPips();
+  _statPlayer = state.me; // Reset selected player on each hole advance
   const par    = state.cpars[h];
   const hYards = state.activeHoleYards?.length === 18 ? state.activeHoleYards : null;
   const si     = state.scannedSI?.some(v => v != null) ? state.scannedSI : null;
+  const courseName = state.activeCourse?.name?.replace(/ Golf Club| Golf Course| Golf Links/g, '') || '';
 
-  document.getElementById('live-hole-num').textContent = h + 1;
+  document.getElementById('live-hole-num').textContent = 'Hole ' + (h + 1);
   document.getElementById('live-par').textContent = par;
-  document.getElementById('live-yards').textContent = hYards?.[h] || '—';
-  document.getElementById('live-si').textContent = (si && si[h] > 0) ? si[h] : '—';
+  const subParts = [];
+  if (si && si[h] > 0) subParts.push('SI ' + si[h]);
+  if (courseName) subParts.push(courseName);
+  document.getElementById('live-hole-sub').textContent = subParts.join(' · ') || '';
 
   // Always use group rendering (handles 1 or more players)
   liveRenderGroupHole(h);
+  liveRenderStatPanel(h);
 
   document.getElementById('live-note').value = state.liveState.notes[h] || '';
 
@@ -444,10 +453,11 @@ export function liveGoto(h) {
   publishLiveState();
 
   document.getElementById('live-prev').disabled = h === 0;
-  document.getElementById('live-btn-prev2').disabled = h === 0;
+  const prevBtn2 = document.getElementById('live-btn-prev2');
+  if (prevBtn2) prevBtn2.disabled = h === 0;
   document.getElementById('live-next').disabled = h === 17;
   const nextBtn = document.getElementById('live-btn-next2');
-  nextBtn.textContent = h === 17 ? 'Finish & Save Round' : 'Next Hole \u2192';
+  if (nextBtn) nextBtn.textContent = h === 17 ? 'Finish & Save Round' : 'Next hole \u2192';
 
   liveUpdateRunning();
 
@@ -478,69 +488,166 @@ function liveRenderGroupHole(h) {
   if (!container) return;
   container.innerHTML = '';
   const par = state.cpars[h];
+  if (!_statPlayer) _statPlayer = state.me;
 
   state.liveState.group.forEach(name => {
     const sc = state.liveState.groupScores[name]?.[h] ?? null;
-    const pt = state.liveState.groupPutts[name]?.[h] ?? null;
-    const fir = state.liveState.groupFir[name]?.[h] ?? '';
-    const gir = state.liveState.groupGir[name]?.[h] ?? '';
+    const isMe = name === state.me;
+    const sel = name === _statPlayer;
 
-    const scColor = sc != null ? scoreCol(sc - par) : 'var(--gold)';
+    // Running score across all played holes
+    let runTot = 0, runPar = 0, thruCount = 0;
+    for (let i = 0; i < 18; i++) {
+      const s = state.liveState.groupScores[name]?.[i];
+      if (s != null && i !== h) { runTot += s; runPar += state.cpars[i]; thruCount++; }
+    }
+    const runDelta = runTot - runPar;
+    const fmtRun = thruCount > 0
+      ? `<span style="color:${runDelta < 0 ? 'var(--birdie)' : runDelta === 0 ? 'var(--par)' : 'var(--bogey)'}">${runDelta === 0 ? 'E' : (runDelta > 0 ? '+' : '') + runDelta}</span> thru ${thruCount}`
+      : 'No scores yet';
 
-    const sixesPtsHtml = state.gameMode === 'sixes'
-      ? `<span class="sixes-player-pts" data-player="${name}" style="font-size:11px;color:var(--par);font-weight:600;margin-left:6px">—pts</span>`
-      : '';
+    // Hole score colour
+    const holeDelta = sc != null ? sc - par : null;
+    let scCol = 'var(--dimmer)';
+    if (holeDelta != null) {
+      if (holeDelta <= -2) scCol = 'var(--eagle)';
+      else if (holeDelta === -1) scCol = 'var(--birdie)';
+      else if (holeDelta === 0) scCol = 'var(--par)';
+      else if (holeDelta === 1) scCol = 'var(--bogey)';
+      else scCol = 'var(--double)';
+    }
 
     const row = document.createElement('div');
-    row.style.cssText = 'padding:10px 0;border-bottom:1px solid var(--wa-06);margin-bottom:6px';
+    row.style.cssText = `background:${sel ? 'var(--card)' : 'var(--mid)'};border:1px solid ${sel ? 'var(--gold)' : 'var(--border)'};border-radius:10px;padding:11px 14px;display:flex;align-items:center;gap:12px;margin-bottom:6px;cursor:pointer;transition:border-color .15s,background .15s`;
+    row.dataset.player = name;
     row.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <span style="font-size:13px;font-weight:600;color:${name === state.me ? 'var(--gold)' : 'var(--cream)'}">${name}${sixesPtsHtml}</span>
-        <span style="font-size:11px;color:var(--dim)">${sc != null ? (sc - par >= 0 ? '+' + (sc - par) : '' + (sc - par)) + ' this hole' : 'no score'}</span>
+      <div style="width:32px;height:32px;border-radius:50%;background:${sel ? 'rgba(201,168,76,.2)' : 'var(--border)'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${sel ? 'var(--gold)' : 'var(--dim)'};flex-shrink:0">${(name.split(' ').map(w => w[0]).join('').toUpperCase()).slice(0, 2)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:600;color:var(--cream)">${name}${isMe ? '<span style="font-size:10px;color:var(--gold);margin-left:5px;font-weight:400">you</span>' : ''}</div>
+        <div style="font-size:11px;color:var(--dim);margin-top:1px">${fmtRun}</div>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-        <span style="font-size:10px;color:var(--dim);width:38px">Score</span>
-        <button class="live-score-btn lg-score-minus" data-player="${name}">−</button>
-        <span class="live-score-val" data-player="${name}" style="color:${scColor}">${sc != null ? sc : par}</span>
-        <button class="live-score-btn lg-score-plus" data-player="${name}">+</button>
-        <span style="font-size:10px;color:var(--dim);margin-left:6px;width:34px">Putts</span>
-        <button class="live-putt-btn lg-putts-minus" data-player="${name}">−</button>
-        <span style="font-size:22px;font-weight:700;color:var(--cream);width:28px;text-align:center">${pt != null ? pt : '—'}</span>
-        <button class="live-putt-btn lg-putts-plus" data-player="${name}">+</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="lg-score-minus" data-player="${name}" style="width:30px;height:30px;border-radius:8px;background:var(--navy);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--dim);cursor:pointer;font-weight:300">−</button>
+        <div class="live-score-val" data-player="${name}" style="font-size:20px;font-weight:700;min-width:24px;text-align:center;color:${scCol}">${sc != null ? sc : '·'}</div>
+        <button class="lg-score-plus" data-player="${name}" style="width:30px;height:30px;border-radius:8px;background:var(--navy);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--dim);cursor:pointer;font-weight:300">+</button>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
-        <div${par === 3 ? ' style="display:none"' : ''}>
-          <button class="live-toggle-pill lg-fir-pill${fir === 'Yes' ? ' active-fir' : ''}" data-player="${name}">Fairway Hit</button>
-        </div>
-        <div>
-          <button class="live-toggle-pill lg-gir-pill${gir === 'Yes' ? ' active-gir' : ''}" data-player="${name}">Green in Reg</button>
-        </div>
-      </div>`;
+      ${sel ? '<div style="width:6px;height:6px;border-radius:50%;background:var(--gold);flex-shrink:0"></div>' : '<div style="width:6px"></div>'}`;
     container.appendChild(row);
   });
 
-  // Bind events via delegation
+  // Bind row click → select player for stat panel
+  container.querySelectorAll('[data-player]').forEach(row => {
+    if (row.tagName === 'DIV' && row.parentElement === container) {
+      row.addEventListener('click', (e) => {
+        // Don't select if clicking a button
+        if (e.target.closest('button')) return;
+        _statPlayer = row.dataset.player;
+        liveRenderGroupHole(h);
+        liveRenderStatPanel(h);
+      });
+    }
+  });
+  // Bind score ± buttons
   container.querySelectorAll('.lg-score-minus').forEach(btn => {
-    btn.addEventListener('click', () => liveGroupAdj(btn.dataset.player, 'score', -1));
+    btn.addEventListener('click', (e) => { e.stopPropagation(); liveGroupAdj(btn.dataset.player, 'score', -1); });
   });
   container.querySelectorAll('.lg-score-plus').forEach(btn => {
-    btn.addEventListener('click', () => liveGroupAdj(btn.dataset.player, 'score', 1));
-  });
-  container.querySelectorAll('.lg-putts-minus').forEach(btn => {
-    btn.addEventListener('click', () => liveGroupAdj(btn.dataset.player, 'putts', -1));
-  });
-  container.querySelectorAll('.lg-putts-plus').forEach(btn => {
-    btn.addEventListener('click', () => liveGroupAdj(btn.dataset.player, 'putts', 1));
-  });
-  container.querySelectorAll('.lg-fir-pill').forEach(btn => {
-    btn.addEventListener('click', () => liveGroupToggle(btn.dataset.player, 'fir', 'Yes'));
-  });
-  container.querySelectorAll('.lg-gir-pill').forEach(btn => {
-    btn.addEventListener('click', () => liveGroupToggle(btn.dataset.player, 'gir', 'Yes'));
+    btn.addEventListener('click', (e) => { e.stopPropagation(); liveGroupAdj(btn.dataset.player, 'score', 1); });
   });
 
   // Update match banner
   updateMatchBanner(h);
+}
+
+// ── Stat panel for selected player ───────────────────────────────
+
+function liveRenderStatPanel(h) {
+  if (!_statPlayer) _statPlayer = state.me;
+  const par = state.cpars[h];
+  const pt = state.liveState.groupPutts[_statPlayer]?.[h] ?? 2;
+  const fir = state.liveState.groupFir[_statPlayer]?.[h] ?? '';
+  const gir = state.liveState.groupGir[_statPlayer]?.[h] ?? '';
+  const isPar3 = par === 3;
+
+  // Update header
+  const whoEl = document.getElementById('live-stat-who');
+  if (whoEl) whoEl.textContent = _statPlayer;
+
+  // Update putts
+  const puttVal = document.getElementById('live-putt-val');
+  if (puttVal) puttVal.textContent = pt;
+
+  // FIR toggles
+  const firEl = document.getElementById('live-fir-toggles');
+  if (firEl) {
+    if (isPar3) {
+      firEl.innerHTML = `<div style="padding:4px 8px;border-radius:6px;font-size:11px;font-weight:600;background:rgba(136,153,187,.15);border:1px solid var(--dim);color:var(--dim)">N/A</div>`;
+      // Auto-set FIR to N/A on par 3
+      if (!state.liveState.groupFir[_statPlayer]) state.liveState.groupFir[_statPlayer] = Array(18).fill('');
+      state.liveState.groupFir[_statPlayer][h] = 'N/A';
+    } else {
+      firEl.innerHTML = ['Yes', 'No'].map(v => {
+        const active = fir === v;
+        const cls = active ? (v === 'Yes' ? 'background:rgba(46,204,113,.15);border-color:var(--par);color:var(--par)' : 'background:rgba(231,76,60,.15);border-color:var(--double);color:var(--double)') : 'background:var(--navy);border-color:var(--border);color:var(--dim)';
+        return `<button class="live-fir-btn" data-val="${v}" style="padding:4px 8px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;${cls};border-width:1px;border-style:solid">${v === 'Yes' ? 'Y' : 'N'}</button>`;
+      }).join('');
+    }
+  }
+
+  // GIR toggles
+  const girEl = document.getElementById('live-gir-toggles');
+  if (girEl) {
+    girEl.innerHTML = ['Yes', 'No'].map(v => {
+      const active = gir === v;
+      const cls = active ? (v === 'Yes' ? 'background:rgba(46,204,113,.15);border-color:var(--par);color:var(--par)' : 'background:rgba(231,76,60,.15);border-color:var(--double);color:var(--double)') : 'background:var(--navy);border-color:var(--border);color:var(--dim)';
+      return `<button class="live-gir-btn" data-val="${v}" style="padding:4px 8px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;${cls};border-width:1px;border-style:solid">${v === 'Yes' ? 'Y' : 'N'}</button>`;
+    }).join('');
+  }
+
+  // Wire putts ±
+  document.getElementById('live-putt-minus')?.addEventListener('click', () => {
+    liveGroupAdj(_statPlayer, 'putts', -1);
+    liveRenderStatPanel(state.liveState.hole);
+    // AutoGir check
+    _autoGirCheck();
+  });
+  document.getElementById('live-putt-plus')?.addEventListener('click', () => {
+    liveGroupAdj(_statPlayer, 'putts', 1);
+    liveRenderStatPanel(state.liveState.hole);
+    _autoGirCheck();
+  });
+
+  // Wire FIR toggles
+  document.querySelectorAll('.live-fir-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const v = btn.dataset.val;
+      const cur = state.liveState.groupFir[_statPlayer]?.[state.liveState.hole];
+      liveGroupToggle(_statPlayer, 'fir', cur === v ? '' : v);
+      liveRenderStatPanel(state.liveState.hole);
+    });
+  });
+
+  // Wire GIR toggles
+  document.querySelectorAll('.live-gir-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const v = btn.dataset.val;
+      const cur = state.liveState.groupGir[_statPlayer]?.[state.liveState.hole];
+      liveGroupToggle(_statPlayer, 'gir', cur === v ? '' : v);
+      liveRenderStatPanel(state.liveState.hole);
+    });
+  });
+}
+
+function _autoGirCheck() {
+  const h = state.liveState.hole;
+  const par = state.cpars[h];
+  const sc = state.liveState.groupScores[_statPlayer]?.[h];
+  const pt = state.liveState.groupPutts[_statPlayer]?.[h];
+  if (sc != null && pt != null && (sc - pt) <= (par - 2)) {
+    if (!state.liveState.groupGir[_statPlayer]) state.liveState.groupGir[_statPlayer] = Array(18).fill('');
+    state.liveState.groupGir[_statPlayer][h] = 'Yes';
+    liveRenderStatPanel(h);
+  }
 }
 
 function liveGroupAdj(playerName, field, delta) {
@@ -568,6 +675,7 @@ function liveGroupAdj(playerName, field, delta) {
     state.liveState.groupPutts[playerName][h] = Math.max(0, Math.min(maxPutts, cur + delta));
   }
   liveRenderGroupHole(h);
+  liveRenderStatPanel(h);
   // Bounce animation on updated score value
   if (field === 'score') {
     const scoreEl = document.querySelector(`.live-score-val[data-player="${playerName}"]`);
@@ -575,6 +683,8 @@ function liveGroupAdj(playerName, field, delta) {
       scoreEl.classList.add('score-bounce');
       setTimeout(() => scoreEl.classList.remove('score-bounce'), 210);
     }
+    // AutoGir check for the adjusted player
+    if (playerName === _statPlayer) _autoGirCheck();
     // Keep group match scores in sync (persisted at round-end via pushData)
     syncPlayerMatchScore(playerName);
     // Refresh overlay immediately so current player's score shows live
