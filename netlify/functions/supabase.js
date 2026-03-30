@@ -759,7 +759,7 @@ exports.handler = async (event) => {
       if (!playerName) return { statusCode: 400, headers, body: JSON.stringify({ error: 'playerName required' }) };
       const { data: rows, error: mcErr } = await supabase
         .from('competitions')
-        .select('id, code, name, format, status, players, rounds_config, created_by, admin_players')
+        .select('id, code, name, format, status, players, rounds_config, tee_groups, created_by, admin_players, hcp_overrides')
         .contains('players', [playerName])
         .order('created_at', { ascending: false });
       if (mcErr) throw mcErr;
@@ -782,6 +782,7 @@ exports.handler = async (event) => {
       if (updates.team_a !== undefined) allowed.team_a = updates.team_a;
       if (updates.team_b !== undefined) allowed.team_b = updates.team_b;
       if (updates.rounds_config !== undefined) allowed.rounds_config = updates.rounds_config;
+      if (updates.tee_groups !== undefined) allowed.tee_groups = updates.tee_groups;
       if (updates.commentary !== undefined) allowed.commentary = updates.commentary;
       const { error: uErr } = await supabase.from('competitions').update(allowed).eq('id', competitionId);
       if (uErr) throw uErr;
