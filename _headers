@@ -1,0 +1,13 @@
+# Prevent aggressive caching of JS/CSS — always revalidate with server
+/js/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/styles/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Static assets (images, fonts) can cache longer
+/assets/*
+  Cache-Control: public, max-age=86400

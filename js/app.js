@@ -520,6 +520,9 @@ document.getElementById('login-submit-btn')?.addEventListener('click', async () 
     return;
   }
   if (errEl) errEl.style.display = 'none';
+  // Clear stale local cache so old data doesn't contaminate fresh login
+  localStorage.removeItem('gt_localdata');
+  state.gd = { players: {} };
   await loadAppData(result.playerName, '');
   await enterAs(result.playerName);
   updateActiveMatchBadge();
