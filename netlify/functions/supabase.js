@@ -615,13 +615,28 @@ exports.handler = async (event) => {
     // Returns player name, group codes, and personal data (practice sessions,
     // stats analysis) for the given auth UUID. Called on each app boot.
     if (action === 'getPlayerByAuthId') {
-      const { authUserId } = data;
+      const { authUserId, playerName } = data;
       if (!authUserId) return { statusCode: 400, headers, body: JSON.stringify({ error: 'authUserId required' }) };
-      const { data: player } = await supabase
+      // Primary lookup: by auth_user_id
+      let { data: player } = await supabase
         .from('players')
         .select('name, dob, home_course, practice_sessions, stats_analysis, stats_analysis_date')
         .eq('auth_user_id', authUserId)
         .maybeSingle();
+      // Fallback: if auth_user_id lookup fails, try by name (handles edge cases where
+      // auth_user_id was incorrectly set or the column has a type mismatch)
+      if (!player && playerName) {
+        const { data: byName } = await supabase
+          .from('players')
+          .select('name, dob, home_course, practice_sessions, stats_analysis, stats_analysis_date')
+          .eq('name', playerName)
+          .maybeSingle();
+        if (byName) {
+          player = byName;
+          // Repair: set auth_user_id so future lookups work directly
+          await supabase.from('players').update({ auth_user_id: authUserId }).eq('name', playerName);
+        }
+      }
       if (!player) return { statusCode: 404, headers, body: JSON.stringify({ error: 'Player not found' }) };
       const { data: memberships } = await supabase
         .from('group_members')

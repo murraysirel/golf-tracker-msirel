@@ -101,7 +101,7 @@ export async function loadAppData(playerName, groupCode) {
     const session = getStoredSession();
     console.log('[loadAppData] playerName:', playerName, 'session:', session?.playerName, 'userId:', session?.userId);
     if (session?.userId) {
-      const playerRes = await querySupabase('getPlayerByAuthId', { authUserId: session.userId });
+      const playerRes = await querySupabase('getPlayerByAuthId', { authUserId: session.userId, playerName });
       console.log('[loadAppData] getPlayerByAuthId result:', playerRes?.name, 'groupCodes:', playerRes?.groupCodes);
       if (playerRes?.name) {
         if (!state.gd.players[playerName]) state.gd.players[playerName] = { handicap: 0, rounds: [] };
