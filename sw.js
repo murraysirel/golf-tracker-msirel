@@ -2,7 +2,7 @@
 // LOOPER — Service Worker
 // Cache-first for static assets, network-first for API calls.
 // ─────────────────────────────────────────────────────────────────
-const CACHE_NAME = 'looper-v1';
+const CACHE_NAME = 'looper-v2';
 
 const STATIC_ASSETS = [
   '/',

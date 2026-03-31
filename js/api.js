@@ -143,7 +143,25 @@ export async function loadAppData(playerName, groupCode) {
     }
   }
 
-  localStorage.setItem('gt_localdata', JSON.stringify(state.gd));
+  // Only update cache if we actually have player data — prevents a transient
+  // Supabase failure from wiping the local cache with empty data
+  const playerCount = Object.keys(state.gd.players || {}).length;
+  if (playerCount > 0) {
+    localStorage.setItem('gt_localdata', JSON.stringify(state.gd));
+  } else {
+    // Restore from cache if server returned empty but we had data before
+    const cached = localStorage.getItem('gt_localdata');
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Object.keys(parsed.players || {}).length > 0) {
+          Object.assign(state.gd, parsed);
+          ss('warn', 'Using cached data');
+          return;
+        }
+      } catch (_) {}
+    }
+  }
   ss('ok', 'Synced \u2713');
 }
 
