@@ -48,7 +48,7 @@ function _autoGirCheck() {
   if (sc == null || pt == null || sc <= 0 || pt <= 0 || pt >= sc) return;
   if (!cs.groupGir[_statPlayer]) cs.groupGir[_statPlayer] = Array(18).fill('');
   cs.groupGir[_statPlayer][h] = (sc - pt) <= (par - 2) ? 'Yes' : 'No';
-  _renderStatPanel(h);
+  // Don't call _renderStatPanel here — caller already renders
 }
 
 // ── Score/putts adjuster ─────────────────────────────────────────
@@ -61,7 +61,7 @@ function _adj(playerName, field, delta) {
     cs.groupScores[playerName][h] = Math.max(1, Math.min(15, cur + delta));
     if (playerName === _statPlayer) _autoGirCheck();
   } else {
-    const cur = cs.groupPutts[playerName]?.[h] ?? 0;
+    const cur = cs.groupPutts[playerName]?.[h] ?? 2;
     if (!cs.groupPutts[playerName]) cs.groupPutts[playerName] = Array(18).fill(null);
     const maxPutts = cs.groupScores[playerName]?.[h] ?? par;
     const newVal = Math.max(0, Math.min(maxPutts, cur + delta));
@@ -173,10 +173,13 @@ function _goto(h) {
   if (h < 0 || h > 17) return;
   try {
     cs.hole = h;
-    // Pre-fill null scores to par
+    // Pre-fill null scores to par, putts to 2
     cs.group.forEach(name => {
       if (cs.groupScores[name] && cs.groupScores[name][h] === null) {
         cs.groupScores[name][h] = state.cpars[h];
+      }
+      if (cs.groupPutts[name] && cs.groupPutts[name][h] === null) {
+        cs.groupPutts[name][h] = 2;
       }
     });
     _statPlayer = _statPlayer || state.me;

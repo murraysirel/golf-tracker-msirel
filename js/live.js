@@ -438,6 +438,10 @@ export function liveGoto(h) {
       if (state.liveState.groupScores[name] && state.liveState.groupScores[name][h] === null) {
         state.liveState.groupScores[name][h] = state.cpars[h];
       }
+      // Pre-fill putts to 2 on first visit (matches display default)
+      if (state.liveState.groupPutts[name] && state.liveState.groupPutts[name][h] === null) {
+        state.liveState.groupPutts[name][h] = 2;
+      }
     });
     liveRenderPips();
     _statPlayer = state.me; // Reset selected player on each hole advance
@@ -665,9 +669,8 @@ function _autoGirCheck() {
   const pt = state.liveState.groupPutts[_statPlayer]?.[h];
   if (sc == null || pt == null || sc <= 0 || pt <= 0 || pt >= sc) return;
   if (!state.liveState.groupGir[_statPlayer]) state.liveState.groupGir[_statPlayer] = Array(18).fill('');
-  const shotsToGreen = sc - pt;
-  state.liveState.groupGir[_statPlayer][h] = shotsToGreen <= (par - 2) ? 'Yes' : 'No';
-  liveRenderStatPanel(h);
+  state.liveState.groupGir[_statPlayer][h] = (sc - pt) <= (par - 2) ? 'Yes' : 'No';
+  // Don't call liveRenderStatPanel here — caller (liveGroupAdj) already renders
 }
 
 // Save live round state to localStorage on every change — protects against
@@ -715,7 +718,7 @@ function liveGroupAdj(playerName, field, delta) {
       });
     }
   } else {
-    const cur = state.liveState.groupPutts[playerName]?.[h] ?? 0;
+    const cur = state.liveState.groupPutts[playerName]?.[h] ?? 2;
     if (!state.liveState.groupPutts[playerName]) state.liveState.groupPutts[playerName] = Array(18).fill(null);
     const maxPutts = state.liveState.groupScores[playerName]?.[h] ?? par;
     const newVal = Math.max(0, Math.min(maxPutts, cur + delta));

@@ -174,7 +174,7 @@ export async function loadGroupData(groupCode) {
     const res = await fetch('/.netlify/functions/supabase', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'read', groupCode })
+      body: JSON.stringify({ action: 'read', groupCode, requestingPlayer: state.me || '' })
     });
     if (!res.ok) throw new Error('Supabase read ' + res.status);
     const { players, rounds, settings, memberJoinDates } = await res.json();

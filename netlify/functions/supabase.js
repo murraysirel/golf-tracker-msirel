@@ -68,7 +68,11 @@ exports.handler = async (event) => {
       if (mErr) throw mErr;
 
       // Include members with status 'approved' or NULL (backwards compat for rows without status column)
-      const approvedRows = (memberRows || []).filter(m => !m.status || m.status === 'approved');
+      // Always include the requesting player so they can see their own data even if pending
+      const requestingPlayer = body.requestingPlayer || '';
+      const approvedRows = (memberRows || []).filter(m =>
+        m.player_id === requestingPlayer || !m.status || m.status === 'approved'
+      );
       const memberNames = approvedRows.map(m => m.player_id);
       const memberJoinDates = {};
       approvedRows.forEach(m => { if (m.joined_at) memberJoinDates[m.player_id] = m.joined_at; });
