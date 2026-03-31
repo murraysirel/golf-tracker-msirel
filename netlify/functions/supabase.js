@@ -618,18 +618,21 @@ exports.handler = async (event) => {
       const { authUserId, playerName } = data;
       if (!authUserId) return { statusCode: 400, headers, body: JSON.stringify({ error: 'authUserId required' }) };
       const selectCols = 'name, dob, home_course, practice_sessions, stats_analysis, stats_analysis_date';
+      console.log('[getPlayerByAuthId] v3 authUserId:', authUserId, 'playerName:', playerName);
 
       // Primary lookup: by auth_user_id (use .limit(1) instead of .maybeSingle() to avoid
       // errors when duplicate rows exist — maybeSingle throws on >1 match)
       let player = null;
       const { data: authRows, error: authErr } = await supabase
         .from('players').select(selectCols).eq('auth_user_id', authUserId).limit(1);
+      console.log('[getPlayerByAuthId] authRows:', authRows?.length, 'authErr:', authErr?.message);
       if (!authErr && authRows?.length > 0) player = authRows[0];
 
       // Fallback: lookup by name (handles auth_user_id mismatch, accidental edits, etc.)
       if (!player && playerName) {
         const { data: nameRows, error: nameErr } = await supabase
           .from('players').select(selectCols).eq('name', playerName).limit(1);
+        console.log('[getPlayerByAuthId] nameRows:', nameRows?.length, 'nameErr:', nameErr?.message);
         if (!nameErr && nameRows?.length > 0) {
           player = nameRows[0];
           // Repair: set auth_user_id so future lookups work directly
