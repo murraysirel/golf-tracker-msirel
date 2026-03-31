@@ -17,6 +17,56 @@ if (window.Sentry) {
   });
 }
 
+// ── Global toast helper ──────────────────────────────────────────
+function showToast(message, type = 'info', duration = 5000) {
+  const existing = document.getElementById('looper-toast');
+  if (existing) existing.remove();
+  const colours = {
+    info:    { bg: '#16273d', border: '#c9a84c', text: '#f0e8d0' },
+    error:   { bg: '#2d0a0a', border: '#c0392b', text: '#f0e8d0' },
+    success: { bg: '#0a2d1a', border: '#1a7a4a', text: '#f0e8d0' },
+  };
+  const c = colours[type] || colours.info;
+  const toast = document.createElement('div');
+  toast.id = 'looper-toast';
+  toast.style.cssText = [
+    'position:fixed',
+    'bottom:calc(env(safe-area-inset-bottom,0px) + 90px)',
+    'left:50%','transform:translateX(-50%)',
+    `background:${c.bg}`,`border:1.5px solid ${c.border}`,
+    `color:${c.text}`,'padding:12px 20px',
+    'border-radius:12px','font-size:14px','font-family:DM Sans,sans-serif',
+    'max-width:320px','text-align:center','z-index:9999',
+    'box-shadow:0 4px 20px rgba(0,0,0,0.4)',
+    'transition:opacity 0.4s ease'
+  ].join(';');
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 400);
+  }, duration);
+}
+window._looperToast = showToast;
+
+// ── Global error boundary ────────────────────────────────────────
+window.onerror = function(message, source, line, col, error) {
+  console.error('[Looper] Uncaught error:', message, source, line);
+  if (window.Sentry && error) Sentry.captureException(error);
+  showToast('Something went wrong — your data is safe. Tap to reload.', 'error', 8000);
+};
+
+window.onunhandledrejection = function(event) {
+  const err = event.reason;
+  console.error('[Looper] Unhandled promise rejection:', err);
+  const msg = err?.message || String(err);
+  const isNetworkNoise = msg.includes('Failed to fetch') || msg.includes('NetworkError');
+  if (window.Sentry && !isNetworkNoise) Sentry.captureException(err);
+  if (!isNetworkNoise) {
+    showToast('Something went wrong — your data is safe.', 'error', 5000);
+  }
+};
+
 import { loadAppData, pushData, querySupabase, ss, retryUnsyncedRounds, retryUnsyncedData, updateUnsyncedBadge } from './api.js';
 import { goTo, switchEntry, registerNavHandlers } from './nav.js';
 import { getCourseByRef, scanCourseCard, saveCourse, cancelCourseScan, handleCoursePhoto, searchCourseAPI, initCourseSearch } from './courses.js';
