@@ -1283,6 +1283,13 @@ details[open] summary::after{content:' ▾'}
 .lb-vpill{background:var(--mid);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:600;color:var(--dim);cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;-webkit-tap-highlight-color:transparent;flex-shrink:0}
 .lb-vpill.active{background:rgba(201,168,76,0.15);border-color:var(--gold);color:var(--gold)}
 
+/* ── AI badge button — animated pinging dot ─────────────────── */
+.ai-badge-btn{position:relative;display:inline-flex;align-items:center;gap:8px;overflow:visible}
+.ai-badge-dot{position:relative;width:6px;height:6px;border-radius:50%;background:rgba(34,211,238,.8);flex-shrink:0}
+.ai-badge-dot::before{content:'';position:absolute;inset:-3px;border-radius:50%;background:rgba(34,211,238,.4);animation:ai-ping 2s cubic-bezier(0,0,.2,1) infinite}
+.ai-badge-dot::after{content:'';position:absolute;inset:-1px;border-radius:50%;background:rgba(34,211,238,.6);animation:ai-ping 2s cubic-bezier(0,0,.2,1) infinite;animation-delay:.5s}
+@keyframes ai-ping{0%{transform:scale(1);opacity:.7}70%{transform:scale(2.5);opacity:0}100%{transform:scale(2.5);opacity:0}}
+
 /* ── Competition tabs ────────────────────────────────────────── */
 .comp-tab{background:none;border:none;border-bottom:2px solid transparent;padding:10px 0;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;font-family:'DM Sans',sans-serif;-webkit-tap-highlight-color:transparent;transition:all .15s}
 .comp-tab.active{color:var(--cream);border-bottom-color:var(--gold)}
