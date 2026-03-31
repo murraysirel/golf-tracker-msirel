@@ -133,8 +133,8 @@ Last updated: 31 March 2026
 | city | text | Yes | |
 | holes | integer | Yes | |
 | tees | jsonb | Yes | |
-| pars | jsonb | Maybe | May not exist — stripped defensively |
-| stroke_indexes | jsonb | Maybe | May not exist — stripped defensively |
+| pars | jsonb | Yes | Verified via information_schema audit 29 March 2026 |
+| stroke_indexes | jsonb | Yes | Verified via information_schema audit 29 March 2026 |
 | green_coords | jsonb | Yes | |
 | has_gps | boolean | Yes | |
 | has_hole_data | boolean | Yes | |
