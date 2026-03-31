@@ -2,6 +2,21 @@
 // APP ENTRY POINT
 // Imports all modules, sets up event listeners, initialises app
 // ─────────────────────────────────────────────────────────────────
+
+// ── Sentry error monitoring (SDK loaded via <script> in index.html) ──
+if (window.Sentry) {
+  Sentry.init({
+    dsn: 'https://7913ecc7f07f87c6a6738bca55c07308@o4511135944212480.ingest.de.sentry.io/4511135950307408',
+    environment: window.location.hostname.includes('netlify') ? 'production' : 'development',
+    release: 'looper@2.0.0',
+    tracesSampleRate: 0.1,
+    beforeSend(event) {
+      if (window.location.hostname === 'localhost') return null;
+      return event;
+    }
+  });
+}
+
 import { loadAppData, pushData, querySupabase, ss, retryUnsyncedRounds, retryUnsyncedData, updateUnsyncedBadge } from './api.js';
 import { goTo, switchEntry, registerNavHandlers } from './nav.js';
 import { getCourseByRef, scanCourseCard, saveCourse, cancelCourseScan, handleCoursePhoto, searchCourseAPI, initCourseSearch } from './courses.js';
@@ -161,6 +176,7 @@ document.getElementById('join-group-board-btn')?.addEventListener('click', () =>
 document.getElementById('board-enter-btn')?.addEventListener('click', () => {
   document.getElementById('pg-board').style.display = 'none';
   enterAs(state.me);
+  if (window.Sentry) Sentry.setUser({ username: state.me, group: state.gd?.activeGroupCode });
 });
 // Trigger initJoinGroup whenever pg-join-group becomes visible
 document.addEventListener('joinGroupShown', initJoinGroup);
@@ -176,6 +192,7 @@ document.getElementById('board-setup-confirm-btn')?.addEventListener('click', co
 document.getElementById('group-ready-start-btn')?.addEventListener('click', () => {
   document.getElementById('pg-group-ready').style.display = 'none';
   enterAs(state.me);
+  if (window.Sentry) Sentry.setUser({ username: state.me, group: state.gd?.activeGroupCode });
 });
 document.addEventListener('createGroupShown', initCreateGroup);
 // Group fork entry points from within the main app
@@ -656,6 +673,7 @@ document.getElementById('login-submit-btn')?.addEventListener('click', async () 
   state.gd = { players: {} };
   await loadAppData(result.playerName, '');
   await enterAs(result.playerName);
+  if (window.Sentry) Sentry.setUser({ username: state.me, group: state.gd?.activeGroupCode });
   updateActiveMatchBadge();
   updateUnsyncedBadge();
   startInvitePolling();
@@ -732,6 +750,7 @@ initMatchOverlay();
     // 4. Load data and enter app
     await loadAppData(session.playerName, localStorage.getItem('gt_activegroup') || '');
     await enterAs(session.playerName);
+    if (window.Sentry) Sentry.setUser({ username: state.me, group: state.gd?.activeGroupCode });
     updateActiveMatchBadge();
     updateUnsyncedBadge();
     startInvitePolling();
@@ -769,6 +788,7 @@ initMatchOverlay();
         const cached = localStorage.getItem('gt_localdata');
         if (cached) { try { Object.assign(state.gd, JSON.parse(cached)); } catch (_) {} }
         await enterAs(s.playerName);
+        if (window.Sentry) Sentry.setUser({ username: state.me, group: state.gd?.activeGroupCode });
         return;
       }
     } catch (_) {}
