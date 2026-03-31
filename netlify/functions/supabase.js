@@ -21,9 +21,9 @@ exports.handler = async (event) => {
     return { statusCode: 200, headers, body: '' };
   }
 
-  let action, groupCode, data;
+  let action, groupCode, data, requestingPlayer;
   try {
-    ({ action, groupCode, data } = JSON.parse(event.body || '{}'));
+    ({ action, groupCode, data, requestingPlayer } = JSON.parse(event.body || '{}'));
   } catch (e) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON body' }) };
   }
@@ -69,9 +69,9 @@ exports.handler = async (event) => {
 
       // Include members with status 'approved' or NULL (backwards compat for rows without status column)
       // Always include the requesting player so they can see their own data even if pending
-      const requestingPlayer = body.requestingPlayer || '';
+      const reqPlayer = requestingPlayer || '';
       const approvedRows = (memberRows || []).filter(m =>
-        m.player_id === requestingPlayer || !m.status || m.status === 'approved'
+        m.player_id === reqPlayer || !m.status || m.status === 'approved'
       );
       const memberNames = approvedRows.map(m => m.player_id);
       const memberJoinDates = {};
