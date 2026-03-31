@@ -99,10 +99,8 @@ export async function loadAppData(playerName, groupCode) {
   try {
     const { getStoredSession } = await import('./auth.js');
     const session = getStoredSession();
-    console.log('[loadAppData] playerName:', playerName, 'session:', session?.playerName, 'userId:', session?.userId);
     if (session?.userId) {
       const playerRes = await querySupabase('getPlayerByAuthId', { authUserId: session.userId, playerName });
-      console.log('[loadAppData] getPlayerByAuthId result:', playerRes?.name, 'groupCodes:', playerRes?.groupCodes);
       if (playerRes?.name) {
         if (!state.gd.players[playerName]) state.gd.players[playerName] = { handicap: 0, rounds: [] };
         state.gd.players[playerName].dob              = playerRes.dob             || null;
@@ -135,7 +133,6 @@ export async function loadAppData(playerName, groupCode) {
 
   // 3. Load group-scoped data (other players, rounds, settings)
   const code = groupCode || state.gd.activeGroupCode || '';
-  console.log('[loadAppData] groupCodes:', state.gd.groupCodes, 'activeGroupCode:', state.gd.activeGroupCode, 'using code:', code);
   if (code) {
     try {
       await loadGroupData(code);
@@ -151,7 +148,6 @@ export async function loadAppData(playerName, groupCode) {
   // Only update cache if we actually have player data — prevents a transient
   // Supabase failure from wiping the local cache with empty data
   const playerCount = Object.keys(state.gd.players || {}).length;
-  console.log('[loadAppData] final playerCount:', playerCount, 'players:', Object.keys(state.gd.players || {}));
   if (playerCount > 0) {
     localStorage.setItem('gt_localdata', JSON.stringify(state.gd));
   } else {
@@ -183,9 +179,7 @@ export async function loadGroupData(groupCode) {
       body: JSON.stringify({ action: 'read', groupCode, requestingPlayer: state.me || '' })
     });
     if (!res.ok) throw new Error('Supabase read ' + res.status);
-    const responseData = await res.json();
-    const { players, rounds, settings, memberJoinDates } = responseData;
-    console.log('[loadGroupData] response:', { playerCount: players?.length, roundCount: rounds?.length, memberJoinDates: Object.keys(memberJoinDates || {}) });
+    const { players, rounds, settings, memberJoinDates } = await res.json();
 
     const unsynced = localStorage.getItem('rr_unsynced_rounds');
     const s0 = settings || {};
