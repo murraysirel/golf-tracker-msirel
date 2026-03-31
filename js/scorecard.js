@@ -5,6 +5,28 @@ import { state } from './state.js';
 import { getCourseByRef, clearCourseSelection } from './courses.js';
 import { pushData, pushSupabase, updateUnsyncedBadge, ss } from './api.js';
 
+function _handleSaveError(context, error, roundData) {
+  console.error(`[saveRound] ${context}:`, error);
+  if (window.Sentry) {
+    Sentry.withScope(scope => {
+      scope.setContext('round', {
+        player: roundData?.player,
+        course: roundData?.course,
+        date:   roundData?.date,
+        score:  roundData?.totalScore,
+      });
+      scope.setTag('failure_context', context);
+      Sentry.captureException(error instanceof Error ? error : new Error(String(error)));
+    });
+  }
+  const toast = window._looperToast || ((msg) => alert(msg));
+  if (context === 'validation') {
+    toast(error.message, 'error', 6000);
+  } else {
+    toast('Round saved locally — will sync when connection returns.', 'info', 7000);
+  }
+}
+
 // Convert YYYY-MM-DD (native date input) → DD/MM/YYYY (stored format)
 function toGBDate(isoDate) {
   if (!isoDate) return new Date().toLocaleDateString('en-GB');
@@ -172,13 +194,14 @@ export function autoAdv(h) {
   }
 }
 
-export async function saveRound() {
+export function saveRound() {
   if (state.demoMode) { alert('Round saving is disabled in demo mode.'); return; }
+
+  // ── Validation ─────────────────────────────────────────────────
   const c = getCourseByRef();
-  if (!c) { alert('Please select a course.'); return; }
-  if (!state.stee) { alert('Please select a tee colour.'); return; }
-  const tees = Array.isArray(c.tees) ? c.tees : [];
-  const t = tees.find(tee => tee.colour === state.stee) || tees[0] || {};
+  if (!c) { _handleSaveError('validation', new Error('Please select a course before saving.'), null); return; }
+  if (!state.stee) { _handleSaveError('validation', new Error('Please select a tee colour before saving.'), null); return; }
+
   const sc = [], pt = [], fi = [], gi = [];
   for (let h = 0; h < 18; h++) {
     sc.push(parseInt(document.getElementById('h' + h)?.value) || null);
@@ -187,86 +210,80 @@ export async function saveRound() {
     gi.push(document.getElementById('gir' + h)?.value || '');
   }
   const vs = sc.filter(Boolean);
-  const ts = vs.reduce((a, b) => a + b, 0);
-  const tp = state.cpars.reduce((a, b) => a + b, 0);
-  const d = ts - tp;
-  const target = state.scoringFor || state.me;
-  const rnd = {
-    id: Date.now(), player: target, course: c.name, loc: c.loc || c.location || '', tee: state.stee,
-    date: toGBDate(document.getElementById('r-date').value),
-    notes: document.getElementById('r-notes').value,
-    pars: [...state.cpars], scores: sc, putts: pt, fir: fi, gir: gi,
-    totalScore: ts, totalPar: tp, diff: d,
-    birdies: sc.filter((s, i) => s && s < state.cpars[i]).length,
-    parsCount: sc.filter((s, i) => s && s === state.cpars[i]).length,
-    bogeys: sc.filter((s, i) => s && s === state.cpars[i] + 1).length,
-    doubles: sc.filter((s, i) => s && s >= state.cpars[i] + 2).length,
-    eagles: sc.filter((s, i) => s && s <= state.cpars[i] - 2).length,
-    penalties: parseInt(document.getElementById('r-pen')?.value) || 0,
-    bunkers: parseInt(document.getElementById('r-bun')?.value) || 0,
-    chips: parseInt(document.getElementById('r-chip')?.value) || 0,
-    rating: t.rating, slope: t.slope
-  };
-  if (!state.gd.players[target]) state.gd.players[target] = { handicap: 0, rounds: [] };
-  state.gd.players[target].rounds.push(rnd);
-  const ok = await pushData();
-  if (ok) {
-    localStorage.removeItem('rr_live_backup');
-  } else {
-    // Protect this round in a key loadGist() never overwrites
-    const unsynced = JSON.parse(localStorage.getItem('rr_unsynced_rounds') || '[]');
-    unsynced.push({ savedAt: Date.now(), player: target, round: rnd });
-    localStorage.setItem('rr_unsynced_rounds', JSON.stringify(unsynced));
-    updateUnsyncedBadge();
-  }
+  if (!vs.length) { _handleSaveError('validation', new Error('Enter at least one hole score before saving.'), null); return; }
 
-  // Parallel write to Supabase — fire and forget, never blocks user
-  const playerData = {
-    name: target,
-    email: state.gd.players[target]?.email || null,
-    dob: state.gd.players[target]?.dob || null,
-    handicap: state.gd.players[target]?.handicap || 0,
-    matchCode: state.gd.players[target]?.matchCode || null
-  };
-  pushSupabase('saveRound', { round: rnd, playerData }).then(sbOk => {
-    if (ok && sbOk) {
-      ss('ok', 'Synced \u2713');
-    } else if (ok && !sbOk) {
-      ss('warn', '\u26A0 Gist only');
+  // ── Build round object ─────────────────────────────────────────
+  let rnd;
+  try {
+    const tees = Array.isArray(c.tees) ? c.tees : [];
+    const t = tees.find(tee => tee.colour === state.stee) || tees[0] || {};
+    const ts = vs.reduce((a, b) => a + b, 0);
+    const tp = state.cpars.reduce((a, b) => a + b, 0);
+    const d = ts - tp;
+    const target = state.scoringFor || state.me;
+    rnd = {
+      id: Date.now(), player: target, course: c.name, loc: c.loc || c.location || '', tee: state.stee,
+      date: toGBDate(document.getElementById('r-date')?.value),
+      notes: document.getElementById('r-notes')?.value || '',
+      pars: [...state.cpars], scores: sc, putts: pt, fir: fi, gir: gi,
+      totalScore: ts, totalPar: tp, diff: d,
+      birdies: sc.filter((s, i) => s && s < state.cpars[i]).length,
+      parsCount: sc.filter((s, i) => s && s === state.cpars[i]).length,
+      bogeys: sc.filter((s, i) => s && s === state.cpars[i] + 1).length,
+      doubles: sc.filter((s, i) => s && s >= state.cpars[i] + 2).length,
+      eagles: sc.filter((s, i) => s && s <= state.cpars[i] - 2).length,
+      penalties: parseInt(document.getElementById('r-pen')?.value) || 0,
+      bunkers: parseInt(document.getElementById('r-bun')?.value) || 0,
+      chips: parseInt(document.getElementById('r-chip')?.value) || 0,
+      rating: t.rating, slope: t.slope
+    };
+
+    // ── Append to state ──────────────────────────────────────────
+    if (!state.gd.players[target]) state.gd.players[target] = { handicap: 0, rounds: [] };
+    state.gd.players[target].rounds.push(rnd);
+
+    // ── Write to localStorage FIRST (before any network call) ────
+    try {
+      localStorage.setItem('gt_localdata', JSON.stringify(state.gd));
+    } catch (lsErr) {
+      _handleSaveError('localStorage', lsErr, rnd);
+      // Don't return — round is in state.gd, continue to try network sync
     }
-    // If Gist also failed, the existing error message stays — don't overwrite
-  });
 
-  // Non-blocking round-saved banner (replaces alert — alert blocks microtask queue,
-  // preventing pushSupabase .then() from firing before the user dismisses it)
-  {
-    const banner = document.createElement('div');
-    banner.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);' +
-      'background:var(--card,#1e2530);color:var(--text,#fff);border:1px solid var(--gold,#c9a84c);' +
-      'border-radius:10px;padding:14px 22px;z-index:9999;text-align:center;' +
-      'box-shadow:0 4px 20px rgba(0,0,0,.5);max-width:90vw;font-size:15px;line-height:1.5';
-    const icon = ok ? '\u2705' : '\u26A0\uFE0F';
-    const msg  = ok ? 'Saved &amp; synced!' : 'Saved locally \u2014 will sync when connection resumes';
-    banner.innerHTML = `<strong>${icon} ${msg}</strong><br>${c.name} \u00B7 ${state.stee} tees<br>${ts} (${d >= 0 ? '+' : ''}${d} vs Par ${tp})`;
-    document.body.appendChild(banner);
-    setTimeout(() => banner.remove(), 4000);
-  }
+    // ── Success toast immediately ────────────────────────────────
+    const toast = window._looperToast;
+    if (toast) toast('Round saved! Syncing to cloud\u2026', 'success', 3000);
 
-  // Show match context sheet if other players exist (non-blocking — round already saved)
-  const otherPlayers = Object.keys(state.gd.players).filter(p => p !== target);
-  if (ok && otherPlayers.length > 0) {
-    import('./players.js').then(({ showMatchContextSheet }) => showMatchContextSheet(target, rnd.id));
-  }
+    // ── Network sync — fire-and-forget ───────────────────────────
+    pushData().catch(err => _handleSaveError('pushData', err, rnd));
 
-  // Post-round putts nudge (Fix 8): show banner if no putts recorded
-  const hasPutts = (rnd.putts || []).some(v => v != null && v > 0);
-  if (!hasPutts) {
-    const dismissed = JSON.parse(localStorage.getItem('rr_putts_dismissed') || '[]');
-    if (!dismissed.includes(rnd.id)) {
-      showPuttsNudge(rnd);
+    const playerData = {
+      name: target,
+      email: state.gd.players[target]?.email || null,
+      dob: state.gd.players[target]?.dob || null,
+      handicap: state.gd.players[target]?.handicap || 0,
+      matchCode: state.gd.players[target]?.matchCode || null
+    };
+    pushSupabase('saveRound', { round: rnd, playerData }).catch(err => _handleSaveError('pushSupabase', err, rnd));
+
+    // ── Post-save: match context, putts nudge (non-blocking) ─────
+    const otherPlayers = Object.keys(state.gd.players).filter(p => p !== target);
+    if (otherPlayers.length > 0) {
+      import('./players.js').then(({ showMatchContextSheet }) => showMatchContextSheet(target, rnd.id)).catch(() => {});
     }
+
+    const hasPutts = (rnd.putts || []).some(v => v != null && v > 0);
+    if (!hasPutts) {
+      const dismissed = JSON.parse(localStorage.getItem('rr_putts_dismissed') || '[]');
+      if (!dismissed.includes(rnd.id)) showPuttsNudge(rnd);
+    }
+
+  } catch (err) {
+    _handleSaveError('unexpected', err, rnd || null);
+    return;
   }
-  // Clear form
+
+  // ── Clear form ─────────────────────────────────────────────────
   clearCourseSelection();
   document.getElementById('tee-wrap').style.display = 'none';
   if (document.getElementById('tee-info')) document.getElementById('tee-info').textContent = '';
