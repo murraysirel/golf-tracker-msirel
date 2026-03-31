@@ -617,22 +617,21 @@ exports.handler = async (event) => {
     if (action === 'getPlayerByAuthId') {
       const { authUserId, playerName } = data;
       if (!authUserId) return { statusCode: 400, headers, body: JSON.stringify({ error: 'authUserId required' }) };
-      // Primary lookup: by auth_user_id
-      let { data: player } = await supabase
-        .from('players')
-        .select('name, dob, home_course, practice_sessions, stats_analysis, stats_analysis_date')
-        .eq('auth_user_id', authUserId)
-        .maybeSingle();
-      // Fallback: if auth_user_id lookup fails, try by name (handles edge cases where
-      // auth_user_id was incorrectly set or the column has a type mismatch)
+      const selectCols = 'name, dob, home_course, practice_sessions, stats_analysis, stats_analysis_date';
+
+      // Primary lookup: by auth_user_id (use .limit(1) instead of .maybeSingle() to avoid
+      // errors when duplicate rows exist — maybeSingle throws on >1 match)
+      let player = null;
+      const { data: authRows, error: authErr } = await supabase
+        .from('players').select(selectCols).eq('auth_user_id', authUserId).limit(1);
+      if (!authErr && authRows?.length > 0) player = authRows[0];
+
+      // Fallback: lookup by name (handles auth_user_id mismatch, accidental edits, etc.)
       if (!player && playerName) {
-        const { data: byName } = await supabase
-          .from('players')
-          .select('name, dob, home_course, practice_sessions, stats_analysis, stats_analysis_date')
-          .eq('name', playerName)
-          .maybeSingle();
-        if (byName) {
-          player = byName;
+        const { data: nameRows, error: nameErr } = await supabase
+          .from('players').select(selectCols).eq('name', playerName).limit(1);
+        if (!nameErr && nameRows?.length > 0) {
+          player = nameRows[0];
           // Repair: set auth_user_id so future lookups work directly
           await supabase.from('players').update({ auth_user_id: authUserId }).eq('name', playerName);
         }
