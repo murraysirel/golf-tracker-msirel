@@ -56,6 +56,36 @@ tr:hover td{background:rgba(201,168,76,.04)}
   <h1>Looper Dashboard</h1>
   <div class="subtitle">Management &amp; Monitoring</div>
 
+  <!-- App Health -->
+  <div class="section">
+    <div class="section-title">App Health</div>
+    <div class="grid">
+      <div class="stat-card"><div class="stat-val green" id="health-active">—</div><div class="stat-lbl">Active Users (24h)</div></div>
+      <div class="stat-card"><div class="stat-val" id="health-lastround">—</div><div class="stat-lbl">Last Round Saved</div></div>
+      <div class="stat-card"><div class="stat-val" id="health-pending">—</div><div class="stat-lbl">Pending Members</div></div>
+      <div class="stat-card"><div class="stat-val" id="health-nullauth">—</div><div class="stat-lbl">Missing Auth Links</div></div>
+    </div>
+  </div>
+
+  <!-- Data Integrity -->
+  <div class="section" id="integrity-section" style="display:none">
+    <div class="section-title">Data Integrity Warnings</div>
+    <div id="integrity-list"></div>
+  </div>
+
+  <!-- Error Log -->
+  <div class="section">
+    <div class="section-title">Error Log</div>
+    <table id="error-table"><thead><tr><th>Time</th><th>Player</th><th>Type</th><th>Message</th><th>Context</th></tr></thead><tbody></tbody></table>
+    <div id="error-empty" class="msg">No errors recorded.</div>
+  </div>
+
+  <!-- User Activity -->
+  <div class="section">
+    <div class="section-title">Recent Activity</div>
+    <div id="activity-timeline"></div>
+  </div>
+
   <!-- API Health -->
   <div class="section">
     <div class="section-title">API Health</div>
@@ -178,6 +208,79 @@ async function loadDashboard() {
   }
   loadCourses();
   loadFeedback();
+  loadHealth();
+}
+
+async function loadHealth() {
+  try {
+    const h = await sbCall('getDashboardHealth');
+    // Active users
+    const activeEl = document.getElementById('health-active');
+    activeEl.textContent = h.activeUsers24h ?? 0;
+    activeEl.className = 'stat-val ' + (h.activeUsers24h > 0 ? 'green' : 'amber');
+    // Last round
+    const lrEl = document.getElementById('health-lastround');
+    if (h.lastRound?.ago) {
+      const mins = Math.floor((Date.now() - new Date(h.lastRound.ago).getTime()) / 60000);
+      lrEl.textContent = mins < 60 ? mins + 'm ago' : mins < 1440 ? Math.floor(mins/60) + 'h ago' : Math.floor(mins/1440) + 'd ago';
+      lrEl.className = 'stat-val ' + (mins < 1440 ? 'green' : mins < 4320 ? 'amber' : 'red');
+    } else { lrEl.textContent = 'None'; lrEl.className = 'stat-val amber'; }
+    // Pending members
+    const pendEl = document.getElementById('health-pending');
+    pendEl.textContent = h.pendingMembers?.length ?? 0;
+    pendEl.className = 'stat-val ' + (h.pendingMembers?.length ? 'amber' : 'green');
+    // Null auth
+    const authEl = document.getElementById('health-nullauth');
+    authEl.textContent = h.nullAuthPlayers?.length ?? 0;
+    authEl.className = 'stat-val ' + (h.nullAuthPlayers?.length ? 'red' : 'green');
+    // Data integrity warnings
+    const intSection = document.getElementById('integrity-section');
+    const intList = document.getElementById('integrity-list');
+    const warnings = [];
+    if (h.pendingMembers?.length) warnings.push({ msg: `${h.pendingMembers.length} pending group member(s): ${h.pendingMembers.join(', ')}`, cls: 'amber' });
+    if (h.nullAuthPlayers?.length) warnings.push({ msg: `${h.nullAuthPlayers.length} player(s) with no auth link: ${h.nullAuthPlayers.join(', ')}`, cls: 'red' });
+    if (h.orphanedMembers?.length) warnings.push({ msg: `${h.orphanedMembers.length} orphaned group member(s): ${h.orphanedMembers.join(', ')}`, cls: 'red' });
+    if (warnings.length) {
+      intSection.style.display = 'block';
+      intList.innerHTML = warnings.map(w => `<div style="padding:8px 12px;margin-bottom:6px;border-radius:8px;border-left:3px solid;font-size:12px" class="${w.cls}">${w.msg}</div>`).join('');
+    } else { intSection.style.display = 'none'; }
+    // Error log
+    const errTb = document.querySelector('#error-table tbody');
+    const errEmpty = document.getElementById('error-empty');
+    if (h.errors?.length) {
+      errEmpty.style.display = 'none';
+      errTb.innerHTML = h.errors.map(e => {
+        const d = e.created_at ? new Date(e.created_at).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) : '—';
+        return `<tr><td>${d}</td><td>${e.player_name || '—'}</td><td><span class="badge badge-red">${e.error_type || '?'}</span></td><td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.message || '—'}</td><td>${e.context || '—'}</td></tr>`;
+      }).join('');
+    } else { errTb.innerHTML = ''; errEmpty.style.display = 'block'; }
+    // Activity timeline
+    const timeline = document.getElementById('activity-timeline');
+    const events = [];
+    (h.recentRounds || []).forEach(r => {
+      const d = r.created_at ? new Date(r.created_at) : null;
+      const course = (r.course || '').replace(/ Golf Club| Golf Course| Golf Links/g, '');
+      const diff = r.diff != null ? (r.diff >= 0 ? '+' + r.diff : r.diff) : '';
+      events.push({ ts: d, html: `<strong>${r.player_name}</strong> saved a round at ${course} (${diff})` });
+    });
+    (h.newPlayers || []).forEach(p => {
+      const d = p.created_at ? new Date(p.created_at) : null;
+      events.push({ ts: d, html: `<strong>${p.name}</strong> joined Looper` });
+    });
+    events.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+    timeline.innerHTML = events.slice(0, 15).map(e => {
+      const ago = e.ts ? timeAgo(e.ts) : '';
+      return `<div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px"><span style="color:#8899bb;flex-shrink:0;width:60px">${ago}</span><span>${e.html}</span></div>`;
+    }).join('') || '<div class="msg">No recent activity.</div>';
+  } catch (e) { console.error('Health load failed:', e); }
+}
+
+function timeAgo(d) {
+  const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s / 60) + 'm ago';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+  return Math.floor(s / 86400) + 'd ago';
 }
 
 async function loadCourses() {

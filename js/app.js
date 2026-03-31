@@ -53,6 +53,10 @@ window._looperToast = showToast;
 window.onerror = function(message, source, line, col, error) {
   console.error('[Looper] Uncaught error:', message, source, line);
   if (window.Sentry && error) Sentry.captureException(error);
+  // Log to dashboard error table (fire-and-forget, never blocks)
+  fetch('/.netlify/functions/supabase', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'logAppError', data: { player: window._looperState?.me, type: 'uncaught', message: String(message).substring(0, 500), context: (source || '') + ':' + (line || ''), url: location.href } })
+  }).catch(() => {});
   showToast('Something went wrong — your data is safe. Tap to reload.', 'error', 8000);
 };
 
@@ -63,6 +67,10 @@ window.onunhandledrejection = function(event) {
   const isNetworkNoise = msg.includes('Failed to fetch') || msg.includes('NetworkError');
   if (window.Sentry && !isNetworkNoise) Sentry.captureException(err);
   if (!isNetworkNoise) {
+    // Log to dashboard error table (fire-and-forget)
+    fetch('/.netlify/functions/supabase', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'logAppError', data: { player: window._looperState?.me, type: 'promise', message: msg.substring(0, 500), context: 'unhandledrejection', url: location.href } })
+    }).catch(() => {});
     showToast('Something went wrong — your data is safe.', 'error', 5000);
   }
 };
@@ -85,6 +93,7 @@ import { initCompetition } from './competition.js';
 import { renderCompetitionSetupModal, renderJoinCompetitionModal, renderMyCompetitions } from './competition-setup.js';
 import { initCompScore, compScoreNext, compScorePrev, compScoreSaveNote, compScoreCancel } from './comp-score.js';
 import { state } from './state.js';
+window._looperState = state; // expose for error handlers that run before module init
 import { initCaddieButton } from './caddie.js';
 import { initProfileTabs, startNotificationPolling } from './friends.js';
 import { setGameMode, updateFormatUI, confirmWolfOrder, showWolfScoreboard } from './gamemodes.js';

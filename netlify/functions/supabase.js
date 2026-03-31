@@ -971,6 +971,60 @@ exports.handler = async (event) => {
       })};
     }
 
+    // ── getDashboardHealth ─────────────────────────────────────────────
+    if (action === 'getDashboardHealth') {
+      const dayAgo = new Date(Date.now() - 86400000).toISOString();
+      const [recentRounds, lastRound, pendingMembers, nullAuth, allMembers, allPlayers] = await Promise.all([
+        supabase.from('rounds').select('player_name', { count: 'exact' }).gte('created_at', dayAgo),
+        supabase.from('rounds').select('created_at, player_name, course').order('created_at', { ascending: false }).limit(1),
+        supabase.from('group_members').select('player_id, group_id, status').eq('status', 'pending'),
+        supabase.from('players').select('name').is('auth_user_id', null),
+        supabase.from('group_members').select('player_id'),
+        supabase.from('players').select('name'),
+      ]);
+      // Orphaned members: in group_members but not in players
+      const playerNames = new Set((allPlayers.data || []).map(p => p.name));
+      const orphaned = (allMembers.data || []).filter(m => !playerNames.has(m.player_id));
+      // Active users: distinct player names from rounds in last 24h
+      const activeUsers = new Set((recentRounds.data || []).map(r => r.player_name));
+      // Last round
+      const lr = lastRound.data?.[0];
+      // Errors (if table exists)
+      let errors = [];
+      try {
+        const { data: errRows } = await supabase.from('app_errors').select('*').order('created_at', { ascending: false }).limit(50);
+        errors = errRows || [];
+      } catch (_) { /* table may not exist yet */ }
+      // Recent activity: last 20 rounds + last 5 new players
+      const { data: recentActivity } = await supabase.from('rounds').select('player_name, course, date, diff, created_at').order('created_at', { ascending: false }).limit(20);
+      const { data: newPlayers } = await supabase.from('players').select('name, created_at').order('created_at', { ascending: false }).limit(5);
+      return { statusCode: 200, headers, body: JSON.stringify({
+        activeUsers24h: activeUsers.size,
+        lastRound: lr ? { player: lr.player_name, course: lr.course, ago: lr.created_at } : null,
+        pendingMembers: (pendingMembers.data || []).map(m => m.player_id),
+        nullAuthPlayers: (nullAuth.data || []).map(p => p.name),
+        orphanedMembers: orphaned.map(m => m.player_id),
+        errors,
+        recentRounds: recentActivity || [],
+        newPlayers: newPlayers || [],
+      })};
+    }
+
+    // ── logAppError ──────────────────────────────────────────────────
+    if (action === 'logAppError') {
+      try {
+        await supabase.from('app_errors').insert({
+          player_name: data.player || null,
+          error_type: data.type || 'unknown',
+          message: (data.message || 'No message').substring(0, 500),
+          context: (data.context || '').substring(0, 200),
+          url: (data.url || '').substring(0, 300),
+          user_agent: (event.headers?.['user-agent'] || '').substring(0, 300),
+        });
+      } catch (_) { /* table may not exist — non-fatal */ }
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+    }
+
     // ── getAllCourses ─────────────────────────────────────────────────
     if (action === 'getAllCourses') {
       const { data: rows, error } = await supabase
