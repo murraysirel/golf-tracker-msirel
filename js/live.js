@@ -9,6 +9,19 @@ import { recalc, scoreCol } from './scorecard.js';
 import { goTo } from './nav.js';
 // Wolf hooks loaded via dynamic import to avoid circular deps
 
+// ── Background sync indicator ────────────────────────────────────
+function _syncInBackground(label, promise) {
+  const dot = document.getElementById('live-sync-dot');
+  if (dot) dot.style.opacity = '1';
+  promise
+    .then(() => { if (dot) dot.style.opacity = '0'; })
+    .catch(err => {
+      console.warn(`[live] ${label} failed:`, err);
+      if (window.Sentry) Sentry.captureException(err);
+      if (dot) dot.style.opacity = '0';
+    });
+}
+
 // ── Validation nudge toast ───────────────────────────────────────
 function _showLiveNudge(msg) {
   let el = document.getElementById('live-nudge');
@@ -1223,19 +1236,20 @@ async function liveGroupSave() {
   const _meRoundId = state.gd.players[state.me]?.rounds?.slice(-1)[0]?.id;
   const _groupPlayers = [...state.liveState.group];
 
-  const ok = await pushData(); // single pushData call for all players
-  if (ok) {
-    localStorage.removeItem('rr_live_backup');
-  } else {
-    // Protect rounds in a key loadGist() never overwrites
-    const unsynced = JSON.parse(localStorage.getItem('rr_unsynced_rounds') || '[]');
-    for (const item of savedRounds) unsynced.push(item);
-    localStorage.setItem('rr_unsynced_rounds', JSON.stringify(unsynced));
-    updateUnsyncedBadge();
-  }
+  // Write to localStorage FIRST (pushData does this internally, but be explicit)
+  try { localStorage.setItem('gt_localdata', JSON.stringify(state.gd)); } catch (_) {}
+  localStorage.removeItem('rr_live_backup');
+
+  // Success toast immediately — network sync happens in background
+  const names = _groupPlayers.join(', ');
+  const toast = window._looperToast;
+  if (toast) toast(`Round saved for ${names}!`, 'success', 3000);
+
+  // Network sync — fire-and-forget, never blocks UI
+  _syncInBackground('pushData', pushData());
 
   // Parallel write to Supabase for each saved round — fire and forget
-  Promise.all(savedRounds.map(item => {
+  _syncInBackground('saveRounds', Promise.all(savedRounds.map(item => {
     const playerData = {
       name: item.player,
       email: state.gd.players[item.player]?.email || null,
@@ -1243,24 +1257,7 @@ async function liveGroupSave() {
       matchCode: state.gd.players[item.player]?.matchCode || null
     };
     return pushSupabase('saveRound', { round: item.round, playerData });
-  })).then(results => {
-    const allSbOk = results.every(Boolean);
-    if (ok && allSbOk) {
-      ss('ok', 'Synced \u2713');
-    } else if (ok && !allSbOk) {
-      ss('warn', '\u26A0 Gist only');
-    }
-  });
-
-  const syncMsg = ok ? '\u2705 Saved & synced!' : '\u26A0\uFE0F Saved locally \u2014 will sync when online';
-  const names = _groupPlayers.join(', ');
-  let finalMsg = `${syncMsg}\n\nRound saved for: ${names}\n${course.name} \u00B7 ${state.stee} tees`;
-  if (sixesResult?.standings?.length) {
-    const medals = ['\uD83E\uDD47', '\uD83E\uDD48', '\uD83E\uDD49'];
-    const standingLines = sixesResult.standings.map((p, i) => `  ${medals[i] || ' '} ${p.name}: ${p.points}pts`).join('\n');
-    finalMsg += `\n\n\u26F3 Sixes Result:\n${standingLines}`;
-  }
-  alert(finalMsg);
+  })));
 
   // Reset
   state.sixesState = null;
@@ -1281,10 +1278,10 @@ async function liveGroupSave() {
   });
 
   // Show match context sheet for players outside this round (non-blocking)
-  if (ok && _meRoundId != null) {
+  if (_meRoundId != null) {
     const _otherPlayers = Object.keys(state.gd.players).filter(p => !_groupPlayers.includes(p));
     if (_otherPlayers.length > 0) {
-      import('./players.js').then(({ showMatchContextSheet }) => showMatchContextSheet(_me, _meRoundId));
+      import('./players.js').then(({ showMatchContextSheet }) => showMatchContextSheet(_me, _meRoundId)).catch(() => {});
     }
   }
 }
@@ -1344,9 +1341,9 @@ export async function submitCorrectionReport() {
     status: 'pending'
   });
 
-  const { pushData } = await import('./api.js');
-  await pushData();
-
   if (msg) { msg.style.color = 'var(--par)'; msg.textContent = 'Report submitted — admin will review.'; }
+
+  const { pushData: pd } = await import('./api.js');
+  _syncInBackground('correctionReport', pd());
   setTimeout(() => { document.getElementById('correction-modal').style.display = 'none'; }, 1500);
 }

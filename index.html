@@ -636,7 +636,8 @@
 
     <!-- LIVE ROUND -->
     <!-- LIVE ROUND -->
-    <div id="pg-live" style="display:none">
+    <div id="pg-live" style="display:none;position:relative">
+      <div id="live-sync-dot" style="position:absolute;top:12px;right:12px;width:6px;height:6px;border-radius:50%;background:var(--gold);opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:10"></div>
 
       <!-- Phase 1: Group setup (shown before round starts) -->
       <div id="live-group-setup" class="sec" style="display:none">
