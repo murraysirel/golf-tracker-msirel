@@ -671,7 +671,7 @@ document.getElementById('login-submit-btn')?.addEventListener('click', async () 
   // Clear stale local cache so old data doesn't contaminate fresh login
   localStorage.removeItem('gt_localdata');
   state.gd = { players: {} };
-  await loadAppData(result.playerName, '');
+  await loadAppData(result.playerName, localStorage.getItem('gt_activegroup') || '');
   await enterAs(result.playerName);
   if (window.Sentry) Sentry.setUser({ username: state.me, group: state.gd?.activeGroupCode });
   updateActiveMatchBadge();

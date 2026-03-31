@@ -125,9 +125,11 @@ export async function loadAppData(playerName, groupCode) {
     // Non-fatal — continue with whatever we have
   }
 
-  // 2. Restore active group from localStorage if valid
+  // 2. Restore active group from localStorage — always try it even if groupCodes is empty
+  //    (getPlayerByAuthId may have failed, but the group code is still valid)
   const storedActive = localStorage.getItem('gt_activegroup');
-  if (storedActive && state.gd.groupCodes.includes(storedActive)) {
+  if (storedActive) {
+    if (!state.gd.groupCodes.includes(storedActive)) state.gd.groupCodes.push(storedActive);
     state.gd.activeGroupCode = storedActive;
   }
 
