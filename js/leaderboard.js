@@ -198,16 +198,18 @@ export function renderLeaderboard() {
     const subtext = soloPrompt.querySelector('.lb-solo-subtext');
     const atCap = (state.gd.groupCodes || []).length >= 5;
     if (isInGroup) {
-      // Compact mode — small pill at the bottom, not a big card
-      soloPrompt.style.cssText = 'display:flex;gap:8px;padding:8px 16px;margin:0;border:none;background:none';
+      // Compact mode at bottom — evenly spaced short buttons
+      soloPrompt.style.cssText = 'display:block;margin:0 16px 14px;padding:10px 14px;border:1px solid var(--border);border-left:none;border-radius:10px;background:var(--mid)';
       if (heading) heading.style.display = 'none';
       if (subtext) subtext.style.display = 'none';
-      soloPrompt.querySelectorAll('button').forEach(b => { b.style.cssText = 'flex:1;border-radius:20px;font-size:11px;padding:7px 0'; b.disabled = atCap; });
+      const btnWrap = soloPrompt.querySelector('div:last-child');
+      if (btnWrap) btnWrap.style.cssText = 'display:flex;gap:12px;margin-top:0';
+      soloPrompt.querySelectorAll('button').forEach(b => { b.style.cssText = 'flex:1;border-radius:20px;font-size:11px;padding:6px 0'; b.disabled = atCap; });
     } else {
-      soloPrompt.style.cssText = 'display:block;margin-bottom:14px;border-left:4px solid var(--gold)';
+      soloPrompt.style.cssText = 'display:block;margin:0 16px 14px;border-left:4px solid var(--gold)';
       if (heading) { heading.style.display = ''; heading.textContent = 'Invite your mates to compete on these boards'; }
       if (subtext) { subtext.style.display = ''; subtext.textContent = ''; }
-      soloPrompt.querySelectorAll('button').forEach(b => { b.style.cssText = 'flex:1;border-radius:40px;font-size:13px;padding:10px 0'; b.disabled = false; });
+      soloPrompt.querySelectorAll('button').forEach(b => { b.style.cssText = 'flex:1;border-radius:20px;font-size:12px;padding:8px 0'; b.disabled = false; });
     }
   }
 

@@ -571,8 +571,15 @@ document.getElementById('practice-complete-btn')?.addEventListener('click', comp
 // ── Leaderboard ───────────────────────────────────────────────────
 document.getElementById('lb-season-sel')?.addEventListener('change', renderLeaderboard);
 document.getElementById('lb-group-code')?.addEventListener('click', copyGroupCode);
-document.getElementById('lb-join-group-btn')?.addEventListener('click', () => { showGroupFork(false); forkJoinGroup(); });
-document.getElementById('lb-create-group-btn')?.addEventListener('click', () => { showGroupFork(false); forkCreateGroup(); });
+document.getElementById('lb-join-group-btn')?.addEventListener('click', () => {
+  // Skip fork screen — go directly to join flow. Set flag so Back returns to leaderboard.
+  window._lbGroupReturn = true;
+  forkJoinGroup();
+});
+document.getElementById('lb-create-group-btn')?.addEventListener('click', () => {
+  window._lbGroupReturn = true;
+  forkCreateGroup();
+});
 document.getElementById('gs-back-btn')?.addEventListener('click', () => goTo('leaderboard'));
 document.getElementById('gs-name-save-btn')?.addEventListener('click', saveGroupName);
 document.getElementById('gs-modal-cancel')?.addEventListener('click', hideGSModal);

@@ -422,6 +422,14 @@ export function goBackToFork() {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
+  // If user came from the leaderboard, go back there instead of the fork screen
+  if (window._lbGroupReturn) {
+    window._lbGroupReturn = false;
+    const pm = document.getElementById('pg-main');
+    if (pm) pm.style.display = 'flex';
+    import('./nav.js').then(({ goTo }) => goTo('leaderboard'));
+    return;
+  }
   const fork = document.getElementById('pg-group-fork');
   if (fork) fork.style.display = 'block';
 }
