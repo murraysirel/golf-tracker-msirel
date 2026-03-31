@@ -531,6 +531,13 @@ document.querySelectorAll('.fpill').forEach(btn => {
   btn.addEventListener('click', () => setFilter(btn.dataset.f));
 });
 document.getElementById('filter-course-sel')?.addEventListener('change', renderStats);
+document.getElementById('f9b9-toggle')?.addEventListener('click', () => {
+  const cur = localStorage.getItem('looper_f9b9_gross') === 'true';
+  localStorage.setItem('looper_f9b9_gross', !cur);
+  const pill = document.getElementById('f9b9-toggle-pill');
+  if (pill) { pill.style.background = !cur ? 'var(--gold)' : 'var(--border)'; pill.querySelector('span').style.left = !cur ? '11px' : '1px'; }
+  renderStats();
+});
 document.getElementById('ai-review-btn')?.addEventListener('click', generateAIReview);
 document.getElementById('ai-stats-btn')?.addEventListener('click', generateStatsAnalysis);
 document.getElementById('ai-stats-clear-btn')?.addEventListener('click', clearStatsAnalysis);
@@ -550,6 +557,12 @@ document.getElementById('practice-custom-input')?.addEventListener('keydown', e 
   if (e.key === 'Enter') document.getElementById('practice-custom-btn')?.click();
 });
 document.getElementById('practice-start-btn')?.addEventListener('click', startPracticeSession);
+document.getElementById('practice-recs-toggle')?.addEventListener('click', () => {
+  const body = document.getElementById('practice-recs-body');
+  const chev = document.getElementById('practice-recs-chevron');
+  if (body) body.style.display = body.style.display === 'none' ? 'block' : 'none';
+  if (chev) chev.style.transform = body?.style.display === 'none' ? 'rotate(-90deg)' : '';
+});
 document.getElementById('practice-regen-btn')?.addEventListener('click', regeneratePlan);
 document.getElementById('practice-log-5')?.addEventListener('click', () => logPracticeShots(5));
 document.getElementById('practice-log-10')?.addEventListener('click', () => logPracticeShots(10));

@@ -717,12 +717,13 @@ export function renderHomeStats() {
 
     const KPI_DEFS = {
       avg_score:  { label: 'Avg score',     fn: avgDiffFn,           fmt: v => (v >= 0 ? '+' : '') + v.toFixed(1), inverted: true,  accent: 'var(--gold)' },
-      stableford: { label: 'Avg pts',       fn: avgStableford,       fmt: v => v.toFixed(1),                       inverted: false, accent: 'var(--gold)' },
+      stableford: { label: 'Avg points',     fn: avgStableford,       fmt: v => v.toFixed(1),                       inverted: false, accent: 'var(--gold)' },
       fir:        { label: 'FIR %',         fn: r => firRaw(r),      fmt: v => Math.round(v) + '%',                inverted: false, accent: 'var(--gold)' },
       gir:        { label: 'GIR %',         fn: r => girRaw(r),      fmt: v => Math.round(v) + '%',                inverted: false, accent: '#3498db' },
-      putts:      { label: 'Avg putts',     fn: avgPuttsPerHole,     fmt: v => v.toFixed(1),                       inverted: true,  accent: '#2ecc71' },
+      putts:      { label: 'Putts/hole',    fn: avgPuttsPerHole,     fmt: v => v.toFixed(1),                       inverted: true,  accent: '#2ecc71' },
       birdies:    { label: 'Birdies/round', fn: avgBirdiesPerRound,  fmt: v => v.toFixed(1),                       inverted: false, accent: '#3498db' },
       doubles:    { label: 'Doubles/round', fn: avgDoublesPerRound,  fmt: v => v.toFixed(1),                       inverted: true,  accent: '#e74c3c' },
+      putts_round:{ label: 'Putts/round',  fn: (rounds) => { if (!rounds.length) return null; const t = rounds.reduce((a, r) => a + (r.putts || []).reduce((s, v) => s + (v || 0), 0), 0); return t / rounds.length; }, fmt: v => v.toFixed(0), inverted: true, accent: '#2ecc71' },
     };
 
     const HOME_KPI_LS = 'looper_home_kpis';
@@ -737,7 +738,7 @@ export function renderHomeStats() {
 
     const activeKpis = getHomeKpis();
 
-    let cellsHtml = '';
+    let cellsHtml = '<div style="grid-column:1/-1;font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:-2px">Your stats</div>';
     activeKpis.forEach(kpiId => {
       const def = KPI_DEFS[kpiId];
       if (!def) return;
@@ -836,6 +837,7 @@ export function renderHomeStats() {
       const avgPutts = puttsArr.length ? (puttsArr.reduce((a, b) => a + b, 0) / puttsArr.length).toFixed(1) : '—';
 
       lastRoundEl.innerHTML = `
+        <div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Latest round</div>
         <div style="background:var(--mid);border:1px solid var(--border);border-radius:14px;padding:14px 16px;cursor:pointer" id="home-last-round-card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
             <div style="font-size:14px;font-weight:600;color:var(--cream)">${shortCourse}</div>
@@ -1513,15 +1515,26 @@ export function renderStats() {
     }
   }
 
-  // 4f. Front 9 vs Back 9 card
+  // 4f. Front 9 vs Back 9 card (default: net, toggle for gross)
   const f9b9Card = document.getElementById('c-f9b9');
   if (f9b9Card) {
     f9b9Card.style.display = fullR.length > 0 ? 'block' : 'none';
     if (fullR.length > 0) {
+      const f9b9Gross = localStorage.getItem('looper_f9b9_gross') === 'true';
+      const playerHcp = hcp || 0;
+
       let f9Sum = 0, b9Sum = 0, f9ParSum = 0, b9ParSum = 0;
       fullR.forEach(r => {
-        for (let h = 0; h < 9; h++) { f9Sum += (r.scores[h] || 0); f9ParSum += (r.pars[h] || 0); }
-        for (let h = 9; h < 18; h++) { b9Sum += (r.scores[h] || 0); b9ParSum += (r.pars[h] || 0); }
+        const slope = r.slope || 113;
+        const php = f9b9Gross ? 0 : Math.round(playerHcp * slope / 113);
+        // Distribute handicap strokes across holes (front 9 gets ~half)
+        const f9Strokes = f9b9Gross ? 0 : Math.round(php * 9 / 18);
+        const b9Strokes = f9b9Gross ? 0 : php - f9Strokes;
+        let f9 = 0, b9 = 0;
+        for (let h = 0; h < 9; h++) { f9 += (r.scores[h] || 0); f9ParSum += (r.pars[h] || 0); }
+        for (let h = 9; h < 18; h++) { b9 += (r.scores[h] || 0); b9ParSum += (r.pars[h] || 0); }
+        f9Sum += f9 - f9Strokes;
+        b9Sum += b9 - b9Strokes;
       });
       const f9Avg = (f9Sum / fullR.length).toFixed(1);
       const b9Avg = (b9Sum / fullR.length).toFixed(1);

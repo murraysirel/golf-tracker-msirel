@@ -194,22 +194,20 @@ export function renderLeaderboard() {
   // Solo prompt
   const soloPrompt = document.getElementById('lb-solo-prompt');
   if (soloPrompt) {
-    soloPrompt.style.display = 'block';
     const heading = soloPrompt.querySelector('.lb-solo-heading');
     const subtext = soloPrompt.querySelector('.lb-solo-subtext');
     const atCap = (state.gd.groupCodes || []).length >= 5;
-    if (atCap) {
-      if (heading) heading.textContent = 'League limit reached';
-      if (subtext) subtext.textContent = 'You are in 5 leagues — the maximum. Leave a league to join or create another.';
-      soloPrompt.querySelectorAll('button').forEach(b => { b.disabled = true; b.title = 'Max 5 leagues reached'; });
-    } else if (isInGroup) {
-      if (heading) heading.textContent = 'Add another group';
-      if (subtext) subtext.textContent = 'Join or create a new group for separate leaderboards.';
-      soloPrompt.querySelectorAll('button').forEach(b => { b.disabled = false; b.title = ''; });
+    if (isInGroup) {
+      // Compact mode — small pill at the bottom, not a big card
+      soloPrompt.style.cssText = 'display:flex;gap:8px;padding:8px 16px;margin:0;border:none;background:none';
+      if (heading) heading.style.display = 'none';
+      if (subtext) subtext.style.display = 'none';
+      soloPrompt.querySelectorAll('button').forEach(b => { b.style.cssText = 'flex:1;border-radius:20px;font-size:11px;padding:7px 0'; b.disabled = atCap; });
     } else {
-      if (heading) heading.textContent = 'Invite your mates to compete on these boards';
-      if (subtext) subtext.textContent = '';
-      soloPrompt.querySelectorAll('button').forEach(b => { b.disabled = false; b.title = ''; });
+      soloPrompt.style.cssText = 'display:block;margin-bottom:14px;border-left:4px solid var(--gold)';
+      if (heading) { heading.style.display = ''; heading.textContent = 'Invite your mates to compete on these boards'; }
+      if (subtext) { subtext.style.display = ''; subtext.textContent = ''; }
+      soloPrompt.querySelectorAll('button').forEach(b => { b.style.cssText = 'flex:1;border-radius:40px;font-size:13px;padding:10px 0'; b.disabled = false; });
     }
   }
 
@@ -353,6 +351,9 @@ export function renderLeaderboard() {
 
   // ── H2H ────────────────────────────────────────────────────────
   renderH2H(filterRounds);
+
+  // ── Board Leaders summary ──────────────────────────────────────
+  renderBoardLeaders();
 }
 
 // ── Render podium + list + spotlight for active view ─────────────
@@ -469,6 +470,39 @@ function renderViewContent() {
       ${barHtml}
     </div>`;
   }
+}
+
+// ── Board Leaders — who leads the most categories ───────────────
+function renderBoardLeaders() {
+  const el = document.getElementById('lb-board-leaders');
+  if (!el) return;
+  if (!_computedPlayers.length) { el.innerHTML = ''; return; }
+
+  // For each view, find who's #1
+  const wins = {};
+  VIEWS.forEach(view => {
+    const qualified = _computedPlayers.filter(p => p[view.field] != null);
+    if (!qualified.length) return;
+    const sorted = [...qualified].sort(view.sort);
+    const winner = sorted[0];
+    if (winner) { wins[winner.name] = (wins[winner.name] || 0) + 1; }
+  });
+
+  // Sort by most wins
+  const ranked = Object.entries(wins).sort((a, b) => b[1] - a[1]).slice(0, 3);
+  if (!ranked.length) { el.innerHTML = ''; return; }
+
+  el.innerHTML = `<div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Board leaders</div>` +
+    ranked.map(([name, count], i) => {
+      const isMe = name === state.me;
+      return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;${i < ranked.length - 1 ? 'border-bottom:1px solid var(--border)' : ''}">
+        <div style="font-size:12px;font-weight:700;color:${i === 0 ? 'var(--gold)' : 'var(--dimmer)'};width:16px;text-align:center">${i + 1}</div>
+        ${avatarHtml(name, 26, isMe)}
+        <div style="flex:1;font-size:12px;${isMe ? 'color:var(--gold);font-weight:600' : 'color:var(--cream)'}">${name}</div>
+        <div style="font-size:13px;font-weight:700;color:var(--gold)">${count}</div>
+        <div style="font-size:9px;color:var(--dimmer)">#1${count !== 1 ? 's' : ''}</div>
+      </div>`;
+    }).join('');
 }
 
 // ── H2H (preserved) ─────────────────────────────────────────────

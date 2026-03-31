@@ -1009,7 +1009,12 @@
 
       <!-- Front 9 vs Back 9 -->
       <div class="card" id="c-f9b9" style="display:none">
-        <div style="font-size:11px;font-weight:600;color:var(--cream);margin-bottom:10px">Front 9 vs Back 9</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="font-size:11px;font-weight:600;color:var(--cream)">Front 9 vs Back 9</div>
+          <label id="f9b9-toggle" style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:10px;color:var(--dim)">Gross
+            <span id="f9b9-toggle-pill" style="display:inline-block;width:22px;height:12px;border-radius:6px;background:var(--border);position:relative;transition:background .2s"><span style="position:absolute;top:1px;left:1px;width:10px;height:10px;border-radius:50%;background:var(--cream);transition:left .2s"></span></span>
+          </label>
+        </div>
         <div id="f9b9-halves" style="display:flex;align-items:center"></div>
         <div id="f9b9-insight" class="f9b9-insight" style="display:none"><div class="f9b9-insight-text" id="f9b9-text"></div></div>
       </div>
@@ -1029,9 +1034,15 @@
 
       <!-- Previous AI recommendations -->
       <div class="card" id="c-practice-recs" style="display:none">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><div style="width:28px;height:28px;border-radius:8px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg></div><span style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase">Your Latest AI Recommendations</span></div>
-        <div style="font-size:11px;color:var(--dim);margin-bottom:10px;line-height:1.5">From your most recent round review</div>
-        <div id="practice-recs-content"></div>
+        <div style="display:flex;align-items:center;gap:8px;cursor:pointer" id="practice-recs-toggle">
+          <div style="width:28px;height:28px;border-radius:8px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg></div>
+          <span style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase;flex:1">Your Latest AI Recommendations</span>
+          <span id="practice-recs-chevron" style="font-size:12px;color:var(--dimmer);transition:transform .2s">&#9662;</span>
+        </div>
+        <div id="practice-recs-body" style="margin-top:12px">
+          <div style="font-size:11px;color:var(--dim);margin-bottom:10px;line-height:1.5">From your most recent round review</div>
+          <div id="practice-recs-content"></div>
+        </div>
       </div>
 
       <!-- Area selector -->
@@ -1212,6 +1223,9 @@
       <div style="display:none"><div id="lb-list"></div><div id="lb-birdies"></div><div id="lb-scoring-net"></div><div id="lb-stableford"></div><div id="lb-net"></div><div id="lb-buffer"></div><div id="lb-best-stab"></div><div id="lb-best-birdies"></div><div id="lb-best-round"></div><div id="lb-doubles"></div></div>
 
       <!-- Group code + Leave group at bottom (rendered by JS if needed) -->
+      <!-- Board Leaders summary -->
+      <div id="lb-board-leaders" style="padding:0 16px 12px"></div>
+
       <div id="lb-group-code-bottom"></div>
     </div>
 
