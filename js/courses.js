@@ -409,33 +409,11 @@ function _renderSelectedCard(course) {
       <div class="cs-card-name">${course.name}</div>
       ${course.location ? `<div class="cs-card-loc">${course.location}</div>` : ''}
       ${course.has_gps ? `<div class="cs-gps-confirmed"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M9 16s-5-4.3-5-8.5a5 5 0 0 1 10 0C14 11.7 9 16 9 16z"/><circle cx="9" cy="7.5" r="1.5"/></svg> GPS distances available for this course</div>` : `<div class="cs-gps-none">No GPS data — you can pin greens manually during your round</div>`}
- 
-      ${tees.length > 0 ? `
-        <div class="cs-tee-row">
-          <label class="cs-tee-lbl">Playing from:</label>
-          <select id="cs-tee-sel" class="cs-tee-sel">
-            ${tees.map(t => `
-              <option value="${t.colour}">
-                ${t.name}
-                ${t.yardage ? ` · ${t.yardage} yds` : ''}
-                ${t.rating  ? ` · CR ${t.rating}`  : ''}
-                ${t.slope   ? ` / Slope ${t.slope}` : ''}
-              </option>
-            `).join('')}
-          </select>
-        </div>
-      ` : ''}
- 
+
       <button id="cs-change-btn" style="display:block;width:100%;margin-top:10px;padding:9px 16px;border-radius:20px;background:var(--mid);border:1px solid var(--border);color:var(--cream);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent">← Change course</button>
       <button id="cs-report-btn" style="display:block;width:100%;margin-top:6px;padding:8px 16px;border-radius:20px;background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.35);color:var(--double);font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent">⚑ Report incorrect data</button>
     </div>
   `;
- 
-  document.getElementById('cs-tee-sel')
-    ?.addEventListener('change', e => {
-      const tee = tees.find(t => t.colour === e.target.value);
-      if (tee) _applyTee(tee);
-    });
  
   document.getElementById('cs-change-btn')
     ?.addEventListener('click', () => {
@@ -444,6 +422,11 @@ function _renderSelectedCard(course) {
       if (input) { input.value = ''; input.focus(); }
       _selectedCourse = null;
       state.activeCourse = null;
+      // Reset tee pills
+      const placeholder = document.getElementById('tee-placeholder-card');
+      const pillsCard = document.getElementById('tee-pills-card');
+      if (placeholder) placeholder.style.display = 'block';
+      if (pillsCard) pillsCard.style.display = 'none';
     });
  
   document.getElementById('cs-report-btn')
