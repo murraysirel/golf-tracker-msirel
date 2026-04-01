@@ -24,6 +24,19 @@ const COUNTRIES = [
   { value: 'Sweden',  label: '🇸🇪 Sweden' },
   { value: 'Canada',  label: '🇨🇦 Canada' },
 ];
+
+// SVG icons for country pills (inline, no external assets)
+const COUNTRY_PILL_SVG = {
+  UK: `<svg viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="40" fill="#012169"/><path d="M0 0L60 40M60 0L0 40" stroke="#fff" stroke-width="6"/><path d="M0 0L60 40M60 0L0 40" stroke="#C8102E" stroke-width="3"/><path d="M30 0V40M0 20H60" stroke="#fff" stroke-width="10"/><path d="M30 0V40M0 20H60" stroke="#C8102E" stroke-width="6"/></svg>`,
+  Ireland: `<svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path d="M9 3c-1.5 0-2.5.8-3 1.5C5.5 5.2 5 6 5 7c0 1.5 1 3 2 4l2 2 2-2c1-1 2-2.5 2-4 0-1-.5-1.8-1-2.5S10.5 3 9 3z" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M9 6v5M7 8.5h4" stroke="currentColor" stroke-width="1"/></svg>`,
+  USA: `<svg viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="40" fill="#B22234"/><g fill="#fff"><rect y="3" width="60" height="3"/><rect y="9" width="60" height="3"/><rect y="15" width="60" height="3"/><rect y="21" width="60" height="3"/><rect y="27" width="60" height="3"/><rect y="33" width="60" height="3"/></g><rect width="24" height="21" fill="#3C3B6E"/><text x="12" y="13" fill="#fff" font-size="8" text-anchor="middle" font-family="sans-serif">★</text></svg>`,
+  Spain: `<svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path d="M6 14c-1-1-2-3-1-5s3-4 5-4 4 1 4 3-1 3-3 4l-1 1c-.5.5-1 1-2 1s-2 0-2-1" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M10 7v3" stroke="currentColor" stroke-width="1"/></svg>`,
+  Portugal: `<svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path d="M6 3h6v9a3 3 0 0 1-6 0V3z" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M8 6h2v3H8z" fill="none" stroke="currentColor" stroke-width=".8"/><line x1="6" y1="6" x2="12" y2="6" stroke="currentColor" stroke-width=".8"/></svg>`,
+  France: `<svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path d="M9 2v10" stroke="currentColor" stroke-width="1.2"/><path d="M7 12h4" stroke="currentColor" stroke-width="1.2"/><path d="M6 15h6" stroke="currentColor" stroke-width="1.2"/><path d="M7 6l2-4 2 4z" fill="none" stroke="currentColor" stroke-width="1"/></svg>`,
+  all: `<svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" stroke-width="1.2"/><ellipse cx="9" cy="9" rx="3" ry="7" fill="none" stroke="currentColor" stroke-width="1"/><line x1="2" y1="9" x2="16" y2="9" stroke="currentColor" stroke-width="1"/></svg>`,
+};
+
+let _activeCountry = 'UK';
  
 let _searchTimer    = null;
 let _lastResults    = [];
@@ -33,14 +46,9 @@ let _selectedCourse = null;
 export function initCourseSearch() {
   const wrap = document.getElementById('course-search-container');
   if (!wrap) return;
- 
+
   wrap.innerHTML = `
     <div class="cs-wrap">
-      <select id="cs-country" class="cs-country">
-        ${COUNTRIES.map(c =>
-          `<option value="${c.value}"${c.value === 'UK' ? ' selected' : ''}>${c.label}</option>`
-        ).join('')}
-      </select>
       <div class="cs-input-row">
         <input
           id="cs-input"
@@ -48,6 +56,7 @@ export function initCourseSearch() {
           placeholder="Search for a course…"
           autocomplete="off"
           class="cs-input"
+          style="border-radius:10px;border-top:1px solid var(--border)"
         />
         <span id="cs-spinner" class="cs-spinner" style="display:none">⏳</span>
       </div>
@@ -55,11 +64,107 @@ export function initCourseSearch() {
       <div id="cs-selected" class="cs-selected" style="display:none"></div>
     </div>
   `;
- 
+  // Hidden select for backward compat with _runSearch reading country
+  const hiddenSel = document.createElement('select');
+  hiddenSel.id = 'cs-country';
+  hiddenSel.style.display = 'none';
+  COUNTRIES.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.value;
+    opt.textContent = c.label;
+    if (c.value === _activeCountry) opt.selected = true;
+    hiddenSel.appendChild(opt);
+  });
+  wrap.appendChild(hiddenSel);
+
   document.getElementById('cs-input')
     ?.addEventListener('input', _onInput);
-  document.getElementById('cs-country')
-    ?.addEventListener('change', _onInput);
+
+  // Render country pills
+  renderCountryPills();
+}
+
+// ── Country pill strip ───────────────────────────────────────────────────────
+export function renderCountryPills() {
+  const strip = document.getElementById('country-pills-strip');
+  if (!strip) return;
+  const pillCountries = [
+    { value: 'UK',      label: 'United Kingdom' },
+    { value: 'Ireland', label: 'Ireland' },
+    { value: 'USA',     label: 'USA' },
+    { value: 'Spain',   label: 'Spain' },
+    { value: 'Portugal',label: 'Portugal' },
+    { value: 'France',  label: 'France' },
+    { value: 'all',     label: 'All countries' },
+  ];
+  strip.innerHTML = pillCountries.map(c => {
+    const svg = COUNTRY_PILL_SVG[c.value] || COUNTRY_PILL_SVG.all;
+    const active = c.value === _activeCountry ? ' active' : '';
+    return `<div class="country-pill${active}" data-country="${c.value}">${svg}<span class="country-pill-label">${c.label}</span></div>`;
+  }).join('');
+  strip.querySelectorAll('.country-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      _activeCountry = pill.dataset.country;
+      // Update hidden select
+      const sel = document.getElementById('cs-country');
+      if (sel) sel.value = _activeCountry;
+      // Re-render pills
+      strip.querySelectorAll('.country-pill').forEach(p => p.classList.toggle('active', p.dataset.country === _activeCountry));
+      // Re-trigger search if there's text
+      const q = document.getElementById('cs-input')?.value?.trim();
+      if (q && q.length >= 2) {
+        clearTimeout(_searchTimer);
+        _runSearch(q);
+      }
+    });
+  });
+}
+
+// ── Tee pills (called after _applyCourse) ────────────────────────────────────
+export function renderTeePills(course) {
+  const placeholder = document.getElementById('tee-placeholder-card');
+  const pillsCard = document.getElementById('tee-pills-card');
+  const pillsRow = document.getElementById('tee-pills-row');
+  const pillsInfo = document.getElementById('tee-pills-info');
+  if (!pillsCard || !pillsRow) return;
+
+  const tees = course?.tees || [];
+  if (!tees.length) return;
+
+  if (placeholder) placeholder.style.display = 'none';
+  pillsCard.style.display = 'block';
+
+  const TC_COLORS = { blue:'#3498db', yellow:'#f1c40f', white:'var(--cream)', red:'#e74c3c', black:'#555' };
+
+  pillsRow.innerHTML = tees.map(t => {
+    const colour = (t.colour || t.name || 'white').toLowerCase();
+    const isActive = colour === state.stee;
+    const textColor = TC_COLORS[colour] || 'var(--cream)';
+    return `<div class="tee-pill${isActive ? ' active' : ''}" data-tee="${colour}" style="color:${textColor}">
+      ${t.name || colour}
+      ${t.yardage ? `<div style="font-size:8px;font-weight:500;color:var(--dim);margin-top:1px">${t.yardage}y</div>` : ''}
+    </div>`;
+  }).join('');
+
+  // Show info for active tee
+  const activeTee = tees.find(t => (t.colour || '').toLowerCase() === state.stee);
+  if (pillsInfo && activeTee) {
+    const parts = [];
+    if (activeTee.rating) parts.push(`CR ${activeTee.rating}`);
+    if (activeTee.slope) parts.push(`Slope ${activeTee.slope}`);
+    if (activeTee.yardage) parts.push(`${activeTee.yardage} yards`);
+    pillsInfo.textContent = parts.join(' · ');
+  }
+
+  pillsRow.querySelectorAll('.tee-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const tee = tees.find(t => (t.colour || '').toLowerCase() === pill.dataset.tee);
+      if (tee) {
+        _applyTee(tee);
+        renderTeePills(course);
+      }
+    });
+  });
 }
  
 // ── Debounced input handler ───────────────────────────────────────────────────
@@ -234,10 +339,13 @@ function _applyCourse(course) {
  
   // Show selected course card with tee selector
   _renderSelectedCard(course);
- 
+
+  // Show tee pills
+  renderTeePills(course);
+
   // Rebuild scorecard with new pars
   buildSC();
- 
+
   // Update the input to show the selected course name
   const input = document.getElementById('cs-input');
   if (input) input.value = course.name;
@@ -446,6 +554,11 @@ export function clearCourseSelection() {
   if (sel) sel.style.display = 'none';
   const results = document.getElementById('cs-results');
   if (results) results.style.display = 'none';
+  // Reset tee pills
+  const placeholder = document.getElementById('tee-placeholder-card');
+  const pillsCard = document.getElementById('tee-pills-card');
+  if (placeholder) placeholder.style.display = 'block';
+  if (pillsCard) pillsCard.style.display = 'none';
 }
 
 // ── Course card scanner (AI photo parse) ─────────────────────────────────────

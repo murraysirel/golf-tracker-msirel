@@ -18,20 +18,33 @@ export function updateFormatUI() {
   const wolfHint = document.getElementById('wolf-need-4');
   const matchHint = document.getElementById('match-need-2');
   const sixesHint = document.getElementById('sixes-need-3');
-  if (!wolfBtn || !strokeBtn) return;
 
   const isWolf = state.gameMode === 'wolf';
   const isMatch = state.gameMode === 'match';
   const isSixes = state.gameMode === 'sixes';
 
-  strokeBtn.classList.toggle('active', !isWolf && !isMatch && !isSixes);
-  wolfBtn.classList.toggle('active', isWolf);
+  // Old hidden fpill buttons
+  if (strokeBtn) strokeBtn.classList.toggle('active', !isWolf && !isMatch && !isSixes);
+  if (wolfBtn) wolfBtn.classList.toggle('active', isWolf);
   if (matchBtn) matchBtn.classList.toggle('active', isMatch);
   if (sixesBtn) sixesBtn.classList.toggle('active', isSixes);
 
   if (wolfHint) wolfHint.style.display = isWolf ? 'block' : 'none';
   if (matchHint) matchHint.style.display = isMatch ? 'block' : 'none';
   if (sixesHint) sixesHint.style.display = isSixes ? 'block' : 'none';
+
+  // Sync new format slider
+  const sliderModeMap = { stroke: 0, stableford: 1, match: 2, wolf: 3, sixes: 4 };
+  const modeKey = isWolf ? 'wolf' : isMatch ? 'match' : isSixes ? 'sixes' : 'stableford';
+  const idx = sliderModeMap[modeKey] ?? 1;
+  const glider = document.getElementById('format-glider');
+  if (glider) glider.style.transform = `translateX(${idx * 100}%)`;
+  document.querySelectorAll('#format-slider .format-option').forEach(o => {
+    o.classList.toggle('active', parseInt(o.dataset.idx) === idx);
+  });
+  // Wolf info button visibility
+  const wolfInfo = document.getElementById('wolf-info-btn');
+  if (wolfInfo) wolfInfo.style.display = isWolf ? 'inline-flex' : 'none';
 }
 
 // ── State Init ────────────────────────────────────────────────────

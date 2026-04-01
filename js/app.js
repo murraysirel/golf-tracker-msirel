@@ -77,11 +77,11 @@ window.onunhandledrejection = function(event) {
 
 import { loadAppData, pushData, querySupabase, ss, retryUnsyncedRounds, retryUnsyncedData, updateUnsyncedBadge } from './api.js';
 import { goTo, switchEntry, registerNavHandlers } from './nav.js';
-import { getCourseByRef, scanCourseCard, saveCourse, cancelCourseScan, handleCoursePhoto, searchCourseAPI, initCourseSearch } from './courses.js';
+import { getCourseByRef, scanCourseCard, saveCourse, cancelCourseScan, handleCoursePhoto, searchCourseAPI, initCourseSearch, renderCountryPills, renderTeePills } from './courses.js';
 import { buildSC, recalc, saveRound, toggleSCExtras } from './scorecard.js';
 import { renderStats, setFilter, toggleHcpEdit, saveHandicap, renderHomeStats, openScorecardModal, openKpiPicker, closeKpiPicker } from './stats.js';
 import { renderLeaderboard, initLeaderboard } from './leaderboard.js';
-import { renderLogin, enterAs, signOut, addPlayer, renderAllPlayers, renderPlayersToday, showSignupStep, submitProfile, agreePrivacy, submitCompleteProfile, showGroupFork, goBackToFork, forkNotNow, forkJoinGroup, forkCreateGroup, refreshAvatarUI, uploadAvatar, setPrefTheme, setPrefUnit, submitPrefs } from './players.js';
+import { renderLogin, enterAs, signOut, addPlayer, renderAllPlayers, renderPlayersToday, showSignupStep, submitProfile, agreePrivacy, submitCompleteProfile, showGroupFork, goBackToFork, forkNotNow, forkJoinGroup, forkCreateGroup, refreshAvatarUI, uploadAvatar, setPrefTheme, setPrefUnit, submitPrefs, initials, avatarHtml } from './players.js';
 import { renderPracticePage, selectPracticeArea, generatePracticePlan, startPracticeSession, regeneratePlan, logPracticeShots, completePracticeSession } from './practice.js';
 import { initLiveRound, liveGoto, liveSaveNote, liveNextOrFinish, toggleGroupPlayer, startGroupRound, toggleMatchPlay, openCorrectionModal, submitCorrectionReport, cancelRound } from './live.js';
 import { generateAIReview, generateStatsAnalysis, clearStatsAnalysis, parsePhoto, handlePhoto } from './ai.js';
@@ -95,12 +95,13 @@ import { initCompScore, compScoreNext, compScorePrev, compScoreSaveNote, compSco
 import { state } from './state.js';
 window._looperState = state; // expose for error handlers that run before module init
 import { initCaddieButton } from './caddie.js';
-import { initProfileTabs, startNotificationPolling } from './friends.js';
+import { initProfileTabs, startNotificationPolling, loadFriends } from './friends.js';
 import { setGameMode, updateFormatUI, confirmWolfOrder, showWolfScoreboard } from './gamemodes.js';
 import { openCreateMatchModal, openJoinMatchModal, updateGroupMatchButtonVisibility, updateActiveMatchBadge } from './group-match.js';
 import { initMatchOverlay, hideMatchOverlay, showEndRoundConfirm } from './overlay.js';
 import { startInvitePolling, dismissInviteToast, joinLiveRound, minimiseLiveView, restoreLiveView, leaveLiveView, liveViewScoreAdj, submitEditorScore, toggleEditMode } from './live-invite.js';
 import { enterDemoMode, exitDemoMode } from './demo.js';
+import { renderWeatherCard } from './weather.js';
 
 // ── Theme ─────────────────────────────────────────────────────────
 function applyTheme(theme) {
@@ -142,7 +143,12 @@ registerNavHandlers({
     if (page === 'round') {
       const wrap = document.getElementById('course-search-container');
       if (wrap && !wrap.querySelector('.cs-wrap')) initCourseSearch();
-      renderMyCompetitions();
+      renderCountryPills();
+      // Hide player selection screen when navigating back to round
+      hidePlayerSelectScreen();
+      // Render competitions if comp tab is active
+      const compSection = document.getElementById('round-comp-section');
+      if (compSection && compSection.style.display !== 'none') renderMyCompetitions();
     }
     // Retry any queued sync data on every page navigation
     retryUnsyncedData().catch(() => {});
@@ -440,8 +446,25 @@ if (csLbContent) {
   });
 }
 
-// Let's Go — launch live round
-document.getElementById('caddie-letsgo-btn')?.addEventListener('click', () => goTo('live'));
+// Let's Go — show player selection screen (not directly to live)
+document.getElementById('caddie-letsgo-btn')?.addEventListener('click', () => {
+  const course = getCourseByRef();
+  if (!course) {
+    // Flash the course card border gold
+    const card = document.getElementById('course-card-wrap');
+    if (card) { card.classList.remove('course-flash'); void card.offsetWidth; card.classList.add('course-flash'); }
+    showToast('Select a course first', 'info', 2000);
+    return;
+  }
+  showPlayerSelectScreen();
+});
+
+// "Save scores manually" link
+document.getElementById('manual-score-link')?.addEventListener('click', () => {
+  const logSection = document.getElementById('round-log-section');
+  if (logSection) logSection.style.display = logSection.style.display === 'none' ? 'block' : 'none';
+});
+
 document.getElementById('save-round-btn')?.addEventListener('click', saveRound);
 document.getElementById('sc-extras-toggle')?.addEventListener('click', toggleSCExtras);
 
@@ -610,6 +633,279 @@ document.getElementById('fmt-stroke')?.addEventListener('click', () => { setGame
 document.getElementById('fmt-match')?.addEventListener('click', () => { setGameMode('match'); updateGroupMatchButtonVisibility(); });
 document.getElementById('fmt-sixes')?.addEventListener('click', () => { setGameMode('sixes'); updateGroupMatchButtonVisibility(); });
 document.getElementById('fmt-wolf')?.addEventListener('click', () => { setGameMode('wolf'); updateGroupMatchButtonVisibility(); });
+
+// ── Format slider (new UI) ───────────────────────────────────────
+document.querySelectorAll('#format-slider .format-option').forEach(opt => {
+  opt.addEventListener('click', () => {
+    const idx = parseInt(opt.dataset.idx);
+    const modeMap = { stroke:'stroke', stableford:'stroke', match:'match', wolf:'wolf', sixes:'sixes' };
+    const mode = modeMap[opt.dataset.mode] || 'stroke';
+    // Move glider
+    const glider = document.getElementById('format-glider');
+    if (glider) glider.style.transform = `translateX(${idx * 100}%)`;
+    // Update active class
+    document.querySelectorAll('#format-slider .format-option').forEach(o => o.classList.toggle('active', o === opt));
+    // Show/hide wolf info button
+    const wolfInfo = document.getElementById('wolf-info-btn');
+    if (wolfInfo) wolfInfo.style.display = mode === 'wolf' ? 'inline-flex' : 'none';
+    setGameMode(mode);
+    updateGroupMatchButtonVisibility();
+  });
+});
+
+// ── Round tab: top tab switcher ───────────────────────────────────
+document.getElementById('round-tab-play')?.addEventListener('click', () => switchRoundTab('play'));
+document.getElementById('round-tab-comp')?.addEventListener('click', () => switchRoundTab('comp'));
+
+function switchRoundTab(tab) {
+  const glider = document.getElementById('round-glider');
+  const playTab = document.getElementById('round-tab-play');
+  const compTab = document.getElementById('round-tab-comp');
+  const playSection = document.getElementById('round-play-section');
+  const compSection = document.getElementById('round-comp-section');
+  if (tab === 'comp') {
+    if (glider) glider.style.transform = 'translateX(100%)';
+    playTab?.classList.remove('active');
+    compTab?.classList.add('active');
+    if (playSection) playSection.style.display = 'none';
+    if (compSection) compSection.style.display = 'block';
+    renderMyCompetitions();
+  } else {
+    if (glider) glider.style.transform = 'translateX(0%)';
+    playTab?.classList.add('active');
+    compTab?.classList.remove('active');
+    if (playSection) playSection.style.display = 'block';
+    if (compSection) compSection.style.display = 'none';
+  }
+}
+
+// Set default format to Stableford (glider at index 1)
+(function() {
+  const glider = document.getElementById('format-glider');
+  if (glider) glider.style.transform = 'translateX(100%)';
+})();
+
+// ── Player selection screen ──────────────────────────────────────
+let _psSelectedPlayers = [];
+let _psGuests = [];
+let _psSource = 'league';
+
+function showPlayerSelectScreen() {
+  const screen = document.getElementById('player-select-screen');
+  if (!screen) return;
+  // Init with current player
+  _psSelectedPlayers = [{ name: state.me, isGuest: false }];
+  _psGuests = [];
+  _psSource = 'league';
+  // Summary line
+  const course = getCourseByRef();
+  const courseName = course?.name || '';
+  const tee = (state.stee || '').charAt(0).toUpperCase() + (state.stee || '').slice(1);
+  const fmtNames = { stroke:'Stroke', stableford:'Stableford', match:'Match Play', wolf:'Wolf', sixes:'Sixes' };
+  const activeOpt = document.querySelector('#format-slider .format-option.active');
+  const fmt = fmtNames[activeOpt?.dataset.mode] || 'Stableford';
+  const summary = document.getElementById('ps-summary');
+  if (summary) summary.textContent = `${courseName} · ${tee} · ${fmt}`;
+
+  screen.classList.add('visible');
+  _renderPsChips();
+  _renderPsSourceSlider();
+  _renderPsPanel();
+}
+
+function hidePlayerSelectScreen() {
+  const screen = document.getElementById('player-select-screen');
+  if (screen) screen.classList.remove('visible');
+}
+
+document.getElementById('ps-back-btn')?.addEventListener('click', hidePlayerSelectScreen);
+
+function _renderPsChips() {
+  const wrap = document.getElementById('ps-chips');
+  if (!wrap) return;
+  wrap.innerHTML = _psSelectedPlayers.map(p => {
+    const isMe = p.name === state.me;
+    const isGuest = p.isGuest;
+    return `<div class="player-chip${isGuest ? ' guest' : ''}">
+      <span class="player-chip-name">${p.name}${isMe ? ' (you)' : ''}</span>
+      ${isMe ? '' : `<span class="player-chip-remove" data-name="${p.name}">×</span>`}
+    </div>`;
+  }).join('');
+  wrap.querySelectorAll('.player-chip-remove').forEach(el => {
+    el.addEventListener('click', () => {
+      const name = el.dataset.name;
+      _psSelectedPlayers = _psSelectedPlayers.filter(p => p.name !== name);
+      _psGuests = _psGuests.filter(g => g !== name);
+      _renderPsChips();
+      _renderPsPanel();
+    });
+  });
+}
+
+function _renderPsSourceSlider() {
+  const glider = document.getElementById('ps-source-glider');
+  const srcMap = { league: 0, friends: 1, guest: 2 };
+  if (glider) glider.style.transform = `translateX(${(srcMap[_psSource] || 0) * 100}%)`;
+  document.querySelectorAll('#ps-source-slider .format-option').forEach(o => {
+    o.classList.toggle('active', o.dataset.src === _psSource);
+  });
+}
+
+document.querySelectorAll('#ps-source-slider .format-option').forEach(opt => {
+  opt.addEventListener('click', () => {
+    _psSource = opt.dataset.src;
+    const idx = parseInt(opt.dataset.idx);
+    const glider = document.getElementById('ps-source-glider');
+    if (glider) glider.style.transform = `translateX(${idx * 100}%)`;
+    document.querySelectorAll('#ps-source-slider .format-option').forEach(o => o.classList.toggle('active', o === opt));
+    _renderPsPanel();
+  });
+});
+
+function _renderPsPanel() {
+  document.getElementById('ps-league-panel').style.display = _psSource === 'league' ? 'block' : 'none';
+  document.getElementById('ps-friends-panel').style.display = _psSource === 'friends' ? 'block' : 'none';
+  document.getElementById('ps-guest-panel').style.display = _psSource === 'guest' ? 'block' : 'none';
+  if (_psSource === 'league') _renderLeaguePanel();
+  if (_psSource === 'friends') _renderFriendsPanel();
+}
+
+function _psTogglePlayer(name, isGuest = false) {
+  const existing = _psSelectedPlayers.find(p => p.name === name);
+  if (existing) {
+    if (name === state.me) return; // can't remove self
+    _psSelectedPlayers = _psSelectedPlayers.filter(p => p.name !== name);
+    if (isGuest) _psGuests = _psGuests.filter(g => g !== name);
+  } else {
+    if (_psSelectedPlayers.length >= 4) {
+      showToast('Maximum 4 players per round.', 'info', 2000);
+      return;
+    }
+    _psSelectedPlayers.push({ name, isGuest });
+    if (isGuest) _psGuests.push(name);
+  }
+  _renderPsChips();
+  _renderPsPanel();
+}
+
+function _renderLeaguePanel() {
+  // League selector
+  const nameEl = document.getElementById('ps-league-name');
+  const codes = state.gd?.groupCodes || [];
+  const active = state.gd?.activeGroupCode || codes[0] || '';
+  const meta = state.gd?.groupMeta || {};
+  if (nameEl) nameEl.textContent = meta[active]?.name || active || 'Your league';
+
+  // Dropdown toggle
+  const selector = document.getElementById('ps-league-selector');
+  const dropdown = document.getElementById('ps-league-dropdown');
+  if (selector && dropdown && codes.length > 1) {
+    selector.onclick = () => {
+      dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+      dropdown.innerHTML = codes.map(c => {
+        const name = meta[c]?.name || c;
+        const isActive = c === active;
+        return `<div style="padding:10px 12px;cursor:pointer;font-size:13px;color:${isActive ? 'var(--gold)' : 'var(--cream)'};border-bottom:1px solid var(--border)" data-code="${c}">${name}</div>`;
+      }).join('');
+      dropdown.querySelectorAll('[data-code]').forEach(el => {
+        el.addEventListener('click', () => {
+          state.gd.activeGroupCode = el.dataset.code;
+          localStorage.setItem('gt_activegroup', el.dataset.code);
+          dropdown.style.display = 'none';
+          _renderLeaguePanel();
+        });
+      });
+    };
+  } else if (selector) {
+    selector.onclick = null;
+  }
+
+  // Player list
+  const list = document.getElementById('ps-league-list');
+  if (!list) return;
+  const players = Object.keys(state.gd?.players || {}).filter(n => n !== state.me);
+  if (!players.length) {
+    list.innerHTML = '<div style="text-align:center;padding:20px;font-size:12px;color:var(--dim)">No other players in this league yet.</div>';
+    return;
+  }
+  list.innerHTML = players.map(name => {
+    const isSelected = _psSelectedPlayers.some(p => p.name === name);
+    const hcp = state.gd.players[name]?.handicap;
+    const isMe = false;
+    return `<div class="player-row${isSelected ? ' selected' : ''}" data-name="${name}">
+      ${avatarHtml(name, 36, isMe)}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--cream)">${name}</div>
+        ${hcp != null ? `<div style="font-size:11px;color:var(--dim)">Handicap: ${hcp}</div>` : ''}
+      </div>
+      <div class="player-row-check">${isSelected ? '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="var(--navy)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 9 7.5 12.5 14 5.5"/></svg>' : ''}</div>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.player-row').forEach(row => {
+    row.addEventListener('click', () => _psTogglePlayer(row.dataset.name));
+  });
+}
+
+async function _renderFriendsPanel() {
+  const list = document.getElementById('ps-friends-list');
+  const empty = document.getElementById('ps-friends-empty');
+  if (!list) return;
+  try {
+    const friendships = await loadFriends();
+    const accepted = friendships.filter(f => f.status === 'accepted').map(f => f.requester === state.me ? f.addressee : f.requester);
+    if (!accepted.length) {
+      list.innerHTML = '';
+      if (empty) empty.style.display = 'block';
+      return;
+    }
+    if (empty) empty.style.display = 'none';
+    list.innerHTML = accepted.map(name => {
+      const isSelected = _psSelectedPlayers.some(p => p.name === name);
+      const hcp = state.gd.players?.[name]?.handicap;
+      return `<div class="player-row${isSelected ? ' selected' : ''}" data-name="${name}">
+        ${avatarHtml(name, 36)}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--cream)">${name}</div>
+          ${hcp != null ? `<div style="font-size:11px;color:var(--dim)">Handicap: ${hcp}</div>` : ''}
+        </div>
+        <div class="player-row-check">${isSelected ? '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="var(--navy)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 9 7.5 12.5 14 5.5"/></svg>' : ''}</div>
+      </div>`;
+    }).join('');
+    list.querySelectorAll('.player-row').forEach(row => {
+      row.addEventListener('click', () => _psTogglePlayer(row.dataset.name));
+    });
+  } catch {
+    list.innerHTML = '<div style="text-align:center;padding:20px;font-size:12px;color:var(--dim)">Could not load friends.</div>';
+  }
+}
+
+// Guest panel
+document.getElementById('ps-add-guest-btn')?.addEventListener('click', () => {
+  const input = document.getElementById('ps-guest-input');
+  const name = input?.value?.trim();
+  if (!name) return;
+  if (_psSelectedPlayers.length >= 4) {
+    showToast('Maximum 4 players per round.', 'info', 2000);
+    return;
+  }
+  if (_psSelectedPlayers.some(p => p.name === name)) {
+    showToast('Player already added.', 'info', 2000);
+    return;
+  }
+  _psTogglePlayer(name, true);
+  if (input) input.value = '';
+});
+
+// Start scoring button
+document.getElementById('ps-start-btn')?.addEventListener('click', () => {
+  const playerNames = _psSelectedPlayers.map(p => p.name);
+  // Set up live state
+  state.liveState.group = playerNames;
+  // Store guest info on state for filtering during save
+  state._guestPlayers = _psGuests.slice();
+  hidePlayerSelectScreen();
+  goTo('live');
+});
 
 // ── Group Match ───────────────────────────────────────────────────
 document.getElementById('start-group-match-btn')?.addEventListener('click', openCreateMatchModal);

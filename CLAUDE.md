@@ -68,6 +68,7 @@ Netlify hosts both the static frontend and all serverless functions. No build st
 | `empty-states.js` | `emptyState(icon, headline, subline, ctaText, ctaAction)` — reusable empty state renderer used across home, stats, leaderboard, practice |
 | `caddie.js` | `initCaddieButton()` — floating caddie pill button initialisation |
 | `demo.js` | `enterDemoMode()`, `exitDemoMode()`, `isDemoMode()` — demo group loaded from `/.netlify/functions/demo-data` with no auth |
+| `weather.js` | 3-day weather forecast from Open-Meteo free API. No key required. Resolves location from GPS state, last played course green coords, or London fallback. 3-hour localStorage cache. Golf suitability score computed from precipitation, wind, and temperature. |
 
 ---
 

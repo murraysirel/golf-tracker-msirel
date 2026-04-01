@@ -902,6 +902,9 @@ export function renderHomeStats() {
     const shortC = (last.course || '').replace(/ Golf Club| Golf Course| Golf Links/g, '');
     ctaSub.textContent = shortC ? `Last played ${shortC}` : '';
   }
+
+  // ── 3g. Weather forecast card ───────────────────────────────
+  import('./weather.js').then(m => m.renderWeatherCard('weather-container')).catch(() => {});
 }
 
 function isRoundComplete(r) {

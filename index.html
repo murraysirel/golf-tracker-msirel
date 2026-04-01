@@ -468,6 +468,9 @@
         <div id="home-mates-list"></div>
       </div>
 
+      <!-- Weather forecast -->
+      <div id="weather-container"></div>
+
       <!-- Start a round CTA -->
       <button id="home-caddie-cta" style="display:block;width:calc(100% - 32px);margin:14px 16px calc(var(--safe-bot) + 12px);padding:16px;border-radius:14px;background:var(--gold);color:var(--navy);font-size:15px;font-weight:700;letter-spacing:0.02em;border:none;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent;font-family:'DM Sans',sans-serif"><div style="display:flex;align-items:center;justify-content:space-between"><div><div>Start a round</div><div id="home-cta-sub" style="font-size:11px;font-weight:400;opacity:.7;margin-top:2px"></div></div><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="14" y2="9"/><polyline points="10 5 14 9 10 13"/></svg></div></button>
 
@@ -490,148 +493,220 @@
     </div>
 
     <!-- ROUND ENTRY -->
-    <div id="pg-round" style="display:none">
+    <div id="pg-round" style="display:none;position:relative">
       <div class="sec">
 
-        <!-- ── SECTION 1: PLAY A ROUND ── -->
-        <div style="border-left:3px solid var(--gold);padding-left:10px;margin:0 0 12px">
-          <div style="font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);font-weight:600">Play a Round</div>
-          <div style="font-size:11px;color:var(--dimmer);margin-top:3px;line-height:1.4">For up to a 4-ball. Score yourself or your group hole by hole.</div>
-        </div>
-        <div class="card" style="margin-bottom:8px">
-
-          <!-- Who's playing -->
-          <div style="margin-bottom:20px">
-            <div style="font-size:10px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--dim);margin-bottom:10px">Who's playing today</div>
-            <div id="players-today-wrap" style="display:flex;flex-wrap:wrap;gap:7px"></div>
-            <div style="font-size:10px;color:var(--dim);margin-top:7px">Scoring <strong id="scoring-for-name" style="color:var(--gold)">yourself</strong> — tap a player to switch</div>
+        <!-- ── TOP TAB SWITCHER ── -->
+        <div class="top-tab-wrap" style="margin-bottom:16px">
+          <div class="top-glider" id="round-glider"></div>
+          <div class="top-tab active" id="round-tab-play" data-tab="play">
+            <div class="tt-main">Play a round</div>
+            <div class="tt-sub">1–4 players</div>
           </div>
+          <div class="top-tab" id="round-tab-comp" data-tab="comp">
+            <div class="tt-main">Competitions</div>
+            <div class="tt-sub">Multi-round leaderboards</div>
+          </div>
+        </div>
 
-          <!-- Course -->
-          <div style="margin-bottom:20px">
+        <!-- ═══════ PLAY A ROUND SECTION ═══════ -->
+        <div id="round-play-section">
+
+          <!-- Course search card -->
+          <div id="course-card-wrap" style="background:var(--mid);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">
             <div style="font-size:10px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--dim);margin-bottom:10px">Course</div>
+            <div id="country-pills-strip" class="country-strip"></div>
             <div id="course-search-container"></div>
           </div>
 
-          <!-- Tee -->
-          <div id="tee-wrap" style="display:none;margin-bottom:20px">
-            <div style="font-size:10px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--dim);margin-bottom:10px">Tee Colour</div>
+          <!-- Tee selector — placeholder until course selected -->
+          <div id="tee-placeholder-card" style="background:var(--mid);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">
+            <div style="font-size:10px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--dim);margin-bottom:8px">Tee</div>
+            <div style="font-size:12px;color:var(--dimmer)">Select a course above to see available tees</div>
+          </div>
+          <div id="tee-pills-card" style="display:none;background:var(--mid);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">
+            <div style="font-size:10px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--dim);margin-bottom:10px">Tee</div>
+            <div id="tee-pills-row" style="display:flex;gap:6px"></div>
+            <div id="tee-pills-info" style="font-size:11px;color:var(--dim);margin-top:8px"></div>
+          </div>
+
+          <!-- Old tee-wrap kept hidden for backward compat with live.js -->
+          <div id="tee-wrap" style="display:none">
             <div class="tee-row" id="tee-btns"></div>
             <div class="tee-info" id="tee-info"></div>
           </div>
 
-          <!-- Game Format -->
-          <div id="game-format-row" style="margin-bottom:20px">
-            <div style="font-size:10px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--dim);margin-bottom:10px">Game Format</div>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-              <button class="fpill active" id="fmt-stroke" data-fmt="stroke">Stroke / Stableford</button>
-              <button class="fpill" id="fmt-match" data-fmt="match">Match Play</button>
-              <button class="fpill" id="fmt-sixes" data-fmt="sixes">Sixes</button>
-              <span style="display:inline-flex;align-items:center;gap:5px">
-                <button class="fpill" id="fmt-wolf" data-fmt="wolf">Wolf</button>
-                <button id="wolf-info-btn" title="Wolf rules" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--wa-1);background:var(--wa-04);color:var(--dim);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="7"/><line x1="9" y1="12" x2="9" y2="8"/><line x1="9" y1="6" x2="9.01" y2="6"/></svg></button>
-              </span>
+          <!-- Game Format — sliding pill -->
+          <div style="background:var(--mid);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">
+            <div style="font-size:10px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--dim);margin-bottom:10px">Format</div>
+            <div class="format-slider" id="format-slider">
+              <div class="format-glider" id="format-glider" style="width:20%"></div>
+              <div class="format-option" data-mode="stroke" data-idx="0">Stroke</div>
+              <div class="format-option active" data-mode="stableford" data-idx="1">Stableford</div>
+              <div class="format-option" data-mode="match" data-idx="2">Match</div>
+              <div class="format-option" data-mode="wolf" data-idx="3">Wolf</div>
+              <div class="format-option" data-mode="sixes" data-idx="4">Sixes</div>
             </div>
             <div id="wolf-need-4" style="display:none;font-size:11px;color:var(--gold);margin-top:6px">Wolf requires exactly 4 players — select on the next screen</div>
             <div id="match-need-2" style="display:none;font-size:11px;color:var(--gold);margin-top:6px">Match play: 2–4 players in any team split — assign teams on the next screen</div>
             <div id="sixes-need-3" style="display:none;font-size:11px;color:var(--gold);margin-top:6px">Sixes requires exactly 3 players — select on the next screen</div>
+            <button id="wolf-info-btn" title="Wolf rules" style="display:none;width:22px;height:22px;border-radius:50%;border:1px solid var(--wa-1);background:var(--wa-04);color:var(--dim);cursor:pointer;align-items:center;justify-content:center;padding:0;flex-shrink:0;margin-top:8px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="7"/><line x1="9" y1="12" x2="9" y2="8"/><line x1="9" y1="6" x2="9.01" y2="6"/></svg></button>
+          </div>
+
+          <!-- Hidden old format buttons for backward compat -->
+          <div style="display:none">
+            <button class="fpill active" id="fmt-stroke" data-fmt="stroke">Stroke</button>
+            <button class="fpill" id="fmt-match" data-fmt="match">Match Play</button>
+            <button class="fpill" id="fmt-sixes" data-fmt="sixes">Sixes</button>
+            <button class="fpill" id="fmt-wolf" data-fmt="wolf">Wolf</button>
           </div>
 
           <!-- Let's Go CTA -->
-          <button id="caddie-letsgo-btn" class="btn" style="border-radius:40px;font-size:16px;padding:18px;letter-spacing:.2px;margin-bottom:8px">Let's go →</button>
+          <button id="caddie-letsgo-btn" class="btn" style="border-radius:40px;font-size:16px;padding:18px;letter-spacing:.2px;margin-bottom:8px;width:100%">Let's go →</button>
 
-          <!-- Divider -->
-          <div style="border-top:1px solid var(--border);margin:20px 0 18px"></div>
-
-          <!-- Log a completed round -->
-          <div style="font-size:10px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--dim);margin-bottom:12px">Log a completed round</div>
-          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
-            <button class="round-entry-card" id="entry-btn-manual">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              <span>Type it in</span>
-            </button>
-            <button class="round-entry-card" id="entry-btn-photo">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
-              <span>Scan<br>scorecard</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Entry panels (shown when a log card is clicked) -->
-        <div id="round-log-panel" style="display:none;margin-bottom:8px">
-          <div class="card" style="margin-bottom:12px">
-            <label>Date</label>
-            <input type="date" id="r-date" class="mb8">
-            <label>Notes / Weather</label>
-            <input type="text" id="r-notes" placeholder="e.g. Calm, firm greens">
+          <!-- Save scores manually link -->
+          <div style="text-align:center;margin-bottom:16px">
+            <button id="manual-score-link" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--dim);font-family:'DM Sans',sans-serif;text-decoration:underline;text-underline-offset:2px">Save scores manually</button>
           </div>
 
-          <div id="entry-manual" style="display:none">
-            <div class="card scorecard-table">
-              <div class="ct">Scorecard</div>
-              <div class="sc-wrap">
-                <table class="sg">
-                  <thead><tr><th>#</th><th>Par</th><th>Yds</th><th>SI</th><th>Score</th><th>Putts</th><th>FIR</th><th>GIR</th></tr></thead>
-                  <tbody id="sc-body"></tbody>
-                </table>
-              </div>
-              <div class="tot-bar" id="tot-bar" style="display:none">
-                <div><div class="tl">Score</div><div class="tv" id="tot-s">—</div></div>
-                <div style="text-align:center"><div class="tl">OUT</div><div style="font-size:16px;font-weight:500;color:var(--cream)" id="tot-out">—</div></div>
-                <div style="text-align:center"><div class="tl">IN</div><div style="font-size:16px;font-weight:500;color:var(--cream)" id="tot-in">—</div></div>
-                <div style="text-align:right"><div class="tl">vs Par</div><div style="font-size:14px;font-weight:500" id="tot-vp">—</div></div>
-              </div>
-              <a class="sc-extras-toggle" id="sc-extras-toggle">More +</a>
-              <div class="sc-extra-cols" style="padding-top:10px">
-                <div class="fr">
-                  <div><label>Penalties</label><input type="number" id="r-pen" min="0" value="0"></div>
-                  <div><label>Bunkers</label><input type="number" id="r-bun" min="0" value="0"></div>
-                  <div><label>Chips</label><input type="number" id="r-chip" min="0" value="0"></div>
+          <!-- Hidden "who's playing" for backward compat with renderPlayersToday -->
+          <div style="display:none">
+            <div id="players-today-wrap"></div>
+            <div><strong id="scoring-for-name">yourself</strong></div>
+          </div>
+
+          <!-- Log a completed round (shown when "Save scores manually" tapped) -->
+          <div id="round-log-section" style="display:none">
+            <div style="font-size:10px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--dim);margin-bottom:12px">Log a completed round</div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px">
+              <button class="round-entry-card" id="entry-btn-manual">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                <span>Type it in</span>
+              </button>
+              <button class="round-entry-card" id="entry-btn-photo">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                <span>Scan scorecard</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Entry panels (shown when a log card is clicked) -->
+          <div id="round-log-panel" style="display:none;margin-bottom:8px">
+            <div class="card" style="margin-bottom:12px">
+              <label>Date</label>
+              <input type="date" id="r-date" class="mb8">
+              <label>Notes / Weather</label>
+              <input type="text" id="r-notes" placeholder="e.g. Calm, firm greens">
+            </div>
+
+            <div id="entry-manual" style="display:none">
+              <div class="card scorecard-table">
+                <div class="ct">Scorecard</div>
+                <div class="sc-wrap">
+                  <table class="sg">
+                    <thead><tr><th>#</th><th>Par</th><th>Yds</th><th>SI</th><th>Score</th><th>Putts</th><th>FIR</th><th>GIR</th></tr></thead>
+                    <tbody id="sc-body"></tbody>
+                  </table>
+                </div>
+                <div class="tot-bar" id="tot-bar" style="display:none">
+                  <div><div class="tl">Score</div><div class="tv" id="tot-s">—</div></div>
+                  <div style="text-align:center"><div class="tl">OUT</div><div style="font-size:16px;font-weight:500;color:var(--cream)" id="tot-out">—</div></div>
+                  <div style="text-align:center"><div class="tl">IN</div><div style="font-size:16px;font-weight:500;color:var(--cream)" id="tot-in">—</div></div>
+                  <div style="text-align:right"><div class="tl">vs Par</div><div style="font-size:14px;font-weight:500" id="tot-vp">—</div></div>
+                </div>
+                <a class="sc-extras-toggle" id="sc-extras-toggle">More +</a>
+                <div class="sc-extra-cols" style="padding-top:10px">
+                  <div class="fr">
+                    <div><label>Penalties</label><input type="number" id="r-pen" min="0" value="0"></div>
+                    <div><label>Bunkers</label><input type="number" id="r-bun" min="0" value="0"></div>
+                    <div><label>Chips</label><input type="number" id="r-chip" min="0" value="0"></div>
+                  </div>
                 </div>
               </div>
+              <button class="btn mb8" id="save-round-btn">Save &amp; Sync Round</button>
             </div>
-            <button class="btn mb8" id="save-round-btn">Save &amp; Sync Round</button>
-          </div>
 
-          <div id="entry-photo" style="display:none">
-            <div class="card">
-              <div class="ct">Upload Scorecard Photo</div>
-              <div class="pdrop" id="photo-drop">
-                <div style="margin-bottom:10px;color:var(--dim)"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div>
-                <div style="font-size:13px;color:var(--dim)">Tap to take or upload a photo</div>
-                <div style="font-size:11px;color:var(--dimmer);margin-top:4px">AI will read your scores automatically</div>
+            <div id="entry-photo" style="display:none">
+              <div class="card">
+                <div class="ct">Upload Scorecard Photo</div>
+                <div class="pdrop" id="photo-drop">
+                  <div style="margin-bottom:10px;color:var(--dim)"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div>
+                  <div style="font-size:13px;color:var(--dim)">Tap to take or upload a photo</div>
+                  <div style="font-size:11px;color:var(--dimmer);margin-top:4px">AI will read your scores automatically</div>
+                </div>
+                <input type="file" id="photo-inp" accept="image/*" capture="environment" style="display:none">
+                <img id="photo-prev" style="display:none;width:100%;border-radius:9px;margin-bottom:10px;border:1px solid var(--wa-08)">
+                <div id="photo-msg"></div>
+                <button class="btn" id="parse-btn" style="display:none"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>Read Scorecard with AI</button>
               </div>
-              <input type="file" id="photo-inp" accept="image/*" capture="environment" style="display:none">
-              <img id="photo-prev" style="display:none;width:100%;border-radius:9px;margin-bottom:10px;border:1px solid var(--wa-08)">
-              <div id="photo-msg"></div>
-              <button class="btn" id="parse-btn" style="display:none"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>Read Scorecard with AI</button>
             </div>
           </div>
 
-        </div>
+        </div><!-- /round-play-section -->
 
-        <!-- ── SECTION 2: COMPETITIONS ── -->
-        <div style="border-left:3px solid var(--gold);padding-left:10px;margin:24px 0 12px">
-          <div style="font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);font-weight:600">Competitions</div>
-          <div style="font-size:11px;color:var(--dimmer);margin-top:3px;line-height:1.4">Multi-group golf days, Ryder Cups, and tournaments. Join with a code or WhatsApp link.</div>
-        </div>
-        <div class="card" style="margin-bottom:8px">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-            <button id="setup-competition-btn" class="round-entry-card">
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2h8v5a4 4 0 0 1-8 0V2z"/><path d="M5 4H3.5a2 2 0 0 0 0 4H5"/><path d="M13 4h1.5a2 2 0 0 1 0 4H13"/><path d="M9 11v3"/><path d="M6 16h6"/></svg>
-              <span>Create</span>
+        <!-- ═══════ COMPETITIONS SECTION ═══════ -->
+        <div id="round-comp-section" style="display:none">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+            <button id="setup-competition-btn" class="btn btn-ghost" style="font-size:13px;padding:12px">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><path d="M5 2h8v5a4 4 0 0 1-8 0V2z"/><path d="M5 4H3.5a2 2 0 0 0 0 4H5"/><path d="M13 4h1.5a2 2 0 0 1 0 4H13"/><path d="M9 11v3"/><path d="M6 16h6"/></svg>
+              Create
             </button>
-            <button id="join-competition-modal-btn" class="round-entry-card">
-              <span style="font-size:22px">🤝</span>
-              <span>Join</span>
+            <button id="join-competition-modal-btn" class="btn btn-ghost" style="font-size:13px;padding:12px">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><path d="M16 12v4H2v-4"/><path d="M9 2v12"/><path d="M5 6l4-4 4 4"/></svg>
+              Join
             </button>
           </div>
-        </div>
-
-        <!-- My competitions list (populated by JS) -->
-        <div id="my-competitions-list" style="margin-top:8px"></div>
+          <div id="my-competitions-list"></div>
+        </div><!-- /round-comp-section -->
 
       </div>
+
+      <!-- ═══════ PLAYER SELECTION OVERLAY ═══════ -->
+      <div id="player-select-screen" class="player-select-screen">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+          <button id="ps-back-btn" style="background:none;border:none;color:var(--cream);font-size:20px;cursor:pointer;padding:4px">←</button>
+          <div style="font-size:17px;font-weight:700;color:var(--cream)">Who's playing?</div>
+        </div>
+        <div id="ps-summary" style="font-size:11px;color:var(--dim);margin-bottom:14px;padding-left:34px"></div>
+
+        <!-- Selected players strip -->
+        <div id="ps-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px"></div>
+
+        <!-- Source tab switcher -->
+        <div class="format-slider" id="ps-source-slider" style="margin-bottom:14px">
+          <div class="format-glider" id="ps-source-glider" style="width:33.33%"></div>
+          <div class="format-option active" data-src="league" data-idx="0">League</div>
+          <div class="format-option" data-src="friends" data-idx="1">Friends</div>
+          <div class="format-option" data-src="guest" data-idx="2">Guest</div>
+        </div>
+
+        <!-- League panel -->
+        <div id="ps-league-panel">
+          <div id="ps-league-selector" style="display:flex;align-items:center;gap:8px;padding:8px 0;margin-bottom:6px;cursor:pointer">
+            <div id="ps-league-name" style="font-size:13px;font-weight:600;color:var(--cream);flex:1"></div>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="var(--dim)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 7 9 11 13 7"/></svg>
+          </div>
+          <div id="ps-league-dropdown" style="display:none;background:var(--mid);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden"></div>
+          <div id="ps-league-list"></div>
+        </div>
+
+        <!-- Friends panel -->
+        <div id="ps-friends-panel" style="display:none">
+          <div id="ps-friends-list"></div>
+          <div id="ps-friends-empty" style="display:none;text-align:center;padding:20px;font-size:12px;color:var(--dim)">No friends added yet. Add friends from your profile.</div>
+        </div>
+
+        <!-- Guest panel -->
+        <div id="ps-guest-panel" style="display:none">
+          <input type="text" id="ps-guest-input" placeholder="Guest name…" style="width:100%;padding:10px 12px;background:var(--mid);color:var(--cream);border:1px solid var(--border);border-radius:10px;font-size:14px;margin-bottom:6px">
+          <div style="font-size:10px;color:var(--dimmer);margin-bottom:12px;line-height:1.4">Guests are scored in this round only — never saved to your group.</div>
+          <button id="ps-add-guest-btn" class="btn btn-o" style="width:100%;border-radius:40px;font-size:13px;padding:10px">Add guest</button>
+        </div>
+
+        <!-- Start scoring button -->
+        <button id="ps-start-btn" class="btn" style="border-radius:40px;font-size:16px;padding:18px;letter-spacing:.2px;width:100%;margin-top:20px">Start scoring →</button>
+      </div>
+
     </div>
 
     <!-- LIVE ROUND -->

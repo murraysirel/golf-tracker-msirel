@@ -1249,7 +1249,9 @@ async function liveGroupSave() {
   _syncInBackground('pushData', pushData());
 
   // Parallel write to Supabase for each saved round — fire and forget
-  _syncInBackground('saveRounds', Promise.all(savedRounds.map(item => {
+  // Filter out guest players (never write guest data to Supabase)
+  const guests = state._guestPlayers || [];
+  _syncInBackground('saveRounds', Promise.all(savedRounds.filter(item => !guests.includes(item.player)).map(item => {
     const playerData = {
       name: item.player,
       email: state.gd.players[item.player]?.email || null,
