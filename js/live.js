@@ -141,7 +141,7 @@ export function initLiveRound() {
 
   const course = getCourseByRef();
   if (!course) {
-    alert('Please select a course first in the Round tab.');
+    alert('Please select a course first in the Play tab.');
     goTo('round');
     return;
   }
@@ -157,7 +157,14 @@ export function initLiveRound() {
     if (gv !== undefined) state.liveState.gir[h] = gv || '';
   }
 
-  // Show group setup screen
+  // Players already selected via the player selection screen — skip old group setup
+  // and go straight to startGroupRound()
+  if (state.liveState.group.length > 0) {
+    startGroupRound();
+    return;
+  }
+
+  // Fallback: show group setup screen (legacy path)
   showGroupSetup();
 }
 

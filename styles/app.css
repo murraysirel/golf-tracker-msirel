@@ -1289,6 +1289,9 @@ details[open] summary::after{content:' ▾'}
 .ai-badge-dot::before{content:'';position:absolute;inset:-3px;border-radius:50%;background:rgba(34,211,238,.4);animation:ai-ping 2s cubic-bezier(0,0,.2,1) infinite}
 .ai-badge-dot::after{content:'';position:absolute;inset:-1px;border-radius:50%;background:rgba(34,211,238,.6);animation:ai-ping 2s cubic-bezier(0,0,.2,1) infinite;animation-delay:.5s}
 @keyframes ai-ping{0%{transform:scale(1);opacity:.7}70%{transform:scale(2.5);opacity:0}100%{transform:scale(2.5);opacity:0}}
+.pinging-dot{position:relative}
+.pinging-dot::before{content:'';position:absolute;inset:-3px;border-radius:50%;background:rgba(201,168,76,.4);animation:ai-ping 2s cubic-bezier(0,0,.2,1) infinite}
+.pinging-dot::after{content:'';position:absolute;inset:-1px;border-radius:50%;background:rgba(201,168,76,.6);animation:ai-ping 2s cubic-bezier(0,0,.2,1) infinite;animation-delay:.5s}
 
 /* ── Competition tabs ────────────────────────────────────────── */
 .comp-tab{background:none;border:none;border-bottom:2px solid transparent;padding:10px 0;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;font-family:'DM Sans',sans-serif;-webkit-tap-highlight-color:transparent;transition:all .15s}

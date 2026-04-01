@@ -708,6 +708,7 @@ function showPlayerSelectScreen() {
   if (summary) summary.textContent = `${courseName} · ${tee} · ${fmt}`;
 
   screen.classList.add('visible');
+  screen.scrollTop = 0;
   _renderPsChips();
   _renderPsSourceSlider();
   _renderPsPanel();

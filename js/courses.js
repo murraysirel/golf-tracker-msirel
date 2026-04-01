@@ -25,14 +25,14 @@ const COUNTRIES = [
   { value: 'Canada',  label: '🇨🇦 Canada' },
 ];
 
-// SVG icons for country pills (inline, no external assets)
+// SVG icons for country pills — simplified flag style (inline, no external assets)
 const COUNTRY_PILL_SVG = {
   UK: `<svg viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="40" fill="#012169"/><path d="M0 0L60 40M60 0L0 40" stroke="#fff" stroke-width="6"/><path d="M0 0L60 40M60 0L0 40" stroke="#C8102E" stroke-width="3"/><path d="M30 0V40M0 20H60" stroke="#fff" stroke-width="10"/><path d="M30 0V40M0 20H60" stroke="#C8102E" stroke-width="6"/></svg>`,
-  Ireland: `<svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path d="M9 3c-1.5 0-2.5.8-3 1.5C5.5 5.2 5 6 5 7c0 1.5 1 3 2 4l2 2 2-2c1-1 2-2.5 2-4 0-1-.5-1.8-1-2.5S10.5 3 9 3z" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M9 6v5M7 8.5h4" stroke="currentColor" stroke-width="1"/></svg>`,
+  Ireland: `<svg viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg"><rect width="20" height="40" fill="#169B62"/><rect x="20" width="20" height="40" fill="#fff"/><rect x="40" width="20" height="40" fill="#FF883E"/></svg>`,
   USA: `<svg viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="40" fill="#B22234"/><g fill="#fff"><rect y="3" width="60" height="3"/><rect y="9" width="60" height="3"/><rect y="15" width="60" height="3"/><rect y="21" width="60" height="3"/><rect y="27" width="60" height="3"/><rect y="33" width="60" height="3"/></g><rect width="24" height="21" fill="#3C3B6E"/><text x="12" y="13" fill="#fff" font-size="8" text-anchor="middle" font-family="sans-serif">★</text></svg>`,
-  Spain: `<svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path d="M6 14c-1-1-2-3-1-5s3-4 5-4 4 1 4 3-1 3-3 4l-1 1c-.5.5-1 1-2 1s-2 0-2-1" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M10 7v3" stroke="currentColor" stroke-width="1"/></svg>`,
-  Portugal: `<svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path d="M6 3h6v9a3 3 0 0 1-6 0V3z" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M8 6h2v3H8z" fill="none" stroke="currentColor" stroke-width=".8"/><line x1="6" y1="6" x2="12" y2="6" stroke="currentColor" stroke-width=".8"/></svg>`,
-  France: `<svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path d="M9 2v10" stroke="currentColor" stroke-width="1.2"/><path d="M7 12h4" stroke="currentColor" stroke-width="1.2"/><path d="M6 15h6" stroke="currentColor" stroke-width="1.2"/><path d="M7 6l2-4 2 4z" fill="none" stroke="currentColor" stroke-width="1"/></svg>`,
+  Spain: `<svg viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="10" fill="#c60b1e"/><rect y="10" width="60" height="20" fill="#ffc400"/><rect y="30" width="60" height="10" fill="#c60b1e"/></svg>`,
+  Portugal: `<svg viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg"><rect width="22" height="40" fill="#006600"/><rect x="22" width="38" height="40" fill="#ff0000"/><circle cx="22" cy="20" r="7" fill="#ff0000" stroke="#ffc400" stroke-width="2"/></svg>`,
+  France: `<svg viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg"><rect width="20" height="40" fill="#002654"/><rect x="20" width="20" height="40" fill="#fff"/><rect x="40" width="20" height="40" fill="#CE1126"/></svg>`,
   all: `<svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" stroke-width="1.2"/><ellipse cx="9" cy="9" rx="3" ry="7" fill="none" stroke="currentColor" stroke-width="1"/><line x1="2" y1="9" x2="16" y2="9" stroke="currentColor" stroke-width="1"/></svg>`,
 };
 

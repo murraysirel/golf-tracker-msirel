@@ -42,6 +42,11 @@
   </div>
 </div>
 
+<!-- ══════════════ AVATAR ZOOM MODAL ══════════════ -->
+<div id="avatar-zoom-modal" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,.85);backdrop-filter:blur(6px);cursor:pointer" onclick="this.style.display='none'">
+  <img id="avatar-zoom-img" style="max-width:80vw;max-height:80vh;border-radius:16px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.6)">
+</div>
+
 <!-- ══════════════ ROUND RECOVERY MODAL ══════════════ -->
 <div id="round-recovery-modal" style="display:none;position:fixed;inset:0;z-index:9998;align-items:center;justify-content:center;background:rgba(10,22,40,.85);backdrop-filter:blur(4px)">
   <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:320px;width:90%;margin:0 16px;box-shadow:0 8px 40px rgba(0,0,0,.5)">
@@ -72,82 +77,82 @@
 <!-- ══════════════ ONBOARD ══════════════ -->
 <div id="pg-onboard" style="height:100%;overflow-y:auto">
 <div class="app-inner">
-  <div class="onb-hero">
-    <div style="width:100px;height:100px;border-radius:50%;overflow:hidden;margin:0 auto 16px;background:var(--navy);box-shadow:0 8px 32px rgba(201,168,76,.25)">
+  <div class="onb-hero" style="padding-bottom:20px">
+    <div style="width:80px;height:80px;border-radius:50%;overflow:hidden;margin:0 auto 12px;background:var(--navy);box-shadow:0 6px 24px rgba(201,168,76,.2)">
       <img src="/assets/looper_caddie.png" alt="Looper" style="width:100%;height:100%;object-fit:cover">
     </div>
-    <div class="onb-title">Looper</div>
-    <div class="onb-sub" style="margin-top:8px">Your caddie in your pocket</div>
+    <div class="onb-title" style="font-size:28px">Looper</div>
+    <div class="onb-sub" style="margin-top:4px;font-size:12px">Your caddie in your pocket</div>
   </div>
 
   <!-- STEP 0: Login / sign-in screen -->
-  <div id="onb-step-select" class="card mb12">
+  <div id="onb-step-select" class="card mb12" style="padding:20px">
 
     <!-- Login form (default view) -->
     <div id="onb-login-form">
-      <div class="ct" style="margin-bottom:4px">Welcome back</div>
-      <div style="font-size:12px;color:var(--dim);margin-bottom:20px;line-height:1.5">Sign in to your Looper account</div>
-      <label style="font-size:11px;color:var(--dim);margin-bottom:4px;display:block">Email address</label>
-      <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email" inputmode="email" class="mb12">
-      <label style="font-size:11px;color:var(--dim);margin-bottom:4px;display:block">Password</label>
+      <div style="font-size:16px;font-weight:700;color:var(--cream);margin-bottom:2px">Welcome back</div>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:16px">Sign in to your Looper account</div>
+      <label style="font-size:10px;font-weight:600;color:var(--dim);margin-bottom:3px;display:block;text-transform:uppercase;letter-spacing:.5px">Email</label>
+      <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email" inputmode="email" class="mb8">
+      <label style="font-size:10px;font-weight:600;color:var(--dim);margin-bottom:3px;display:block;text-transform:uppercase;letter-spacing:.5px">Password</label>
       <input type="password" id="login-password" placeholder="Your password" autocomplete="current-password" class="mb4">
-      <div id="login-err" style="display:none;font-size:12px;color:#f1948a;margin-bottom:10px;padding:8px 12px;background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.2);border-radius:8px"></div>
-      <button class="btn" id="login-submit-btn" style="border-radius:40px;width:100%;margin-top:8px">Sign in →</button>
-      <div style="text-align:center;margin-top:14px">
-        <button id="login-magic-link-btn" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--gold);font-family:'DM Sans',sans-serif;text-decoration:underline;text-underline-offset:2px;-webkit-tap-highlight-color:transparent">Sign in without a password →</button>
+      <div id="login-err" style="display:none;font-size:12px;color:#f1948a;margin-bottom:8px;padding:8px 12px;background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.2);border-radius:8px"></div>
+      <button class="btn" id="login-submit-btn" style="border-radius:40px;width:100%;margin-top:6px;padding:14px;font-size:14px">Sign in</button>
+      <div style="text-align:center;margin-top:10px">
+        <button id="login-magic-link-btn" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--gold);font-family:'DM Sans',sans-serif;text-decoration:underline;text-underline-offset:2px;-webkit-tap-highlight-color:transparent">Sign in with magic link instead</button>
       </div>
-      <div class="divider" style="margin-top:16px"><span>New to Looper?</span></div>
-      <button class="btn btn-o" id="onb-create-profile-btn" style="border-radius:40px;width:100%">Create account →</button>
-      <button id="demo-entry-btn" style="display:block;width:100%;margin-top:12px;padding:12px;border-radius:40px;background:transparent;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;-webkit-tap-highlight-color:transparent;text-align:center">
-        <span style="font-size:12px;color:var(--dimmer)">Just browsing? </span><span style="font-size:12px;color:var(--gold);text-decoration:underline;text-underline-offset:2px">Try the demo →</span>
+      <div style="height:1px;background:var(--border);margin:16px 0"></div>
+      <button class="btn btn-o" id="onb-create-profile-btn" style="border-radius:40px;width:100%;padding:12px;font-size:13px">Create account</button>
+      <button id="demo-entry-btn" style="display:block;width:100%;margin-top:10px;padding:8px;border-radius:40px;background:transparent;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;-webkit-tap-highlight-color:transparent;text-align:center">
+        <span style="font-size:11px;color:var(--dimmer)">Just browsing? </span><span style="font-size:11px;color:var(--gold);text-decoration:underline;text-underline-offset:2px">Try the demo</span>
       </button>
     </div>
 
     <!-- Magic link form (toggled) -->
     <div id="onb-magic-form" style="display:none">
-      <div class="ct" style="margin-bottom:4px">Magic link</div>
-      <div style="font-size:12px;color:var(--dim);margin-bottom:20px;line-height:1.5">Enter your email and we'll send you a link to sign in instantly — no password needed.</div>
-      <label style="font-size:11px;color:var(--dim);margin-bottom:4px;display:block">Email address</label>
+      <div style="font-size:16px;font-weight:700;color:var(--cream);margin-bottom:2px">Magic link</div>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:16px;line-height:1.5">We'll send you a link to sign in instantly — no password needed.</div>
+      <label style="font-size:10px;font-weight:600;color:var(--dim);margin-bottom:3px;display:block;text-transform:uppercase;letter-spacing:.5px">Email</label>
       <input type="email" id="magic-email" placeholder="you@example.com" autocomplete="email" inputmode="email" class="mb4">
-      <div id="magic-err" style="display:none;font-size:12px;color:#f1948a;margin-bottom:10px;padding:8px 12px;background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.2);border-radius:8px"></div>
-      <div id="magic-sent" style="display:none;font-size:12px;color:var(--par);margin-bottom:12px;padding:10px 12px;background:rgba(46,204,113,.08);border:1px solid rgba(46,204,113,.2);border-radius:8px;line-height:1.5">
+      <div id="magic-err" style="display:none;font-size:12px;color:#f1948a;margin-bottom:8px;padding:8px 12px;background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.2);border-radius:8px"></div>
+      <div id="magic-sent" style="display:none;font-size:12px;color:var(--par);margin-bottom:10px;padding:10px 12px;background:rgba(46,204,113,.08);border:1px solid rgba(46,204,113,.2);border-radius:8px;line-height:1.5">
         Check your email — tap the link to sign in. You can close this tab.
       </div>
-      <button class="btn" id="magic-submit-btn" style="border-radius:40px;width:100%;margin-top:4px">Send magic link →</button>
+      <button class="btn" id="magic-submit-btn" style="border-radius:40px;width:100%;margin-top:4px;padding:14px;font-size:14px">Send magic link</button>
       <button class="btn btn-ghost" id="magic-back-btn" style="margin-top:8px">← Back to sign in</button>
     </div>
 
   </div>
 
   <!-- STEP 1: Profile creation -->
-  <div id="onb-step-profile" class="card mb12" style="display:none">
-    <div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px">Step 1 of 2</div>
-    <div class="ct" style="margin-bottom:4px">Create your profile</div>
-    <div style="font-size:12px;color:var(--dim);margin-bottom:20px;line-height:1.5">Tell us who you are so we can track your game.</div>
-    <div style="display:flex;gap:10px;margin-bottom:12px">
+  <div id="onb-step-profile" class="card mb12" style="display:none;padding:20px">
+    <div style="font-size:9px;color:var(--gold);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;font-weight:600">Step 1 of 2</div>
+    <div style="font-size:16px;font-weight:700;color:var(--cream);margin-bottom:2px">Create your profile</div>
+    <div style="font-size:11px;color:var(--dim);margin-bottom:16px">Tell us who you are so we can track your game.</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
       <div style="flex:1">
-        <label style="font-size:11px;color:var(--dim);margin-bottom:4px;display:block">First name <span style="color:#e74c3c">*</span></label>
+        <label style="font-size:10px;font-weight:600;color:var(--dim);margin-bottom:3px;display:block;text-transform:uppercase;letter-spacing:.5px">First name</label>
         <input type="text" id="new-firstname" placeholder="Jamie" autocomplete="given-name" style="margin-bottom:0">
       </div>
       <div style="flex:1">
-        <label style="font-size:11px;color:var(--dim);margin-bottom:4px;display:block">Last name <span style="color:#e74c3c">*</span></label>
+        <label style="font-size:10px;font-weight:600;color:var(--dim);margin-bottom:3px;display:block;text-transform:uppercase;letter-spacing:.5px">Last name</label>
         <input type="text" id="new-lastname" placeholder="Wilson" autocomplete="family-name" style="margin-bottom:0">
       </div>
     </div>
-    <label style="font-size:11px;color:var(--dim);margin-bottom:4px;display:block">Handicap Index <span style="color:#e74c3c">*</span></label>
-    <input type="number" id="new-handicap" placeholder="e.g. 12.4 · use −1.2 for +1.2" min="-10" max="54" step="0.1" class="mb4" inputmode="decimal">
-    <div style="font-size:10px;color:var(--dimmer);margin-bottom:14px">Enter 0 if no official handicap yet. Plus handicap? Use a negative number (e.g. −1.2 = +1.2).</div>
-    <label style="font-size:11px;color:var(--dim);margin-bottom:2px;display:block">Email address <span style="color:#e74c3c">*</span></label>
-    <input type="email" id="new-email" placeholder="e.g. jamie@example.com" autocomplete="email" class="mb12" inputmode="email">
-    <label style="font-size:11px;color:var(--dim);margin-bottom:2px;display:block">Password <span style="color:#e74c3c">*</span></label>
-    <input type="password" id="new-password" placeholder="Min. 8 characters" autocomplete="new-password" class="mb12">
-    <label style="font-size:11px;color:var(--dim);margin-bottom:2px;display:block">Confirm password <span style="color:#e74c3c">*</span></label>
-    <input type="password" id="new-password2" placeholder="Repeat password" autocomplete="new-password" class="mb12">
-    <label style="font-size:11px;color:var(--dim);margin-bottom:2px;display:block">Date of birth <span style="color:#e74c3c">*</span></label>
-    <div style="font-size:10px;color:var(--dimmer);margin-bottom:5px">Used to keep your account secure — never shown publicly</div>
-    <input type="text" id="new-dob" placeholder="DD/MM/YYYY" autocomplete="bday" class="mb16" inputmode="numeric" maxlength="10">
-    <div id="onb-profile-err" style="display:none;font-size:12px;color:#f1948a;margin-bottom:10px;padding:8px 12px;background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.2);border-radius:8px"></div>
-    <button class="btn" id="onb-profile-submit-btn" style="border-radius:40px">Create my profile →</button>
+    <label style="font-size:10px;font-weight:600;color:var(--dim);margin-bottom:3px;display:block;text-transform:uppercase;letter-spacing:.5px">Handicap Index</label>
+    <input type="number" id="new-handicap" placeholder="e.g. 12.4" min="-10" max="54" step="0.1" class="mb4" inputmode="decimal">
+    <div style="font-size:9px;color:var(--dimmer);margin-bottom:12px">Enter 0 if no official handicap. Plus handicap? Use negative (e.g. −1.2 = +1.2).</div>
+    <label style="font-size:10px;font-weight:600;color:var(--dim);margin-bottom:3px;display:block;text-transform:uppercase;letter-spacing:.5px">Email</label>
+    <input type="email" id="new-email" placeholder="jamie@example.com" autocomplete="email" class="mb8" inputmode="email">
+    <label style="font-size:10px;font-weight:600;color:var(--dim);margin-bottom:3px;display:block;text-transform:uppercase;letter-spacing:.5px">Password</label>
+    <input type="password" id="new-password" placeholder="Min. 8 characters" autocomplete="new-password" class="mb8">
+    <label style="font-size:10px;font-weight:600;color:var(--dim);margin-bottom:3px;display:block;text-transform:uppercase;letter-spacing:.5px">Confirm password</label>
+    <input type="password" id="new-password2" placeholder="Repeat password" autocomplete="new-password" class="mb8">
+    <label style="font-size:10px;font-weight:600;color:var(--dim);margin-bottom:3px;display:block;text-transform:uppercase;letter-spacing:.5px">Date of birth</label>
+    <div style="font-size:9px;color:var(--dimmer);margin-bottom:4px">Used to keep your account secure — never shown publicly</div>
+    <input type="text" id="new-dob" placeholder="DD/MM/YYYY" autocomplete="bday" class="mb12" inputmode="numeric" maxlength="10">
+    <div id="onb-profile-err" style="display:none;font-size:12px;color:#f1948a;margin-bottom:8px;padding:8px 12px;background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.2);border-radius:8px"></div>
+    <button class="btn" id="onb-profile-submit-btn" style="border-radius:40px;padding:14px;font-size:14px">Create my profile</button>
     <button class="btn btn-ghost" id="onb-back-to-select-btn" style="margin-top:8px">← Back</button>
   </div>
 
@@ -953,9 +958,9 @@
     <div id="pg-stats" style="display:none" class="sec">
       <!-- Page header: name + filter pills -->
       <div style="padding:0 16px 10px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span id="st-player-name" style="font-size:18px;font-weight:700;color:var(--cream)"></span>
+        <div style="margin-bottom:6px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span id="st-player-name" style="font-size:20px;font-weight:700;color:var(--cream)"></span>
             <button class="btn btn-ghost" id="hcp-edit-btn" style="width:auto;padding:2px 8px;font-size:10px">HCP <span id="st-hcp-display" style="color:var(--gold)">—</span></button>
           </div>
           <div style="display:flex;gap:5px" id="filter-pills">
@@ -1122,7 +1127,7 @@
 
       <!-- Area selector -->
       <div class="card">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><div style="width:28px;height:28px;border-radius:8px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div><span style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase">Build a Practice Session</span></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><div style="position:relative;width:28px;height:28px;border-radius:8px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg><span class="pinging-dot" style="position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:var(--gold)"></span></div><span style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase">Build a Practice Session</span></div>
         <div style="font-size:12px;color:var(--dim);margin-bottom:14px;line-height:1.6">
           Choose an area to work on. You'll get a structured 50-shot session with specific drills — designed to build real skill, not just hit balls.
         </div>
@@ -1228,12 +1233,12 @@
     <div id="pg-leaderboard" style="display:none" class="sec">
 
       <!-- 5a. Context header -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <div id="lb-tab-title" style="font-size:20px;font-weight:700;color:var(--cream);font-family:'DM Sans',sans-serif">The board</div>
+      <div style="margin-bottom:12px">
+        <div id="lb-tab-title" style="font-size:20px;font-weight:700;color:var(--cream);font-family:'DM Sans',sans-serif;margin-bottom:8px">The board</div>
         <div style="display:flex;align-items:center;gap:8px">
           <button id="lb-members-btn" style="display:none;background:none;border:1px solid var(--wa-12);border-radius:16px;padding:4px 12px;color:var(--dim);font-size:10px;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap">Who's in?</button>
           <button id="lb-settings-btn" style="display:none;align-items:center;justify-content:center;background:none;border:none;color:var(--dim);cursor:pointer;padding:4px;-webkit-tap-highlight-color:transparent" title="Group settings">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
         </button>
           <button id="lb-ctx-btn" class="ctx-btn">
             <span id="lb-ctx-label" style="font-size:11px;color:var(--cream)"></span>
@@ -1730,7 +1735,7 @@
   ">Looper</div>
   <div class="nav">
     <button class="nb active" id="nb-home"><span class="ni"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>Home</button>
-    <button class="nb" id="nb-round"><span class="ni"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg></span>Round</button>
+    <button class="nb" id="nb-round"><span class="ni"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg></span>Play</button>
 
   <button class="nb" id="nb-stats"><span class="ni"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>Stats</button>
     <button class="nb" id="nb-leaderboard"><span class="ni"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></span>Leagues</button>

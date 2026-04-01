@@ -15,7 +15,7 @@ export function avatarHtml(name, size = 36, isMe = false) {
   const img = state.gd.players?.[name]?.avatarImg;
   if (img) {
     const border = isMe ? '2px solid var(--gold)' : '1px solid rgba(255,255,255,.1)';
-    return `<img src="${img}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;border:${border};flex-shrink:0">`;
+    return `<img src="${img}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;border:${border};flex-shrink:0;cursor:pointer" onclick="var m=document.getElementById('avatar-zoom-modal'),i=document.getElementById('avatar-zoom-img');if(m&&i){i.src=this.src;m.style.display='flex'}">`;
   }
   const cls = isMe ? 'lb-avatar-me' : 'avatar';
   const extra = !isMe ? `style="width:${size}px;height:${size}px;font-size:13px;border:1px solid rgba(255,255,255,.1)"` : '';

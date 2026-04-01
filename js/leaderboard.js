@@ -216,12 +216,12 @@ export function renderLeaderboard() {
     }
   }
 
-  // Group code card (backward compat)
+  // Group code card (retired — code now shown at bottom via lb-group-code-bottom)
   const gcCard = document.getElementById('lb-group-code-card');
   const hasActiveCode = !!state.gd.activeGroupCode;
   const isLegacyGroup = hasActiveCode && !isInGroup;
   if (gcCard) {
-    gcCard.style.display = (isInGroup || isLegacyGroup) ? 'block' : 'none';
+    gcCard.style.display = 'none';
     let legacyBanner = gcCard.querySelector('.lb-legacy-banner');
     if (isLegacyGroup) {
       if (!legacyBanner) { legacyBanner = document.createElement('div'); legacyBanner.className = 'lb-legacy-banner'; gcCard.appendChild(legacyBanner); }
