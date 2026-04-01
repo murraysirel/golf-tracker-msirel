@@ -157,9 +157,12 @@ export function renderLeaderboard() {
   const isInGroup = !!group;
   const isAdmin = isInGroup && group.admin_id === state.me;
 
-  // Header
+  // Header — show league name prominently
   const titleEl = document.getElementById('lb-tab-title');
-  if (titleEl) titleEl.textContent = 'The board';
+  if (titleEl) {
+    const activeMeta = state.gd.groupMeta?.[state.gd.activeGroupCode];
+    titleEl.textContent = (isInGroup && activeMeta?.name) ? activeMeta.name : 'The board';
+  }
   const gearBtn = document.getElementById('lb-settings-btn');
   if (gearBtn) {
     gearBtn.style.display = isAdmin ? 'inline-flex' : 'none';
@@ -232,6 +235,32 @@ export function renderLeaderboard() {
   if (state.gd.activeGroupCode) {
     const gcEl = document.getElementById('lb-group-code');
     if (gcEl) gcEl.textContent = state.gd.activeGroupCode;
+  }
+
+  // ── Group code card at bottom ──
+  const gcBottom = document.getElementById('lb-group-code-bottom');
+  if (gcBottom && isInGroup && state.gd.activeGroupCode) {
+    const code = state.gd.activeGroupCode;
+    const activeMeta = state.gd.groupMeta?.[code];
+    const leagueName = activeMeta?.name || code;
+    gcBottom.innerHTML = `<div style="margin:0 16px 14px;background:var(--mid);border:1px solid var(--border);border-radius:12px;padding:14px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:10px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--dim)">League code</div>
+        <div style="font-size:10px;color:var(--dimmer)">${leagueName}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="flex:1;font-size:18px;font-weight:700;letter-spacing:2px;color:var(--cream);font-family:'DM Sans',sans-serif">${code}</div>
+        <button id="lb-copy-code-btn" style="background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);border-radius:8px;padding:6px 12px;color:var(--gold);font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap">Copy</button>
+      </div>
+      <div style="font-size:10px;color:var(--dimmer);margin-top:8px;line-height:1.4">Share this code with friends so they can join your league</div>
+    </div>`;
+    document.getElementById('lb-copy-code-btn')?.addEventListener('click', () => {
+      navigator.clipboard?.writeText(code)
+        .then(() => { const b = document.getElementById('lb-copy-code-btn'); if (b) { b.textContent = 'Copied!'; setTimeout(() => { b.textContent = 'Copy'; }, 2000); } })
+        .catch(() => {});
+    });
+  } else if (gcBottom) {
+    gcBottom.innerHTML = '';
   }
 
   // ── Season selector (populate hidden select for filterRounds) ──
