@@ -6,7 +6,7 @@
 
   /* ── Logo data URIs ──────────────────────────────────────────── */
   --logo-filled: url("/assets/looper-logo.png");
-  --navy:#0a1628;--mid:#111e35;--card:#16273d;--border:#1e3358;
+  --navy:#0b1520;--mid:#121e30;--card:#182538;--border:#1e3252;
   --gold:#c9a84c;--gold2:#e8c96a;--pale:#f5e6b8;
   --cream:#f0e8d0;--dim:#8899bb;--dimmer:#4a5a7a;
   --birdie:#3498db;--par:#2ecc71;--bogey:#e67e22;--double:#e74c3c;--eagle:#f1c40f;
@@ -707,23 +707,34 @@ details[open] summary::after{content:' ▾'}
 }
 #splash-screen.fade-out{opacity:0;pointer-events:none}
 
-/* Title + tagline — appear above ball after it stops */
-#splash-text{
-  position:absolute;top:30%;left:50%;
+/* Brand stack — mascot → wordmark → rule → tagline, centred */
+#splash-brand{
+  position:absolute;top:0;left:50%;
   transform:translateX(-50%);
   text-align:center;white-space:nowrap;
+  padding-top:15vh;
   opacity:0;
   animation:splashTextIn .4s ease 1.4s forwards;
 }
+#splash-mascot{
+  width:160px;height:160px;margin:0 auto 20px;
+  border-radius:50%;overflow:hidden;
+}
+#splash-mascot img{width:100%;height:100%;object-fit:cover}
 #splash-app-name{
   font-family:'Cormorant Garamond',serif;
-  font-size:clamp(40px,12vw,64px);font-weight:700;
-  color:var(--gold);letter-spacing:2px;line-height:1.1;
+  font-size:clamp(48px,14vw,64px);font-weight:400;
+  color:var(--cream);letter-spacing:6px;line-height:1.1;
+}
+#splash-rule{
+  width:60px;height:1px;background:var(--gold);opacity:.6;
+  margin:14px auto;
 }
 #splash-tagline{
-  font-family:'DM Sans',sans-serif;
-  font-size:clamp(13px,3.5vw,17px);
-  color:var(--dim);letter-spacing:1px;margin-top:6px;
+  font-family:'Cormorant Garamond',serif;
+  font-style:italic;
+  font-size:16px;
+  color:var(--gold);letter-spacing:1px;
 }
 
 /* Ball outer — translates left→centre, carries shadow + inner ball */
@@ -821,7 +832,7 @@ details[open] summary::after{content:' ▾'}
 @media(prefers-reduced-motion:reduce){
   #splash-ball-track{animation:none;transform:translateX(calc(50vw - 48px))}
   #splash-ball-inner{animation:none;transform:rotate(0deg)}
-  #splash-text{animation:none;opacity:1}
+  #splash-text,#splash-brand{animation:none;opacity:1}
 }
 
 /* ── Scorecard history bottom sheet ──────────────────────────── */
