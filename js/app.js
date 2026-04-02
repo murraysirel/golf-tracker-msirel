@@ -508,12 +508,14 @@ document.querySelectorAll('.live-gps-tap').forEach(el => {
   el.addEventListener('click', () => {
     document.querySelectorAll('.live-gps-tap').forEach(e => {
       e.classList.remove('active-gps');
-      e.style.background = '';
-      e.querySelector('div')?.style && (e.querySelector('div').style.color = 'var(--cream)');
+      // Reset distance text colour based on position
+      const distEl = e.querySelector('[id^="live-dist-"]');
+      if (distEl) { distEl.style.fontSize = e.dataset.target === 'mid' ? '22px' : '16px'; distEl.style.color = 'var(--dim)'; distEl.style.fontWeight = '600'; }
     });
     el.classList.add('active-gps');
-    el.style.background = 'rgba(201,168,76,.15)';
-    el.querySelector('div').style.color = 'var(--gold)';
+    // Highlight selected distance
+    const distEl = el.querySelector('[id^="live-dist-"]');
+    if (distEl) { distEl.style.fontSize = '22px'; distEl.style.color = 'var(--cream)'; distEl.style.fontWeight = '700'; }
     state.gpsState.target = el.dataset.target;
   });
 });
