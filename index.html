@@ -789,9 +789,9 @@
         </div>
 
         <!-- GPS card — green illustration with distances -->
-        <div style="margin:0 16px 10px;background:var(--mid);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:10px">
+        <div style="margin:0 16px 10px;background:var(--mid);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:0;position:relative;overflow:hidden">
           <!-- Left: stacked distances -->
-          <div style="display:flex;flex-direction:column;gap:8px;min-width:68px">
+          <div style="display:flex;flex-direction:column;justify-content:space-between;min-width:72px;height:114px;position:relative;z-index:2">
             <div class="live-gps-tap" data-target="back" style="cursor:pointer;padding:2px 0">
               <div style="font-size:9px;color:var(--dimmer);text-transform:uppercase;letter-spacing:.8px">back</div>
               <div style="display:flex;align-items:baseline;gap:3px"><span id="live-dist-back" style="font-size:16px;font-weight:600;color:var(--dim)">—</span><span style="font-size:9px;color:var(--dimmer)">yds</span></div>
@@ -805,23 +805,23 @@
               <div style="display:flex;align-items:baseline;gap:3px"><span id="live-dist-front" style="font-size:16px;font-weight:600;color:var(--dim)">—</span><span style="font-size:9px;color:var(--dimmer)">yds</span></div>
             </div>
           </div>
-          <!-- Right: green SVG illustration -->
-          <div style="flex:1;display:flex;justify-content:center">
-            <svg viewBox="0 0 96 114" width="96" height="114" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+          <!-- Right: green SVG with overflow-visible dashed lines reaching left -->
+          <div style="flex:1;display:flex;justify-content:flex-end">
+            <svg viewBox="0 0 96 114" width="96" height="114" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;overflow:visible">
+              <!-- Dashed connecting lines — extend left past SVG edge into the number area -->
+              <line x1="-90" y1="16" x2="54" y2="16" stroke="#c9a84c" stroke-width=".9" stroke-dasharray="3,3" opacity=".35"/>
+              <line x1="-90" y1="57" x2="52" y2="57" stroke="#c9a84c" stroke-width=".9" stroke-dasharray="3,3" opacity=".35"/>
+              <line x1="-90" y1="97" x2="48" y2="97" stroke="#c9a84c" stroke-width=".9" stroke-dasharray="3,3" opacity=".35"/>
               <!-- Green shape -->
               <path d="M62 8C80 6,90 18,88 32C87 42,92 50,90 60C88 72,84 82,78 90C72 98,62 104,54 102C44 100,40 96,38 90C34 82,36 74,34 66C32 56,28 50,30 40C32 28,38 14,50 10C54 8,58 8,62 8Z" fill="#1a6b3a" stroke="#2d8a50" stroke-width="1.5"/>
               <!-- Inner lighter green -->
               <path d="M62 16C76 14,82 24,80 34C79 42,83 49,82 58C80 68,77 76,72 82C67 88,60 92,54 91C46 89,44 86,42 82C39 76,40 70,39 64C37 56,34 50,36 42C38 32,42 22,52 18C55 16,59 16,62 16Z" fill="#1e7a42"/>
               <!-- Fringe -->
-              <path d="M62 8C80 6,90 18,88 32C87 42,92 50,90 60C88 72,84 82,78 90C72 98,62 104,54 102C44 100,40 96,38 90C34 82,36 74,34 66C32 56,28 50,30 40C32 28,38 14,50 10C54 8,58 8,62 8Z" fill="none" stroke="rgba(46,204,113,.2)" stroke-width="3"/>
+              <path d="M62 8C80 6,90 18,88 32C87 42,92 50,90 60C88 72,84 82,78 90C72 98,62 104,54 102C44 100,40 96,38 90C34 82,36 74,34 66C32 56,28 50,30 40C32 28,38 14,50 10C54 8,58 8,62 8Z" fill="none" stroke="rgba(46,204,113,.15)" stroke-width="3"/>
               <!-- Pin stick -->
               <line x1="60" y1="12" x2="60" y2="34" stroke="#e0e0e0" stroke-width="1.2"/>
               <!-- Flag -->
-              <path d="M60 12L72 17L60 22Z" fill="#e74c3c" opacity=".9"/>
-              <!-- Dashed connecting lines -->
-              <line x1="2" y1="16" x2="54" y2="16" stroke="#c9a84c" stroke-width=".9" stroke-dasharray="3,3" opacity=".5"/>
-              <line x1="2" y1="57" x2="52" y2="57" stroke="#c9a84c" stroke-width=".9" stroke-dasharray="3,3" opacity=".5"/>
-              <line x1="2" y1="97" x2="48" y2="97" stroke="#c9a84c" stroke-width=".9" stroke-dasharray="3,3" opacity=".5"/>
+              <path d="M60 12L72 17L60 22Z" fill="#e74c3c" opacity=".85"/>
               <!-- Back dot -->
               <circle cx="60" cy="16" r="4" fill="#c9a84c"/><circle cx="60" cy="16" r="1.8" fill="#fff"/>
               <!-- Middle dot (larger) -->

@@ -75,7 +75,7 @@ window.onunhandledrejection = function(event) {
   }
 };
 
-import { loadAppData, pushData, querySupabase, ss, retryUnsyncedRounds, retryUnsyncedData, updateUnsyncedBadge } from './api.js';
+import { loadAppData, pushData, querySupabase, ss, retryUnsyncedRounds, retryUnsyncedData, updateUnsyncedBadge, loadAllRounds } from './api.js';
 import { goTo, switchEntry, registerNavHandlers } from './nav.js';
 import { getCourseByRef, scanCourseCard, saveCourse, cancelCourseScan, handleCoursePhoto, searchCourseAPI, initCourseSearch, renderCountryPills, renderTeePills } from './courses.js';
 import { buildSC, recalc, saveRound, toggleSCExtras } from './scorecard.js';
@@ -150,6 +150,13 @@ registerNavHandlers({
       // Render competitions if comp tab is active
       const compSection = document.getElementById('round-comp-section');
       if (compSection && compSection.style.display !== 'none') renderMyCompetitions();
+    }
+    // Lazy-load full round history when entering stats or leaderboard
+    if ((page === 'stats' || page === 'leaderboard') && state._hasMoreRounds) {
+      loadAllRounds().then(() => {
+        if (page === 'stats') renderStats();
+        if (page === 'leaderboard') initLeaderboard();
+      }).catch(() => {});
     }
     // Retry any queued sync data on every page navigation
     retryUnsyncedData().catch(() => {});

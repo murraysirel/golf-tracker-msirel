@@ -86,10 +86,14 @@ exports.handler = async (event) => {
         };
       }
 
-      // Fetch players and ALL their rounds (no group_code filter on rounds).
+      // Fetch players and their rounds. Default: last 50 rounds per member (covers
+      // home stats, leaderboard, and recent history). Pass roundLimit=0 for full history.
+      const roundLimit = data?.roundLimit ?? 50;
+      let roundsQuery = supabase.from('rounds').select('*').in('player_name', memberNames).order('id', { ascending: false });
+      if (roundLimit > 0) roundsQuery = roundsQuery.limit(roundLimit * memberNames.length);
       const [playersRes, roundsRes, matchesRes] = await Promise.all([
         supabase.from('players').select('*').in('name', memberNames),
-        supabase.from('rounds').select('*').in('player_name', memberNames).order('id', { ascending: false }),
+        roundsQuery,
         supabase.from('active_matches').select('*').eq('group_code', groupCode).eq('status', 'active')
       ]);
 
@@ -100,14 +104,17 @@ exports.handler = async (event) => {
         .filter(n => !knownNames.has(n))
         .map(n => ({ id: null, name: n, email: null, group_code: null, handicap: 0, match_code: null }));
 
+      const fetchedRounds = roundsRes.data || [];
+      const maxExpected = roundLimit > 0 ? roundLimit * memberNames.length : 0;
       return {
         statusCode: 200, headers,
         body: JSON.stringify({
           players: [...(playersRes.data || []), ...syntheticPlayers],
-          rounds:  roundsRes.data  || [],
+          rounds:  fetchedRounds,
           matches: matchesRes.data || [],
           settings,
-          memberJoinDates
+          memberJoinDates,
+          hasMoreRounds: roundLimit > 0 && fetchedRounds.length >= maxExpected
         })
       };
     }

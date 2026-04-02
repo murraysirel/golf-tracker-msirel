@@ -179,7 +179,8 @@ export async function loadGroupData(groupCode) {
       body: JSON.stringify({ action: 'read', groupCode, requestingPlayer: state.me || '' })
     });
     if (!res.ok) throw new Error('Supabase read ' + res.status);
-    const { players, rounds, settings, memberJoinDates } = await res.json();
+    const { players, rounds, settings, memberJoinDates, hasMoreRounds } = await res.json();
+    state._hasMoreRounds = !!hasMoreRounds;
 
     const unsynced = localStorage.getItem('rr_unsynced_rounds');
     const s0 = settings || {};
@@ -245,6 +246,33 @@ export async function loadGroupData(groupCode) {
     }
     ss('warn', 'Using cached data');
     return false;
+  }
+}
+
+// Load full round history when needed (stats, leaderboard deep analysis)
+export async function loadAllRounds() {
+  if (!state._hasMoreRounds) return; // already have everything
+  const groupCode = state.gd?.activeGroupCode;
+  if (!groupCode) return;
+  try {
+    const res = await fetch('/.netlify/functions/supabase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'read', groupCode, requestingPlayer: state.me || '', data: { roundLimit: 0 } })
+    });
+    if (!res.ok) return;
+    const { rounds } = await res.json();
+    if (!rounds?.length) return;
+    // Rebuild rounds arrays from the full dataset
+    Object.values(state.gd.players || {}).forEach(p => { p.rounds = []; });
+    rounds.forEach(r => {
+      const pl = state.gd.players?.[r.player_name];
+      if (pl) pl.rounds.push(supabaseRoundToApp(r));
+    });
+    state._hasMoreRounds = false;
+    localStorage.setItem('gt_localdata', JSON.stringify(state.gd));
+  } catch (e) {
+    console.warn('[loadAllRounds] failed:', e.message);
   }
 }
 
