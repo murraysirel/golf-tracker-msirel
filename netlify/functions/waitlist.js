@@ -72,6 +72,7 @@ async function sendConfirmationEmail(email, name, isFounder, signupNumber) {
 
   const payload = JSON.stringify({
     from: 'Looper <hello@loopercaddie.com>',
+    reply_to: 'admin@loopercaddie.com',
     to: email,
     subject: "You're on the Looper waitlist",
     html: `
@@ -93,6 +94,9 @@ async function sendConfirmationEmail(email, name, isFounder, signupNumber) {
         </p>
         <p style="margin-top:32px;color:#8899BB;font-size:13px;">
           — Murray, founder of Looper
+        </p>
+        <p style="margin-top:16px;color:#4a5a7a;font-size:11px;">
+          Please don't reply to this email. If you need to get in touch, email us at <a href="mailto:admin@loopercaddie.com" style="color:#C9A84C;">admin@loopercaddie.com</a>
         </p>
       </div>
     `
