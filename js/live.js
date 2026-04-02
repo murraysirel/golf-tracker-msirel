@@ -1286,8 +1286,8 @@ async function liveGroupSave() {
     });
   });
 
-  // Show match context sheet for players outside this round (non-blocking)
-  if (_meRoundId != null) {
+  // Show match context sheet ONLY for solo rounds — group rounds already have players assigned
+  if (_meRoundId != null && _groupPlayers.length <= 1) {
     const _otherPlayers = Object.keys(state.gd.players).filter(p => !_groupPlayers.includes(p));
     if (_otherPlayers.length > 0) {
       import('./players.js').then(({ showMatchContextSheet }) => showMatchContextSheet(_me, _meRoundId)).catch(() => {});

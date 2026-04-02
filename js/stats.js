@@ -662,8 +662,8 @@ export function renderHomeStats() {
   const hdrMeta = document.getElementById('hdr-meta');
   if (hdrMeta) hdrMeta.textContent = `HCP ${hcpVal} \u00B7 ${seasonRounds.length} round${seasonRounds.length !== 1 ? 's' : ''} this season`;
 
-  // ── Sorted rounds, last 5 ────────────────────────────────────
-  const sorted = [...rs].sort((a, b) => parseDateGB(a.date) - parseDateGB(b.date));
+  // ── Sorted rounds, last 5 (tiebreak by ID so most recently entered wins) ──
+  const sorted = [...rs].sort((a, b) => parseDateGB(a.date) - parseDateGB(b.date) || (a.id || 0) - (b.id || 0));
   const last5 = sorted.slice(-5);
 
   // ── Raw GIR/FIR helpers ──────────────────────────────────────
@@ -684,12 +684,15 @@ export function renderHomeStats() {
     const last10 = sorted.slice(-5);
     const prev10 = sorted.slice(-10, -5);
 
+    const _upArrow = '<svg width="10" height="10" viewBox="0 0 10 10" style="vertical-align:middle"><path d="M5 1L9 6H1Z" fill="currentColor"/></svg>';
+    const _dnArrow = '<svg width="10" height="10" viewBox="0 0 10 10" style="vertical-align:middle"><path d="M5 9L1 4H9Z" fill="currentColor"/></svg>';
     function deltaStr(cur, prev, inverted) {
       if (cur === null || prev === null) return '';
       const d = cur - prev;
-      if (Math.abs(d) < 0.1) return '<span style="color:var(--dim)">--</span>';
+      if (Math.abs(d) < 0.1) return '<span style="color:var(--dim)">—</span>';
       const good = inverted ? d < 0 : d > 0;
-      return `<span class="${good ? 'delta-up' : 'delta-dn'}">${good ? (inverted ? '' : '+') : ''}${d.toFixed(1)}</span>`;
+      const arrow = good ? _upArrow : _dnArrow;
+      return `<span class="${good ? 'delta-up' : 'delta-dn'}">${arrow} ${Math.abs(d).toFixed(1)}</span>`;
     }
 
     function avgPuttsPerHole(rounds) {
