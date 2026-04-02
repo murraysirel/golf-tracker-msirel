@@ -51,7 +51,24 @@ function renderPracticeRecs() {
 
 function renderPracticeHistory() {
   const p = state.gd.players[state.me];
-  const sessions = p?.practiceSessions || [];
+  let sessions = p?.practiceSessions || [];
+
+  // Auto-clear sessions older than 90 days
+  const now = Date.now();
+  const NINETY_DAYS = 90 * 24 * 60 * 60 * 1000;
+  const before = sessions.length;
+  sessions = sessions.filter(s => {
+    if (!s.date) return true;
+    const parts = s.date.split('/');
+    if (parts.length !== 3) return true;
+    const d = new Date(parts[2], parts[1] - 1, parts[0]);
+    return (now - d.getTime()) < NINETY_DAYS;
+  });
+  if (sessions.length !== before && p) {
+    p.practiceSessions = sessions;
+    import('./api.js').then(m => { m.pushData(); m.querySupabase('savePracticeSessions', { playerName: state.me, sessions }); }).catch(() => {});
+  }
+
   const card = document.getElementById('c-practice-history');
   const list = document.getElementById('practice-history-list');
   if (!card || !list) return;

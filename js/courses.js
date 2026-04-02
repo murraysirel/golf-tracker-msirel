@@ -110,6 +110,8 @@ export function renderCountryPills() {
       if (sel) sel.value = _activeCountry;
       // Re-render pills
       strip.querySelectorAll('.country-pill').forEach(p => p.classList.toggle('active', p.dataset.country === _activeCountry));
+      // Clear any pre-selected course when country changes
+      if (_selectedCourse) clearCourseSelection();
       // Re-trigger search if there's text
       const q = document.getElementById('cs-input')?.value?.trim();
       if (q && q.length >= 2) {

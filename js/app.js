@@ -714,6 +714,8 @@ function showPlayerSelectScreen() {
 
   screen.classList.add('visible');
   screen.scrollTop = 0;
+  // Also scroll the parent container to top so overlay isn't offset
+  document.getElementById('app-scroll')?.scrollTo(0, 0);
   _renderPsChips();
   _renderPsSourceSlider();
   _renderPsPanel();

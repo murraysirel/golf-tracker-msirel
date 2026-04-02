@@ -681,8 +681,8 @@ export function renderHomeStats() {
   // ── Pulse stats row (customisable KPIs) ───────────────────────
   const pulseEl = document.getElementById('home-pulse');
   if (pulseEl) {
-    const last10 = sorted.slice(-10);
-    const prev10 = sorted.slice(-20, -10);
+    const last10 = sorted.slice(-5);
+    const prev10 = sorted.slice(-10, -5);
 
     function deltaStr(cur, prev, inverted) {
       if (cur === null || prev === null) return '';
@@ -738,7 +738,7 @@ export function renderHomeStats() {
 
     const activeKpis = getHomeKpis();
 
-    let cellsHtml = '<div style="grid-column:1/-1;font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:-2px">Your stats</div>';
+    let cellsHtml = '<div style="grid-column:1/-1;font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:-2px">Your stats <span style="text-transform:none;letter-spacing:0;color:var(--dimmer)">· last 5 rounds</span></div>';
     activeKpis.forEach(kpiId => {
       const def = KPI_DEFS[kpiId];
       if (!def) return;
