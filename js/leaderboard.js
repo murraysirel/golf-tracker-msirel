@@ -7,7 +7,7 @@ import { getCourseByRef } from './courses.js';
 import { initials, avatarHtml } from './players.js';
 import { parseDateGB, calcStableford, isBufferOrBetter, calcScoringPointsNet } from './stats.js';
 import { pushData, querySupabase, loadGroupData } from './api.js';
-import { removeGroupFromList } from './group.js';
+import { removeGroupFromList, normaliseBoardIds } from './group.js';
 import { goTo } from './nav.js';
 
 let _emptyState = null;
@@ -23,16 +23,23 @@ let _filterRoundsFn = null;  // cached filterRounds closure
 
 // View definitions: label, sort fn, metric value/label/unit, bar colour
 const VIEWS = [
-  { id: 'stableford',     label: 'Stableford',     field: 'avgStab',      unit: 'pts avg',       sort: (a,b) => (b.avgStab ?? -1) - (a.avgStab ?? -1),         barCol: 'rgba(201,168,76,0.7)',  higherBetter: true },
-  { id: 'net_score',      label: 'Net score',       field: 'avgNet',       unit: 'avg net',       sort: (a,b) => (a.avgNet ?? 999) - (b.avgNet ?? 999),         barCol: 'rgba(201,168,76,0.7)',  higherBetter: false },
-  { id: 'birdies',        label: 'Birdies',         field: 'birdies',      unit: 'total',         sort: (a,b) => b.birdies - a.birdies,                          barCol: 'rgba(52,152,219,0.7)',  higherBetter: true },
-  { id: 'buffer',         label: 'Buffer+',         field: 'bufferCount',  unit: 'rounds',        sort: (a,b) => (b.bufferCount ?? -1) - (a.bufferCount ?? -1), barCol: 'rgba(46,204,113,0.7)',  higherBetter: true },
-  { id: 'pts_scoring',    label: 'Pts scoring',     field: 'pts',          unit: 'pts total',     sort: (a,b) => b.pts - a.pts,                                  barCol: 'rgba(201,168,76,0.7)',  higherBetter: true },
-  { id: 'best_round',     label: 'Best round',      field: 'best',         unit: 'gross',         sort: (a,b) => (a.best ?? 999) - (b.best ?? 999),             barCol: 'rgba(201,168,76,0.7)',  higherBetter: false },
-  { id: 'fewest_doubles', label: 'Fewest doubles',  field: 'avgDoubles',   unit: 'per round',     sort: (a,b) => (a.avgDoubles ?? 99) - (b.avgDoubles ?? 99),   barCol: 'rgba(231,76,60,0.5)',   higherBetter: false, invertBar: true },
-  { id: 'net_birdies',    label: 'Net birdies',     field: 'netPts',       unit: 'net pts',       sort: (a,b) => (b.netPts ?? -1) - (a.netPts ?? -1),           barCol: 'rgba(52,152,219,0.7)',  higherBetter: true },
-  { id: 'most_birdies',   label: 'Most birdies',    field: 'bestBirdies',  unit: 'in a round',    sort: (a,b) => (b.bestBirdies ?? -1) - (a.bestBirdies ?? -1), barCol: 'rgba(52,152,219,0.7)',  higherBetter: true },
+  { id: 'stableford',        label: 'Stableford',        field: 'avgStab',         unit: 'pts avg',    sort: (a,b) => (b.avgStab ?? -1) - (a.avgStab ?? -1),                 barCol: 'rgba(201,168,76,0.7)',  higherBetter: true },
+  { id: 'net_score',         label: 'Net score',          field: 'avgNet',          unit: 'avg net',    sort: (a,b) => (a.avgNet ?? 999) - (b.avgNet ?? 999),                 barCol: 'rgba(201,168,76,0.7)',  higherBetter: false },
+  { id: 'buffer',            label: 'Buffer+',            field: 'bufferCount',     unit: 'rounds',     sort: (a,b) => (b.bufferCount ?? -1) - (a.bufferCount ?? -1),         barCol: 'rgba(46,204,113,0.7)',  higherBetter: true },
+  { id: 'pts_scoring',       label: 'Pts scoring',        field: 'netPts',          unit: 'net pts',    sort: (a,b) => (b.netPts ?? -1) - (a.netPts ?? -1),                   barCol: 'rgba(201,168,76,0.7)',  higherBetter: true },
+  { id: 'best_round',        label: 'Best round',         field: 'best',            unit: 'gross',      sort: (a,b) => (a.best ?? 999) - (b.best ?? 999),                     barCol: 'rgba(201,168,76,0.7)',  higherBetter: false },
+  { id: 'fewest_doubles',    label: 'Fewest doubles',     field: 'avgDoubles',      unit: 'per round',  sort: (a,b) => (a.avgDoubles ?? 99) - (b.avgDoubles ?? 99),           barCol: 'rgba(231,76,60,0.5)',   higherBetter: false, invertBar: true },
+  { id: 'most_birdies',      label: 'Most birdies',       field: 'bestBirdies',     unit: 'in a round', sort: (a,b) => (b.bestBirdies ?? -1) - (a.bestBirdies ?? -1),         barCol: 'rgba(52,152,219,0.7)',  higherBetter: true },
+  { id: 'most_net_birdies',  label: 'Most net birdies',   field: 'bestNetBirdies',  unit: 'in a round', sort: (a,b) => (b.bestNetBirdies ?? -1) - (a.bestNetBirdies ?? -1),   barCol: 'rgba(52,152,219,0.7)',  higherBetter: true },
 ];
+// Hidden views (code kept for backward compat / future re-enable)
+// { id: 'birdies',     label: 'Birdies',     field: 'birdies',  unit: 'total',    sort: (a,b) => b.birdies - a.birdies,             barCol: 'rgba(52,152,219,0.7)',  higherBetter: true },
+// { id: 'net_birdies', label: 'Net birdies', field: 'netPts',   unit: 'net pts',  sort: (a,b) => (b.netPts ?? -1) - (a.netPts ?? -1), barCol: 'rgba(52,152,219,0.7)',  higherBetter: true },
+
+const VIEW_EXPLAINERS = {
+  pts_scoring: '3 points for a net eagle · 1 point for a net birdie',
+  net_score: 'Your best net score of the season counts',
+};
 
 // ── Fetch group membership + config, then render ─────────────────
 export async function initLeaderboard() {
@@ -327,12 +334,12 @@ export function renderLeaderboard() {
     const avgStab = stabTotals.length ? +(stabTotals.reduce((a, b) => a + b, 0) / stabTotals.length).toFixed(1) : null;
 
     const netPtsRounds = rs.filter(r => r.scores && r.pars);
-    let netPtsTotal = 0, netPtsEagles = 0, netPtsBirdies = 0;
+    let netPtsTotal = 0, netPtsEagles = 0, netPtsBirdies = 0, bestNetBirdies = 0;
     netPtsRounds.forEach(r => {
       const course = getCourseByRef(r.course) || Object.values(COURSES || []).find(c => c.name === r.course);
       const si = course?.tees?.[r.tee]?.si || null;
       const res = calcScoringPointsNet(r.scores, r.pars, handicap, r.slope, si);
-      if (res) { netPtsTotal += res.total; netPtsEagles += res.netEagles; netPtsBirdies += res.netBirdies; }
+      if (res) { netPtsTotal += res.total; netPtsEagles += res.netEagles; netPtsBirdies += res.netBirdies; if (res.netBirdies > bestNetBirdies) bestNetBirdies = res.netBirdies; }
     });
     const netPts = netPtsRounds.length ? netPtsTotal : null;
 
@@ -357,17 +364,23 @@ export function renderLeaderboard() {
       avgDiff: diffs.length ? +(diffs.reduce((a, b) => a + b, 0) / diffs.length).toFixed(1) : null,
       birdies, eagles, doubles, pts, avgDoubles,
       avgStab, stabCount: stabTotals.length,
-      netPts, netPtsEagles, netPtsBirdies,
+      netPts, netPtsEagles, netPtsBirdies, bestNetBirdies,
       avgNet, netCount: netScores.length,
       bufferCount, bestBirdies
     };
   }).filter(Boolean);
 
-  // ── Render view pills ──────────────────────────────────────────
+  // ── Render view pills (ordered by admin's active_boards) ───────
   const pillsEl = document.getElementById('lb-view-pills');
   if (pillsEl) {
     pillsEl.innerHTML = '';
-    VIEWS.forEach(v => {
+    const activeOrder = normaliseBoardIds(state.gd.group?.active_boards);
+    const orderedViews = activeOrder.map(id => VIEWS.find(v => v.id === id)).filter(Boolean);
+    // If no admin config, show all views
+    const viewsToShow = orderedViews.length ? orderedViews : VIEWS;
+    // Ensure active view is valid
+    if (!viewsToShow.find(v => v.id === _activeView)) _activeView = viewsToShow[0]?.id || 'stableford';
+    viewsToShow.forEach(v => {
       const pill = document.createElement('button');
       pill.className = 'lb-vpill' + (v.id === _activeView ? ' active' : '');
       pill.dataset.view = v.id;
@@ -440,6 +453,12 @@ function renderViewContent() {
           <div style="width:100%;height:${ht}px;border-radius:6px 6px 0 0;${blockBg};display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700">${pos + 1}</div>
         </div>`;
       }).join('') + '</div>';
+  }
+
+  // ── View explainer (between podium and list) ───────────────────
+  const explainer = VIEW_EXPLAINERS[view.id];
+  if (explainer && podiumEl) {
+    podiumEl.innerHTML += `<div style="font-size:11px;color:var(--dim);text-align:center;padding:6px 0 2px">${explainer}</div>`;
   }
 
   // ── 1d. Remaining players list (4th+) ──────────────────────────
@@ -540,6 +559,13 @@ function renderBoardLeaders() {
 function renderH2H(filterRounds) {
   const el = document.getElementById('lb-h2h');
   if (!el) return;
+  // Restore collapsed state
+  const body = document.getElementById('h2h-body');
+  const chev = document.getElementById('h2h-chevron');
+  if (body && localStorage.getItem('looper_h2h_collapsed') === 'true') {
+    body.style.display = 'none';
+    if (chev) chev.style.transform = 'rotate(-90deg)';
+  }
   el.innerHTML = '';
 
   const playerNames = Object.keys(state.gd.players);

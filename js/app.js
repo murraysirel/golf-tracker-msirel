@@ -184,6 +184,17 @@ document.getElementById('nb-practice')?.addEventListener('click', () => goTo('pr
 // ── Feed back button ─────────────────────────────────────────────
 document.getElementById('feed-back-btn')?.addEventListener('click', () => goTo('home'));
 
+// ── H2H collapsible toggle ───────────────────────────────────────
+document.getElementById('h2h-toggle')?.addEventListener('click', () => {
+  const body = document.getElementById('h2h-body');
+  const chev = document.getElementById('h2h-chevron');
+  if (!body) return;
+  const collapsed = body.style.display !== 'none';
+  body.style.display = collapsed ? 'none' : 'block';
+  if (chev) chev.style.transform = collapsed ? 'rotate(-90deg)' : '';
+  localStorage.setItem('looper_h2h_collapsed', collapsed ? 'true' : 'false');
+});
+
 // ── Profile panel ─────────────────────────────────────────────────
 function openProfilePanel() {
   refreshAvatarUI();

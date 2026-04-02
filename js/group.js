@@ -159,16 +159,28 @@ export function generateGroupCode() {
 // ── Create group flow ─────────────────────────────────────────────
 
 const CREATE_BOARDS = [
-  { id: 'season',         name: 'Season Leaderboard',     desc: 'Overall standings across the full season' },
-  { id: 'stableford',     name: 'Avg Stableford',         desc: 'Average Stableford points per round' },
-  { id: 'net_score',      name: 'Avg Net Score',          desc: 'Average net score relative to par' },
-  { id: 'scoring_gross',  name: 'Scoring Points (Gross)', desc: 'Cumulative gross scoring points' },
-  { id: 'scoring_net',    name: 'Scoring Points (Net)',   desc: 'Cumulative net scoring points' },
-  { id: 'best_gross',     name: 'Best Round (Gross)',     desc: 'Best gross score of the season' },
-  { id: 'best_net',       name: 'Best Round (Net)',       desc: 'Best net score of the season' },
-  { id: 'buffer',         name: 'Buffer or Better',       desc: 'Rounds played at handicap buffer or better' },
-  { id: 'fewest_doubles', name: 'Fewest Doubles+',        desc: 'Lowest average double bogeys per round' },
+  { id: 'stableford',       name: 'Avg Stableford',       desc: 'Average Stableford points per round' },
+  { id: 'net_score',        name: 'Avg Net Score',         desc: 'Average net score relative to par' },
+  { id: 'buffer',           name: 'Buffer or Better',      desc: 'Rounds played at handicap buffer or better' },
+  { id: 'pts_scoring',      name: 'Pts Scoring (Net)',     desc: '3 pts for net eagle, 1 pt for net birdie' },
+  { id: 'best_round',       name: 'Best Round (Gross)',    desc: 'Best gross score of the season' },
+  { id: 'fewest_doubles',   name: 'Fewest Doubles+',      desc: 'Lowest average double bogeys per round' },
+  { id: 'most_birdies',     name: 'Most Birdies',         desc: 'Most birdies in a single round' },
+  { id: 'most_net_birdies', name: 'Most Net Birdies',     desc: 'Most net birdies in a single round' },
 ];
+
+// Map old board IDs from existing groups to new VIEWS IDs
+const BOARD_ID_MAP = {
+  season: 'stableford', scoring_gross: 'pts_scoring', scoring_net: 'pts_scoring',
+  best_gross: 'best_round', best_net: 'net_score',
+};
+function normaliseBoardIds(ids) {
+  if (!ids?.length) return CREATE_BOARDS.map(b => b.id);
+  const mapped = ids.map(id => BOARD_ID_MAP[id] || id);
+  // Deduplicate while preserving order
+  return [...new Set(mapped)].filter(id => CREATE_BOARDS.some(b => b.id === id));
+}
+export { normaliseBoardIds };
 
 let _pendingGroupName = '';
 let _selectedBoards = new Set();
@@ -565,7 +577,8 @@ export async function initGroupSettings() {
   const group = state.gd.group;
   if (!group || group.admin_id !== state.me) return;
   _settingsGroup = group;
-  _settingsActiveBoards = new Set(group.active_boards || CREATE_BOARDS.map(b => b.id));
+  const normalised = normaliseBoardIds(group.active_boards);
+  _settingsActiveBoards = new Set(normalised);
 
   // Start member fetch in background while rendering static sections
   const membersFetch = querySupabase('getGroupMembers', { groupId: group.id });
@@ -625,14 +638,26 @@ export async function saveGroupName() {
 
 // ── Section 2: Active Boards ──────────────────────────────────────
 
+// Track board order (separate from active set)
+let _boardOrder = [];
+
 function _renderGSBoardsSection() {
   const list = document.getElementById('gs-boards-list');
   if (!list) return;
-  list.innerHTML = CREATE_BOARDS.map((b, i) => {
+  // Init order from active_boards or default CREATE_BOARDS order
+  if (!_boardOrder.length) _boardOrder = normaliseBoardIds(_settingsGroup?.active_boards);
+  // Ensure all CREATE_BOARDS are represented
+  CREATE_BOARDS.forEach(b => { if (!_boardOrder.includes(b.id)) _boardOrder.push(b.id); });
+
+  const orderedBoards = _boardOrder.map(id => CREATE_BOARDS.find(b => b.id === id)).filter(Boolean);
+
+  list.innerHTML = orderedBoards.map((b, i) => {
     const active = _settingsActiveBoards.has(b.id);
-    return '<div class="gs-board-row" data-id="' + b.id + '" style="display:flex;align-items:center;gap:12px;padding:14px 16px;' +
-      (i < CREATE_BOARDS.length - 1 ? 'border-bottom:1px solid var(--border);' : '') +
-      'cursor:pointer;-webkit-tap-highlight-color:transparent">' +
+    return '<div class="gs-board-row" data-id="' + b.id + '" data-idx="' + i + '" style="display:flex;align-items:center;gap:10px;padding:14px 16px;' +
+      (i < orderedBoards.length - 1 ? 'border-bottom:1px solid var(--border);' : '') +
+      'cursor:pointer;-webkit-tap-highlight-color:transparent;position:relative">' +
+      '<div class="gs-grip" style="display:flex;flex-direction:column;gap:2px;padding:4px 2px;cursor:grab;touch-action:none;flex-shrink:0;color:var(--dimmer)">' +
+      '<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><circle cx="3" cy="2" r="1.2"/><circle cx="9" cy="2" r="1.2"/><circle cx="3" cy="6" r="1.2"/><circle cx="9" cy="6" r="1.2"/><circle cx="3" cy="10" r="1.2"/><circle cx="9" cy="10" r="1.2"/></svg></div>' +
       '<div style="flex:1;min-width:0">' +
       '<div class="gs-board-name" style="font-size:14px;font-weight:600;color:' + (active ? 'var(--cream)' : 'var(--dim)') + ';font-family:\'DM Sans\',sans-serif">' + _esc(b.name) + '</div>' +
       '<div style="font-size:12px;color:var(--dim);margin-top:2px;font-family:\'DM Sans\',sans-serif">' + _esc(b.desc) + '</div>' +
@@ -641,8 +666,73 @@ function _renderGSBoardsSection() {
       '<div style="width:20px;height:20px;border-radius:50%;background:white;position:absolute;top:3px;' + (active ? 'right:3px;left:auto' : 'left:3px;right:auto') + ';transition:right .15s,left .15s;box-shadow:0 1px 3px rgba(0,0,0,.3)"></div>' +
       '</div></div>';
   }).join('');
-  list.querySelectorAll('.gs-board-row').forEach(row => {
-    row.addEventListener('click', () => _handleBoardToggle(row.dataset.id));
+
+  // Toggle click (on the pill area only)
+  list.querySelectorAll('.gs-pill').forEach(pill => {
+    pill.addEventListener('click', (e) => { e.stopPropagation(); _handleBoardToggle(pill.dataset.id); });
+  });
+
+  // Touch-based reorder on grip handles
+  _initBoardDragReorder(list);
+}
+
+function _initBoardDragReorder(list) {
+  let dragEl = null, startY = 0, startIdx = -1;
+  list.querySelectorAll('.gs-grip').forEach(grip => {
+    grip.addEventListener('touchstart', (e) => {
+      dragEl = grip.closest('.gs-board-row');
+      if (!dragEl) return;
+      startIdx = parseInt(dragEl.dataset.idx);
+      startY = e.touches[0].clientY;
+      dragEl.style.opacity = '0.7';
+      dragEl.style.transition = 'none';
+      dragEl.style.zIndex = '10';
+    }, { passive: true });
+  });
+  list.addEventListener('touchmove', (e) => {
+    if (!dragEl) return;
+    e.preventDefault();
+    const dy = e.touches[0].clientY - startY;
+    dragEl.style.transform = `translateY(${dy}px)`;
+    // Find swap target
+    const rows = [...list.querySelectorAll('.gs-board-row')];
+    const dragRect = dragEl.getBoundingClientRect();
+    const dragMid = dragRect.top + dragRect.height / 2;
+    for (const row of rows) {
+      if (row === dragEl) continue;
+      const rect = row.getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+      const idx = parseInt(row.dataset.idx);
+      if (dragMid < mid && idx < startIdx) {
+        // Swap up
+        const tmp = _boardOrder[startIdx];
+        _boardOrder.splice(startIdx, 1);
+        _boardOrder.splice(idx, 0, tmp);
+        _renderGSBoardsSection();
+        return;
+      }
+      if (dragMid > mid && idx > startIdx) {
+        // Swap down
+        const tmp = _boardOrder[startIdx];
+        _boardOrder.splice(startIdx, 1);
+        _boardOrder.splice(idx, 0, tmp);
+        _renderGSBoardsSection();
+        return;
+      }
+    }
+  }, { passive: false });
+  list.addEventListener('touchend', () => {
+    if (dragEl) {
+      dragEl.style.opacity = '';
+      dragEl.style.transition = '';
+      dragEl.style.transform = '';
+      dragEl.style.zIndex = '';
+      dragEl = null;
+      // Persist the new order (only active boards)
+      const activeOrdered = _boardOrder.filter(id => _settingsActiveBoards.has(id));
+      querySupabase('updateGroupBoards', { groupId: _settingsGroup.id, adminId: state.me, activeBoards: activeOrdered });
+      if (state.gd.group) state.gd.group.active_boards = activeOrdered;
+    }
   });
 }
 

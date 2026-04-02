@@ -1320,15 +1320,18 @@
       <!-- 1e. Stat spotlight card -->
       <div id="lb-spotlight" style="margin:8px 16px 10px"></div>
 
-      <!-- Head to Head -->
+      <!-- Head to Head (collapsible) -->
       <div class="card">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
+        <div id="h2h-toggle" style="display:flex;align-items:center;gap:12px;cursor:pointer;-webkit-tap-highlight-color:transparent">
           <div style="width:34px;height:34px;border-radius:9px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0">
             <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           </div>
-          <div><div style="font-size:14px;font-weight:500;color:var(--cream)">Head to Head</div><div style="font-size:10px;color:var(--dim)">Match records between players</div></div>
+          <div style="flex:1"><div style="font-size:14px;font-weight:500;color:var(--cream)">Head to Head</div><div style="font-size:10px;color:var(--dim)">Match records between players</div></div>
+          <span id="h2h-chevron" style="font-size:12px;color:var(--dimmer);transition:transform .2s">&#9662;</span>
         </div>
-        <div id="lb-h2h"></div>
+        <div id="h2h-body" style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.05)">
+          <div id="lb-h2h"></div>
+        </div>
       </div>
 
       <!-- Hidden containers for old board IDs (backward compat) -->
