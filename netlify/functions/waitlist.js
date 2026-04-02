@@ -64,6 +64,62 @@ async function getCount() {
   });
 }
 
+async function sendConfirmationEmail(email, name, isFounder, signupNumber) {
+  const firstName = name ? name.split(' ')[0] : 'there';
+  const founderLine = isFounder
+    ? `You're signup number ${signupNumber} — which means you're in the first 50. That means 6 months of Looper completely free when we launch.`
+    : `You're on the waitlist at number ${signupNumber}. We'll be in touch the moment we launch.`;
+
+  const payload = JSON.stringify({
+    from: 'Looper <hello@loopercaddie.com>',
+    to: email,
+    subject: "You're on the Looper waitlist",
+    html: `
+      <div style="background:#0A1628;padding:40px;font-family:sans-serif;color:#F0E8D0;">
+        <h1 style="color:#C9A84C;margin-bottom:8px;">LOOPER</h1>
+        <p style="color:#8899BB;margin-top:0;">Your caddie in your pocket</p>
+        <hr style="border-color:#1E3358;margin:24px 0;">
+        <p>Hi ${firstName},</p>
+        <p>${founderLine}</p>
+        <p>We're putting the finishing touches on Looper and will be in
+        touch very soon. Follow us on Instagram for updates as we get
+        closer to launch.</p>
+        <p style="margin-top:32px;">
+          <a href="https://instagram.com/loopercaddie"
+             style="background:#C9A84C;color:#0A1628;padding:12px 24px;
+             border-radius:8px;text-decoration:none;font-weight:bold;">
+            Follow @loopercaddie
+          </a>
+        </p>
+        <p style="margin-top:32px;color:#8899BB;font-size:13px;">
+          — Murray, founder of Looper
+        </p>
+      </div>
+    `
+  });
+
+  return new Promise((resolve) => {
+    const options = {
+      hostname: 'api.resend.com',
+      path: '/emails',
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload)
+      }
+    };
+    const req = https.request(options, res => {
+      let data = '';
+      res.on('data', c => data += c);
+      res.on('end', () => resolve(JSON.parse(data)));
+    });
+    req.on('error', () => resolve({ error: 'email failed' }));
+    req.write(payload);
+    req.end();
+  });
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS')
     return { statusCode: 204, headers: CORS };
@@ -98,6 +154,13 @@ exports.handler = async (event) => {
     };
 
     const result = await sbPost('waitlist', record);
+
+    await sendConfirmationEmail(
+      record.email,
+      record.name,
+      isFounder,
+      result[0]?.signup_number
+    );
 
     return {
       statusCode: 200,
