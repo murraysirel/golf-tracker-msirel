@@ -417,11 +417,11 @@ function renderViewContent() {
   // ── 1c. Podium ─────────────────────────────────────────────────
   if (podiumEl) {
     const top3 = qualified.slice(0, 3);
-    // Reorder: [2nd, 1st, 3rd] for visual podium
-    const ordered = top3.length >= 3 ? [top3[1], top3[0], top3[2]] : top3.length === 2 ? [top3[1], top3[0]] : [top3[0]];
-    const heights = [54, 74, 38];
-    const sizes = [34, 42, 34];
-    const positions = top3.length >= 3 ? [1, 0, 2] : top3.length === 2 ? [1, 0] : [0];
+    // Straight order: 1st → 2nd → 3rd, tallest to shortest
+    const ordered = top3;
+    const heights = [74, 54, 38];
+    const sizes = [42, 34, 34];
+    const positions = top3.map((_, i) => i);
 
     podiumEl.innerHTML = `<div style="display:flex;align-items:flex-end;gap:6px;justify-content:center">` +
       ordered.map((p, vi) => {
