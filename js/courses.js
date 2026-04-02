@@ -140,7 +140,9 @@ export function renderTeePills(course) {
     const colour = (t.colour || t.name || 'white').toLowerCase();
     const isActive = colour === state.stee;
     const textColor = TC_COLORS[colour] || 'var(--cream)';
-    return `<div class="tee-pill${isActive ? ' active' : ''}" data-tee="${colour}" style="color:${textColor}">
+    const needsShadow = colour === 'yellow' || colour === 'white';
+    const shadow = needsShadow ? 'text-shadow:0 0 3px rgba(0,0,0,.5),0 1px 2px rgba(0,0,0,.4);' : '';
+    return `<div class="tee-pill${isActive ? ' active' : ''}" data-tee="${colour}" style="color:${textColor};${shadow}">
       ${t.name || colour}
       ${t.yardage ? `<div style="font-size:8px;font-weight:500;color:var(--dim);margin-top:1px">${t.yardage}y</div>` : ''}
     </div>`;

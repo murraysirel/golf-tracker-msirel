@@ -635,9 +635,12 @@ document.getElementById('fmt-sixes')?.addEventListener('click', () => { setGameM
 document.getElementById('fmt-wolf')?.addEventListener('click', () => { setGameMode('wolf'); updateGroupMatchButtonVisibility(); });
 
 // ── Format slider (new UI) ───────────────────────────────────────
+// Track the visual slider index separately (stroke=0 and stableford=1 both map to gameMode 'stroke')
+let _formatSliderIdx = 1; // default: Stableford
 document.querySelectorAll('#format-slider .format-option').forEach(opt => {
   opt.addEventListener('click', () => {
     const idx = parseInt(opt.dataset.idx);
+    _formatSliderIdx = idx;
     const modeMap = { stroke:'stroke', stableford:'stroke', match:'match', wolf:'wolf', sixes:'sixes' };
     const mode = modeMap[opt.dataset.mode] || 'stroke';
     // Move glider
@@ -645,13 +648,15 @@ document.querySelectorAll('#format-slider .format-option').forEach(opt => {
     if (glider) glider.style.transform = `translateX(${idx * 100}%)`;
     // Update active class
     document.querySelectorAll('#format-slider .format-option').forEach(o => o.classList.toggle('active', o === opt));
-    // Show/hide wolf info button
-    const wolfInfo = document.getElementById('wolf-info-btn');
-    if (wolfInfo) wolfInfo.style.display = mode === 'wolf' ? 'inline-flex' : 'none';
+    // Show/hide game info button for wolf, sixes, match
+    const infoWrap = document.getElementById('game-info-btns');
+    if (infoWrap) infoWrap.style.display = (mode === 'wolf' || mode === 'sixes' || mode === 'match') ? 'block' : 'none';
     setGameMode(mode);
     updateGroupMatchButtonVisibility();
   });
 });
+// Expose for updateFormatUI to read
+window._formatSliderIdx = () => _formatSliderIdx;
 
 // ── Round tab: top tab switcher ───────────────────────────────────
 document.getElementById('round-tab-play')?.addEventListener('click', () => switchRoundTab('play'));

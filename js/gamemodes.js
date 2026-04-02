@@ -33,18 +33,20 @@ export function updateFormatUI() {
   if (matchHint) matchHint.style.display = isMatch ? 'block' : 'none';
   if (sixesHint) sixesHint.style.display = isSixes ? 'block' : 'none';
 
-  // Sync new format slider
-  const sliderModeMap = { stroke: 0, stableford: 1, match: 2, wolf: 3, sixes: 4 };
-  const modeKey = isWolf ? 'wolf' : isMatch ? 'match' : isSixes ? 'sixes' : 'stableford';
-  const idx = sliderModeMap[modeKey] ?? 1;
+  // Sync new format slider — for stroke mode, preserve user's visual choice (stroke vs stableford pill)
+  let idx;
+  if (isWolf) idx = 3;
+  else if (isMatch) idx = 2;
+  else if (isSixes) idx = 4;
+  else idx = (typeof window._formatSliderIdx === 'function') ? window._formatSliderIdx() : 1;
   const glider = document.getElementById('format-glider');
   if (glider) glider.style.transform = `translateX(${idx * 100}%)`;
   document.querySelectorAll('#format-slider .format-option').forEach(o => {
     o.classList.toggle('active', parseInt(o.dataset.idx) === idx);
   });
-  // Wolf info button visibility
-  const wolfInfo = document.getElementById('wolf-info-btn');
-  if (wolfInfo) wolfInfo.style.display = isWolf ? 'inline-flex' : 'none';
+  // Game info button visibility (wolf, sixes, match)
+  const infoWrap = document.getElementById('game-info-btns');
+  if (infoWrap) infoWrap.style.display = (isWolf || isSixes || isMatch) ? 'block' : 'none';
 }
 
 // ── State Init ────────────────────────────────────────────────────
