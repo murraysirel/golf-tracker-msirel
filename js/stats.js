@@ -630,6 +630,166 @@ function renderMatesFeed() {
   matesEl.appendChild(card);
 }
 
+// ── Activity feed page — full Strava-style feed ─────────────────
+export function renderFeedPage() {
+  const feedEl = document.getElementById('feed-list');
+  if (!feedEl) return;
+
+  const allPlayers = Object.entries(state.gd.players || {});
+  const today = new Date();
+  const currentYear = String(today.getFullYear());
+  const events = [];
+
+  // Look back 30 days for richer feed
+  const cutoffDate = new Date(today);
+  cutoffDate.setDate(cutoffDate.getDate() - 30);
+  const cutoffInt = cutoffDate.getFullYear() * 10000 + (cutoffDate.getMonth() + 1) * 100 + cutoffDate.getDate();
+
+  for (const [name, p] of allPlayers) {
+    const seasonRounds = (p.rounds || []).filter(r => r.date?.split('/')?.[2] === currentYear);
+    for (const r of seasonRounds) {
+      const rd = parseDateGB(r.date);
+      if (!rd || rd < cutoffInt) continue;
+
+      const dp = r.date?.split('/');
+      const realDate = dp?.length === 3 ? new Date(+dp[2], +dp[1] - 1, +dp[0]) : null;
+      const ago = realDate ? Math.floor((today - realDate) / 86400000) : 0;
+      const when = ago === 0 ? 'Today' : ago === 1 ? 'Yesterday' : ago + ' days ago';
+      const course = (r.course || '').replace(/ Golf Club| Golf Course| Golf Links/g, '');
+
+      // Round played — always show
+      const diff = r.diff;
+      const dv = diff === 0 ? 'E' : (diff > 0 ? '+' + diff : '' + diff);
+      const stab = calcStableford(r.scores, r.pars, p.handicap || 0, r.slope, null);
+      events.push({
+        ts: rd, id: r.id || 0, name, type: 'round',
+        text: `played ${course}`,
+        detail: `${r.totalScore} (${dv}) · ${stab ?? '—'} pts`,
+        when, course, round: r, player: p,
+        color: 'var(--cream)', badge: dv
+      });
+
+      // Eagles
+      if (r.eagles > 0) {
+        events.push({ ts: rd, id: r.id || 0, name, type: 'eagle',
+          text: `made ${r.eagles} eagle${r.eagles > 1 ? 's' : ''} at ${course}`,
+          when, color: 'var(--eagle)', badge: 'Eagle', round: r });
+      }
+      // Birdies (2+)
+      if (r.birdies >= 2) {
+        events.push({ ts: rd, id: r.id || 0, name, type: 'birdie',
+          text: `made ${r.birdies} birdies at ${course}`,
+          when, color: 'var(--birdie)', badge: `${r.birdies} Birdies`, round: r });
+      }
+      // Season-best net round
+      const netDiff = r.diff != null ? r.diff - Math.round((p.handicap || 0) * (r.slope || 113) / 113) : null;
+      if (netDiff != null) {
+        const otherNets = seasonRounds.filter(o => o !== r && o.diff != null).map(o =>
+          o.diff - Math.round((p.handicap || 0) * (o.slope || 113) / 113));
+        if (otherNets.length > 0 && netDiff < Math.min(...otherNets)) {
+          const fmtNet = netDiff === 0 ? 'level par net' : (netDiff > 0 ? '+' + netDiff : netDiff) + ' net';
+          events.push({ ts: rd, id: r.id || 0, name, type: 'pb',
+            text: `shot their season best (${fmtNet}) at ${course}`,
+            when, color: 'var(--gold)', badge: 'PB', round: r });
+        }
+      }
+      // Match play / Sixes / Wolf results
+      if (r.matchOutcome?.result || r.matchResult?.result) {
+        const result = r.matchOutcome?.result || r.matchResult?.result;
+        events.push({ ts: rd, id: r.id || 0, name, type: 'match',
+          text: `${result} at ${course}`,
+          when, color: 'var(--gold)', badge: 'Match', round: r });
+      }
+      if (r.wolfResult?.winner) {
+        const isWinner = r.wolfResult.winner === name;
+        events.push({ ts: rd, id: r.id || 0, name, type: 'wolf',
+          text: isWinner ? `won Wolf at ${course}` : `played Wolf at ${course}`,
+          when, color: 'var(--gold)', badge: 'Wolf', round: r });
+      }
+      if (r.sixesResult?.winner) {
+        const isWinner = r.sixesResult.winner === name;
+        events.push({ ts: rd, id: r.id || 0, name, type: 'sixes',
+          text: isWinner ? `won Sixes at ${course}` : `played Sixes at ${course}`,
+          when, color: 'var(--par)', badge: 'Sixes', round: r });
+      }
+    }
+  }
+
+  // Sort by date desc, then by ID desc
+  events.sort((a, b) => b.ts - a.ts || (b.id - a.id));
+
+  // Deduplicate: for each player+date combo, keep round card + special events only (skip redundant round if special event exists)
+  const seen = new Set();
+  const deduped = [];
+  for (const ev of events) {
+    const key = `${ev.name}-${ev.ts}-${ev.type}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(ev);
+  }
+
+  if (!deduped.length) {
+    feedEl.innerHTML = '<div style="text-align:center;padding:40px 20px;font-size:13px;color:var(--dim)">No activity in the last 30 days. Play a round to get things started.</div>';
+    return;
+  }
+
+  // Group by date
+  let lastDateStr = '';
+  let html = '';
+  for (const ev of deduped) {
+    // Date header
+    const dateKey = String(ev.ts);
+    if (dateKey !== lastDateStr) {
+      lastDateStr = dateKey;
+      html += `<div style="font-size:9px;color:var(--dimmer);text-transform:uppercase;letter-spacing:1.5px;padding:14px 0 6px;font-weight:600">${ev.when}</div>`;
+    }
+
+    const isMe = ev.name === state.me;
+    const badgeColor = { eagle:'var(--eagle)', birdie:'var(--birdie)', pb:'var(--gold)', match:'var(--gold)', wolf:'var(--gold)', sixes:'var(--par)', round:'var(--dim)' }[ev.type] || 'var(--dim)';
+
+    if (ev.type === 'round') {
+      // Rich round card
+      const diff = ev.round.diff;
+      const diffCol = diff <= -2 ? 'var(--birdie)' : diff === 0 ? 'var(--par)' : diff <= 1 ? 'var(--bogey)' : 'var(--double)';
+      html += `<div class="feed-card" data-round-idx="${deduped.indexOf(ev)}" style="background:var(--mid);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:6px;cursor:pointer">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          ${avatarHtml(ev.name, 30, isMe)}
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:${isMe ? 'var(--gold)' : 'var(--cream)'}">${ev.name}</div>
+            <div style="font-size:10px;color:var(--dim)">${ev.text}</div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-around;text-align:center;padding:6px 0;border-top:1px solid var(--border)">
+          <div><div style="font-size:16px;font-weight:700;color:${diffCol}">${ev.badge}</div><div style="font-size:8px;color:var(--dim);text-transform:uppercase;margin-top:1px">vs par</div></div>
+          <div><div style="font-size:16px;font-weight:700;color:var(--cream)">${ev.round.totalScore || '—'}</div><div style="font-size:8px;color:var(--dim);text-transform:uppercase;margin-top:1px">score</div></div>
+          <div><div style="font-size:16px;font-weight:700;color:var(--gold)">${ev.detail?.split('·')[1]?.trim() || '—'}</div><div style="font-size:8px;color:var(--dim);text-transform:uppercase;margin-top:1px">pts</div></div>
+          <div><div style="font-size:16px;font-weight:700;color:var(--birdie)">${ev.round.birdies || 0}</div><div style="font-size:8px;color:var(--dim);text-transform:uppercase;margin-top:1px">birdies</div></div>
+        </div>
+      </div>`;
+    } else {
+      // Event row (birdie, eagle, PB, match, wolf, sixes)
+      html += `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+        ${avatarHtml(ev.name, 28, isMe)}
+        <div style="flex:1;min-width:0;font-size:11px;color:var(--dim);line-height:1.4">
+          <span style="color:var(--cream);font-weight:600">${ev.name}</span> ${ev.text}
+        </div>
+        <div style="font-size:9px;padding:2px 8px;border-radius:10px;border:1px solid ${badgeColor};color:${badgeColor};white-space:nowrap;flex-shrink:0">${ev.badge}</div>
+      </div>`;
+    }
+  }
+
+  feedEl.innerHTML = html;
+
+  // Wire round card taps to open scorecard modal
+  feedEl.querySelectorAll('.feed-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const idx = parseInt(card.dataset.roundIdx);
+      const ev = deduped[idx];
+      if (ev?.round) openScorecardModal(ev.round);
+    });
+  });
+}
+
 export function renderHomeStats() {
   const p = state.gd.players[state.me];
   if (!p) {
@@ -893,9 +1053,9 @@ export function renderHomeStats() {
   // ── 3e. Group activity feed ──────────────────────────────────
   renderMatesFeed();
 
-  // "See all" link → competition tab
+  // "See more" link → activity feed
   document.getElementById('home-see-all-activity')?.addEventListener('click', () => {
-    import('./nav.js').then(m => m.goTo('competition'));
+    import('./nav.js').then(m => m.goTo('feed'));
   });
 
   // ── 3f. Start a round CTA subtitle ───────────────────────────

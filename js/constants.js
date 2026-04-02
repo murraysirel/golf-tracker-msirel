@@ -2,7 +2,7 @@
 // CONSTANTS
 // ─────────────────────────────────────────────────────────────────
 
-export const PAGES = ['home','round','live','stats','leaderboard','practice','players','competition','comp-score','group-settings'];
+export const PAGES = ['home','round','live','stats','leaderboard','practice','players','competition','comp-score','group-settings','feed'];
 
 // Source: USGA Handicap Research (2023), R&A Golf Around the World Report (2023).
 // Replace with group-derived averages once dataset exceeds 200 rounds.

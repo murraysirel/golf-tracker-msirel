@@ -79,7 +79,7 @@ import { loadAppData, pushData, querySupabase, ss, retryUnsyncedRounds, retryUns
 import { goTo, switchEntry, registerNavHandlers } from './nav.js';
 import { getCourseByRef, scanCourseCard, saveCourse, cancelCourseScan, handleCoursePhoto, searchCourseAPI, initCourseSearch, renderCountryPills, renderTeePills } from './courses.js';
 import { buildSC, recalc, saveRound, toggleSCExtras } from './scorecard.js';
-import { renderStats, setFilter, toggleHcpEdit, saveHandicap, renderHomeStats, openScorecardModal, openKpiPicker, closeKpiPicker } from './stats.js';
+import { renderStats, setFilter, toggleHcpEdit, saveHandicap, renderHomeStats, openScorecardModal, openKpiPicker, closeKpiPicker, renderFeedPage } from './stats.js';
 import { renderLeaderboard, initLeaderboard } from './leaderboard.js';
 import { renderLogin, enterAs, signOut, addPlayer, renderAllPlayers, renderPlayersToday, showSignupStep, submitProfile, agreePrivacy, submitCompleteProfile, showGroupFork, goBackToFork, forkNotNow, forkJoinGroup, forkCreateGroup, refreshAvatarUI, uploadAvatar, setPrefTheme, setPrefUnit, submitPrefs, initials, avatarHtml } from './players.js';
 import { renderPracticePage, selectPracticeArea, generatePracticePlan, startPracticeSession, regeneratePlan, logPracticeShots, completePracticeSession } from './practice.js';
@@ -127,6 +127,7 @@ registerNavHandlers({
   renderAllPlayers,
   renderHomeStats,
   renderPracticePage,
+  renderFeedPage,
   initLiveRound,
   initCompetition,
   initCompScore,
@@ -172,6 +173,9 @@ document.getElementById('nb-round')?.addEventListener('click', () => goTo('round
 document.getElementById('nb-stats')?.addEventListener('click', () => goTo('stats'));
 document.getElementById('nb-leaderboard')?.addEventListener('click', () => goTo('leaderboard'));
 document.getElementById('nb-practice')?.addEventListener('click', () => goTo('practice'));
+
+// ── Feed back button ─────────────────────────────────────────────
+document.getElementById('feed-back-btn')?.addEventListener('click', () => goTo('home'));
 
 // ── Profile panel ─────────────────────────────────────────────────
 function openProfilePanel() {
