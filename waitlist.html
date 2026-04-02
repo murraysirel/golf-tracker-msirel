@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0A1628">
+<title>Looper — Your caddie in your pocket</title>
+<meta name="description" content="The golf app your group actually needs. Live scoring, AI coaching, Wolf, Sixes, Match Play — all tracked properly. Join the waitlist.">
+<link rel="icon" type="image/png" href="/assets/looper_caddie.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'DM Sans',sans-serif;background:#0A1628;color:#F0E8D0;-webkit-font-smoothing:antialiased}
+a{color:#C9A84C;text-decoration:none}
+
+/* ── Nav ──────────────────────────────────────────────────── */
+.wl-nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,22,40,.85);backdrop-filter:blur(10px);border-bottom:1px solid rgba(30,50,82,.5)}
+.wl-nav-logo{display:flex;align-items:center;gap:10px}
+.wl-nav-logo img{width:36px;height:36px;border-radius:50%}
+.wl-nav-logo span{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:#F0E8D0;letter-spacing:2px}
+.wl-nav-cta{padding:8px 20px;border-radius:40px;background:#C9A84C;color:#0A1628;font-size:13px;font-weight:600;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s}
+.wl-nav-cta:hover{background:#e8c96a}
+
+/* ── Hero ─────────────────────────────────────────────────── */
+.wl-hero{background:#0A1628;padding:120px 24px 60px;text-align:center}
+.wl-hero-mascot{width:120px;height:120px;border-radius:50%;margin:0 auto 24px;overflow:hidden;box-shadow:0 8px 32px rgba(201,168,76,.2)}
+.wl-hero-mascot img{width:100%;height:100%;object-fit:cover}
+.wl-hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(36px,8vw,56px);font-weight:700;color:#F0E8D0;line-height:1.15;margin-bottom:8px;letter-spacing:1px}
+.wl-hero h1 span{color:#C9A84C}
+.wl-hero-sub{font-size:clamp(15px,3.5vw,18px);color:#8899BB;line-height:1.6;max-width:520px;margin:0 auto 28px}
+.wl-hero-cta{display:inline-block;padding:16px 40px;border-radius:40px;background:#C9A84C;color:#0A1628;font-size:16px;font-weight:700;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.3px;transition:background .15s,transform 80ms}
+.wl-hero-cta:hover{background:#e8c96a}
+.wl-hero-cta:active{transform:scale(.96)}
+
+/* ── Urgency pill ─────────────────────────────────────────── */
+.wl-urgency{display:inline-block;margin-top:20px;padding:10px 24px;border-radius:40px;background:#C9A84C;color:#0A1628;font-size:13px;font-weight:700;letter-spacing:.3px}
+
+/* ── Section base ─────────────────────────────────────────── */
+.wl-section{padding:64px 24px}
+.wl-section-inner{max-width:800px;margin:0 auto}
+.wl-section-label{font-size:10px;text-transform:uppercase;letter-spacing:2.5px;color:#C9A84C;font-weight:600;margin-bottom:12px;text-align:center}
+.wl-section-title{font-family:'Cormorant Garamond',serif;font-size:clamp(28px,6vw,40px);font-weight:700;color:#F0E8D0;text-align:center;margin-bottom:16px;line-height:1.2}
+.wl-section-body{font-size:15px;color:#8899BB;text-align:center;line-height:1.7;max-width:600px;margin:0 auto}
+
+/* ── Sound familiar cards ─────────────────────────────────── */
+.wl-problems{background:#0F1E35}
+.wl-problem-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:32px}
+@media(max-width:600px){.wl-problem-grid{grid-template-columns:1fr}}
+.wl-problem-card{background:#111E35;border:1px solid rgba(30,50,82,.6);border-left:3px solid #C9A84C;border-radius:12px;padding:20px 22px}
+.wl-problem-card h3{font-size:15px;font-weight:700;color:#F0E8D0;margin-bottom:8px;line-height:1.3}
+.wl-problem-card p{font-size:13px;color:#8899BB;line-height:1.6}
+/* 5th card spans full width on desktop */
+.wl-problem-card:last-child{grid-column:1/-1}
+
+/* ── Your season statement ────────────────────────────────── */
+.wl-season{background:#111E35}
+.wl-season .wl-section-body{font-size:clamp(15px,3.5vw,17px);max-width:640px}
+
+/* ── Features ─────────────────────────────────────────────── */
+.wl-features{background:#0A1628}
+.wl-feat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:32px}
+@media(max-width:700px){.wl-feat-grid{grid-template-columns:1fr}}
+.wl-feat-card{background:#111E35;border:1px solid rgba(30,50,82,.6);border-radius:12px;padding:22px 20px;text-align:center}
+.wl-feat-icon{width:40px;height:40px;border-radius:10px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;color:#C9A84C}
+.wl-feat-card h3{font-size:14px;font-weight:700;color:#F0E8D0;margin-bottom:6px}
+.wl-feat-card p{font-size:12px;color:#8899BB;line-height:1.5}
+
+/* ── Waitlist CTA ─────────────────────────────────────────── */
+.wl-cta-section{background:#111E35;text-align:center}
+.wl-cta-section .wl-section-title{margin-bottom:8px}
+.wl-cta-sub{font-size:15px;color:#8899BB;line-height:1.6;max-width:480px;margin:0 auto 28px}
+.wl-tally-wrap{max-width:480px;margin:0 auto}
+.wl-cta-note{font-size:12px;color:#4a5a7a;margin-top:16px;line-height:1.5}
+
+/* ── Footer ───────────────────────────────────────────────── */
+.wl-footer{padding:32px 24px;text-align:center;border-top:1px solid rgba(30,50,82,.5);font-size:11px;color:#4a5a7a}
+.wl-footer a{color:#8899BB}
+
+/* ── Gold rule divider ────────────────────────────────────── */
+.wl-rule{width:60px;height:1px;background:#C9A84C;opacity:.5;margin:0 auto}
+</style>
+</head>
+<body>
+
+<!-- ══════ NAV ══════ -->
+<nav class="wl-nav">
+  <div class="wl-nav-logo">
+    <img src="/assets/looper_caddie.png" alt="Looper">
+    <span>LOOPER</span>
+  </div>
+  <a href="#waitlist" class="wl-nav-cta">Join the waitlist</a>
+</nav>
+
+<!-- ══════ HERO ══════ -->
+<section class="wl-hero">
+  <div class="wl-hero-mascot">
+    <img src="/assets/looper_caddie.png" alt="Looper caddie mascot">
+  </div>
+  <h1>The caddie <span>in your pocket</span></h1>
+  <p class="wl-hero-sub">Live group scoring. AI coaching from your real rounds. Wolf, Sixes, Match Play — actually scored. The golf app your group has been waiting for.</p>
+  <a href="#waitlist" class="wl-hero-cta">Join the waitlist</a>
+  <div>
+    <div class="wl-urgency">First 50 groups get 6 months completely free — 47 spots remaining</div>
+  </div>
+</section>
+
+<!-- ══════ SOUND FAMILIAR? ══════ -->
+<section class="wl-section wl-problems">
+  <div class="wl-section-inner">
+    <div class="wl-section-label">The problem</div>
+    <h2 class="wl-section-title">Sound familiar?</h2>
+    <div class="wl-problem-grid">
+      <div class="wl-problem-card">
+        <h3>You played badly. So you didn't log it.</h3>
+        <p>Unlike Strava where every run goes up whether you like it or not, golf apps let you quietly forget a bad round. Looper makes your whole season honest — the 67 and the 94.</p>
+      </div>
+      <div class="wl-problem-card">
+        <h3>Nobody knows what the score actually was.</h3>
+        <p>Stableford arguments on the drive home. Wolf disputes on the 18th. Looper scores everything automatically so there's nothing to argue about.</p>
+      </div>
+      <div class="wl-problem-card">
+        <h3>Your mates' scores. On your phone. Live.</h3>
+        <p>See exactly where everyone is, hole by hole, in real time. The group leaderboard updates as you play — no waiting until the 19th to find out who won.</p>
+      </div>
+      <div class="wl-problem-card">
+        <h3>Coaching that knows your game.</h3>
+        <p>Not generic tips from the internet. AI coaching built from your actual rounds — your worst holes, your putting stats, your patterns. From your pocket, after every round.</p>
+      </div>
+      <div class="wl-problem-card">
+        <h3>Wolf. Sixes. Match Play. Actually scored.</h3>
+        <p>No other app handles these formats properly. Looper scores Wolf, Sixes, and Match Play automatically, with live standings the whole group can see.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ YOUR SEASON ══════ -->
+<section class="wl-section wl-season">
+  <div class="wl-section-inner">
+    <div class="wl-rule" style="margin-bottom:32px"></div>
+    <h2 class="wl-section-title">Every round counts. All season.</h2>
+    <p class="wl-section-body">Most golf apps treat each round like it never happened. Looper gives your group a proper season — a running leaderboard, nine ways to win, and a record of every round from the first tee of the year to the last. Like FPL, but for the golf group you actually care about.</p>
+    <div class="wl-rule" style="margin-top:32px"></div>
+  </div>
+</section>
+
+<!-- ══════ FEATURES ══════ -->
+<section class="wl-section wl-features">
+  <div class="wl-section-inner">
+    <div class="wl-section-label">What you get</div>
+    <h2 class="wl-section-title">Built for your group</h2>
+    <div class="wl-feat-grid">
+      <div class="wl-feat-card">
+        <div class="wl-feat-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <h3>Live group scoring</h3>
+        <p>Score 1-4 players hole by hole. Everyone sees live updates. No more texting scores on the group chat.</p>
+      </div>
+      <div class="wl-feat-card">
+        <div class="wl-feat-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg></div>
+        <h3>AI caddie</h3>
+        <p>Post-round coaching reviews, stats analysis, and practice plans — all from your actual data, powered by AI.</p>
+      </div>
+      <div class="wl-feat-card">
+        <div class="wl-feat-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></div>
+        <h3>9 leaderboards</h3>
+        <p>Stableford, net score, birdies, buffer, points scoring — nine ways to compete across your group all season.</p>
+      </div>
+      <div class="wl-feat-card">
+        <div class="wl-feat-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></div>
+        <h3>Wolf, Sixes, Match Play</h3>
+        <p>Full game mode engines with automatic scoring, live standings, and results saved to every player's record.</p>
+      </div>
+      <div class="wl-feat-card">
+        <div class="wl-feat-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 16s-5-4.3-5-8.5a5 5 0 0 1 10 0C14 11.7 9 16 9 16z"/><circle cx="9" cy="7.5" r="1.5"/><path d="M15 16s5-4.3 5-8.5a5 5 0 0 0-10 0c0 4.2 5 8.5 5 8.5z"/><circle cx="15" cy="7.5" r="1.5"/></svg></div>
+        <h3>GPS distances</h3>
+        <p>Front, middle, and back of green distances with a visual green map. Pin greens as you play for permanent accuracy.</p>
+      </div>
+      <div class="wl-feat-card">
+        <div class="wl-feat-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+        <h3>Deep stats</h3>
+        <p>FIR, GIR, putts, scoring trends, handicap benchmarks, front 9 vs back 9 — everything you need to improve.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ WAITLIST CTA ══════ -->
+<section class="wl-section wl-cta-section" id="waitlist">
+  <div class="wl-section-inner">
+    <h2 class="wl-section-title">Be one of the first 50.</h2>
+    <p class="wl-cta-sub">First 50 groups get 6 months of Looper completely free. No credit card. No catch. Just golf — tracked properly, for once.</p>
+    <div class="wl-tally-wrap">
+      <!-- TALLY EMBED: replace the data-tally-src with your Tally form URL -->
+      <iframe data-tally-src="https://tally.so/embed/YOUR_FORM_ID?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1" loading="lazy" width="100%" height="300" frameborder="0" marginheight="0" marginwidth="0" title="Looper waitlist" style="border-radius:12px"></iframe>
+      <script>var d=document,w="https://tally.so/widgets/embed.js",v=function(){"undefined"!=typeof Tally?Tally.loadEmbeds():d.querySelectorAll("iframe[data-tally-src]:not([src])").forEach((function(e){e.src=e.dataset.tallySrc}))};if("undefined"!=typeof Tally)v();else if(d.querySelector('script[src="'+w+'"]')==null){var s=d.createElement("script");s.src=w;s.onload=v;s.onerror=v;d.body.appendChild(s)}</script>
+    </div>
+    <p class="wl-cta-note">After the first 50, Looper will be &pound;3/month per group. Lock in free now.</p>
+  </div>
+</section>
+
+<!-- ══════ FOOTER ══════ -->
+<footer class="wl-footer">
+  <p>&copy; 2026 Looper. Built for golfers, by golfers.</p>
+</footer>
+
+</body>
+</html>
