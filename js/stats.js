@@ -106,6 +106,19 @@ function buildScorecardTable(primaryRound, group) {
   if (primaryRound.matchResult?.result) {
     html += `<div style="text-align:center;padding:14px 0 4px;font-size:13px;color:var(--gold)">${primaryRound.matchResult.result}</div>`;
   }
+  if (primaryRound.sixesResult) {
+    const sr = primaryRound.sixesResult;
+    const standings = sr.standings || [];
+    const winner = sr.winner || standings[0]?.name || '';
+    const medals = ['🥇', '🥈', '🥉'];
+    html += `<div style="text-align:center;padding:14px 0 4px;border-top:1px solid var(--border);margin-top:8px">
+      <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">Sixes Result</div>
+      <div style="display:flex;justify-content:center;gap:20px">
+        ${standings.map((s, i) => `<div style="text-align:center"><div style="font-size:18px">${medals[i] || ''}</div><div style="font-size:13px;font-weight:600;color:${i === 0 ? 'var(--gold)' : 'var(--cream)'}">${s.name?.split(' ')[0] || ''}</div><div style="font-size:11px;color:var(--dim)">${s.points || 0} pts</div></div>`).join('')}
+      </div>
+      ${winner ? `<div style="font-size:12px;color:var(--gold);margin-top:8px">${winner.split(' ')[0]} wins!</div>` : ''}
+    </div>`;
+  }
   return html;
 }
 
@@ -588,6 +601,15 @@ function renderMatesFeed() {
       if (stab != null && stab > 36) {
         events.push({ ts: rd, icon: 'alert', text: `${name} scored ${stab} stableford points! Check their handicap is cut!`, when, color: 'var(--bogey)', badge: 'Round' });
       }
+      // Sixes result
+      if (r.sixesResult?.winner && r.sixesResult.winner === name) {
+        const standings = r.sixesResult.standings || [];
+        const losers = standings.filter(s => s.name !== name).map(s => s.name?.split(' ')[0]).join(' and ');
+        const winPts = standings.find(s => s.name === name)?.points || 0;
+        const runnerPts = standings.filter(s => s.name !== name).map(s => s.points || 0);
+        const margin = winPts - Math.max(...runnerPts, 0);
+        events.push({ ts: rd, icon: 'trophy', text: `${name} beat ${losers} by ${margin} points in a game of Sixes at ${course}`, when, color: 'var(--par)', badge: 'Sixes' });
+      }
     }
   }
 
@@ -851,7 +873,7 @@ export function renderHomeStats() {
       const d = cur - prev;
       if (Math.abs(d) < 0.1) return '<span style="color:var(--dim)">—</span>';
       const good = inverted ? d < 0 : d > 0;
-      const arrow = good ? _upArrow : _dnArrow;
+      const arrow = d > 0 ? _upArrow : _dnArrow;
       return `<span class="${good ? 'delta-up' : 'delta-dn'}">${arrow} ${Math.abs(d).toFixed(1)}</span>`;
     }
 

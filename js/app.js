@@ -158,11 +158,37 @@ registerNavHandlers({
         if (page === 'leaderboard') initLeaderboard();
       }).catch(() => {});
     }
+    // Ensure live round invite polling is always running (defensive restart)
+    if (state.me) startInvitePolling();
     // Retry any queued sync data on every page navigation
     retryUnsyncedData().catch(() => {});
   },
   closeProfilePanel
 });
+
+// ── One-time migration: swap front/back green coords (API mapping was inverted)
+if (!localStorage.getItem('looper_greencoord_fix')) {
+  try {
+    const raw = localStorage.getItem('gt_localdata');
+    if (raw) {
+      const gd = JSON.parse(raw);
+      const gc = gd.greenCoords;
+      if (gc) {
+        Object.values(gc).forEach(course => {
+          Object.values(course).forEach(hole => {
+            if (hole.front && hole.back) {
+              const tmp = hole.front;
+              hole.front = hole.back;
+              hole.back = tmp;
+            }
+          });
+        });
+        localStorage.setItem('gt_localdata', JSON.stringify(gd));
+      }
+    }
+    localStorage.setItem('looper_greencoord_fix', '1');
+  } catch { localStorage.setItem('looper_greencoord_fix', '1'); }
+}
 
 // ── Splash screen dismiss ─────────────────────────────────────────
 (function () {

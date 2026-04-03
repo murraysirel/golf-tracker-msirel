@@ -53,7 +53,9 @@ export function publishLiveState() {
         hole: state.liveState.hole,
         scores: { ...state.liveState.groupScores },
         putts: { ...state.liveState.groupPutts },
-        pars: [...state.cpars]
+        pars: [...state.cpars],
+        gameMode: state.gameMode || 'stroke',
+        hcpOverrides: state.liveState.hcpOverrides || {}
       }
     });
   });
@@ -278,7 +280,11 @@ export function startGroupRound() {
       alert('Sixes requires exactly 3 players. Please select 3 players above.');
       return;
     }
-    import('./gamemodes.js').then(({ initSixesState }) => initSixesState(state.liveState.group));
+    import('./gamemodes.js').then(({ initSixesState, updateSixesBanner }) => {
+      initSixesState(state.liveState.group);
+      // Re-render banner after init completes (fixes race condition with liveGoto)
+      setTimeout(() => updateSixesBanner(state.liveState.hole), 50);
+    });
   }
   // Initialise per-player arrays
   state.liveState.groupScores = {};
@@ -566,13 +572,17 @@ function liveRenderGroupHole(h) {
       else scCol = 'var(--double)';
     }
 
+    // Check if this player gets a handicap stroke on this hole
+    const hcpStrokes = getHcpStrokesOnHole(name, h);
+    const popBadge = hcpStrokes > 0 ? `<span class="pop-badge">POP${hcpStrokes > 1 ? ' x' + hcpStrokes : ''}</span>` : '';
+
     const row = document.createElement('div');
     row.style.cssText = `background:${sel ? 'var(--card)' : 'var(--mid)'};border:1px solid ${sel ? 'var(--gold)' : 'var(--border)'};border-radius:10px;padding:11px 14px;display:flex;align-items:center;gap:12px;margin-bottom:6px;cursor:pointer;transition:border-color .15s,background .15s`;
     row.dataset.player = name;
     row.innerHTML = `
       <div style="width:32px;height:32px;border-radius:50%;background:${sel ? 'rgba(201,168,76,.2)' : 'var(--border)'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${sel ? 'var(--gold)' : 'var(--dim)'};flex-shrink:0">${(name.split(' ').map(w => w[0]).join('').toUpperCase()).slice(0, 2)}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:14px;font-weight:600;color:var(--cream)">${name}${isMe ? '<span style="font-size:10px;color:var(--gold);margin-left:5px;font-weight:400">you</span>' : ''}</div>
+        <div style="font-size:14px;font-weight:600;color:var(--cream)">${name}${isMe ? '<span style="font-size:10px;color:var(--gold);margin-left:5px;font-weight:400">you</span>' : ''}${popBadge}</div>
         <div style="font-size:11px;color:var(--dim);margin-top:1px">${fmtRun}</div>
       </div>
       <div style="display:flex;align-items:center;gap:8px">

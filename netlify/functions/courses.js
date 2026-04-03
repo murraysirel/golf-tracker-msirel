@@ -76,7 +76,8 @@ async function golfApiGetCoordinates(courseId) {
 }
 
 // ── Coordinate parser ─────────────────────────────────────────────────────────
-// poi=1 = green; location: 1=back, 2=middle, 3=front
+// poi=1 = green; location: 1=front, 2=middle, 3=back
+// (GolfAPI docs say 1=back,3=front but real-world testing shows the opposite)
 // poi=11 = back tee marker
 function parseCoordinates(rawCoords) {
   const holes = {};
@@ -84,9 +85,9 @@ function parseCoordinates(rawCoords) {
     const h = c.hole;
     if (!holes[h]) holes[h] = { green: {}, tee: null };
     if (c.poi === 1) {
-      if (c.location === 3) holes[h].green.front  = { lat: c.latitude, lng: c.longitude };
+      if (c.location === 1) holes[h].green.front  = { lat: c.latitude, lng: c.longitude };
       if (c.location === 2) holes[h].green.middle = { lat: c.latitude, lng: c.longitude };
-      if (c.location === 1) holes[h].green.back   = { lat: c.latitude, lng: c.longitude };
+      if (c.location === 3) holes[h].green.back   = { lat: c.latitude, lng: c.longitude };
     }
     if (c.poi === 11 && c.location === 2) {
       holes[h].tee = { lat: c.latitude, lng: c.longitude };

@@ -277,16 +277,21 @@ exports.handler = async (event) => {
     // ── pollGroupInvites ─────────────────────────────────────────────
     if (action === 'pollGroupInvites') {
       try {
+        // Only return rounds updated in the last 30 minutes (prevents zombie rounds)
+        const staleThreshold = new Date(Date.now() - 30 * 60 * 1000).toISOString();
         const { data: rows, error } = await supabase
           .from('active_rounds')
           .select('*')
           .eq('group_code', groupCode)
+          .gt('updated_at', staleThreshold)
           .order('updated_at', { ascending: false });
         if (error) {
           // Graceful: return empty instead of 500 (table may not exist yet)
           console.warn('[pollGroupInvites]', error.message);
           return { statusCode: 200, headers, body: JSON.stringify({ rounds: [] }) };
         }
+        // Garbage collect zombie rows older than 60 minutes (fire-and-forget)
+        supabase.from('active_rounds').delete().lt('updated_at', new Date(Date.now() - 60 * 60 * 1000).toISOString()).then(() => {}).catch(() => {});
         return { statusCode: 200, headers, body: JSON.stringify({ rounds: rows || [] }) };
       } catch (e) {
         return { statusCode: 200, headers, body: JSON.stringify({ rounds: [] }) };
