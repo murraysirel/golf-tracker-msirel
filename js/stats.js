@@ -878,9 +878,12 @@ export function renderHomeStats() {
     }
 
     function avgPuttsPerHole(rounds) {
-      let total = 0, holes = 0;
-      rounds.forEach(r => (r.putts || []).forEach(v => { if (v != null && !isNaN(v)) { total += v; holes++; } }));
-      return holes ? total / holes : null;
+      // Match stats page: total putts per round / 18 holes, then average across rounds
+      const vals = rounds.map(r => {
+        const putts = (r.putts || []).reduce((s, v) => s + (v || 0), 0);
+        return putts > 0 ? putts / 18 : null;
+      }).filter(v => v != null);
+      return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
     }
     function avgBirdiesPerRound(rounds) {
       if (!rounds.length) return null;
@@ -1069,41 +1072,6 @@ export function renderHomeStats() {
         localStorage.setItem('looper_net_birdies', !cur);
         renderHomeStats();
       });
-    }
-  }
-
-  // ── 3e½. Annual birdie tracker ───────────────────────────────
-  const birdieEl = document.getElementById('home-birdie-tracker');
-  if (birdieEl) {
-    const currentYear = String(new Date().getFullYear());
-    const allPlayers = Object.entries(state.gd.players || {});
-    const birdieIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>';
-    const rows = allPlayers.map(([name, pl]) => {
-      const yearRounds = (pl.rounds || []).filter(r => r.date?.split('/')?.[2] === currentYear);
-      const grossBirdies = yearRounds.reduce((sum, r) => sum + (r.birdies || 0), 0);
-      return { name, grossBirdies, rounds: yearRounds.length };
-    }).filter(r => r.rounds > 0).sort((a, b) => b.grossBirdies - a.grossBirdies);
-
-    if (rows.length) {
-      const birdieSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 18 18" fill="none" stroke="var(--birdie)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="5"/><path d="M5 12l-2 4h12l-2-4"/></svg>';
-      birdieEl.innerHTML = `
-        <div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Birdies · ${currentYear}</div>
-        <div style="background:var(--mid);border:1px solid var(--border);border-radius:12px;padding:10px 14px">
-          ${rows.map((r, i) => {
-            const isMe = r.name === state.me;
-            return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0${i < rows.length - 1 ? ';border-bottom:1px solid var(--border)' : ''}">
-              <div style="font-size:11px;color:var(--dimmer);width:14px;text-align:center">${i + 1}</div>
-              ${avatarHtml(r.name, 24, isMe)}
-              <div style="flex:1;font-size:12px;font-weight:${isMe ? '600' : '400'};color:${isMe ? 'var(--gold)' : 'var(--cream)'}">${r.name.split(' ')[0]}</div>
-              <div style="display:flex;align-items:center;gap:4px">
-                ${birdieSvg}
-                <span style="font-size:14px;font-weight:700;color:var(--birdie)">${r.grossBirdies}</span>
-              </div>
-            </div>`;
-          }).join('')}
-        </div>`;
-    } else {
-      birdieEl.innerHTML = '';
     }
   }
 
@@ -1814,6 +1782,42 @@ export function renderStats() {
           textEl.innerHTML = `Your scoring is <b>consistent across both halves</b> (${Math.abs(gap).toFixed(1)} shot difference) — a good sign of sustained focus.`;
         }
       }
+    }
+  }
+
+  // ── Birdie counter (personal, current year) ─────────────────────
+  const birdieCard = document.getElementById('c-birdie-counter');
+  const birdieContent = document.getElementById('birdie-counter-content');
+  if (birdieCard && birdieContent) {
+    const currentYear = String(new Date().getFullYear());
+    const yearRounds = allRounds.filter(r => r.date?.split('/')?.[2] === currentYear);
+    const totalBirdies = yearRounds.reduce((sum, r) => sum + (r.birdies || 0), 0);
+    const totalEagles = yearRounds.reduce((sum, r) => sum + (r.eagles || 0), 0);
+    const roundCount = yearRounds.length;
+    const perRound = roundCount ? (totalBirdies / roundCount).toFixed(1) : '0';
+
+    if (roundCount) {
+      birdieCard.style.display = 'block';
+      birdieContent.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-around;text-align:center;padding:4px 0">
+          <div>
+            <div style="font-size:28px;font-weight:700;color:var(--birdie)">${totalBirdies}</div>
+            <div style="font-size:10px;color:var(--dim);margin-top:2px">Birdies</div>
+          </div>
+          <div style="width:1px;height:36px;background:var(--border)"></div>
+          <div>
+            <div style="font-size:28px;font-weight:700;color:var(--eagle)">${totalEagles}</div>
+            <div style="font-size:10px;color:var(--dim);margin-top:2px">Eagles</div>
+          </div>
+          <div style="width:1px;height:36px;background:var(--border)"></div>
+          <div>
+            <div style="font-size:28px;font-weight:700;color:var(--cream)">${perRound}</div>
+            <div style="font-size:10px;color:var(--dim);margin-top:2px">Per round</div>
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--dimmer);text-align:center;margin-top:8px">${roundCount} round${roundCount !== 1 ? 's' : ''} in ${currentYear}</div>`;
+    } else {
+      birdieCard.style.display = 'none';
     }
   }
 

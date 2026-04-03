@@ -468,9 +468,6 @@
       <!-- Last round card -->
       <div id="home-last-round" style="padding:12px 16px 0"></div>
 
-      <!-- Annual birdie tracker -->
-      <div id="home-birdie-tracker" style="padding:12px 16px 0"></div>
-
       <!-- Group activity -->
       <div id="home-mates-section" style="padding:12px 16px 0">
         <div class="section-hdr" style="padding:0 0 6px">
@@ -1141,6 +1138,15 @@
         </div>
         <div id="f9b9-halves" style="display:flex;align-items:center"></div>
         <div id="f9b9-insight" class="f9b9-insight" style="display:none"><div class="f9b9-insight-text" id="f9b9-text"></div></div>
+      </div>
+
+      <!-- Birdie counter -->
+      <div class="card" id="c-birdie-counter" style="display:none">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <div style="width:28px;height:28px;border-radius:8px;background:rgba(52,152,219,.1);display:flex;align-items:center;justify-content:center;color:var(--birdie);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg></div>
+          <span style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--birdie);text-transform:uppercase">Birdie Counter</span>
+        </div>
+        <div id="birdie-counter-content"></div>
       </div>
 
       <div class="card" id="c-match-record" style="display:none">
