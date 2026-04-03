@@ -146,6 +146,60 @@ a{color:#C9A84C;text-decoration:none}
   </div>
 </section>
 
+<!-- ══════ THE LOOP ══════ -->
+<section class="wl-section" style="background:#0A1628;padding-bottom:40px">
+  <div class="wl-section-inner" style="max-width:420px">
+    <div class="wl-section-label">How it works</div>
+    <h2 class="wl-section-title" style="margin-bottom:32px">The more you play, the better it gets</h2>
+    <div style="position:relative;width:100%;aspect-ratio:1;max-width:360px;margin:0 auto">
+      <!-- Circular path -->
+      <svg viewBox="0 0 360 360" style="position:absolute;inset:0;width:100%;height:100%" xmlns="http://www.w3.org/2000/svg">
+        <!-- Rotating ring -->
+        <circle cx="180" cy="180" r="130" fill="none" stroke="rgba(201,168,76,.15)" stroke-width="1.5"/>
+        <!-- Animated dashed ring -->
+        <circle cx="180" cy="180" r="130" fill="none" stroke="rgba(201,168,76,.35)" stroke-width="1.5" stroke-dasharray="12,8" style="animation:wlSpin 30s linear infinite"/>
+        <!-- Arrow heads at quarters -->
+        <path d="M175 49l5-5 5 5" fill="none" stroke="rgba(201,168,76,.5)" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M311 175l5 5-5 5" fill="none" stroke="rgba(201,168,76,.5)" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M185 311l-5 5-5-5" fill="none" stroke="rgba(201,168,76,.5)" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M49 185l-5-5 5-5" fill="none" stroke="rgba(201,168,76,.5)" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <!-- Centre text -->
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--cream,#F0E8D0);font-weight:600;line-height:1.2">The Looper</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:20px;color:#C9A84C;font-weight:600;line-height:1.2">flywheel</div>
+      </div>
+      <!-- 5 nodes positioned around the circle -->
+      <!-- Top: League -->
+      <div style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.4);border-radius:12px;padding:10px 16px;text-align:center;min-width:160px">
+        <div style="font-size:13px;font-weight:700;color:#C9A84C">Your league gives you a reason</div>
+        <div style="font-size:10px;color:#8899BB;margin-top:2px">Even bad rounds earn points</div>
+      </div>
+      <!-- Right: Dataset -->
+      <div style="position:absolute;top:50%;right:-16px;transform:translateY(-50%);background:rgba(46,204,113,.1);border:1px solid rgba(46,204,113,.3);border-radius:12px;padding:10px 14px;text-align:center;min-width:130px">
+        <div style="font-size:13px;font-weight:700;color:#2ecc71">Every round builds</div>
+        <div style="font-size:10px;color:#8899BB;margin-top:2px">your personal dataset</div>
+      </div>
+      <!-- Bottom-right: AI -->
+      <div style="position:absolute;bottom:-8px;right:10%;background:rgba(46,204,113,.1);border:1px solid rgba(46,204,113,.3);border-radius:12px;padding:10px 14px;text-align:center;min-width:140px">
+        <div style="font-size:13px;font-weight:700;color:#2ecc71">AI coaching that</div>
+        <div style="font-size:10px;color:#8899BB;margin-top:2px">actually knows your game</div>
+      </div>
+      <!-- Bottom-left: Improve -->
+      <div style="position:absolute;bottom:-8px;left:2%;background:rgba(52,152,219,.1);border:1px solid rgba(52,152,219,.3);border-radius:12px;padding:10px 14px;text-align:center;min-width:130px">
+        <div style="font-size:13px;font-weight:700;color:#3498db">You get better</div>
+        <div style="font-size:10px;color:#8899BB;margin-top:2px">Handicap drops, stats improve</div>
+      </div>
+      <!-- Left: Play more -->
+      <div style="position:absolute;top:50%;left:-16px;transform:translateY(-50%);background:rgba(52,152,219,.1);border:1px solid rgba(52,152,219,.3);border-radius:12px;padding:10px 14px;text-align:center;min-width:140px">
+        <div style="font-size:13px;font-weight:700;color:#3498db">You want to play more</div>
+        <div style="font-size:10px;color:#8899BB;margin-top:2px">Beat your mates, defend the title</div>
+      </div>
+    </div>
+  </div>
+</section>
+<style>@keyframes wlSpin{to{transform:rotate(360deg);transform-origin:180px 180px}}</style>
+
 <!-- ══════ FEATURES ══════ -->
 <section class="wl-section wl-features">
   <div class="wl-section-inner">
