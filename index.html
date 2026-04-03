@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- XLSX removed — export feature disabled -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <link rel="stylesheet" href="styles/app.css">
 </head>
@@ -1518,8 +1518,7 @@
       <!-- Data rights card -->
       <div class="card" style="margin-top:13px">
         <div class="ct">Your Data</div>
-        <div style="font-size:12px;color:var(--dim);margin-bottom:12px;line-height:1.5">You have the right to export or delete all your data from this group at any time. Deletion cannot be undone.</div>
-        <button class="btn btn-o mb8" style="border-color:rgba(46,204,113,.4);color:#82e0aa"id="export-xlsx-btn"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export my data</button>
+        <div style="font-size:12px;color:var(--dim);margin-bottom:12px;line-height:1.5">You can delete all your data from this group at any time. Deletion cannot be undone.</div>
         <button class="btn btn-o" style="border-color:rgba(231,76,60,.4);color:#e74c3c"id="confirm-delete-data-btn"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>Delete all my data</button>
         <div id="delete-data-msg" style="margin-top:8px"></div>
       </div>

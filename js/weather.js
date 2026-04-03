@@ -20,14 +20,22 @@ const WMO_MAP = {
 
 // ── Location resolution ──────────────────────────────────────────
 
+const WX_LOC_KEY = 'looper_weather_location';
+
 function resolveLocation() {
-  // 1. Active GPS
+  // 1. User-selected course location
+  try {
+    const saved = JSON.parse(localStorage.getItem(WX_LOC_KEY));
+    if (saved?.lat && saved?.lng) return saved;
+  } catch { /* ignore */ }
+
+  // 2. Active GPS
   const gps = state.gpsState?.coords;
   if (gps?.latitude && gps?.longitude) {
     return { lat: gps.latitude, lng: gps.longitude, locationName: 'Current location' };
   }
 
-  // 2. Last played course green coords
+  // 3. Last played course green coords
   const lastRound = state.gd?.players?.[state.me]?.rounds?.slice(-1)[0];
   const courseName = lastRound?.course;
   const coords = state.gd?.greenCoords?.[courseName];
@@ -41,8 +49,13 @@ function resolveLocation() {
     }
   }
 
-  // 3. Fallback
+  // 4. Fallback
   return { lat: 51.5, lng: -0.1, locationName: 'London (set home course for local forecast)' };
+}
+
+function setWeatherLocation(lat, lng, name) {
+  localStorage.setItem(WX_LOC_KEY, JSON.stringify({ lat, lng, locationName: name }));
+  localStorage.removeItem(CACHE_KEY); // clear weather cache so it re-fetches
 }
 
 // ── Fetch with cache ─────────────────────────────────────────────
@@ -224,11 +237,74 @@ export async function renderWeatherCard(containerId) {
     el.innerHTML = `<div class="wx-card">
       <div class="wx-hdr">
         <div class="wx-title">FORECAST</div>
-        <div class="wx-location">${pinSvg} ${weather.locationName}</div>
+        <div class="wx-location" id="wx-loc-btn" style="cursor:pointer">${pinSvg} ${weather.locationName} <span style="font-size:8px;color:var(--gold);margin-left:2px">change</span></div>
+      </div>
+      <div id="wx-search-row" style="display:none;padding:6px 14px 0">
+        <div style="display:flex;gap:6px">
+          <input id="wx-search-input" type="text" placeholder="Search a course…" style="flex:1;padding:6px 10px;background:var(--navy);color:var(--cream);border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none">
+          <button id="wx-search-reset" style="background:none;border:none;color:var(--dim);font-size:10px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap">Reset</button>
+        </div>
+        <div id="wx-search-results" style="max-height:120px;overflow-y:auto"></div>
       </div>
       <div class="wx-days">${daysHtml}</div>
       ${suitHtml}
     </div>`;
+
+    // Wire location search
+    document.getElementById('wx-loc-btn')?.addEventListener('click', () => {
+      const row = document.getElementById('wx-search-row');
+      if (row) { row.style.display = row.style.display === 'none' ? 'block' : 'none'; }
+      document.getElementById('wx-search-input')?.focus();
+    });
+    let _wxTimer = null;
+    document.getElementById('wx-search-input')?.addEventListener('input', (e) => {
+      clearTimeout(_wxTimer);
+      const q = e.target.value.trim();
+      if (q.length < 3) { document.getElementById('wx-search-results').innerHTML = ''; return; }
+      _wxTimer = setTimeout(async () => {
+        try {
+          const res = await fetch('/.netlify/functions/courses?action=search&name=' + encodeURIComponent(q) + '&country=all');
+          const data = await res.json();
+          const results = document.getElementById('wx-search-results');
+          if (!results) return;
+          const courses = data.courses || [];
+          if (!courses.length) { results.innerHTML = '<div style="padding:6px 0;font-size:11px;color:var(--dim)">No courses found</div>'; return; }
+          results.innerHTML = courses.slice(0, 5).map((c, i) =>
+            `<div class="wx-search-item" data-idx="${i}" style="padding:7px 0;border-bottom:1px solid var(--border);cursor:pointer;font-size:12px;color:var(--cream)">${c.name}${c.location ? ` <span style="color:var(--dim)">· ${c.location}</span>` : ''}</div>`
+          ).join('');
+          results.querySelectorAll('.wx-search-item').forEach(item => {
+            item.addEventListener('click', async () => {
+              const c = courses[parseInt(item.dataset.idx)];
+              // Try to get coords from green_coords in cache or fetch
+              let lat = null, lng = null;
+              const gc = state.gd?.greenCoords?.[c.name];
+              if (gc) {
+                const h = gc[1] || gc[Object.keys(gc)[0]];
+                lat = h?.lat || h?.front?.lat; lng = h?.lng || h?.front?.lng;
+              }
+              if (!lat && c.external_course_id) {
+                try {
+                  const fr = await fetch('/.netlify/functions/courses?action=fetch&courseId=' + encodeURIComponent(c.external_course_id));
+                  const fd = await fr.json();
+                  const fgc = fd.course?.green_coords;
+                  if (fgc) { const fh = fgc['1'] || fgc[Object.keys(fgc)[0]]; lat = fh?.green?.front?.lat || fh?.green?.middle?.lat; lng = fh?.green?.front?.lng || fh?.green?.middle?.lng; }
+                } catch { /* fallback below */ }
+              }
+              if (lat && lng) {
+                const shortName = c.name.replace(/ Golf Club| Golf Course| Golf Links/g, '');
+                setWeatherLocation(lat, lng, shortName);
+                renderWeatherCard(containerId);
+              }
+            });
+          });
+        } catch { /* network error */ }
+      }, 400);
+    });
+    document.getElementById('wx-search-reset')?.addEventListener('click', () => {
+      localStorage.removeItem(WX_LOC_KEY);
+      localStorage.removeItem(CACHE_KEY);
+      renderWeatherCard(containerId);
+    });
 
   } catch {
     el.innerHTML = `<div class="wx-card">

@@ -86,7 +86,6 @@ import { renderPracticePage, selectPracticeArea, generatePracticePlan, startPrac
 import { initLiveRound, liveGoto, liveSaveNote, liveNextOrFinish, toggleGroupPlayer, startGroupRound, toggleMatchPlay, openCorrectionModal, submitCorrectionReport, cancelRound } from './live.js';
 import { generateAIReview, generateStatsAnalysis, clearStatsAnalysis, parsePhoto, handlePhoto } from './ai.js';
 import { stopGPS, gpsSetTarget, pinTeePosition, markDriveTap, logDrive } from './gps.js';
-import { exportXlsx } from './export.js';
 import { openAdminSettings, closeAdminSettings, verifyAdminPw, adminPopulateRounds, adminDeleteRound, adminSeedDemo } from './admin.js';
 import { copyGroupCode, leaveGroup, toggleGroupCodeRequired, addSeason, deleteSeason, confirmDeleteMyData, deleteMyData, copyAppUrl, rebuildSeasonSelector, initJoinGroup, lookupGroupByCode, confirmJoinGroup, showBoardPage, initCreateGroup, submitGroupName, confirmBoardSetup, initGroupSettings, saveGroupName, hideGSModal, confirmGSModal } from './group.js';
 import { initCompetition } from './competition.js';
@@ -669,7 +668,6 @@ document.getElementById('lb-copy-group-code')?.addEventListener('click', copyGro
 document.getElementById('leave-group-btn')?.addEventListener('click', leaveGroup);
 document.getElementById('gc-toggle-btn')?.addEventListener('click', toggleGroupCodeRequired);
 document.getElementById('add-season-btn')?.addEventListener('click', addSeason);
-document.getElementById('export-xlsx-btn')?.addEventListener('click', exportXlsx);
 document.getElementById('confirm-delete-data-btn')?.addEventListener('click', confirmDeleteMyData);
 document.getElementById('add-player-btn')?.addEventListener('click', addPlayer);
 document.getElementById('reload-btn')?.addEventListener('click', () => loadAppData(state.me, state.gd?.activeGroupCode || '').then(() => renderHomeStats()));

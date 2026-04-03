@@ -3,6 +3,7 @@
 // so SUPABASE_SERVICE_KEY and SUPABASE_ANON_KEY never reach the browser.
 
 const { createClient } = require('@supabase/supabase-js');
+const https = require('https');
 
 // Anon client — for password sign-in and sign-up (issues user-scoped JWTs)
 const supabaseAnon = createClient(
@@ -115,6 +116,55 @@ async function linkOrCreatePlayer(authUserId, email, name, handicap, dob) {
   return playerName;
 }
 
+// ── Helper: send welcome email via Resend ────────────────────────────────────
+async function sendWelcomeEmail(email, playerName) {
+  if (!process.env.RESEND_API_KEY) return;
+  const firstName = playerName ? playerName.split(' ')[0] : 'there';
+  const payload = JSON.stringify({
+    from: 'Looper <hello@loopercaddie.com>',
+    reply_to: 'admin@loopercaddie.com',
+    to: email,
+    subject: 'Welcome to Looper',
+    html: `
+      <div style="background:#0A1628;padding:40px;font-family:sans-serif;color:#F0E8D0;">
+        <h1 style="color:#C9A84C;margin-bottom:8px;">LOOPER</h1>
+        <p style="color:#8899BB;margin-top:0;">Your caddie in your pocket</p>
+        <hr style="border-color:#1E3358;margin:24px 0;">
+        <p>Hi ${firstName},</p>
+        <p>You're in. Looper is ready to track your game.</p>
+        <p style="margin-top:16px;font-weight:bold;color:#C9A84C;">Here's what to do next:</p>
+        <ol style="color:#8899BB;line-height:2;padding-left:20px;">
+          <li>Join or create a league with your mates</li>
+          <li>Play your first round — we'll handle the scoring</li>
+          <li>Check your stats after — your AI caddie will have notes</li>
+        </ol>
+        <p style="margin-top:16px;">The more you play, the smarter Looper gets. Every round builds your dataset, and your coaching gets more personal over time.</p>
+        <p style="margin-top:24px;">
+          <a href="https://instagram.com/loopercaddie"
+             style="background:#C9A84C;color:#0A1628;padding:12px 24px;
+             border-radius:8px;text-decoration:none;font-weight:bold;">
+            Follow @loopercaddie
+          </a>
+        </p>
+        <p style="margin-top:32px;color:#8899BB;font-size:13px;">
+          See you on the first tee.<br>— Murray, founder of Looper
+        </p>
+        <p style="margin-top:16px;color:#4a5a7a;font-size:11px;">
+          Please don't reply to this email. Contact us at <a href="mailto:admin@loopercaddie.com" style="color:#C9A84C;">admin@loopercaddie.com</a>
+        </p>
+      </div>
+    `
+  });
+  return new Promise((resolve) => {
+    const req = https.request({
+      hostname: 'api.resend.com', path: '/emails', method: 'POST',
+      headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
+    }, res => { let d = ''; res.on('data', c => d += c); res.on('end', () => resolve(d)); });
+    req.on('error', () => resolve(null));
+    req.write(payload); req.end();
+  });
+}
+
 // ── Helper: build safe session object to return to client ───────────────────
 function buildSession(supabaseSession) {
   return {
@@ -158,6 +208,9 @@ exports.handler = async (event) => {
       const authUserId = data.user.id;
       const playerName = await linkOrCreatePlayer(authUserId, email, name, handicap, dob);
       await trackSession(authUserId, sessionId, deviceHint);
+
+      // Send welcome email (fire-and-forget, never blocks signup)
+      sendWelcomeEmail(email, playerName).catch(() => {});
 
       return respond(200, {
         session: buildSession(data.session),
