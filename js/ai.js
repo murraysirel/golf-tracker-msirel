@@ -4,6 +4,7 @@
 import { state } from './state.js';
 import { pushData, querySupabase } from './api.js';
 import { parseDateGB } from './stats.js';
+import { checkAccess, incrementUsage, showUpgradePrompt } from './subscription.js';
 import { getCourseByRef } from './courses.js';
 
 export function handlePhoto(input) {
@@ -111,6 +112,7 @@ Use null for any value you cannot read with confidence. Putts and SI arrays shou
 }
 
 export async function generateAIReview() {
+  if (!checkAccess('ai_reviews')) { showUpgradePrompt('ai_reviews'); return; }
   const sel = document.getElementById('ai-round-sel');
   const rs = state.gd.players[state.me]?.rounds || [];
   if (!rs.length) return;
@@ -268,5 +270,6 @@ function storeAIReviewInRound(roundIndex, review) {
   const p = state.gd.players[state.me];
   if (!p || !p.rounds[roundIndex]) return;
   p.rounds[roundIndex].aiReview = review;
+  incrementUsage('ai_reviews');
   pushData();
 }

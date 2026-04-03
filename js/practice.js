@@ -4,6 +4,7 @@
 import { state } from './state.js';
 import { pushData, querySupabase } from './api.js';
 import { parseDateGB } from './stats.js';
+import { checkAccess, incrementUsage, showUpgradePrompt } from './subscription.js';
 
 let _emptyState = null;
 function _es(icon, headline, sub, ctaText, ctaAction) {
@@ -103,6 +104,7 @@ export function selectPracticeArea(area) {
 }
 
 export async function generatePracticePlan(area, customRequest) {
+  if (!checkAccess('practice_sessions')) { showUpgradePrompt('practice_sessions'); return; }
   const msg = document.getElementById('practice-gen-msg');
   const planCard = document.getElementById('c-practice-plan');
   msg.innerHTML = '<div class="alert"><span class="spin"></span> Building your session plan...</div>';
@@ -295,6 +297,7 @@ export function completePracticeSession() {
 
   if (!state.gd.players[state.me].practiceSessions) state.gd.players[state.me].practiceSessions = [];
   state.gd.players[state.me].practiceSessions.push(session);
+  incrementUsage('practice_sessions');
   pushData();
   querySupabase('savePracticeSessions', { playerName: state.me, sessions: state.gd.players[state.me].practiceSessions });
 

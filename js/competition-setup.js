@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
 import { querySupabase } from './api.js';
+import { checkAccess, showUpgradePrompt } from './subscription.js';
 
 // ── Code generator ───────────────────────────────────────────────
 // Format: COMP + 2 uppercase letters + 4 digits  (e.g. COMPAB1234)
@@ -58,6 +59,7 @@ const TEE_DOTS = { blue:'#5dade2', yellow:'#f4d03f', white:'#f0e8d0', red:'#e74c
 
 // ── Setup modal ──────────────────────────────────────────────────
 export function renderCompetitionSetupModal() {
+  if (!checkAccess('competitions')) { showUpgradePrompt('competitions'); return; }
   const modal = document.getElementById('comp-setup-modal');
   if (!modal) return;
   modal.style.display = 'flex';

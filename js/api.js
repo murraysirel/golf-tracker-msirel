@@ -108,6 +108,8 @@ export async function loadAppData(playerName, groupCode) {
         state.gd.players[playerName].practiceSessions = playerRes.practiceSessions || [];
         state.gd.players[playerName].statsAnalysis    = playerRes.statsAnalysis    || null;
         state.gd.players[playerName].statsAnalysisDate = playerRes.statsAnalysisDate || null;
+        // Load subscription state for premium gating
+        state.subscription = playerRes.subscription || { tier: 'free' };
         // Restore group codes from server-side membership query
         if (playerRes.groupCodes?.length) {
           playerRes.groupCodes.forEach(c => {

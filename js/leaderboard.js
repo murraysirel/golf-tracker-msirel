@@ -9,6 +9,7 @@ import { parseDateGB, calcStableford, isBufferOrBetter, calcScoringPointsNet } f
 import { pushData, querySupabase, loadGroupData } from './api.js';
 import { removeGroupFromList, normaliseBoardIds } from './group.js';
 import { goTo } from './nav.js';
+import { getAllowedBoardIds } from './subscription.js';
 
 let _emptyState = null;
 function _es(icon, headline, sub, ctaText, ctaAction) {
@@ -377,7 +378,10 @@ export function renderLeaderboard() {
     const activeOrder = normaliseBoardIds(state.gd.group?.active_boards);
     const orderedViews = activeOrder.map(id => VIEWS.find(v => v.id === id)).filter(Boolean);
     // If no admin config, show all views
-    const viewsToShow = orderedViews.length ? orderedViews : VIEWS;
+    let viewsToShow = orderedViews.length ? orderedViews : VIEWS;
+    // Premium board filter (no-op when PREMIUM_ENABLED=false)
+    const allowedIds = getAllowedBoardIds();
+    if (allowedIds) viewsToShow = viewsToShow.filter(v => allowedIds.includes(v.id));
     // Ensure active view is valid
     if (!viewsToShow.find(v => v.id === _activeView)) _activeView = viewsToShow[0]?.id || 'stableford';
     viewsToShow.forEach(v => {
