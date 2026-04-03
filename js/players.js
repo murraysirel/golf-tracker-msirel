@@ -199,6 +199,11 @@ export async function enterAs(n) {
   goTo('home');
   document.getElementById('r-date').value = new Date().toISOString().split('T')[0];
 
+  // Show walkthrough for first-time users
+  if (!localStorage.getItem('looper_walkthrough_done')) {
+    import('./walkthrough.js').then(m => setTimeout(() => m.startWalkthrough(), 800)).catch(() => {});
+  }
+
   // Check group membership — show fork screen if player has no active group
   _checkAndShowGroupFork(n);
 }

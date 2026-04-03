@@ -210,6 +210,12 @@ document.getElementById('nb-practice')?.addEventListener('click', () => goTo('pr
 // ── Feed back button ─────────────────────────────────────────────
 document.getElementById('feed-back-btn')?.addEventListener('click', () => goTo('home'));
 
+// ── Walkthrough replay ───────────────────────────────────────────
+document.getElementById('replay-walkthrough-btn')?.addEventListener('click', () => {
+  closeProfilePanel();
+  import('./walkthrough.js').then(m => m.startWalkthrough());
+});
+
 // ── H2H collapsible toggle ───────────────────────────────────────
 document.getElementById('h2h-toggle')?.addEventListener('click', () => {
   const body = document.getElementById('h2h-body');

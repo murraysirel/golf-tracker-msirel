@@ -1417,3 +1417,14 @@ details[open] summary::after{content:' ▾'}
 .wx-suit-track { flex:1; height:4px; background:var(--navy); border-radius:2px; overflow:hidden; }
 .wx-suit-fill { height:100%; border-radius:2px; transition:width .4s ease; }
 .wx-suit-word { font-size:10px; font-weight:700; white-space:nowrap; min-width:32px; text-align:right; }
+
+/* ── Walkthrough spotlight tour ─────────────────────────────── */
+.wt-overlay{position:fixed;z-index:10000;box-shadow:0 0 0 9999px rgba(0,0,0,.78);transition:top .35s ease,left .35s ease,width .35s ease,height .35s ease;border:2px solid rgba(201,168,76,.5);pointer-events:none}
+.wt-tooltip{position:fixed;z-index:10001;background:var(--card);border:1.5px solid var(--gold);border-radius:14px;padding:20px;max-width:300px;width:calc(100% - 32px);box-shadow:0 8px 40px rgba(0,0,0,.5);font-family:'DM Sans',sans-serif;pointer-events:all}
+.wt-step{font-size:10px;color:var(--dimmer);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
+.wt-title{font-size:17px;font-weight:700;color:var(--cream);margin-bottom:6px}
+.wt-body{font-size:13px;color:var(--dim);line-height:1.65;margin-bottom:16px}
+.wt-btns{display:flex;gap:10px;align-items:center}
+.wt-next{flex:1;padding:12px;border-radius:40px;background:var(--gold);color:var(--navy);font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s}
+.wt-next:active{transform:scale(.96)}
+.wt-skip{background:none;border:none;color:var(--dim);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;padding:8px;white-space:nowrap}
