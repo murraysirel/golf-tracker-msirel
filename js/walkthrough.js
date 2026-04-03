@@ -81,12 +81,12 @@ export function isWalkthroughDone() {
 
 export function startWalkthrough() {
   _step = 0;
+  _currentPage = null;
   _createElements();
   _showStep(0);
 }
 
 function _createElements() {
-  // Remove existing if replaying
   document.getElementById('wt-spotlight')?.remove();
   document.getElementById('wt-tooltip')?.remove();
 
@@ -106,11 +106,11 @@ function _showStep(idx) {
   _step = idx;
   const step = STEPS[idx];
 
-  // Navigate if needed
   if (step.page && step.page !== _currentPage) {
     _currentPage = step.page;
     goTo(step.page);
-    setTimeout(() => _renderStep(step, idx), 350);
+    // Longer delay for page render + scroll
+    setTimeout(() => _renderStep(step, idx), 500);
   } else {
     _renderStep(step, idx);
   }
@@ -123,21 +123,7 @@ function _renderStep(step, idx) {
   const nextLabel = step.btnText || 'Next';
   const skipLabel = isFirst ? 'Skip tour' : (isLast ? '' : 'Skip');
 
-  // Position spotlight
-  if (step.target) {
-    const el = document.querySelector(step.target);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      // Wait for scroll to settle
-      setTimeout(() => _positionSpotlight(el), 200);
-    } else {
-      _centreSpotlight();
-    }
-  } else {
-    _centreSpotlight();
-  }
-
-  // Build tooltip
+  // Build tooltip HTML first (need its height for positioning)
   _tooltip.innerHTML = `
     <div class="wt-step">${idx + 1} of ${total}</div>
     <div class="wt-title">${step.title}</div>
@@ -149,16 +135,27 @@ function _renderStep(step, idx) {
   `;
   _tooltip.style.display = 'block';
 
-  // Position tooltip after spotlight is placed
-  setTimeout(() => {
-    if (step.target) {
-      const el = document.querySelector(step.target);
-      if (el) _positionTooltip(el);
-      else _centreTooltip();
+  // Reset any stale transform
+  _tooltip.style.transform = '';
+
+  if (step.target) {
+    const el = document.querySelector(step.target);
+    if (el) {
+      // Scroll element into view first
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Wait for scroll, then position everything
+      setTimeout(() => {
+        _positionSpotlight(el);
+        _positionTooltipNear(el);
+      }, 300);
     } else {
+      _fullOverlay();
       _centreTooltip();
     }
-  }, step.target ? 250 : 10);
+  } else {
+    _fullOverlay();
+    _centreTooltip();
+  }
 
   // Wire buttons
   document.getElementById('wt-next')?.addEventListener('click', () => _showStep(idx + 1));
@@ -167,7 +164,7 @@ function _renderStep(step, idx) {
 
 function _positionSpotlight(el) {
   const r = el.getBoundingClientRect();
-  const pad = 8;
+  const pad = 10;
   _overlay.style.display = 'block';
   _overlay.style.top = (r.top - pad) + 'px';
   _overlay.style.left = (r.left - pad) + 'px';
@@ -176,37 +173,56 @@ function _positionSpotlight(el) {
   _overlay.style.borderRadius = '14px';
 }
 
-function _centreSpotlight() {
-  // No target — full dark overlay with centred hole
+function _fullOverlay() {
+  // No target — tiny invisible hole = full dark screen
   _overlay.style.display = 'block';
-  _overlay.style.top = '50%';
-  _overlay.style.left = '50%';
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2;
+  _overlay.style.top = cy + 'px';
+  _overlay.style.left = cx + 'px';
   _overlay.style.width = '0px';
   _overlay.style.height = '0px';
   _overlay.style.borderRadius = '50%';
 }
 
-function _positionTooltip(el) {
+function _positionTooltipNear(el) {
   const r = el.getBoundingClientRect();
+  const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const tooltipH = _tooltip.offsetHeight;
-  const gap = 14;
+  const tH = _tooltip.offsetHeight;
+  const tW = Math.min(300, vw - 32);
+  const gap = 16;
 
-  // Prefer below the element, fallback to above
-  if (r.bottom + gap + tooltipH < vh) {
-    _tooltip.style.top = (r.bottom + gap) + 'px';
+  // Vertical: prefer below, fallback above, fallback centre
+  let top;
+  if (r.bottom + gap + tH + 20 < vh) {
+    // Below the element
+    top = r.bottom + gap;
+  } else if (r.top - gap - tH > 20) {
+    // Above the element
+    top = r.top - gap - tH;
   } else {
-    _tooltip.style.top = Math.max(8, r.top - tooltipH - gap) + 'px';
+    // Element takes most of the screen — put tooltip in the visible gap
+    top = Math.max(20, vh - tH - 20);
   }
-  // Centre horizontally, clamped to screen edges
-  const centreX = r.left + r.width / 2 - 150;
-  _tooltip.style.left = Math.max(16, Math.min(centreX, window.innerWidth - 316)) + 'px';
+
+  // Horizontal: centre on element, clamp to screen
+  let left = r.left + r.width / 2 - tW / 2;
+  left = Math.max(16, Math.min(left, vw - tW - 16));
+
+  _tooltip.style.top = top + 'px';
+  _tooltip.style.left = left + 'px';
+  _tooltip.style.transform = '';
 }
 
 function _centreTooltip() {
-  _tooltip.style.top = '50%';
-  _tooltip.style.left = '50%';
-  _tooltip.style.transform = 'translate(-50%, -50%)';
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const tH = _tooltip.offsetHeight;
+  const tW = Math.min(300, vw - 32);
+  _tooltip.style.top = ((vh - tH) / 2) + 'px';
+  _tooltip.style.left = ((vw - tW) / 2) + 'px';
+  _tooltip.style.transform = '';
 }
 
 function _finish() {
