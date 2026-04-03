@@ -90,7 +90,7 @@ a{color:#C9A84C;text-decoration:none}
     <img src="/assets/looper_caddie.png" alt="Looper">
     <span>LOOPER</span>
   </div>
-  <a href="#waitlist" class="wl-nav-cta">Join the waitlist</a>
+  <button class="wl-nav-cta" onclick="Tally.openPopup('44v1Pk',{layout:'modal',width:400})">Join the waitlist</button>
 </nav>
 
 <!-- ══════ HERO ══════ -->
@@ -98,9 +98,9 @@ a{color:#C9A84C;text-decoration:none}
   <div class="wl-hero-mascot">
     <img src="/assets/looper_caddie.png" alt="Looper caddie mascot">
   </div>
-  <h1>The caddie <span>in your pocket</span></h1>
-  <p class="wl-hero-sub">Live group scoring. AI coaching from your real rounds. Wolf, Sixes, Match Play — actually scored. The golf app your group has been waiting for.</p>
-  <a href="#waitlist" class="wl-hero-cta">Join the waitlist</a>
+  <h1>Your mates. <span>Your season.</span></h1>
+  <p class="wl-hero-sub">Score every round. Compete across 8 leaderboards all season. Get AI coaching built from your actual game. This isn't for tour pros — it's for your four-ball.</p>
+  <button class="wl-hero-cta" onclick="Tally.openPopup('44v1Pk',{layout:'modal',width:400})">Join the waitlist</button>
   <div>
     <div class="wl-urgency">First 50 groups get 6 months completely free — 47 spots remaining</div>
   </div>
@@ -235,16 +235,18 @@ a{color:#C9A84C;text-decoration:none}
 <!-- ══════ WAITLIST CTA ══════ -->
 <section class="wl-section wl-cta-section" id="waitlist">
   <div class="wl-section-inner">
-    <h2 class="wl-section-title">Be one of the first 50.</h2>
-    <p class="wl-cta-sub">First 50 groups get 6 months of Looper completely free. No credit card. No catch. Just golf — tracked properly, for once.</p>
-    <div class="wl-tally-wrap">
-      <!-- TALLY EMBED: replace the data-tally-src with your Tally form URL -->
-      <iframe data-tally-src="https://tally.so/r/44v1Pk?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1" loading="lazy" width="100%" height="300" frameborder="0" marginheight="0" marginwidth="0" title="Looper waitlist" style="border-radius:12px"></iframe>
-      <script>var d=document,w="https://tally.so/widgets/embed.js",v=function(){"undefined"!=typeof Tally?Tally.loadEmbeds():d.querySelectorAll("iframe[data-tally-src]:not([src])").forEach((function(e){e.src=e.dataset.tallySrc}))};if("undefined"!=typeof Tally)v();else if(d.querySelector('script[src="'+w+'"]')==null){var s=d.createElement("script");s.src=w;s.onload=v;s.onerror=v;d.body.appendChild(s)}</script>
-    </div>
+    <h2 class="wl-section-title">Your season starts here.</h2>
+    <p class="wl-cta-sub">First 50 sign-ups get 6 months of Looper completely free. No credit card. No catch. Just golf — tracked properly, for once.</p>
+    <button class="wl-hero-cta" onclick="Tally.openPopup('44v1Pk',{layout:'modal',width:400})" style="margin-bottom:16px">Join the waitlist →</button>
     <p class="wl-cta-note">After the first 50, Looper will be &pound;2.99/month per player. Lock in free now.</p>
   </div>
 </section>
+
+<!-- Tally popup script -->
+<script src="https://tally.so/widgets/embed.js"></script>
+
+<!-- Floating CTA button (bottom-right, always visible) -->
+<button onclick="Tally.openPopup('44v1Pk',{layout:'modal',width:400})" style="position:fixed;bottom:24px;right:24px;z-index:90;padding:12px 24px;border-radius:40px;background:#C9A84C;color:#0A1628;font-size:14px;font-weight:700;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;box-shadow:0 4px 20px rgba(201,168,76,.35);transition:transform 80ms">Join waitlist</button>
 
 <!-- ══════ FOOTER ══════ -->
 <footer class="wl-footer">

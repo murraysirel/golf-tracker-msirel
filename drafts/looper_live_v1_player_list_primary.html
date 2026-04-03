@@ -1,0 +1,513 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'DM Sans', sans-serif; }
+
+  .phone-frame {
+    width: 340px;
+    margin: 20px auto;
+    background: #0a1628;
+    border-radius: 36px;
+    border: 2px solid #1e3358;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .status-bar {
+    background: #0a1628;
+    padding: 12px 20px 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: #8899bb;
+  }
+
+  .hole-header {
+    background: #0a1628;
+    padding: 10px 20px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .hole-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .hole-arrow {
+    color: #c9a84c;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 2px 4px;
+    opacity: 0.7;
+  }
+
+  .hole-title-block {}
+  .hole-num { font-size: 26px; font-weight: 700; color: #f0e8d0; }
+  .hole-sub { font-size: 12px; color: #8899bb; margin-top: 1px; }
+
+  .hole-par-badge {
+    background: #111e35;
+    border: 1px solid #1e3358;
+    border-radius: 10px;
+    padding: 6px 14px;
+    text-align: center;
+  }
+  .hole-par-val { font-size: 18px; font-weight: 700; color: #f0e8d0; }
+  .hole-par-lbl { font-size: 10px; color: #8899bb; letter-spacing: 0.5px; text-transform: uppercase; }
+
+  .pip-row {
+    padding: 0 20px 12px;
+    display: flex;
+    gap: 4px;
+  }
+  .pip {
+    flex: 1;
+    height: 3px;
+    border-radius: 2px;
+    background: #1e3358;
+  }
+  .pip.done { background: #2ecc71; }
+  .pip.active { background: #c9a84c; }
+  .pip.birdie { background: #3498db; }
+  .pip.eagle { background: #f1c40f; }
+
+  .gps-bar {
+    margin: 0 16px 12px;
+    background: #111e35;
+    border: 1px solid #1e3358;
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+  }
+  .gps-dist {
+    text-align: center;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: background 0.15s;
+  }
+  .gps-dist.active-gps { background: rgba(201,168,76,0.15); }
+  .gps-dist-num { font-size: 22px; font-weight: 700; color: #f0e8d0; }
+  .gps-dist-num.mid { color: #c9a84c; }
+  .gps-dist-lbl { font-size: 10px; color: #8899bb; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 1px; }
+  .gps-divider { width: 1px; height: 32px; background: #1e3358; }
+
+  .players-section {
+    margin: 0 16px 10px;
+  }
+
+  .player-row {
+    background: #111e35;
+    border: 1px solid #1e3358;
+    border-radius: 10px;
+    padding: 11px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .player-row.selected {
+    background: #16273d;
+    border-color: #c9a84c;
+  }
+
+  .player-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: #1e3358;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: #8899bb;
+    flex-shrink: 0;
+  }
+
+  .player-row.selected .player-avatar {
+    background: rgba(201,168,76,0.2);
+    color: #c9a84c;
+  }
+
+  .player-name-block { flex: 1; }
+  .player-name { font-size: 14px; font-weight: 600; color: #f0e8d0; }
+  .player-name-you { font-size: 10px; color: #c9a84c; margin-left: 5px; font-weight: 400; }
+  .player-round-par { font-size: 11px; color: #8899bb; margin-top: 1px; }
+
+  .score-adjuster {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .score-btn {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    background: #0a1628;
+    border: 1px solid #1e3358;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    color: #8899bb;
+    cursor: pointer;
+    font-weight: 300;
+  }
+
+  .score-val {
+    font-size: 20px;
+    font-weight: 700;
+    min-width: 24px;
+    text-align: center;
+  }
+  .score-par    { color: #2ecc71; }
+  .score-bogey  { color: #e67e22; }
+  .score-birdie { color: #3498db; }
+  .score-eagle  { color: #f1c40f; }
+  .score-double { color: #e74c3c; }
+  .score-empty  { color: #4a5a7a; font-size: 14px; }
+
+  .stat-panel {
+    margin: 0 16px 10px;
+    background: #111e35;
+    border: 1px solid #1e3358;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .stat-panel-header {
+    padding: 8px 14px;
+    background: rgba(201,168,76,0.08);
+    border-bottom: 1px solid #1e3358;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .stat-panel-who {
+    font-size: 12px;
+    color: #c9a84c;
+    font-weight: 600;
+  }
+  .stat-panel-label {
+    font-size: 11px;
+    color: #8899bb;
+  }
+
+  .stat-row {
+    display: flex;
+    padding: 0;
+  }
+
+  .stat-item {
+    flex: 1;
+    padding: 10px 8px;
+    text-align: center;
+    border-right: 1px solid #1e3358;
+    cursor: pointer;
+  }
+  .stat-item:last-child { border-right: none; }
+
+  .stat-item-lbl {
+    font-size: 10px;
+    color: #8899bb;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+
+  .stat-toggle-row {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+  }
+
+  .stat-toggle {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    background: #0a1628;
+    border: 1px solid #1e3358;
+    color: #8899bb;
+    cursor: pointer;
+  }
+
+  .stat-toggle.yes  { background: rgba(46,204,113,0.15); border-color: #2ecc71; color: #2ecc71; }
+  .stat-toggle.no   { background: rgba(231,76,60,0.15); border-color: #e74c3c; color: #e74c3c; }
+  .stat-toggle.na   { background: rgba(136,153,187,0.15); border-color: #8899bb; color: #8899bb; }
+
+  .putts-adjuster {
+    display: flex; align-items: center; gap: 6px; justify-content: center;
+  }
+  .putt-btn {
+    width: 24px; height: 24px;
+    border-radius: 6px;
+    background: #0a1628;
+    border: 1px solid #1e3358;
+    color: #8899bb;
+    font-size: 15px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .putt-val { font-size: 16px; font-weight: 700; color: #f0e8d0; min-width: 18px; text-align: center; }
+
+  .next-btn {
+    margin: 0 16px 16px;
+    background: #c9a84c;
+    border: none;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #0a1628;
+    width: calc(100% - 32px);
+    cursor: pointer;
+    letter-spacing: 0.3px;
+  }
+
+  .tab-bar {
+    background: #0a1628;
+    border-top: 1px solid #1e3358;
+    display: flex;
+    padding: 8px 0 20px;
+  }
+  .tab-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+  }
+  .tab-icon {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .tab-item.active .tab-icon { background: rgba(201,168,76,0.2); }
+  .tab-lbl { font-size: 10px; color: #8899bb; }
+  .tab-item.active .tab-lbl { color: #c9a84c; }
+
+  .selected-indicator {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #c9a84c;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+</style>
+
+<div class="phone-frame" id="frame">
+
+  <div class="status-bar">
+    <span>9:41</span>
+    <span>●●●</span>
+  </div>
+
+  <div class="hole-header">
+    <div class="hole-nav">
+      <span class="hole-arrow">‹</span>
+      <div class="hole-title-block">
+        <div class="hole-num">Hole 4</div>
+        <div class="hole-sub">SI 11 · Croham Hurst</div>
+      </div>
+      <span class="hole-arrow">›</span>
+    </div>
+    <div class="hole-par-badge">
+      <div class="hole-par-val">4</div>
+      <div class="hole-par-lbl">Par</div>
+    </div>
+  </div>
+
+  <div class="pip-row">
+    <div class="pip done"></div>
+    <div class="pip done"></div>
+    <div class="pip birdie"></div>
+    <div class="pip active"></div>
+    <div class="pip"></div><div class="pip"></div><div class="pip"></div>
+    <div class="pip"></div><div class="pip"></div><div class="pip"></div>
+    <div class="pip"></div><div class="pip"></div><div class="pip"></div>
+    <div class="pip"></div><div class="pip"></div><div class="pip"></div>
+    <div class="pip"></div><div class="pip"></div>
+  </div>
+
+  <div class="gps-bar">
+    <div class="gps-dist" onclick="setGps('front')">
+      <div class="gps-dist-num" id="gf">134</div>
+      <div class="gps-dist-lbl">Front</div>
+    </div>
+    <div class="gps-divider"></div>
+    <div class="gps-dist active-gps" onclick="setGps('mid')">
+      <div class="gps-dist-num mid" id="gm">151</div>
+      <div class="gps-dist-lbl">Mid</div>
+    </div>
+    <div class="gps-divider"></div>
+    <div class="gps-dist" onclick="setGps('back')">
+      <div class="gps-dist-num" id="gb">168</div>
+      <div class="gps-dist-lbl">Back</div>
+    </div>
+  </div>
+
+  <div class="players-section" id="players-list"></div>
+
+  <div class="stat-panel">
+    <div class="stat-panel-header">
+      <span class="stat-panel-who" id="stat-who">Murray</span>
+      <span class="stat-panel-label">· tap a player above to switch</span>
+    </div>
+    <div class="stat-row">
+      <div class="stat-item">
+        <div class="stat-item-lbl">Putts</div>
+        <div class="putts-adjuster">
+          <div class="putt-btn" onclick="adjPutts(-1)">−</div>
+          <div class="putt-val" id="putt-val">2</div>
+          <div class="putt-btn" onclick="adjPutts(1)">+</div>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-item-lbl">FIR</div>
+        <div class="stat-toggle-row">
+          <div class="stat-toggle yes" id="fir-yes" onclick="setFir('yes')">Y</div>
+          <div class="stat-toggle" id="fir-no" onclick="setFir('no')">N</div>
+          <div class="stat-toggle na" id="fir-na" onclick="setFir('na')">–</div>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-item-lbl">GIR</div>
+        <div class="stat-toggle-row">
+          <div class="stat-toggle" id="gir-yes" onclick="setGir('yes')">Y</div>
+          <div class="stat-toggle no" id="gir-no" onclick="setGir('no')">N</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="next-btn" id="next-btn">Next hole →</button>
+
+  <div class="tab-bar">
+    <div class="tab-item"><div class="tab-icon">⌂</div><span class="tab-lbl">Home</span></div>
+    <div class="tab-item"><div class="tab-icon">○</div><span class="tab-lbl">Round</span></div>
+    <div class="tab-item active"><div class="tab-icon">↑</div><span class="tab-lbl">Caddie</span></div>
+    <div class="tab-item"><div class="tab-icon">∿</div><span class="tab-lbl">Stats</span></div>
+    <div class="tab-item"><div class="tab-icon">≡</div><span class="tab-lbl">Board</span></div>
+  </div>
+</div>
+
+<script>
+const players = [
+  { name: 'Murray', initials: 'MS', isMe: true, scores: [4,4,3,null], par: [4,4,3,4], putts: 2, fir: 'yes', gir: 'no' },
+  { name: 'James', initials: 'JB', isMe: false, scores: [5,4,4,null], par: [4,4,3,4], putts: 2, fir: null, gir: null },
+];
+
+let selectedIdx = 0;
+
+function getDelta(scores, pars) {
+  let d = 0;
+  for (let i = 0; i < scores.length; i++) {
+    if (scores[i] !== null) d += scores[i] - pars[i];
+  }
+  return d;
+}
+
+function scoreClass(d) {
+  if (d === null) return 'score-empty';
+  if (d <= -2) return 'score-eagle';
+  if (d === -1) return 'score-birdie';
+  if (d === 0) return 'score-par';
+  if (d === 1) return 'score-bogey';
+  return 'score-double';
+}
+
+function fmtDelta(d) {
+  if (d === 0) return 'E';
+  return (d > 0 ? '+' : '') + d;
+}
+
+function renderPlayers() {
+  const list = document.getElementById('players-list');
+  list.innerHTML = players.map((p, i) => {
+    const completedScores = p.scores.slice(0, 3);
+    const completedPars = p.par.slice(0, 3);
+    const runningDelta = getDelta(completedScores, completedPars);
+    const holeScore = p.scores[3];
+    const holePar = p.par[3];
+    const holeDelta = holeScore !== null ? holeScore - holePar : null;
+    const holeClass = scoreClass(holeDelta);
+    const holeDisplay = holeScore !== null ? holeScore : '·';
+    const runningStr = completedScores.some(s => s !== null) ? fmtDelta(runningDelta) : '';
+    const sel = i === selectedIdx;
+
+    return `<div class="player-row${sel ? ' selected' : ''}" onclick="selectPlayer(${i})">
+      <div class="player-avatar">${p.initials}</div>
+      <div class="player-name-block">
+        <div class="player-name">${p.name}${p.isMe ? '<span class="player-name-you">you</span>' : ''}</div>
+        ${runningStr ? `<div class="player-round-par">Through 3: <span style="color:${runningDelta < 0 ? '#3498db' : runningDelta === 0 ? '#2ecc71' : '#e67e22'}">${runningStr}</span></div>` : '<div class="player-round-par">No scores yet</div>'}
+      </div>
+      <div class="score-adjuster">
+        <div class="score-btn" onclick="event.stopPropagation(); adjScore(${i},-1)">−</div>
+        <div class="score-val ${holeClass}">${holeDisplay}</div>
+        <div class="score-btn" onclick="event.stopPropagation(); adjScore(${i},1)">+</div>
+      </div>
+      ${sel ? '<div class="selected-indicator"></div>' : '<div style="width:6px"></div>'}
+    </div>`;
+  }).join('');
+}
+
+function selectPlayer(i) {
+  selectedIdx = i;
+  document.getElementById('stat-who').textContent = players[i].name;
+  syncStatPanel();
+  renderPlayers();
+}
+
+function adjScore(i, d) {
+  const p = players[i];
+  const cur = p.scores[3];
+  const par = p.par[3];
+  if (cur === null) p.scores[3] = par + d;
+  else p.scores[3] = Math.max(1, cur + d);
+  renderPlayers();
+}
+
+function adjPutts(d) {
+  players[selectedIdx].putts = Math.max(0, Math.min(6, (players[selectedIdx].putts || 0) + d));
+  document.getElementById('putt-val').textContent = players[selectedIdx].putts;
+}
+
+function setFir(v) {
+  players[selectedIdx].fir = v;
+  syncStatPanel();
+}
+function setGir(v) {
+  players[selectedIdx].gir = v;
+  syncStatPanel();
+}
+
+function syncStatPanel() {
+  const p = players[selectedIdx];
+  document.getElementById('putt-val').textContent = p.putts || 0;
+  ['yes','no','na'].forEach(v => {
+    const el = document.getElementById('fir-' + v);
+    if (el) { el.className = 'stat-toggle' + (p.fir === v ? ' ' + v : ''); }
+  });
+  ['yes','no'].forEach(v => {
+    const el = document.getElementById('gir-' + v);
+    if (el) { el.className = 'stat-toggle' + (p.gir === v ? ' ' + v : ''); }
+  });
+}
+
+function setGps(t) {
+  document.querySelectorAll('.gps-dist').forEach(el => el.classList.remove('active-gps'));
+  document.querySelectorAll('.gps-dist-num').forEach(el => el.classList.remove('mid'));
+  const idx = ['front','mid','back'].indexOf(t);
+  document.querySelectorAll('.gps-dist')[idx].classList.add('active-gps');
+  document.querySelectorAll('.gps-dist-num')[idx].classList.add('mid');
+}
+
+renderPlayers();
+syncStatPanel();
+</script>

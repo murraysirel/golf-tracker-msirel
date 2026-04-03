@@ -1,0 +1,46 @@
+<svg width="100%" viewBox="0 0 680 520" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="#888780" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+</defs>
+
+<!-- Centre label -->
+<text font-family="Arial, sans-serif" font-weight="500" font-size="15" fill="#2C2C2A" x="340" y="248" text-anchor="middle" dominant-baseline="central">The Looper</text>
+<text font-family="Arial, sans-serif" font-weight="500" font-size="15" fill="#2C2C2A" x="340" y="268" text-anchor="middle" dominant-baseline="central">flywheel</text>
+
+<!-- Node 1: Top — League creates a reason to log -->
+<rect x="224" y="42" width="232" height="56" rx="10" fill="#FAEEDA" stroke="#BA7517" stroke-width="0.5"/>
+<text font-family="Arial, sans-serif" font-weight="500" font-size="14" fill="#633806" x="340" y="65" text-anchor="middle" dominant-baseline="central">League creates a reason to log</text>
+<text font-family="Arial, sans-serif" font-size="12" fill="#854F0B" x="340" y="84" text-anchor="middle" dominant-baseline="central">Even bad rounds earn points</text>
+
+<!-- Node 2: Right — Every round builds your dataset -->
+<rect x="452" y="135" width="190" height="56" rx="10" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text font-family="Arial, sans-serif" font-weight="500" font-size="14" fill="#085041" x="547" y="158" text-anchor="middle" dominant-baseline="central">Every round builds</text>
+<text font-family="Arial, sans-serif" font-weight="500" font-size="14" fill="#085041" x="547" y="174" text-anchor="middle" dominant-baseline="central">your dataset</text>
+
+<!-- Node 3: Lower right — AI coaching that actually knows you -->
+<rect x="448" y="320" width="196" height="56" rx="10" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text font-family="Arial, sans-serif" font-weight="500" font-size="14" fill="#085041" x="546" y="343" text-anchor="middle" dominant-baseline="central">AI coaching that</text>
+<text font-family="Arial, sans-serif" font-weight="500" font-size="14" fill="#085041" x="546" y="359" text-anchor="middle" dominant-baseline="central">actually knows you</text>
+
+<!-- Node 4: Lower left — You get better -->
+<rect x="40" y="320" width="182" height="56" rx="10" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+<text font-family="Arial, sans-serif" font-weight="500" font-size="14" fill="#26215C" x="131" y="343" text-anchor="middle" dominant-baseline="central">You get better</text>
+<text font-family="Arial, sans-serif" font-size="12" fill="#3C3489" x="131" y="359" text-anchor="middle" dominant-baseline="central">Handicap drops, stats improve</text>
+
+<!-- Node 5: Left — You want to play more -->
+<rect x="38" y="135" width="196" height="56" rx="10" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+<text font-family="Arial, sans-serif" font-weight="500" font-size="14" fill="#26215C" x="136" y="158" text-anchor="middle" dominant-baseline="central">You want to play more</text>
+<text font-family="Arial, sans-serif" font-size="12" fill="#3C3489" x="136" y="174" text-anchor="middle" dominant-baseline="central">Beat Dave, defend the title</text>
+
+<!-- Arrows clockwise -->
+<path d="M456 82 Q520 100 452 148" fill="none" stroke="#888780" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M546 191 Q556 250 546 320" fill="none" stroke="#888780" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M448 358 Q340 400 222 358" fill="none" stroke="#888780" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M134 320 Q124 255 136 191" fill="none" stroke="#888780" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M224 142 Q210 96 300 68" fill="none" stroke="#888780" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+<!-- Bottom caption -->
+<text font-family="Arial, sans-serif" font-size="12" fill="#5F5E5A" x="340" y="490" text-anchor="middle">Strava made running social. Looper makes golf data worth having.</text>
+</svg>
