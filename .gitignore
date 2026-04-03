@@ -10,3 +10,7 @@
 
 # Deno (not used)
 deno.lock
+
+# Marketing skills (local only)
+.agents/
+marketingskills/
