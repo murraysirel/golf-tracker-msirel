@@ -1195,10 +1195,10 @@ function bindDeleteZone(delZone, r) {
 
 function showDeleteConfirmInline(delZone, r) {
   delZone.innerHTML = `
-    <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end">
-      <span style="font-size:11px;color:var(--dim);white-space:nowrap">Delete this round?</span>
-      <button class="btn btn-ghost" style="width:auto;padding:4px 10px;font-size:11px;border-color:rgba(231,76,60,.4);color:var(--double)" data-del-yes>Yes, delete</button>
-      <button class="btn btn-ghost" style="width:auto;padding:4px 10px;font-size:11px" data-del-no>Cancel</button>
+    <div style="display:flex;align-items:center;gap:4px;white-space:nowrap">
+      <span style="font-size:10px;color:var(--dim)">Delete?</span>
+      <button class="btn btn-ghost" style="width:auto;padding:3px 8px;font-size:10px;border-color:rgba(231,76,60,.4);color:var(--double)" data-del-yes>Yes</button>
+      <button class="btn btn-ghost" style="width:auto;padding:3px 8px;font-size:10px" data-del-no>No</button>
     </div>`;
   delZone.querySelector('[data-del-yes]').addEventListener('click', e => {
     e.stopPropagation();

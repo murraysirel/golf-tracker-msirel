@@ -557,12 +557,12 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
 
 /* ── History items ────────────────────────────────────────────── */
 .hi{
-  display:flex;justify-content:space-between;align-items:center;
-  padding:11px 0;border-bottom:1px solid var(--wa-05);
+  display:flex;align-items:center;gap:8px;
+  padding:11px 0;border-bottom:1px solid var(--wa-05);flex-wrap:nowrap;
 }
 .hi:last-child{border-bottom:none}
-.hc{font-size:13px;font-weight:500;color:var(--cream)}
-.hm{font-size:10px;color:var(--dim);margin-top:2px}
+.hc{font-size:13px;font-weight:500;color:var(--cream);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hm{font-size:10px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hs{
   font-size:24px;font-weight:700;color:var(--gold);
   font-family:'DM Sans',sans-serif;
