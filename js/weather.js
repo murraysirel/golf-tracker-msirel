@@ -93,12 +93,16 @@ export async function getWeather() {
     score = Math.round(Math.max(0, Math.min(100, score)));
 
     let suitLabel, suitColour;
-    if (score >= 75) { suitLabel = 'Great'; suitColour = '#2ecc71'; }
+    if (score >= 90) { suitLabel = "Millionaire's golf"; suitColour = '#2ecc71'; }
+    else if (score >= 75) { suitLabel = 'Great'; suitColour = '#2ecc71'; }
     else if (score >= 50) { suitLabel = 'Good'; suitColour = '#f1c40f'; }
     else if (score >= 30) { suitLabel = 'Tricky'; suitColour = '#e67e22'; }
     else { suitLabel = 'Poor'; suitColour = '#e74c3c'; }
 
-    return { date, tempMax, tempMin, precipProbability, windMph, iconType, score, suitLabel, suitColour };
+    // Suncream reminder flag: sunny/partly cloudy + above 18°C
+    const needsSuncream = tempMax >= 18 && (iconType === 'sunny' || iconType === 'partly_cloudy');
+
+    return { date, tempMax, tempMin, precipProbability, windMph, iconType, score, suitLabel, suitColour, needsSuncream };
   });
 
   const result = { data: days, timestamp: Date.now(), locationName: loc.locationName };
