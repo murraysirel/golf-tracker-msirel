@@ -5,7 +5,7 @@ import { state } from './state.js';
 import { pushData, pushSupabase } from './api.js';
 import { getCourseByRef } from './courses.js';
 
-function haversineYards(lat1, lng1, lat2, lng2) {
+export function haversineYards(lat1, lng1, lat2, lng2) {
   const R = 6371000;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLng = (lng2 - lng1) * Math.PI / 180;

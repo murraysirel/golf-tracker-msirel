@@ -4,9 +4,11 @@
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
 import { querySupabase, pushSupabase } from './api.js';
+import { haversineYards } from './gps.js';
 
 let _invitePollTimer = null;
 let _livePollTimer   = null;
+let _viewerGpsWatchId = null;
 
 // ── Invite polling ────────────────────────────────────────────────
 
@@ -100,6 +102,44 @@ function _openOverlay(round) {
   const overlay = document.getElementById('live-view-overlay');
   if (overlay) overlay.style.display = 'flex';
   _renderScores(round);
+  _startViewerGps(round);
+}
+
+function _startViewerGps(round) {
+  if (_viewerGpsWatchId != null || !navigator.geolocation) return;
+  const courseName = round?.course || '';
+  const gpsCard = document.getElementById('lv-gps-card');
+  // Check if we have green coords for this course
+  const greens = state.gd?.greenCoords?.[courseName];
+  if (!greens) return;
+  if (gpsCard) gpsCard.style.display = 'block';
+  _viewerGpsWatchId = navigator.geolocation.watchPosition(
+    pos => {
+      const lat = pos.coords.latitude, lng = pos.coords.longitude;
+      const hole0 = state.liveInvite.data?.hole ?? 0;
+      const green = greens[hole0];
+      if (!green) return;
+      const unit = localStorage.getItem('looper_dist_unit') || 'yards';
+      const fmt = (y) => unit === 'metres' ? Math.round(y / 1.09361) : y;
+      ['front','mid','back'].forEach(t => {
+        const tgt = green[t];
+        const el = document.getElementById('lv-dist-' + t);
+        if (el && tgt) el.textContent = fmt(haversineYards(lat, lng, tgt.lat, tgt.lng));
+        else if (el) el.textContent = '—';
+      });
+    },
+    () => {},
+    { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+  );
+}
+
+function _stopViewerGps() {
+  if (_viewerGpsWatchId != null) {
+    navigator.geolocation.clearWatch(_viewerGpsWatchId);
+    _viewerGpsWatchId = null;
+  }
+  const gpsCard = document.getElementById('lv-gps-card');
+  if (gpsCard) gpsCard.style.display = 'none';
 }
 
 function _renderScores(round) {
@@ -250,6 +290,7 @@ export function restoreLiveView() {
 
 export function leaveLiveView() {
   _stopLivePoll();
+  _stopViewerGps();
   state.liveInvite.currentRoundId = null;
   state.liveInvite.mode = null;
   state.liveInvite.data = null;
