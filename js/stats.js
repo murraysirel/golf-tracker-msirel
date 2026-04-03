@@ -1079,25 +1079,15 @@ export function renderHomeStats() {
     const allPlayers = Object.entries(state.gd.players || {});
     const birdieIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>';
     const rows = allPlayers.map(([name, pl]) => {
-      const hcp = pl.handicap || 0;
-      const yearRounds = (pl.rounds || []).filter(r => r.date?.split('/')?.[2] === currentYear && r.scores && r.pars);
-      let netBirdies = 0;
-      yearRounds.forEach(r => {
-        const slope = r.slope || 113;
-        const php = Math.round(hcp * slope / 113);
-        for (let h = 0; h < 18; h++) {
-          if (r.scores[h] == null || r.pars[h] == null) continue;
-          const strokes = Math.floor(php / 18) + ((h + 1) <= (php % 18) ? 1 : 0);
-          if ((r.scores[h] - strokes) - r.pars[h] === -1) netBirdies++;
-        }
-      });
-      return { name, netBirdies, rounds: yearRounds.length };
-    }).filter(r => r.rounds > 0).sort((a, b) => b.netBirdies - a.netBirdies);
+      const yearRounds = (pl.rounds || []).filter(r => r.date?.split('/')?.[2] === currentYear);
+      const grossBirdies = yearRounds.reduce((sum, r) => sum + (r.birdies || 0), 0);
+      return { name, grossBirdies, rounds: yearRounds.length };
+    }).filter(r => r.rounds > 0).sort((a, b) => b.grossBirdies - a.grossBirdies);
 
     if (rows.length) {
       const birdieSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 18 18" fill="none" stroke="var(--birdie)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="5"/><path d="M5 12l-2 4h12l-2-4"/></svg>';
       birdieEl.innerHTML = `
-        <div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Net birdies · ${currentYear}</div>
+        <div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Birdies · ${currentYear}</div>
         <div style="background:var(--mid);border:1px solid var(--border);border-radius:12px;padding:10px 14px">
           ${rows.map((r, i) => {
             const isMe = r.name === state.me;
@@ -1107,7 +1097,7 @@ export function renderHomeStats() {
               <div style="flex:1;font-size:12px;font-weight:${isMe ? '600' : '400'};color:${isMe ? 'var(--gold)' : 'var(--cream)'}">${r.name.split(' ')[0]}</div>
               <div style="display:flex;align-items:center;gap:4px">
                 ${birdieSvg}
-                <span style="font-size:14px;font-weight:700;color:var(--birdie)">${r.netBirdies}</span>
+                <span style="font-size:14px;font-weight:700;color:var(--birdie)">${r.grossBirdies}</span>
               </div>
             </div>`;
           }).join('')}
