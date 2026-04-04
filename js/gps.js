@@ -35,12 +35,18 @@ function getTeeCoords(hole0) {
 export function startGPSWatch() {
   if (!navigator.geolocation || state.gpsState.watching) return;
   state.gpsState.watching = true;
+  // Show "Locating..." while waiting for first GPS fix
+  const midEl = document.getElementById('live-dist-mid');
+  if (midEl && midEl.textContent === '—') midEl.textContent = '...';
   state.gpsState.watchId = navigator.geolocation.watchPosition(
     pos => {
       state.gpsState.coords = pos.coords;
       updateGPSDisplay(state.liveState?.hole || 0);
     },
-    err => { console.warn('GPS error:', err.message); },
+    err => {
+      console.warn('GPS error:', err.message);
+      if (midEl) midEl.textContent = 'No GPS';
+    },
     { enableHighAccuracy: true, maximumAge: 3000, timeout: 15000 }
   );
 }
@@ -106,7 +112,12 @@ function _displayDist(yards) {
 
 export function updateGPSDisplay(hole0) {
   const green = getGreenCoords(hole0);
-  if (!green || !state.gpsState.coords) return;
+  if (!green) {
+    const midEl = document.getElementById('live-dist-mid');
+    if (midEl && state.gpsState.coords) midEl.textContent = 'No data';
+    return;
+  }
+  if (!state.gpsState.coords) return;
   const target = green[state.gpsState.target] || green.mid;
   if (!target) return;
   const yards = haversineYards(
