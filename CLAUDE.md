@@ -2,7 +2,7 @@
 
 ## Product Summary
 
-Looper is a mobile-first progressive web app — your AI caddie — for a small group of golfers to record, compare, and analyse their rounds together. Players enter scores manually or via AI-parsed scorecard photos, track live hole-by-hole scoring (including multi-player groups and match play), and view personal stats (handicap trend, Stableford points, FIR/GIR charts) alongside a shared group leaderboard with nine ranking views. AI features — powered by Anthropic Claude via a Netlify proxy — cover scorecard OCR, post-round coaching reviews, multi-round stats analysis, and personalised practice-session planning.
+Looper is a mobile-first progressive web app — your AI caddie — for a small group of golfers to record, compare, and analyse their rounds together. Players enter scores manually or via AI-parsed scorecard photos, track live hole-by-hole scoring (including multi-player groups and match play), and view personal stats (handicap trend, Stableford points, FIR/GIR charts) alongside a shared group leaderboard with eight ranking views. AI features — powered by Anthropic Claude via a Netlify proxy — cover scorecard OCR, post-round coaching reviews, multi-round stats analysis, and personalised practice-session planning. A pre-launch waitlist page (`waitlist.html`) captures signups via Tally webhooks with Resend confirmation emails.
 
 ---
 
@@ -13,7 +13,7 @@ Browser (PWA, vanilla JS ES modules, no build step)
   │
   ├── index.html          ← entire app shell (all pages, modals, navbar in one file)
   ├── styles/app.css      ← design system via CSS custom properties
-  └── js/*.js             ← 26 ES module files, entry point is app.js
+  └── js/*.js             ← 30 ES module files, entry point is app.js
          │
          ├── /.netlify/functions/auth      ← Supabase Auth proxy (auth.js)
          │       └── Supabase Auth — email/password + magic link sign-in
@@ -46,29 +46,32 @@ Netlify hosts both the static frontend and all serverless functions. No build st
 | `nav.js` | SPA routing: `goTo(page)`, `switchEntry(type)`, `registerNavHandlers()` (circular-dep workaround). Pages include `feed` for the activity feed drill-down |
 | `api.js` | `loadAppData()` / `loadGroupData()` / `pushData()` / `pushSupabase()` / `querySupabase()` / `retryUnsyncedRounds()` — Supabase data sync; `ss()` updates the status dot |
 | `scorecard.js` | `buildSC()` renders the 18-hole input table; `saveRound()` collects DOM values, computes breakdown, appends to `state.gd`, calls `pushData()` then `pushSupabase()` fire-and-forget |
-| `live.js` | Hole-by-hole live scoring UI — redesigned Caddie view with player-list-first layout, inline score adjusters, stat panel for selected player (`_statPlayer`), colour-coded pips, GPS card with tap-to-switch target; running score shows gross vs par (big) + net vs par (small); multi-player group mode; match play tracking; `publishLiveState()` for real-time sharing; `cancelRound()` resets live state; `liveGroupSave()` saves group rounds directly (tee data is optional — missing tee never blocks save) |
-| `live-invite.js` | Real-time round invite polling, toast dismissal, join/leave live round, view/edit mode toggle; `startInvitePolling()`, `joinLiveRound()`, `minimiseLiveView()`, `submitEditorScore()` |
+| `live.js` | Hole-by-hole live scoring UI — player-list-first layout, inline score adjusters with POP badge (handicap stroke indicator), stat panel for selected player, colour-coded pips, compact GPS card with green SVG illustration; running score shows gross vs par + net vs par; multi-player group mode; match play tracking; `publishLiveState()` publishes scores + gameMode + hcpOverrides for real-time viewer sharing; `_saveLiveBackup()` (exported) fires on every change + beforeunload + 30s interval; round recovery restores course by name, strokes, sixes state; `liveGroupSave()` falls back to backup course name if getCourseByRef returns null; `cancelRound()` resets live state. Each player row shows HCP/strokes info with mid-round "Edit strokes" link. |
+| `live-invite.js` | Real-time round invite polling (12s interval, restarts on every page navigation), toast dismissal, join/leave live round, view/edit mode toggle; viewer GPS card with own phone GPS watch; `startInvitePolling()`, `joinLiveRound()`, `minimiseLiveView()`, `submitEditorScore()` |
 | `overlay.js` | Match overlay display and controls; `initMatchOverlay()`, `showMatchOverlay()`, `hideMatchOverlay()`, `showEndRoundConfirm()` |
 | `competition.js` | Competition hub — tabbed home screen (Overview/Schedule/Leaderboard/Activity); tee group management; `startCompetitionRound()` routes to comp-score; admin panel with handicap overrides; AI commentary; polls Supabase every 45 s; `getMatchLeaderboard()` exported for group matches |
 | `competition-setup.js` | Competition creation/joining — `generateCompCode()`, `createCompetition()`, `joinCompetition()`, `lookupCompetition()`, `renderCompetitionSetupModal()`, `renderJoinCompetitionModal()`; AI commentary — `generateCompPreview()`, `generateHalftimeSummary()`, `generateFinalSummary()` |
 | `comp-score.js` | Competition-specific scoring — carbon copy of live.js hole-by-hole UI, scoped to user's tee group. Separate module to avoid coupling with live.js. `initCompScore()`, `prepareCompScore()`, `compScoreNext()`, `compScorePrev()`, `compScoreSave()`. Includes all live.js bug fixes (onclick not addEventListener, putts cap, autoGir guards). Saves rounds tagged to competition dates, navigates back to competition home on finish |
 | `stats.js` | KPI cards, six Chart.js charts (score trend, FIR/GIR, putts, birdies/doubles, per-hole, scoring breakdown bars), Stableford calculator, `calcScoringPointsNet()`, handicap edit, round history list, front 9 vs back 9 card; `parseDateGB()` used app-wide; `renderMatesFeed()` generates the home-screen activity highlights feed (3 events max, last 7 days); `renderFeedPage()` renders the full Strava-style activity feed page (`#pg-feed`) with 30-day lookback, rich round cards, event rows (birdies/eagles/PBs/match results), tap-to-view scorecard; home screen pulse row with customisable KPIs (last 5 rounds, stored in `looper_home_kpis`); handicap benchmark overlay lines and callout values on all charts |
-| `leaderboard.js` | Unified podium + list layout with 9 switchable view pills (Stableford, Net score, Birdies, Buffer+, etc.); `setLeaderboardView()` switches active view; context header with inline group/season selector panel; `filterRounds()` excludes rounds before a player's `joinedAt` date |
+| `leaderboard.js` | Unified podium + list layout with 8 switchable view pills (Stableford, Net score, Buffer+, Pts scoring net, Best round, Fewest doubles, Most birdies, Most net birdies); collapsible H2H widget; view explainers below podium; pills ordered by admin's `active_boards` config; `getAllowedBoardIds()` subscription gate; `filterRounds()` excludes rounds before a player's `joinedAt` date |
 | `players.js` | Onboarding/sign-in, player management, initials generation, "who's playing today" selector, avatar upload (256px resize), home course setting |
-| `courses.js` | Course search UI (`initCourseSearch()` mounts into `#course-search-container`), `getCourseByRef()` returns active course object, `clearCourseSelection()` resets it; `_applyCourse()` sets `state.cpars`/`state.activeCourse` and rebuilds the scorecard. All courses come from GolfAPI with Supabase caching. Built-in fallback disabled. Search input auto-clears on page navigation. |
-| `gps.js` | `watchPosition` GPS, Haversine distance-to-green, tee/green coord pinning, drive logging stored in `state.gd` |
+| `courses.js` | Course search UI (`initCourseSearch()` mounts into `#course-search-container`), `getCourseByRef()` returns active course object, `clearCourseSelection()` resets it; `restoreCourseByName(name, tee)` searches Supabase and applies course for round recovery (falls back to minimal stub); `_applyCourse()` sets `state.cpars`/`state.activeCourse` and rebuilds the scorecard; country pill strip with SVG flag icons; tee pills from course data. All courses come from GolfAPI with Supabase caching. |
 | `ai.js` | Scorecard photo parsing, post-round coaching review, multi-round stats analysis — all via `/.netlify/functions/ai` |
 | `practice.js` | AI practice-plan generation (Claude) with preset areas or free-text custom requests, session logging with drill-by-drill shot counting |
 | `group.js` | Group code/season CRUD, board setup, "delete my data", clipboard helpers; `initJoinGroup()`, `initCreateGroup()`, `initGroupSettings()`, `showBoardPage()` |
 | `group-match.js` | Group match creation/joining modals and active-match badge; `openCreateMatchModal()`, `openJoinMatchModal()`, `updateGroupMatchButtonVisibility()`, `updateActiveMatchBadge()` |
 | `admin.js` | Password-protected admin panel — round deletion (logged to `deletionLog`), course-correction application, GolfAPI usage check, demo seeding |
-| `export.js` | XLSX export using global `XLSX` — two sheets: All Rounds + Hole Data |
-| `gamemodes.js` | Wolf / Match Play / Sixes game mode engines; `setGameMode()`, `updateFormatUI()`, Wolf state init/scoring/banners/scoreboard, Sixes 3-ball net points (4-2-0 scoring), `initSixesState()`, `getSixesStandings()` |
+| `export.js` | XLSX export (disconnected — button removed, file kept for future re-enable) |
+| `gamemodes.js` | Wolf / Match Play / Sixes game mode engines; `setGameMode()`, `updateFormatUI()` syncs both old fpill buttons and new format slider; Wolf state init/scoring/banners/scoreboard; Sixes 3-ball net points (4-2-0 scoring) with compact inline standings bar; `initSixesState()`, `getSixesStandings()`, `updateSixesBanner()` |
+| `flags.js` | Feature flags — `PREMIUM_ENABLED: false` (all premium gates no-op when off); `isEnabled(flag)` |
+| `subscription.js` | Premium subscription gatekeeping (hidden behind flag) — `isPremium()`, `checkAccess(feature)`, `incrementUsage(feature)`, `showUpgradePrompt(feature)`, `getAllowedBoardIds()`; usage tracking via localStorage; native bridge stub for future app store payments |
+| `walkthrough.js` | 12-step spotlight tour for new users — box-shadow overlay with gold border, tooltip card, auto-page-navigation; triggers on first login (`looper_walkthrough_done` flag); replayable from Settings |
 | `friends.js` | Friends system — live player search (fuzzy name match via `searchPlayers` Supabase action), friend request send/accept/decline, notification polling (60s), profile panel tabs (Settings/Actions/Friends); search results show name, handicap, home course |
 | `empty-states.js` | `emptyState(icon, headline, subline, ctaText, ctaAction)` — reusable empty state renderer used across home, stats, leaderboard, practice |
 | `caddie.js` | `initCaddieButton()` — floating caddie pill button initialisation |
 | `demo.js` | `enterDemoMode()`, `exitDemoMode()`, `isDemoMode()` — demo group loaded from `/.netlify/functions/demo-data` with no auth |
-| `weather.js` | 3-day weather forecast from Open-Meteo free API. No key required. Resolves location from GPS state, last played course green coords, or London fallback. 3-hour localStorage cache. Golf suitability score computed from precipitation, wind, and temperature. |
+| `weather.js` | 3-day weather forecast from Open-Meteo free API. No key required. Resolves location from: user-selected course (localStorage `looper_weather_location`) → GPS → last played course green coords → London fallback. Tappable location header with course search to change forecast location. 3-hour localStorage cache. Golf suitability score (score ≥90 = "Millionaire's golf"). Suncream reminder flag when sunny + >18°C. |
+| `gps.js` | `watchPosition` GPS, `haversineYards()` (exported for shared use), distance-to-green with front/mid/back targets, tee/green coord pinning, drive logging stored in `state.gd`. Green coords mapping: GolfAPI location=1→front, location=3→back (corrected from docs). |
 
 ---
 
@@ -236,10 +239,10 @@ course_reports — id (bigint auto), course_id, player_name, group_code, issue (
 Defined in `:root` in `styles/app.css`:
 
 ```css
---navy:   #0a1628;   /* page background */
---mid:    #111e35;   /* section background */
---card:   #16273d;   /* card background */
---border: #1e3358;   /* subtle dividers */
+--navy:   #0b1520;   /* page background (warmer indigo-black) */
+--mid:    #121e30;   /* section background */
+--card:   #182538;   /* card background */
+--border: #1e3252;   /* subtle dividers */
 
 --gold:   #c9a84c;   /* primary accent */
 --gold2:  #e8c96a;   /* hover accent */
@@ -359,6 +362,7 @@ The browser never talks to Supabase directly. All auth (sign-in, sign-up, token 
 | `ai.js` | `/.netlify/functions/ai` | `ANTHROPIC_API_KEY` (server) | Photo OCR, coaching review, stats analysis via Claude |
 | `courses.js` | `/.netlify/functions/courses` | `GOLFAPI_KEY` (server) | GolfAPI.io search + detail fetch; results cached in Supabase (fields `overall_par`, `tee_types` are stripped from upsert — not in DB schema); actions: search, fetch, usage, diagnose, fix-bad-data, report, inspect |
 | `demo-data.js` | `/.netlify/functions/demo-data` | None | Returns in-memory DEMO01 demo data (no DB, no auth) |
+| `waitlist.js` | `/.netlify/functions/waitlist` | `SUPABASE_SERVICE_KEY`, `RESEND_API_KEY` | Receives Tally webhook → writes to Supabase `waitlist` table (auto-assigns signup number via trigger) → sends branded confirmation email via Resend. First 100 signups get `is_founder: true`. |
 | `seed-demo.js` | `/.netlify/functions/seed-demo` | `x-admin-key` header | Seeds DEMO01 group (8 players, 40 outings) into Supabase |
 | `run-seed-demo.js` | `/.netlify/functions/run-seed-demo` | Injected server-side | Admin trigger — proxies seed-demo with `SYNC_SECRET` |
 
@@ -376,7 +380,8 @@ All variables are set in the Netlify dashboard. None are ever sent to the browse
 | `SUPABASE_ANON_KEY` | `netlify/functions/auth.js` | Supabase anon key — used for user-scoped sign-in/sign-up only |
 | `GOLFAPI_KEY` | `netlify/functions/courses.js` | GolfAPI.io key for course search, detail fetch, and result caching |
 | `SYNC_SECRET` | `netlify/functions/courses.js` (diagnose/fix-bad-data actions), `netlify/functions/run-seed-demo.js` | Server-side only — protects admin-only endpoints |
-| `SENTRY_DSN` | `index.html` (browser SDK) | Sentry error tracking DSN — loaded via CDN `<script>` tag, configured with `Sentry.init()` before app.js |
+| `RESEND_API_KEY` | `netlify/functions/waitlist.js`, `netlify/functions/auth.js` | Resend email API key — sends waitlist confirmation + welcome emails. Server-side only, never in browser JS. Domain: `loopercaddie.co.uk` (temporary while `.com` is ICANN-locked; switch to `.com` after transfer) |
+| `SENTRY_DSN` | `index.html` (browser SDK) | Sentry error tracking DSN — loaded via CDN `<script>` tag, configured with `Sentry.init()` before app.js. **Security note:** the DSN is a public identifier, not a secret — it's safe in client-side code. It only allows sending events to Sentry, not reading them. Rate limiting and abuse prevention are handled by Sentry's server-side controls. |
 
 ---
 
@@ -384,6 +389,20 @@ All variables are set in the Netlify dashboard. None are ever sent to the browse
 
 | Date | Change |
 |---|---|
+| 2026-04-04 | **Critical live scoring fixes (on-course testing)** — round recovery now auto-restores course by name (`restoreCourseByName`), hcpOverrides, sixes state, and tee colour; `liveGroupSave` falls back to backup course name if getCourseByRef returns null (fixes zombie save loop); backup extended to 24 hours, fires on `beforeunload` + 30s interval, kept alive until save succeeds; GPS card shrunk (76px height, compact SVG); sixes bar moved below player rows as compact inline format; each player row shows HCP/strokes info with mid-round "Edit strokes" link; POP badge on handicap stroke holes |
+| 2026-04-04 | **Waitlist page** — pre-launch landing page at `/waitlist.html` with Tally popup form (not inline iframe), floating "Join waitlist" CTA, 6 problem cards, vertical step flow ("The Looper loop"), 3 phone mockup teasers (leagues/live scoring/activity feed), "First 100 users get 6 months free premium". Root URL redirects to waitlist via `netlify.toml` (302 + force, with `/index.html` passthrough for the app) |
+| 2026-04-04 | **Waitlist function** — `netlify/functions/waitlist.js` receives Tally webhook, writes to Supabase `waitlist` table, sends branded confirmation email via Resend with founder status for first 100 signups |
+| 2026-04-04 | **Welcome email on signup** — `netlify/functions/auth.js` sends branded HTML welcome email via Resend after new account creation (fire-and-forget). Includes 3-step onboarding guide and Instagram CTA |
+| 2026-04-04 | **Weather improvements** — course search in weather card header (tap location → search any course → forecast updates); "Millionaire's golf" label for score ≥90; suncream reminder when sunny + >18°C; user location preference saved to localStorage |
+| 2026-04-04 | **Export removed** — export button, XLSX script tag, and event listener removed. `js/export.js` kept in repo but disconnected |
+| 2026-04-04 | **Payment gatekeeping (hidden)** — `checkAccess()` calls added to AI reviews, practice sessions, competitions, and leaderboard board filtering. All gates return true while `PREMIUM_ENABLED = false`. Subscription state loaded from Supabase on boot (column must be added manually: `ALTER TABLE players ADD COLUMN subscription JSONB DEFAULT '{"tier":"free"}'::jsonb`) |
+| 2026-04-03 | **Leaderboard overhaul** — 8 views (removed birdies total + net birdies total, added most net birdies); pts scoring switched to net; view explainers below podium; collapsible H2H; admin drag-reorder boards; board ID reconciliation (`normaliseBoardIds`); board leaders moved above H2H |
+| 2026-04-03 | **App walkthrough** — 12-step spotlight tour (box-shadow overlay) triggered on first login; auto-navigates between pages; replayable from Settings > App tour |
+| 2026-04-03 | **Zombie rounds fixed** — `pollGroupInvites` filters out rounds older than 30 min; garbage collects rows older than 60 min |
+| 2026-04-03 | **GPS front/back swap fixed** — GolfAPI `parseCoordinates` location mapping corrected (1=front, 3=back); one-time client migration swaps cached greenCoords; GPS card sizes increased |
+| 2026-04-03 | **Home stats arrows fixed** — arrow direction matches value change (down for decrease), colour reflects good/bad |
+| 2026-04-03 | **Sixes results in scorecard + feed** — end-of-round scorecard shows medal standings; home feed shows "X beat Y by N points in Sixes!" |
+| 2026-04-03 | **Round loading paginated** — server returns last 50 rounds per member on boot; `loadAllRounds()` fetches full history on demand when entering stats/leaderboard |
 | 2026-04-02 | **Activity feed page** — new `#pg-feed` page with back button, accessible via "See more →" on home screen. Strava-style 30-day feed showing rich round cards (score, vs par, pts, birdies — tap to view scorecard), birdies/eagles/net eagles, season PBs, match play/Wolf/Sixes results with badges. Grouped by relative date. All group players included. |
 | 2026-04-02 | **Home stats improvements** — pulse stats now use last 5 rounds (was 10), labelled "last 5 rounds"; delta arrows replaced with SVG trend triangles (up green, down orange); last round card tiebreaks by round ID when dates match |
 | 2026-04-02 | **Round tab renamed to Play** — navbar label changed from "Round" to "Play" |
