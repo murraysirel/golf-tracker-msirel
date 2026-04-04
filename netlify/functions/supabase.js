@@ -1033,6 +1033,60 @@ exports.handler = async (event) => {
       })};
     }
 
+    // ── likeRound ────────────────────────────────────────────────────
+    if (action === 'likeRound') {
+      const { playerName, roundId, roundPlayer, roundCourse, roundDate } = data;
+      if (!playerName || !roundId) return { statusCode: 400, headers, body: JSON.stringify({ error: 'playerName and roundId required' }) };
+      // Check duplicate
+      const { data: existing } = await supabase.from('feed_likes').select('id').eq('liker', playerName).eq('round_id', roundId).maybeSingle();
+      if (existing) return { statusCode: 200, headers, body: JSON.stringify({ ok: true, already: true }) };
+      await supabase.from('feed_likes').insert({ liker: playerName, round_id: roundId });
+      // Notify round owner (don't notify yourself)
+      if (roundPlayer && roundPlayer !== playerName) {
+        await supabase.from('notifications').insert({ to_player: roundPlayer, from_player: playerName, type: 'round_liked', payload: { roundId, roundCourse: roundCourse || '', roundDate: roundDate || '' } });
+      }
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+    }
+
+    // ── unlikeRound ─────────────────────────────────────────────────
+    if (action === 'unlikeRound') {
+      const { playerName, roundId } = data;
+      if (!playerName || !roundId) return { statusCode: 400, headers, body: JSON.stringify({ error: 'playerName and roundId required' }) };
+      await supabase.from('feed_likes').delete().eq('liker', playerName).eq('round_id', roundId);
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+    }
+
+    // ── getLikes ─────────────────────────────────────────────────────
+    if (action === 'getLikes') {
+      const { roundIds } = data;
+      if (!roundIds?.length) return { statusCode: 200, headers, body: JSON.stringify({ likes: {} }) };
+      const { data: rows } = await supabase.from('feed_likes').select('round_id, liker').in('round_id', roundIds);
+      const likes = {};
+      (rows || []).forEach(r => { if (!likes[r.round_id]) likes[r.round_id] = []; likes[r.round_id].push(r.liker); });
+      return { statusCode: 200, headers, body: JSON.stringify({ likes }) };
+    }
+
+    // ── addComment ───────────────────────────────────────────────────
+    if (action === 'addComment') {
+      const { playerName, roundId, roundPlayer, text } = data;
+      if (!playerName || !roundId || !text) return { statusCode: 400, headers, body: JSON.stringify({ error: 'playerName, roundId, text required' }) };
+      const { data: row, error: cErr } = await supabase.from('feed_comments').insert({ commenter: playerName, round_id: roundId, text: text.substring(0, 280) }).select('id, created_at').single();
+      if (cErr) return { statusCode: 500, headers, body: JSON.stringify({ error: cErr.message }) };
+      // Notify round owner
+      if (roundPlayer && roundPlayer !== playerName) {
+        await supabase.from('notifications').insert({ to_player: roundPlayer, from_player: playerName, type: 'round_comment', payload: { roundId, text: text.substring(0, 100) } });
+      }
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true, comment: row }) };
+    }
+
+    // ── getComments ──────────────────────────────────────────────────
+    if (action === 'getComments') {
+      const { roundId } = data;
+      if (!roundId) return { statusCode: 200, headers, body: JSON.stringify({ comments: [] }) };
+      const { data: rows } = await supabase.from('feed_comments').select('*').eq('round_id', roundId).order('created_at', { ascending: true }).limit(50);
+      return { statusCode: 200, headers, body: JSON.stringify({ comments: rows || [] }) };
+    }
+
     // ── logAppError ──────────────────────────────────────────────────
     if (action === 'logAppError') {
       try {

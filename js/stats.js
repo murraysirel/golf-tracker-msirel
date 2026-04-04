@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
 import { TC, getBenchmark } from './constants.js';
-import { pushData, pushSupabase } from './api.js';
+import { pushData, pushSupabase, querySupabase } from './api.js';
 import { initials, refreshAvatarUI, avatarHtml } from './players.js';
 
 // Empty state — lazy-loaded on first use (no top-level await)
@@ -653,7 +653,9 @@ function renderMatesFeed() {
 }
 
 // ── Activity feed page — full Strava-style feed ─────────────────
-export function renderFeedPage() {
+let _feedLikes = {}; // { roundId: [liker1, liker2, ...] }
+
+export async function renderFeedPage() {
   const feedEl = document.getElementById('feed-list');
   if (!feedEl) return;
 
@@ -755,6 +757,15 @@ export function renderFeedPage() {
     return;
   }
 
+  // Load likes for all round IDs
+  const roundIds = deduped.filter(e => e.round?.id).map(e => e.round.id);
+  if (roundIds.length) {
+    try {
+      const likesRes = await querySupabase('getLikes', { roundIds });
+      _feedLikes = likesRes?.likes || {};
+    } catch { _feedLikes = {}; }
+  }
+
   // Group by date
   let lastDateStr = '';
   let html = '';
@@ -773,7 +784,10 @@ export function renderFeedPage() {
       // Rich round card
       const diff = ev.round.diff;
       const diffCol = diff <= -2 ? 'var(--birdie)' : diff === 0 ? 'var(--par)' : diff <= 1 ? 'var(--bogey)' : 'var(--double)';
-      html += `<div class="feed-card" data-round-idx="${deduped.indexOf(ev)}" style="background:var(--mid);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:6px;cursor:pointer">
+      const roundId = ev.round?.id || 0;
+      const likedByMe = _feedLikes[roundId]?.includes(state.me);
+      const likeCount = _feedLikes[roundId]?.length || 0;
+      html += `<div class="feed-card" data-round-idx="${deduped.indexOf(ev)}" data-round-id="${roundId}" data-round-player="${ev.name}" style="background:var(--mid);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:6px;cursor:pointer">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
           ${avatarHtml(ev.name, 30, isMe)}
           <div style="flex:1;min-width:0">
@@ -787,6 +801,11 @@ export function renderFeedPage() {
           <div><div style="font-size:16px;font-weight:700;color:var(--gold)">${ev.detail?.split('·')[1]?.trim() || '—'}</div><div style="font-size:8px;color:var(--dim);text-transform:uppercase;margin-top:1px">pts</div></div>
           <div><div style="font-size:16px;font-weight:700;color:var(--birdie)">${ev.round.birdies || 0}</div><div style="font-size:8px;color:var(--dim);text-transform:uppercase;margin-top:1px">birdies</div></div>
         </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:6px 0 0;border-top:1px solid var(--border);margin-top:6px">
+          <button class="feed-like-btn" data-round-id="${roundId}" data-player="${ev.name}" data-course="${ev.course || ''}" data-date="${ev.round?.date || ''}" style="background:none;border:none;cursor:pointer;font-size:12px;color:${likedByMe ? 'var(--double)' : 'var(--dim)'};font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px;padding:2px 0"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="${likedByMe ? 'var(--double)' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>${likeCount > 0 ? likeCount : ''}</button>
+          <button class="feed-comment-btn" data-round-id="${roundId}" data-player="${ev.name}" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--dim);font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px;padding:2px 0"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Comment</button>
+        </div>
+        <div class="feed-comments-area" data-round-id="${roundId}" style="display:none;padding-top:6px;border-top:1px solid var(--border);margin-top:4px"></div>
       </div>`;
     } else {
       // Event row (birdie, eagle, PB, match, wolf, sixes)
@@ -804,10 +823,95 @@ export function renderFeedPage() {
 
   // Wire round card taps to open scorecard modal
   feedEl.querySelectorAll('.feed-card').forEach(card => {
-    card.addEventListener('click', () => {
+    card.addEventListener('click', (e) => {
+      // Don't open scorecard if clicking like/comment buttons
+      if (e.target.closest('.feed-like-btn') || e.target.closest('.feed-comment-btn') || e.target.closest('.feed-comments-area') || e.target.closest('input') || e.target.closest('button')) return;
       const idx = parseInt(card.dataset.roundIdx);
       const ev = deduped[idx];
       if (ev?.round) openScorecardModal(ev.round);
+    });
+  });
+
+  // Wire like buttons
+  feedEl.querySelectorAll('.feed-like-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const roundId = parseInt(btn.dataset.roundId);
+      const player = btn.dataset.player;
+      const course = btn.dataset.course || '';
+      const date = btn.dataset.date || '';
+      const alreadyLiked = _feedLikes[roundId]?.includes(state.me);
+      if (alreadyLiked) {
+        await querySupabase('unlikeRound', { playerName: state.me, roundId });
+        _feedLikes[roundId] = (_feedLikes[roundId] || []).filter(n => n !== state.me);
+      } else {
+        await querySupabase('likeRound', { playerName: state.me, roundId, roundPlayer: player, roundCourse: course, roundDate: date });
+        if (!_feedLikes[roundId]) _feedLikes[roundId] = [];
+        _feedLikes[roundId].push(state.me);
+      }
+      // Update button visually
+      const liked = _feedLikes[roundId]?.includes(state.me);
+      const count = _feedLikes[roundId]?.length || 0;
+      btn.style.color = liked ? 'var(--double)' : 'var(--dim)';
+      btn.querySelector('svg').setAttribute('fill', liked ? 'var(--double)' : 'none');
+      const countText = count > 0 ? count : '';
+      btn.childNodes[btn.childNodes.length - 1].textContent = countText;
+    });
+  });
+
+  // Wire comment buttons
+  feedEl.querySelectorAll('.feed-comment-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const roundId = parseInt(btn.dataset.roundId);
+      const player = btn.dataset.player;
+      const area = feedEl.querySelector(`.feed-comments-area[data-round-id="${roundId}"]`);
+      if (!area) return;
+      if (area.style.display !== 'none') { area.style.display = 'none'; return; }
+      area.style.display = 'block';
+      area.innerHTML = '<div style="font-size:10px;color:var(--dimmer);padding:4px 0">Loading...</div>';
+      try {
+        const res = await querySupabase('getComments', { roundId });
+        const comments = res?.comments || [];
+        area.innerHTML = comments.map(c => `
+          <div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--border)">
+            ${avatarHtml(c.commenter, 20, c.commenter === state.me)}
+            <div style="flex:1;min-width:0">
+              <div style="font-size:10px"><span style="color:var(--cream);font-weight:600">${c.commenter?.split(' ')[0]}</span> <span style="color:var(--dim)">${c.text}</span></div>
+            </div>
+          </div>`).join('') +
+          `<div style="display:flex;gap:6px;margin-top:6px">
+            <input type="text" class="feed-comment-input" data-round-id="${roundId}" data-player="${player}" placeholder="Write a comment..." style="flex:1;padding:6px 10px;background:var(--navy);color:var(--cream);border:1px solid var(--border);border-radius:8px;font-size:11px;font-family:'DM Sans',sans-serif;outline:none">
+            <button class="feed-comment-send" data-round-id="${roundId}" data-player="${player}" style="background:var(--gold);border:none;border-radius:8px;padding:6px 12px;color:var(--navy);font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Send</button>
+          </div>`;
+        // Wire send buttons
+        area.querySelectorAll('.feed-comment-send').forEach(sendBtn => {
+          sendBtn.addEventListener('click', async () => {
+            const input = area.querySelector(`.feed-comment-input[data-round-id="${roundId}"]`);
+            const text = input?.value?.trim();
+            if (!text) return;
+            sendBtn.disabled = true; sendBtn.textContent = '...';
+            await querySupabase('addComment', { playerName: state.me, roundId, roundPlayer: player, text });
+            input.value = '';
+            sendBtn.disabled = false; sendBtn.textContent = 'Send';
+            // Reload comments
+            const r2 = await querySupabase('getComments', { roundId });
+            const c2 = r2?.comments || [];
+            const commentsHtml = c2.map(c => `
+              <div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--border)">
+                ${avatarHtml(c.commenter, 20, c.commenter === state.me)}
+                <div style="flex:1;min-width:0"><div style="font-size:10px"><span style="color:var(--cream);font-weight:600">${c.commenter?.split(' ')[0]}</span> <span style="color:var(--dim)">${c.text}</span></div></div>
+              </div>`).join('');
+            area.querySelector('.feed-comment-input').closest('div').insertAdjacentHTML('beforebegin', commentsHtml.slice(commentsHtml.lastIndexOf('<div style="display:flex;gap:6px;padding:4px 0')));
+          });
+        });
+        // Enter key to send
+        area.querySelectorAll('.feed-comment-input').forEach(input => {
+          input.addEventListener('keydown', (e) => { if (e.key === 'Enter') area.querySelector(`.feed-comment-send[data-round-id="${roundId}"]`)?.click(); });
+        });
+      } catch {
+        area.innerHTML = '<div style="font-size:10px;color:var(--dimmer);padding:4px 0">Could not load comments</div>';
+      }
     });
   });
 }
