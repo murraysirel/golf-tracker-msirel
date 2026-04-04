@@ -121,8 +121,8 @@ async function sendWelcomeEmail(email, playerName) {
   if (!process.env.RESEND_API_KEY) return;
   const firstName = playerName ? playerName.split(' ')[0] : 'there';
   const payload = JSON.stringify({
-    from: 'Looper <hello@loopercaddie.com>',
-    reply_to: 'admin@loopercaddie.com',
+    from: 'Looper <hello@loopercaddie.co.uk>',
+    reply_to: 'hello@loopercaddie.co.uk',
     to: email,
     subject: 'Welcome to Looper',
     html: `
@@ -150,7 +150,7 @@ async function sendWelcomeEmail(email, playerName) {
           See you on the first tee.<br>— Murray, founder of Looper
         </p>
         <p style="margin-top:16px;color:#4a5a7a;font-size:11px;">
-          Please don't reply to this email. Contact us at <a href="mailto:admin@loopercaddie.com" style="color:#C9A84C;">admin@loopercaddie.com</a>
+          Please don't reply to this email. Contact us at <a href="mailto:hello@loopercaddie.co.uk" style="color:#C9A84C;">hello@loopercaddie.co.uk</a>
         </p>
       </div>
     `
