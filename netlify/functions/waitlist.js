@@ -6,7 +6,7 @@ const https = require('https');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const FOUNDER_LIMIT = 50;
+const FOUNDER_LIMIT = 100;
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
