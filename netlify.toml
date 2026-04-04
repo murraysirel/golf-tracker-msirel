@@ -13,3 +13,4 @@
   from = "/"
   to = "/waitlist.html"
   status = 200
+  force = true
