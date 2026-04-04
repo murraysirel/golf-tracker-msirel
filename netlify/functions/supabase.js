@@ -639,7 +639,8 @@ exports.handler = async (event) => {
     if (action === 'getPlayerByAuthId') {
       const { authUserId, playerName } = data;
       if (!authUserId) return { statusCode: 400, headers, body: JSON.stringify({ error: 'authUserId required' }) };
-      const selectCols = 'name, dob, home_course, practice_sessions, stats_analysis, stats_analysis_date, subscription';
+      // subscription column added when ready: ALTER TABLE players ADD COLUMN IF NOT EXISTS subscription JSONB DEFAULT '{"tier":"free"}'::jsonb;
+      const selectCols = 'name, dob, home_course, practice_sessions, stats_analysis, stats_analysis_date';
 
       // Primary lookup: by auth_user_id (use .limit(1) instead of .maybeSingle() to avoid
       // errors when duplicate rows exist — maybeSingle throws on >1 match)
@@ -674,7 +675,6 @@ exports.handler = async (event) => {
           practiceSessions:   player.practice_sessions  || [],
           statsAnalysis:      player.stats_analysis     || null,
           statsAnalysisDate:  player.stats_analysis_date || null,
-          subscription:       player.subscription || { tier: 'free' },
         }),
       };
     }
