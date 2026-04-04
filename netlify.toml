@@ -9,8 +9,8 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
 
-[[redirects]]
-  from = "/"
-  to = "/waitlist.html"
-  status = 200
-  force = true
+#[[redirects]]
+#  from = "/"
+#  to = "/waitlist.html"
+#  status = 200
+ # force = true
