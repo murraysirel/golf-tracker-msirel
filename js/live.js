@@ -248,6 +248,7 @@ export function startGroupRound() {
   // Wolf validation
   if (state.gameMode === 'wolf' && state.liveState.group.length !== 4) {
     alert('Wolf requires exactly 4 players. Please select 4 players above.');
+    goTo('round');
     return;
   }
   // Match play validation + init
@@ -255,13 +256,23 @@ export function startGroupRound() {
     const n = state.liveState.group.length;
     if (n < 2 || n > 4) {
       alert('Match play requires 2–4 players. Please select your players above.');
+      goTo('round');
       return;
+    }
+    // Auto-assign teams if not manually set (new player selection flow skips team UI)
+    if (!state.liveState.matchTeams.a.length || !state.liveState.matchTeams.b.length) {
+      if (n === 2) {
+        state.liveState.matchTeams = { a: [state.liveState.group[0]], b: [state.liveState.group[1]] };
+      } else if (n === 4) {
+        state.liveState.matchTeams = { a: [state.liveState.group[0], state.liveState.group[1]], b: [state.liveState.group[2], state.liveState.group[3]] };
+      } else {
+        // 3 players — can't auto-assign, need manual
+        alert('For 3-player match play, please assign teams manually.');
+        goTo('round');
+        return;
+      }
     }
     const { a, b } = state.liveState.matchTeams;
-    if (!a.length || !b.length) {
-      alert('Please assign at least one player to each team before starting.');
-      return;
-    }
     state.liveState.matchPlay = true;
     state.liveState.matchResult = {
       teamA: [...a],
@@ -278,6 +289,7 @@ export function startGroupRound() {
   if (state.gameMode === 'sixes') {
     if (state.liveState.group.length !== 3) {
       alert('Sixes requires exactly 3 players. Please select 3 players above.');
+      goTo('round');
       return;
     }
     import('./gamemodes.js').then(({ initSixesState, updateSixesBanner }) => {
