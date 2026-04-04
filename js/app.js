@@ -50,6 +50,18 @@ function showToast(message, type = 'info', duration = 5000) {
 window._looperToast = showToast;
 
 // ── Global error boundary ────────────────────────────────────────
+// ── Live round backup: save on page close + periodic auto-save ───
+window.addEventListener('beforeunload', () => {
+  if (state.roundActive) {
+    import('./live.js').then(m => { if (m._saveLiveBackup) m._saveLiveBackup(); }).catch(() => {});
+  }
+});
+setInterval(() => {
+  if (state.roundActive) {
+    import('./live.js').then(m => { if (m._saveLiveBackup) m._saveLiveBackup(); }).catch(() => {});
+  }
+}, 30000);
+
 window.onerror = function(message, source, line, col, error) {
   console.error('[Looper] Uncaught error:', message, source, line);
   if (window.Sentry && error) Sentry.captureException(error);
@@ -1058,7 +1070,7 @@ function showRoundRecoveryPrompt(backup) {
     `You were on hole ${holeNum}${courseText}. Restore your progress?`;
   modal.style.display = 'flex';
 
-  document.getElementById('rr-resume-btn').onclick = () => {
+  document.getElementById('rr-resume-btn').onclick = async () => {
     modal.style.display = 'none';
     state.liveState.hole = backup.hole;
     state.liveState.scores = backup.scores || Array(18).fill(null);
@@ -1071,12 +1083,22 @@ function showRoundRecoveryPrompt(backup) {
     state.liveState.groupPutts = backup.groupPutts || {};
     state.liveState.groupFir = backup.groupFir || {};
     state.liveState.groupGir = backup.groupGir || {};
+    state.liveState.hcpOverrides = backup.hcpOverrides || {};
     state.gameMode = backup.gameMode || 'stroke';
     state.wolfState = backup.wolfState || null;
+    state.stee = backup.tee || '';
     state.roundActive = true;
-    // Note: course selection cannot be restored programmatically with the
-    // search UI — the user will need to re-select their course after resuming.
-    localStorage.removeItem('rr_live_backup');
+    // Restore course selection (search + apply, falls back to stub)
+    if (backup.course) {
+      import('./courses.js').then(({ restoreCourseByName }) =>
+        restoreCourseByName(backup.course, backup.tee).catch(() => {})
+      );
+    }
+    // Restore sixes state if needed
+    if (backup.gameMode === 'sixes' && backup.group?.length === 3) {
+      import('./gamemodes.js').then(({ initSixesState }) => initSixesState(backup.group));
+    }
+    // Keep backup alive until save succeeds — don't delete here
     goTo('live');
   };
 
@@ -1211,7 +1233,7 @@ initMatchOverlay();
       try {
         const b = JSON.parse(backup);
         const ageMinutes = (Date.now() - b.savedAt) / 60000;
-        if (ageMinutes < 480 && b.hole > 0) showRoundRecoveryPrompt(b);
+        if (ageMinutes < 1440 && b.hole > 0) showRoundRecoveryPrompt(b);
       } catch (_) {}
     }
   } catch (e) {

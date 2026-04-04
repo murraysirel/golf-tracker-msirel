@@ -705,7 +705,7 @@ function _autoGirCheck() {
 
 // Save live round state to localStorage on every change — protects against
 // accidental refresh, browser crash, or coming back hours later.
-function _saveLiveBackup() {
+export function _saveLiveBackup() {
   try {
     localStorage.setItem('rr_live_backup', JSON.stringify({
       savedAt: Date.now(),
@@ -1139,8 +1139,18 @@ async function liveFinishAndSave() {
 }
 
 async function liveGroupSave() {
-  const course = getCourseByRef();
-  if (!course) { alert('No course selected.'); return; }
+  let course = getCourseByRef();
+  // Fallback: if course was lost (e.g. after resume), build a minimal stub from backup
+  if (!course) {
+    const backup = localStorage.getItem('rr_live_backup');
+    const bk = backup ? JSON.parse(backup) : null;
+    if (bk?.course) {
+      course = { name: bk.course, tees: [], pars: state.cpars || Array(18).fill(4), location: '' };
+    } else {
+      alert('No course selected — please re-select your course.');
+      return;
+    }
+  }
   const tees = Array.isArray(course.tees) ? course.tees : [];
   const teeData = tees.find(t => t.colour === state.stee) || tees[0] || {};
 

@@ -532,6 +532,27 @@ export function getCourseByRef() {
   return _selectedCourse;
 }
 
+// Restore course by name (used by round recovery). Searches Supabase cache,
+// applies the course if found, falls back to a minimal stub if not.
+export async function restoreCourseByName(courseName, teeColour) {
+  if (!courseName) return false;
+  try {
+    const res = await fetch('/.netlify/functions/courses?action=search&name=' + encodeURIComponent(courseName) + '&country=all');
+    const data = await res.json();
+    const match = (data.courses || []).find(c => c.name === courseName);
+    if (match?.external_course_id) {
+      const detail = await fetch('/.netlify/functions/courses?action=fetch&courseId=' + encodeURIComponent(match.external_course_id));
+      const dData = await detail.json();
+      if (dData.course) { _applyCourse(dData.course); if (teeColour) { const tee = (dData.course.tees || []).find(t => t.colour === teeColour); if (tee) _applyTee(tee); } return true; }
+    }
+    if (match) { _applyCourse(match); return true; }
+  } catch { /* network error — use stub */ }
+  // Fallback: minimal stub so getCourseByRef() returns something
+  _selectedCourse = { name: courseName, tees: [], pars: state.cpars || Array(18).fill(4) };
+  state.activeCourse = _selectedCourse;
+  return true;
+}
+
 export function clearCourseSelection() {
   _selectedCourse = null;
   state.activeCourse = null;

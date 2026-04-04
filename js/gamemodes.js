@@ -604,10 +604,9 @@ export function updateSixesBanner(h) {
   const medals = ['🥇', '🥈', '🥉'];
   const standingsEl = document.getElementById('sixes-standings');
   if (standingsEl) {
-    standingsEl.innerHTML = `<div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap">` +
-      standings.map((p, i) =>
-        `<div style="text-align:center"><div style="font-size:18px;line-height:1">${medals[i] || ''}</div><div style="font-size:12px;font-weight:600;color:var(--cream);margin-top:2px">${p.name.split(' ')[0]}</div><div style="font-size:11px;color:var(--gold);font-weight:700">${p.points} pts</div></div>`
-      ).join('') + '</div>';
+    standingsEl.innerHTML = standings.map((p, i) =>
+      `<span style="margin-right:12px">${medals[i] || ''} <strong style="color:var(--cream)">${p.name.split(' ')[0]}</strong> <span style="color:var(--gold)">${p.points}</span></span>`
+    ).join('');
   }
 
   const holePts = getSixesHolePts(h);
@@ -617,9 +616,9 @@ export function updateSixesBanner(h) {
       const parts = Object.entries(holePts)
         .sort((a, b) => b[1] - a[1])
         .map(([name, pts]) => `${name.split(' ')[0]}: ${pts}pts`);
-      holeEl.innerHTML = '<div style="margin-top:8px;font-size:13px;font-weight:600;color:var(--cream)">This hole</div><div style="font-size:12px;color:var(--dim);margin-top:2px">' + parts.join(' · ') + '</div>';
+      holeEl.innerHTML = 'This hole: ' + parts.join(' · ');
     } else {
-      holeEl.innerHTML = '<div style="font-size:11px;color:var(--dimmer);margin-top:6px">Enter all three scores to see hole result</div>';
+      holeEl.innerHTML = 'Enter all scores to see result';
     }
   }
 
