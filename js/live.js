@@ -576,6 +576,14 @@ function liveRenderGroupHole(h) {
     const hcpStrokes = getHcpStrokesOnHole(name, h);
     const popBadge = hcpStrokes > 0 ? `<span class="pop-badge">POP${hcpStrokes > 1 ? ' x' + hcpStrokes : ''}</span>` : '';
 
+    // Handicap info for display
+    const hcpIdx = state.gd.players[name]?.handicap || 0;
+    const matchStrokes = state.liveState.hcpOverrides?.[name] ?? 0;
+    const isMatchMode = state.gameMode === 'match' || state.gameMode === 'wolf' || state.gameMode === 'sixes';
+    const hcpText = isMatchMode
+      ? (matchStrokes > 0 ? `Getting ${matchStrokes}` : 'Scratch')
+      : `HCP ${hcpIdx}`;
+
     const row = document.createElement('div');
     row.style.cssText = `background:${sel ? 'var(--card)' : 'var(--mid)'};border:1px solid ${sel ? 'var(--gold)' : 'var(--border)'};border-radius:10px;padding:11px 14px;display:flex;align-items:center;gap:12px;margin-bottom:6px;cursor:pointer;transition:border-color .15s,background .15s`;
     row.dataset.player = name;
@@ -583,7 +591,7 @@ function liveRenderGroupHole(h) {
       <div style="width:32px;height:32px;border-radius:50%;background:${sel ? 'rgba(201,168,76,.2)' : 'var(--border)'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${sel ? 'var(--gold)' : 'var(--dim)'};flex-shrink:0">${(name.split(' ').map(w => w[0]).join('').toUpperCase()).slice(0, 2)}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:14px;font-weight:600;color:var(--cream)">${name}${isMe ? '<span style="font-size:10px;color:var(--gold);margin-left:5px;font-weight:400">you</span>' : ''}${popBadge}</div>
-        <div style="font-size:11px;color:var(--dim);margin-top:1px">${fmtRun}</div>
+        <div style="font-size:11px;color:var(--dim);margin-top:1px">${fmtRun} · <span style="color:var(--dimmer)">${hcpText}</span></div>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         <button class="lg-score-minus" data-player="${name}" style="width:30px;height:30px;border-radius:8px;background:var(--navy);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--dim);cursor:pointer;font-weight:300">−</button>
@@ -613,6 +621,16 @@ function liveRenderGroupHole(h) {
   container.querySelectorAll('.lg-score-plus').forEach(btn => {
     btn.addEventListener('click', (e) => { e.stopPropagation(); liveGroupAdj(btn.dataset.player, 'score', 1); });
   });
+  // "Edit strokes" link (for 2+ players)
+  if (state.liveState.group.length >= 2) {
+    const editLink = document.createElement('div');
+    editLink.style.cssText = 'text-align:center;padding:4px 0 2px';
+    editLink.innerHTML = '<button style="background:none;border:none;color:var(--dimmer);font-size:10px;cursor:pointer;font-family:\'DM Sans\',sans-serif;text-decoration:underline;text-underline-offset:2px">Edit strokes</button>';
+    editLink.querySelector('button').addEventListener('click', () => {
+      showHcpModal(() => { liveRenderGroupHole(h); _saveLiveBackup(); });
+    });
+    container.appendChild(editLink);
+  }
 
   // Update match banner
   updateMatchBanner(h);
