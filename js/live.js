@@ -621,16 +621,7 @@ function liveRenderGroupHole(h) {
   container.querySelectorAll('.lg-score-plus').forEach(btn => {
     btn.addEventListener('click', (e) => { e.stopPropagation(); liveGroupAdj(btn.dataset.player, 'score', 1); });
   });
-  // "Edit strokes" link (for 2+ players)
-  if (state.liveState.group.length >= 2) {
-    const editLink = document.createElement('div');
-    editLink.style.cssText = 'text-align:center;padding:4px 0 2px';
-    editLink.innerHTML = '<button style="background:none;border:none;color:var(--dimmer);font-size:10px;cursor:pointer;font-family:\'DM Sans\',sans-serif;text-decoration:underline;text-underline-offset:2px">Edit strokes</button>';
-    editLink.querySelector('button').addEventListener('click', () => {
-      showHcpModal(() => { liveRenderGroupHole(h); _saveLiveBackup(); });
-    });
-    container.appendChild(editLink);
-  }
+  // "Edit strokes" link rendered in the cancel row area (see liveGoto)
 
   // Update match banner
   updateMatchBanner(h);
@@ -723,6 +714,11 @@ function _autoGirCheck() {
 
 // Save live round state to localStorage on every change — protects against
 // accidental refresh, browser crash, or coming back hours later.
+export function editStrokesMidRound() {
+  const h = state.liveState?.hole || 0;
+  showHcpModal(() => { liveRenderGroupHole(h); _saveLiveBackup(); });
+}
+
 export function _saveLiveBackup() {
   try {
     localStorage.setItem('rr_live_backup', JSON.stringify({

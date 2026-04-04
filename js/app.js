@@ -558,6 +558,9 @@ document.getElementById('live-group-start-btn')?.addEventListener('click', start
 document.getElementById('live-matchplay-toggle')?.addEventListener('click', toggleMatchPlay);
 document.getElementById('live-cancel-setup-btn')?.addEventListener('click', cancelRound);
 document.getElementById('live-cancel-round-btn')?.addEventListener('click', showEndRoundConfirm);
+document.getElementById('live-edit-strokes-btn')?.addEventListener('click', () => {
+  import('./live.js').then(m => m.editStrokesMidRound());
+});
 
 // ── Live round ────────────────────────────────────────────────────
 document.getElementById('live-prev')?.addEventListener('click', () => liveGoto(state.liveState.hole - 1));

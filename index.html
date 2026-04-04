@@ -794,36 +794,37 @@ if (location.hostname === 'loopercaddie.com' && location.pathname === '/') {
           <div id="live-pips" style="display:flex;gap:4px;padding:10px 0 12px"></div>
         </div>
 
-        <!-- GPS card — compact green illustration with distances -->
-        <div style="margin:0 16px 8px;background:var(--mid);border:1px solid var(--border);border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:0;position:relative;overflow:hidden">
+        <!-- GPS card — green illustration with distances -->
+        <div style="margin:0 16px 8px;background:var(--mid);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:0;position:relative;overflow:hidden">
           <!-- Left: stacked distances -->
-          <div style="display:flex;flex-direction:column;justify-content:space-between;min-width:72px;height:76px;position:relative;z-index:2">
+          <div style="display:flex;flex-direction:column;justify-content:space-between;min-width:68px;height:96px;position:relative;z-index:2">
             <div class="live-gps-tap" data-target="back" style="cursor:pointer;padding:1px 0">
               <div style="font-size:8px;color:var(--dimmer);text-transform:uppercase;letter-spacing:.5px">back</div>
-              <div style="display:flex;align-items:baseline;gap:2px"><span id="live-dist-back" style="font-size:14px;font-weight:600;color:var(--dim)">—</span><span style="font-size:9px;color:var(--dimmer)">yds</span></div>
+              <div style="display:flex;align-items:baseline;gap:2px"><span id="live-dist-back" style="font-size:13px;font-weight:600;color:var(--dim)">—</span><span style="font-size:8px;color:var(--dimmer)">yds</span></div>
             </div>
             <div class="live-gps-tap active-gps" data-target="mid" style="cursor:pointer;padding:1px 0">
               <div style="font-size:8px;color:var(--dimmer);text-transform:uppercase;letter-spacing:.5px">middle</div>
-              <div style="display:flex;align-items:baseline;gap:2px"><span id="live-dist-mid" style="font-size:20px;font-weight:700;color:var(--cream)">—</span><span style="font-size:10px;color:var(--dim)">yds</span></div>
+              <div style="display:flex;align-items:baseline;gap:2px"><span id="live-dist-mid" style="font-size:18px;font-weight:700;color:var(--cream)">—</span><span style="font-size:9px;color:var(--dim)">yds</span></div>
             </div>
             <div class="live-gps-tap" data-target="front" style="cursor:pointer;padding:1px 0">
               <div style="font-size:8px;color:var(--dimmer);text-transform:uppercase;letter-spacing:.5px">front</div>
-              <div style="display:flex;align-items:baseline;gap:2px"><span id="live-dist-front" style="font-size:14px;font-weight:600;color:var(--dim)">—</span><span style="font-size:9px;color:var(--dimmer)">yds</span></div>
+              <div style="display:flex;align-items:baseline;gap:2px"><span id="live-dist-front" style="font-size:13px;font-weight:600;color:var(--dim)">—</span><span style="font-size:8px;color:var(--dimmer)">yds</span></div>
             </div>
           </div>
-          <!-- Right: compact green SVG -->
+          <!-- Right: green SVG (larger) -->
           <div style="flex:1;display:flex;justify-content:flex-end">
-            <svg viewBox="0 0 96 114" width="64" height="76" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;overflow:visible">
+            <svg viewBox="0 0 96 114" width="80" height="96" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;overflow:visible">
               <line x1="-70" y1="16" x2="54" y2="16" stroke="#c9a84c" stroke-width=".8" stroke-dasharray="3,3" opacity=".4"/>
               <line x1="-70" y1="57" x2="52" y2="57" stroke="#c9a84c" stroke-width=".8" stroke-dasharray="3,3" opacity=".4"/>
               <line x1="-70" y1="97" x2="48" y2="97" stroke="#c9a84c" stroke-width=".8" stroke-dasharray="3,3" opacity=".4"/>
               <path d="M62 8C80 6,90 18,88 32C87 42,92 50,90 60C88 72,84 82,78 90C72 98,62 104,54 102C44 100,40 96,38 90C34 82,36 74,34 66C32 56,28 50,30 40C32 28,38 14,50 10C54 8,58 8,62 8Z" fill="#1a6b3a" stroke="#2d8a50" stroke-width="1.5"/>
               <path d="M62 16C76 14,82 24,80 34C79 42,83 49,82 58C80 68,77 76,72 82C67 88,60 92,54 91C46 89,44 86,42 82C39 76,40 70,39 64C37 56,34 50,36 42C38 32,42 22,52 18C55 16,59 16,62 16Z" fill="#1e7a42"/>
+              <path d="M62 8C80 6,90 18,88 32C87 42,92 50,90 60C88 72,84 82,78 90C72 98,62 104,54 102C44 100,40 96,38 90C34 82,36 74,34 66C32 56,28 50,30 40C32 28,38 14,50 10C54 8,58 8,62 8Z" fill="none" stroke="rgba(46,204,113,.12)" stroke-width="2.5"/>
               <line x1="60" y1="12" x2="60" y2="34" stroke="#e0e0e0" stroke-width="1"/>
               <path d="M60 12L70 16L60 20Z" fill="#e74c3c" opacity=".8"/>
-              <circle cx="60" cy="16" r="3" fill="#c9a84c"/><circle cx="60" cy="16" r="1.3" fill="#fff"/>
-              <circle cx="58" cy="57" r="4" fill="#c9a84c"/><circle cx="58" cy="57" r="1.8" fill="#fff"/>
-              <circle cx="54" cy="97" r="3" fill="#c9a84c"/><circle cx="54" cy="97" r="1.3" fill="#fff"/>
+              <circle cx="60" cy="16" r="3.5" fill="#c9a84c"/><circle cx="60" cy="16" r="1.5" fill="#fff"/>
+              <circle cx="58" cy="57" r="5" fill="#c9a84c"/><circle cx="58" cy="57" r="2.2" fill="#fff"/>
+              <circle cx="54" cy="97" r="3.5" fill="#c9a84c"/><circle cx="54" cy="97" r="1.5" fill="#fff"/>
             </svg>
           </div>
         </div>
@@ -892,7 +893,7 @@ if (location.hostname === 'loopercaddie.com' && location.pathname === '/') {
         </div>
 
         <!-- Sixes live bar (compact, below player rows) -->
-        <div id="sixes-live-bar" style="display:none;margin:0 16px 8px;padding:8px 12px;background:rgba(46,204,113,.05);border:1px solid rgba(46,204,113,.15);border-radius:8px">
+        <div id="sixes-live-bar" style="display:none;margin:10px 16px 8px;padding:8px 12px;background:rgba(46,204,113,.05);border:1px solid rgba(46,204,113,.15);border-radius:8px">
           <div id="sixes-standings" style="font-size:11px;color:var(--cream);text-align:center"></div>
           <div id="sixes-hole-pts" style="font-size:11px;color:var(--dim);text-align:center;margin-top:2px"></div>
         </div>
@@ -900,8 +901,9 @@ if (location.hostname === 'loopercaddie.com' && location.pathname === '/') {
         <!-- Next hole / finish button -->
         <div style="padding:0 16px 8px">
           <button id="live-btn-next2" style="width:100%;background:var(--gold);border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;color:var(--navy);cursor:pointer;letter-spacing:0.3px;font-family:'DM Sans',sans-serif">Next hole →</button>
-          <div style="text-align:center;margin-top:6px">
+          <div style="text-align:center;margin-top:6px;display:flex;justify-content:center;gap:12px">
             <button id="live-cancel-round-btn" style="background:none;border:none;color:var(--dimmer);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;padding:4px 8px">Cancel round</button>
+            <button id="live-edit-strokes-btn" style="background:none;border:none;color:var(--dimmer);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;padding:4px 8px;text-decoration:underline;text-underline-offset:2px">Edit strokes</button>
             <button id="live-flag-btn" style="background:none;border:none;cursor:pointer;color:var(--dimmer);padding:4px 6px;font-size:11px;font-family:'DM Sans',sans-serif">Report issue</button>
           </div>
         </div>
