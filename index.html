@@ -108,9 +108,11 @@ if (location.hostname === 'loopercaddie.com' && location.pathname === '/') {
       <input type="password" id="login-password" placeholder="Your password" autocomplete="current-password" class="mb4">
       <div id="login-err" style="display:none;font-size:12px;color:#f1948a;margin-bottom:8px;padding:8px 12px;background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.2);border-radius:8px"></div>
       <button class="btn" id="login-submit-btn" style="border-radius:40px;width:100%;margin-top:6px;padding:14px;font-size:14px">Sign in</button>
-      <div style="text-align:center;margin-top:10px">
-        <button id="login-magic-link-btn" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--gold);font-family:'DM Sans',sans-serif;text-decoration:underline;text-underline-offset:2px;-webkit-tap-highlight-color:transparent">Sign in with magic link instead</button>
+      <div style="text-align:center;margin-top:10px;display:flex;justify-content:center;gap:16px">
+        <button id="login-forgot-btn" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--dim);font-family:'DM Sans',sans-serif;text-decoration:underline;text-underline-offset:2px;-webkit-tap-highlight-color:transparent">Forgot password?</button>
+        <button id="login-magic-link-btn" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--gold);font-family:'DM Sans',sans-serif;text-decoration:underline;text-underline-offset:2px;-webkit-tap-highlight-color:transparent">Magic link</button>
       </div>
+      <div id="forgot-pw-msg" style="display:none;font-size:12px;margin-top:8px;padding:8px 12px;border-radius:8px;line-height:1.5;text-align:center"></div>
       <div style="height:1px;background:var(--border);margin:16px 0"></div>
       <button class="btn btn-o" id="onb-create-profile-btn" style="border-radius:40px;width:100%;padding:12px;font-size:13px">Create account</button>
       <button id="demo-entry-btn" style="display:block;width:100%;margin-top:10px;padding:8px;border-radius:40px;background:transparent;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;-webkit-tap-highlight-color:transparent;text-align:center">
@@ -419,7 +421,7 @@ if (location.hostname === 'loopercaddie.com' && location.pathname === '/') {
     <button class="profile-icon-btn avatar-btn" id="profile-icon-btn" title="Players &amp; Settings" style="position:relative">
       <span class="avatar-initials" id="hdr-avatar-initials" style="font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;color:var(--gold)">?</span>
       <span class="avatar-close"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="4" x2="14" y2="14"/><line x1="14" y1="4" x2="4" y2="14"/></svg></span>
-      <span id="profile-notif-dot" style="display:none;position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;border-radius:8px;background:var(--gold);color:var(--navy);font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 4px;font-family:'DM Sans',sans-serif">0</span>
+      <span id="profile-notif-dot" style="display:none;position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;border-radius:8px;background:#e74c3c;color:#fff;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 4px;font-family:'DM Sans',sans-serif">0</span>
     </button>
   </div>
 

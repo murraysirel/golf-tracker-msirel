@@ -1142,6 +1142,22 @@ document.getElementById('login-submit-btn')?.addEventListener('click', async () 
   await retryUnsyncedRounds();
 });
 
+document.getElementById('login-forgot-btn')?.addEventListener('click', async () => {
+  const email = document.getElementById('login-email')?.value?.trim();
+  const msg = document.getElementById('forgot-pw-msg');
+  if (!email) { if (msg) { msg.style.display = 'block'; msg.style.background = 'rgba(231,76,60,.08)'; msg.style.color = '#f1948a'; msg.style.border = '1px solid rgba(231,76,60,.2)'; msg.textContent = 'Enter your email address first'; } return; }
+  const btn = document.getElementById('login-forgot-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+  const { resetPassword } = await import('./auth.js');
+  const result = await resetPassword(email);
+  if (btn) { btn.disabled = false; btn.textContent = 'Forgot password?'; }
+  if (msg) {
+    msg.style.display = 'block';
+    if (result.ok) { msg.style.background = 'rgba(46,204,113,.08)'; msg.style.color = 'var(--par)'; msg.style.border = '1px solid rgba(46,204,113,.2)'; msg.textContent = 'Password reset email sent — check your inbox'; }
+    else { msg.style.background = 'rgba(231,76,60,.08)'; msg.style.color = '#f1948a'; msg.style.border = '1px solid rgba(231,76,60,.2)'; msg.textContent = result.error || 'Could not send reset email'; }
+  }
+});
+
 document.getElementById('login-magic-link-btn')?.addEventListener('click', () => {
   document.getElementById('onb-login-form').style.display = 'none';
   document.getElementById('onb-magic-form').style.display = 'block';

@@ -120,6 +120,16 @@ export async function sendMagicLink(email) {
   }
 }
 
+export async function resetPassword(email) {
+  try {
+    const res = await callAuth({ action: 'resetPassword', email });
+    if (res.error) return { error: res.error };
+    return { ok: true };
+  } catch (e) {
+    return { error: 'Network error — check your connection' };
+  }
+}
+
 /**
  * Detect and consume a magic link redirect.
  * Supabase puts access_token + refresh_token in the URL hash after the user

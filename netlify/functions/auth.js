@@ -165,6 +165,37 @@ async function sendWelcomeEmail(email, playerName) {
   });
 }
 
+// ── Helper: send magic link email via Resend ─────────────────────────────────
+async function sendMagicLinkEmail(email, magicUrl) {
+  if (!process.env.RESEND_API_KEY) return;
+  const payload = JSON.stringify({
+    from: 'Looper <hello@loopercaddie.co.uk>',
+    reply_to: 'hello@loopercaddie.co.uk',
+    to: email,
+    subject: 'Your Looper sign-in link',
+    html: `
+      <div style="background:#0A1628;padding:40px;font-family:sans-serif;color:#F0E8D0;">
+        <h1 style="color:#C9A84C;margin-bottom:8px;">LOOPER</h1>
+        <p style="color:#8899BB;margin-top:0;">Your caddie in your pocket</p>
+        <hr style="border-color:#1E3358;margin:24px 0;">
+        <p>Tap the button below to sign in — no password needed.</p>
+        <p style="margin-top:24px;">
+          <a href="${magicUrl}" style="background:#C9A84C;color:#0A1628;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px;">Sign in to Looper</a>
+        </p>
+        <p style="margin-top:24px;color:#4a5a7a;font-size:11px;">This link expires in 1 hour. If you didn't request this, you can safely ignore it.</p>
+      </div>
+    `
+  });
+  return new Promise((resolve) => {
+    const req = https.request({
+      hostname: 'api.resend.com', path: '/emails', method: 'POST',
+      headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
+    }, res => { let d = ''; res.on('data', c => d += c); res.on('end', () => resolve(d)); });
+    req.on('error', () => resolve(null));
+    req.write(payload); req.end();
+  });
+}
+
 // ── Helper: build safe session object to return to client ───────────────────
 function buildSession(supabaseSession) {
   return {
@@ -255,10 +286,31 @@ exports.handler = async (event) => {
       if (!email) return respond(400, { error: 'Email required' });
 
       const siteUrl = process.env.SITE_URL || 'https://looper.netlify.app';
-      const { error } = await supabaseAdmin.auth.admin.generateLink({
+      // Generate the link ourselves and send via Resend for reliable delivery
+      const { data: linkData, error } = await supabaseAdmin.auth.admin.generateLink({
         type: 'magiclink',
         email,
         options: { redirectTo: siteUrl },
+      });
+      if (error) return respond(400, { error: error.message });
+
+      // Send the magic link email via Resend (branded, reliable)
+      if (process.env.RESEND_API_KEY && linkData?.properties?.action_link) {
+        const magicUrl = linkData.properties.action_link;
+        await sendMagicLinkEmail(email, magicUrl).catch(() => {});
+      }
+
+      return respond(200, { ok: true });
+    }
+
+    // ── resetPassword ─────────────────────────────────────────────────────
+    if (action === 'resetPassword') {
+      const { email } = body;
+      if (!email) return respond(400, { error: 'Email required' });
+
+      const siteUrl = process.env.SITE_URL || 'https://looper.netlify.app';
+      const { error } = await supabaseAnon.auth.resetPasswordForEmail(email, {
+        redirectTo: siteUrl + '/index.html',
       });
       if (error) return respond(400, { error: error.message });
 
