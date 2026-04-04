@@ -176,7 +176,7 @@ export function pinTeePosition(hole0) {
 // DRIVE TRACKING
 // Feature toggle — set to false to hide drive tracking UI entirely
 // ─────────────────────────────────────────────────────────────────
-export const DRIVE_TRACKING = true;
+export const DRIVE_TRACKING = false; // disabled for now — UI hidden, logic preserved
 
 export function updateDriveBtn(hole0, reset = false) {
   const wrap = document.getElementById('drive-log-wrap');
