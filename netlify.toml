@@ -9,13 +9,6 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
 
-[[redirects]]
-  from = "/"
-  to = "/waitlist.html"
-  status = 302
-  force = true
-
-[[redirects]]
-  from = "/index.html"
-  to = "/index.html"
-  status = 200
+# No server-side redirect — domain-aware routing handled in index.html
+# loopercaddie.com → waitlist (client-side redirect)
+# loopercaddie.netlify.app → app (no redirect)
