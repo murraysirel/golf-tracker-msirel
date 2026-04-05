@@ -87,6 +87,9 @@ export async function renderActionsTab() {
   const el = document.getElementById('profile-tab-actions');
   if (!el) return;
 
+  // Snapshot notifications before marking as read
+  const recentNotifs = [..._notifications];
+
   // Mark all notifications as read when viewing
   if (_notifications.length) {
     const ids = _notifications.map(n => n.id);
@@ -99,29 +102,78 @@ export async function renderActionsTab() {
   await loadFriends();
   const pending = _friendships.filter(f => f.addressee === state.me && f.status === 'pending');
 
-  if (!pending.length) {
-    el.innerHTML = '<div style="text-align:center;padding:24px;font-size:12px;color:var(--dimmer)">No pending actions</div>';
+  // Separate notification types
+  const likeNotifs = recentNotifs.filter(n => n.type === 'round_liked');
+  const commentNotifs = recentNotifs.filter(n => n.type === 'round_comment');
+  const joinNotifs = recentNotifs.filter(n => n.type === 'join_request');
+  const approvedNotifs = recentNotifs.filter(n => n.type === 'join_approved' || n.type === 'friend_accepted');
+
+  const hasAnything = pending.length || likeNotifs.length || commentNotifs.length || joinNotifs.length || approvedNotifs.length;
+
+  if (!hasAnything) {
+    el.innerHTML = '<div style="text-align:center;padding:24px;font-size:12px;color:var(--dimmer)">No notifications</div>';
     return;
   }
 
-  el.innerHTML = '<div style="font-family:\'DM Sans\',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase;margin-bottom:12px">Friend Requests</div>';
+  el.innerHTML = '';
 
-  pending.forEach(f => {
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--wa-06)';
-    row.innerHTML = `
-      ${avatarHtml(f.requester, 36, false)}
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600;color:var(--cream)">${f.requester}</div>
-        <div style="font-size:10px;color:var(--dim)">wants to be friends</div>
-      </div>
-      <div style="display:flex;gap:6px">
-        <button class="btn" data-fid="${f.id}" data-action="accept" style="width:auto;padding:6px 14px;font-size:11px;border-radius:20px">Accept</button>
-        <button class="btn btn-ghost" data-fid="${f.id}" data-action="decline" style="width:auto;padding:6px 14px;font-size:11px;border-radius:20px">Decline</button>
-      </div>`;
-    el.appendChild(row);
-  });
+  // Friend requests (actionable)
+  if (pending.length) {
+    el.innerHTML += '<div style="font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase;margin-bottom:10px;font-weight:600">Friend Requests</div>';
+    pending.forEach(f => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--wa-06)';
+      row.innerHTML = `
+        ${avatarHtml(f.requester, 32, false)}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--cream)">${f.requester}</div>
+          <div style="font-size:10px;color:var(--dim)">wants to be friends</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn" data-fid="${f.id}" data-action="accept" style="width:auto;padding:5px 12px;font-size:10px;border-radius:20px">Accept</button>
+          <button class="btn btn-ghost" data-fid="${f.id}" data-action="decline" style="width:auto;padding:5px 12px;font-size:10px;border-radius:20px">Decline</button>
+        </div>`;
+      el.appendChild(row);
+    });
+  }
 
+  // Likes + comments + approvals (informational)
+  const infoNotifs = [...likeNotifs, ...commentNotifs, ...joinNotifs, ...approvedNotifs].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  if (infoNotifs.length) {
+    const header = document.createElement('div');
+    header.style.cssText = 'font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase;margin:16px 0 10px;font-weight:600';
+    header.textContent = 'Recent';
+    el.appendChild(header);
+
+    infoNotifs.forEach(n => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--wa-06)';
+      const from = n.from_player || 'Someone';
+      let icon = '', text = '';
+      if (n.type === 'round_liked') {
+        icon = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="var(--double)" stroke="var(--double)" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+        text = `<span style="color:var(--cream);font-weight:600">${from}</span> liked your round${n.payload?.roundCourse ? ' at ' + n.payload.roundCourse : ''}`;
+      } else if (n.type === 'round_comment') {
+        icon = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--birdie)" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+        text = `<span style="color:var(--cream);font-weight:600">${from}</span> commented: "${(n.payload?.text || '').substring(0, 60)}"`;
+      } else if (n.type === 'join_request') {
+        icon = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>';
+        text = `<span style="color:var(--cream);font-weight:600">${from}</span> wants to join ${n.payload?.groupName || 'your league'}`;
+      } else if (n.type === 'join_approved') {
+        icon = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--par)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
+        text = `You were approved to join ${n.payload?.groupName || 'a league'}`;
+      } else if (n.type === 'friend_accepted') {
+        icon = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--par)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
+        text = `<span style="color:var(--cream);font-weight:600">${from}</span> accepted your friend request`;
+      }
+      row.innerHTML = `
+        <div style="flex-shrink:0">${icon}</div>
+        <div style="flex:1;min-width:0;font-size:11px;color:var(--dim);line-height:1.4">${text}</div>`;
+      el.appendChild(row);
+    });
+  }
+
+  // Wire friend request buttons
   el.querySelectorAll('[data-action]').forEach(btn => {
     btn.addEventListener('click', async () => {
       const fid = btn.dataset.fid;
