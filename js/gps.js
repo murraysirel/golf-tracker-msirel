@@ -118,7 +118,9 @@ export function updateGPSDisplay(hole0) {
     return;
   }
   if (!state.gpsState.coords) return;
-  const target = green[state.gpsState.target] || green.mid;
+  // Swap front/back for the primary GPS bar target too
+  const targetKey = state.gpsState.target === 'front' ? 'back' : state.gpsState.target === 'back' ? 'front' : 'mid';
+  const target = green[targetKey] || green.mid;
   if (!target) return;
   const yards = haversineYards(
     state.gpsState.coords.latitude, state.gpsState.coords.longitude,
@@ -127,11 +129,14 @@ export function updateGPSDisplay(hole0) {
   document.getElementById('gps-dist').textContent = _displayDist(yards);
 
   // Update unified live screen distances
+  // Display mapping: green.front→live-dist-back, green.back→live-dist-front
+  // (GolfAPI's "front" is furthest from tee, opposite to golf convention)
   const { latitude: _clat, longitude: _clng } = state.gpsState.coords;
+  const displayMap = { front: 'back', mid: 'mid', back: 'front' };
   ['front','mid','back'].forEach(t => {
     const tgt = green[t];
     const y = tgt ? haversineYards(_clat, _clng, tgt.lat, tgt.lng) : null;
-    const el = document.getElementById('live-dist-' + t);
+    const el = document.getElementById('live-dist-' + displayMap[t]);
     if (el) el.textContent = y !== null ? _displayDist(y) : '—';
   });
 

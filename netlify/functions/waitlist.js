@@ -67,7 +67,7 @@ async function getCount() {
 async function sendConfirmationEmail(email, name, isFounder, signupNumber) {
   const firstName = name ? name.split(' ')[0] : 'there';
   const founderLine = isFounder
-    ? `You're signup number ${signupNumber} — which means you're in the first 50. That means 6 months of Looper completely free when we launch.`
+    ? `You're signup number ${signupNumber} — which means you're one of the first 100. That means 6 months of Looper Premium completely free when we launch.`
     : `You're on the waitlist at number ${signupNumber}. We'll be in touch the moment we launch.`;
 
   const payload = JSON.stringify({

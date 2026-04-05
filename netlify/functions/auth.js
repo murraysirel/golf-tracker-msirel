@@ -286,7 +286,6 @@ exports.handler = async (event) => {
       if (!email) return respond(400, { error: 'Email required' });
 
       const siteUrl = process.env.SITE_URL || 'https://looper.netlify.app';
-      // Generate the link ourselves and send via Resend for reliable delivery
       const { data: linkData, error } = await supabaseAdmin.auth.admin.generateLink({
         type: 'magiclink',
         email,
@@ -294,10 +293,22 @@ exports.handler = async (event) => {
       });
       if (error) return respond(400, { error: error.message });
 
-      // Send the magic link email via Resend (branded, reliable)
-      if (process.env.RESEND_API_KEY && linkData?.properties?.action_link) {
-        const magicUrl = linkData.properties.action_link;
-        await sendMagicLinkEmail(email, magicUrl).catch(() => {});
+      // Extract magic URL — path varies between Supabase client versions
+      const magicUrl = linkData?.properties?.action_link
+        || (linkData?.properties?.hashed_token && (siteUrl + '#access_token=' + linkData.properties.hashed_token))
+        || null;
+      console.log('[auth] generateLink result:', JSON.stringify({
+        hasLinkData: !!linkData,
+        hasProps: !!linkData?.properties,
+        propKeys: linkData?.properties ? Object.keys(linkData.properties) : [],
+        hasActionLink: !!magicUrl,
+      }));
+
+      if (process.env.RESEND_API_KEY && magicUrl) {
+        const result = await sendMagicLinkEmail(email, magicUrl).catch(e => { console.error('[auth] sendMagicLinkEmail error:', e); return null; });
+        console.log('[auth] Resend response:', result);
+      } else {
+        console.warn('[auth] Magic link email NOT sent — no RESEND_API_KEY or no magicUrl');
       }
 
       return respond(200, { ok: true });
