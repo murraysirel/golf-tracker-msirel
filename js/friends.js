@@ -44,6 +44,10 @@ export function startNotificationPolling() {
   _pollTimer = setInterval(pollNotifications, 60000);
 }
 
+export function stopNotificationPolling() {
+  if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+}
+
 export function getUnreadCount() {
   return _notifications.length;
 }

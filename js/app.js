@@ -50,17 +50,23 @@ function showToast(message, type = 'info', duration = 5000) {
 window._looperToast = showToast;
 
 // ── Global error boundary ────────────────────────────────────────
-// ── Live round backup: save on page close + periodic auto-save ───
+// ── Live round backup: save on page close ────────────────────────
 window.addEventListener('beforeunload', () => {
   if (state.roundActive) {
     import('./live.js').then(m => { if (m._saveLiveBackup) m._saveLiveBackup(); }).catch(() => {});
   }
 });
-setInterval(() => {
-  if (state.roundActive) {
+// Periodic backup — started/stopped by live.js round lifecycle
+let _backupInterval = null;
+window._startBackupInterval = () => {
+  if (_backupInterval) return;
+  _backupInterval = setInterval(() => {
     import('./live.js').then(m => { if (m._saveLiveBackup) m._saveLiveBackup(); }).catch(() => {});
-  }
-}, 30000);
+  }, 30000);
+};
+window._stopBackupInterval = () => {
+  if (_backupInterval) { clearInterval(_backupInterval); _backupInterval = null; }
+};
 
 window.onerror = function(message, source, line, col, error) {
   console.error('[Looper] Uncaught error:', message, source, line);
@@ -100,7 +106,7 @@ import { generateAIReview, generateStatsAnalysis, clearStatsAnalysis, parsePhoto
 import { stopGPS, gpsSetTarget, pinTeePosition, markDriveTap, logDrive } from './gps.js';
 import { openAdminSettings, closeAdminSettings, verifyAdminPw, adminPopulateRounds, adminDeleteRound, adminSeedDemo } from './admin.js';
 import { copyGroupCode, leaveGroup, toggleGroupCodeRequired, addSeason, deleteSeason, confirmDeleteMyData, deleteMyData, copyAppUrl, rebuildSeasonSelector, initJoinGroup, lookupGroupByCode, confirmJoinGroup, showBoardPage, initCreateGroup, submitGroupName, confirmBoardSetup, initGroupSettings, saveGroupName, hideGSModal, confirmGSModal } from './group.js';
-import { initCompetition } from './competition.js';
+import { initCompetition, stopCompetitionPolling } from './competition.js';
 import { renderCompetitionSetupModal, renderJoinCompetitionModal, renderMyCompetitions } from './competition-setup.js';
 import { initCompScore, compScoreNext, compScorePrev, compScoreSaveNote, compScoreCancel } from './comp-score.js';
 import { state } from './state.js';
@@ -144,6 +150,7 @@ registerNavHandlers({
   initCompScore,
   onPageChange: (page) => {
     if (page !== 'live') hideMatchOverlay();
+    if (page !== 'competition') stopCompetitionPolling();
     // Clear course search text when navigating away from Round page
     if (page !== 'round') {
       const csInput = document.getElementById('cs-input');

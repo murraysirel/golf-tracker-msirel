@@ -241,6 +241,7 @@ Find genuine multi-round patterns, not single-round noise. Respond ONLY with val
     document.getElementById('ai-stats-handicap').textContent = parsed.handicap || '';
     document.getElementById('ai-stats-output').style.display = 'block';
     document.getElementById('ai-stats-msg').innerHTML = '';
+    if (!state.gd.players[state.me]) state.gd.players[state.me] = { handicap: 0, rounds: [] };
     state.gd.players[state.me].statsAnalysis = parsed;
     state.gd.players[state.me].statsAnalysisDate = new Date().toLocaleDateString('en-GB');
     pushData();

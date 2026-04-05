@@ -295,6 +295,7 @@ export function completePracticeSession() {
     completed: state.practiceState.shotsLogged >= (plan.totalShots || 50)
   };
 
+  if (!state.gd.players[state.me]) state.gd.players[state.me] = { handicap: 0, rounds: [] };
   if (!state.gd.players[state.me].practiceSessions) state.gd.players[state.me].practiceSessions = [];
   state.gd.players[state.me].practiceSessions.push(session);
   incrementUsage('practice_sessions');

@@ -6,6 +6,11 @@ import { state } from './state.js';
 const GROUP_SETTINGS_KEYS = ['customCourses','teeCoords','greenCoords','seasons',
                               'deletionLog','courseCorrections','requireGroupCode'];
 
+// Safe localStorage write — prevents QuotaExceededError from crashing the app
+function safeSetItem(key, value) {
+  try { localStorage.setItem(key, value); } catch (e) { console.warn('[storage] quota exceeded for', key, '— data not cached'); }
+}
+
 // ── Retry queue for failed network writes ────────────────────────
 const _retryQueue = [];
 
@@ -151,7 +156,7 @@ export async function loadAppData(playerName, groupCode) {
   // Supabase failure from wiping the local cache with empty data
   const playerCount = Object.keys(state.gd.players || {}).length;
   if (playerCount > 0) {
-    localStorage.setItem('gt_localdata', JSON.stringify(state.gd));
+    safeSetItem('gt_localdata', JSON.stringify(state.gd));
   } else {
     // Restore from cache if server returned empty but we had data before
     const cached = localStorage.getItem('gt_localdata');
@@ -230,8 +235,8 @@ export async function loadGroupData(groupCode) {
     // Restore group metadata from Supabase settings JSONB
     GROUP_SETTINGS_KEYS.forEach(k => { if (s0[k] != null) state.gd[k] = s0[k]; });
 
-    localStorage.setItem('gt_localdata', JSON.stringify(state.gd));
-    if (unsynced) localStorage.setItem('rr_unsynced_rounds', unsynced);
+    safeSetItem('gt_localdata', JSON.stringify(state.gd));
+    if (unsynced) safeSetItem('rr_unsynced_rounds', unsynced);
     ss('ok', 'Synced \u2713');
     return true;
   } catch (e) {
@@ -272,7 +277,7 @@ export async function loadAllRounds() {
       if (pl) pl.rounds.push(supabaseRoundToApp(r));
     });
     state._hasMoreRounds = false;
-    localStorage.setItem('gt_localdata', JSON.stringify(state.gd));
+    safeSetItem('gt_localdata', JSON.stringify(state.gd));
   } catch (e) {
     console.warn('[loadAllRounds] failed:', e.message);
   }
@@ -339,14 +344,14 @@ export async function retryUnsyncedRounds() {
     ss('ok', 'Unsynced rounds uploaded \u2713');
     return true;
   }
-  localStorage.setItem('rr_unsynced_rounds', JSON.stringify(remaining));
+  safeSetItem('rr_unsynced_rounds', JSON.stringify(remaining));
   updateUnsyncedBadge();
   return false;
 }
 
 // ── pushData — write group settings to Supabase ───────────────────
 export async function pushData() {
-  localStorage.setItem('gt_localdata', JSON.stringify(state.gd));
+  safeSetItem('gt_localdata', JSON.stringify(state.gd));
   if (state.demoMode) return true;
   ss('syncing', 'Saving...');
   try {

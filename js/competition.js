@@ -97,6 +97,10 @@ export async function initCompetition() {
   if (!_pollInterval) _pollInterval = setInterval(pollAndUpdate, 45000);
 }
 
+export function stopCompetitionPolling() {
+  if (_pollInterval) { clearInterval(_pollInterval); _pollInterval = null; }
+}
+
 // ── Competition selector (when no comp is selected) ──────────────
 async function renderCompSelector() {
   const pg = document.getElementById('pg-competition');

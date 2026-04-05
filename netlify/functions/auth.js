@@ -237,7 +237,13 @@ exports.handler = async (event) => {
       }
 
       const authUserId = data.user.id;
-      const playerName = await linkOrCreatePlayer(authUserId, email, name, handicap, dob);
+      let playerName;
+      try {
+        playerName = await linkOrCreatePlayer(authUserId, email, name, handicap, dob);
+      } catch (linkErr) {
+        console.error('[auth] linkOrCreatePlayer failed:', linkErr.message);
+        return respond(500, { error: 'Account created but profile setup failed — please try signing in' });
+      }
       await trackSession(authUserId, sessionId, deviceHint);
 
       // Send welcome email (fire-and-forget, never blocks signup)
@@ -262,7 +268,13 @@ exports.handler = async (event) => {
 
       if (!resolved) {
         // Auth user exists but no player row — create one
-        const playerName = await linkOrCreatePlayer(data.user.id, email, null, 0, null);
+        let playerName;
+        try {
+          playerName = await linkOrCreatePlayer(data.user.id, email, null, 0, null);
+        } catch (linkErr) {
+          console.error('[auth] linkOrCreatePlayer on signIn failed:', linkErr.message);
+          return respond(500, { error: 'Sign-in succeeded but profile setup failed — please try again' });
+        }
         return respond(200, {
           session: buildSession(data.session),
           playerName,

@@ -335,6 +335,7 @@ export function startGroupRound() {
     }
 
     state.roundActive = true;
+    if (window._startBackupInterval) window._startBackupInterval();
     // Publish live state for multi-player rounds so other players get an invite
     if (state.liveState.group.length > 1) {
       state.liveInvite.liveRoundId = Date.now();
@@ -1115,6 +1116,7 @@ export function cancelRound(skipConfirm = false) {
   localStorage.removeItem('rr_live_backup');
   import('./overlay.js').then(({ hideMatchOverlay }) => hideMatchOverlay());
   state.roundActive = false;
+  if (window._stopBackupInterval) window._stopBackupInterval();
   state.liveState.hole = 0;
   state.liveState.scores = Array(18).fill(null);
   state.liveState.putts = Array(18).fill(null);
@@ -1139,6 +1141,7 @@ export function cancelRound(skipConfirm = false) {
 
 async function liveFinishAndSave() {
   state.roundActive = false;
+  if (window._stopBackupInterval) window._stopBackupInterval();
   const _cBtn2 = document.getElementById('caddie-btn');
   _cBtn2?.classList.remove('visible');
   _cBtn2?.classList.remove('in-progress');

@@ -252,6 +252,9 @@ export function addAndEnter() {
 
 export function signOut() {
   import('./auth.js').then(({ serverSignOut }) => serverSignOut()).catch(() => {});
+  // Stop all polling timers on logout
+  import('./friends.js').then(m => { if (m.stopNotificationPolling) m.stopNotificationPolling(); }).catch(() => {});
+  import('./live-invite.js').then(m => { if (m.stopInvitePolling) m.stopInvitePolling(); }).catch(() => {});
   state.me = '';
   localStorage.removeItem('rrg_me');
   renderLogin();

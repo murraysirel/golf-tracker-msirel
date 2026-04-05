@@ -107,15 +107,6 @@ exports.handler = async (event) => {
       const fetchedRounds = roundsRes.data || [];
       const maxExpected = roundLimit > 0 ? roundLimit * memberNames.length : 0;
 
-      // Diagnostic logging — remove after debugging Embrik's missing data
-      console.log('[read] groupCode:', groupCode);
-      console.log('[read] memberNames:', memberNames);
-      console.log('[read] players returned:', (playersRes.data || []).map(p => p.name));
-      console.log('[read] rounds returned:', fetchedRounds.length);
-      const roundsByPlayer = {};
-      fetchedRounds.forEach(r => { roundsByPlayer[r.player_name] = (roundsByPlayer[r.player_name] || 0) + 1; });
-      console.log('[read] rounds per player:', roundsByPlayer);
-      console.log('[read] roundLimit:', roundLimit, 'maxExpected:', maxExpected);
       return {
         statusCode: 200, headers,
         body: JSON.stringify({
