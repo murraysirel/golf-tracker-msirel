@@ -184,30 +184,18 @@ registerNavHandlers({
   closeProfilePanel
 });
 
-// ── One-time migration v2: undo the v1 front/back swap in cached green coords
-// v1 swapped front↔back in cache. Server now reverted to GolfAPI docs (1=back,3=front).
-// This v2 migration re-swaps cached data to undo v1, making cache match the corrected server.
-if (!localStorage.getItem('looper_greencoord_fix_v2')) {
+// ── One-time migration v3: wipe all cached green coords
+// Previous migrations tried to swap front/back but the Supabase courses cache
+// also had inverted data. Wiping forces a clean re-fetch from the corrected server.
+if (!localStorage.getItem('looper_greencoord_fix_v3')) {
   try {
     const raw = localStorage.getItem('gt_localdata');
     if (raw) {
       const gd = JSON.parse(raw);
-      const gc = gd.greenCoords;
-      if (gc) {
-        Object.values(gc).forEach(course => {
-          Object.values(course).forEach(hole => {
-            if (hole.front && hole.back) {
-              const tmp = hole.front;
-              hole.front = hole.back;
-              hole.back = tmp;
-            }
-          });
-        });
-        localStorage.setItem('gt_localdata', JSON.stringify(gd));
-      }
+      if (gd.greenCoords) { gd.greenCoords = {}; localStorage.setItem('gt_localdata', JSON.stringify(gd)); }
     }
-    localStorage.setItem('looper_greencoord_fix_v2', '1');
-  } catch { localStorage.setItem('looper_greencoord_fix_v2', '1'); }
+    localStorage.setItem('looper_greencoord_fix_v3', '1');
+  } catch { localStorage.setItem('looper_greencoord_fix_v3', '1'); }
 }
 
 // ── Splash screen dismiss ─────────────────────────────────────────
