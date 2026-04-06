@@ -184,8 +184,10 @@ registerNavHandlers({
   closeProfilePanel
 });
 
-// ── One-time migration: swap front/back green coords (API mapping was inverted)
-if (!localStorage.getItem('looper_greencoord_fix')) {
+// ── One-time migration v2: undo the v1 front/back swap in cached green coords
+// v1 swapped front↔back in cache. Server now reverted to GolfAPI docs (1=back,3=front).
+// This v2 migration re-swaps cached data to undo v1, making cache match the corrected server.
+if (!localStorage.getItem('looper_greencoord_fix_v2')) {
   try {
     const raw = localStorage.getItem('gt_localdata');
     if (raw) {
@@ -204,8 +206,8 @@ if (!localStorage.getItem('looper_greencoord_fix')) {
         localStorage.setItem('gt_localdata', JSON.stringify(gd));
       }
     }
-    localStorage.setItem('looper_greencoord_fix', '1');
-  } catch { localStorage.setItem('looper_greencoord_fix', '1'); }
+    localStorage.setItem('looper_greencoord_fix_v2', '1');
+  } catch { localStorage.setItem('looper_greencoord_fix_v2', '1'); }
 }
 
 // ── Splash screen dismiss ─────────────────────────────────────────
