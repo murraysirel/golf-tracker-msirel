@@ -1079,6 +1079,31 @@ exports.handler = async (event) => {
     }
 
     // ── logAppError ──────────────────────────────────────────────────
+    // ── uploadRoundPhoto ──────────────────────────────────────────
+    if (action === 'uploadRoundPhoto') {
+      const { playerName, roundId, photoBase64, mimeType } = data;
+      if (!playerName || !roundId || !photoBase64) return { statusCode: 400, headers, body: JSON.stringify({ error: 'playerName, roundId, photoBase64 required' }) };
+      const ext = (mimeType || 'image/jpeg').split('/')[1] || 'jpg';
+      const filePath = `rounds/${playerName}/${roundId}.${ext}`;
+      const buffer = Buffer.from(photoBase64, 'base64');
+      const { error: upErr } = await supabase.storage.from('round-photos').upload(filePath, buffer, { contentType: mimeType || 'image/jpeg', upsert: true });
+      if (upErr) { console.error('[uploadRoundPhoto]', upErr.message); return { statusCode: 500, headers, body: JSON.stringify({ error: 'Upload failed' }) }; }
+      const { data: urlData } = supabase.storage.from('round-photos').getPublicUrl(filePath);
+      // Save URL to rounds table
+      await supabase.from('rounds').update({ photo_url: urlData.publicUrl }).eq('id', roundId);
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true, photoUrl: urlData.publicUrl }) };
+    }
+
+    // ── getRoundPhotos ───────────────────────────────────────────
+    if (action === 'getRoundPhotos') {
+      const { roundIds } = data;
+      if (!roundIds?.length) return { statusCode: 200, headers, body: JSON.stringify({ photos: {} }) };
+      const { data: rows } = await supabase.from('rounds').select('id, photo_url').in('id', roundIds).not('photo_url', 'is', null);
+      const photos = {};
+      (rows || []).forEach(r => { if (r.photo_url) photos[r.id] = r.photo_url; });
+      return { statusCode: 200, headers, body: JSON.stringify({ photos }) };
+    }
+
     if (action === 'logAppError') {
       try {
         await supabase.from('app_errors').insert({

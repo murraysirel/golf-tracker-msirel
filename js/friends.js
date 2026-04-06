@@ -209,7 +209,7 @@ export async function renderFriendsTab() {
   let html = `<div style="margin-bottom:14px;position:relative">
     <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase;margin-bottom:8px">Add Friend</div>
     <input type="text" id="friend-search-input" placeholder="Search by name..." autocomplete="off" style="width:100%;font-size:13px;box-sizing:border-box">
-    <div id="friend-search-results" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:50;max-height:220px;overflow-y:auto;background:var(--card);border:1px solid var(--border);border-radius:0 0 10px 10px;box-shadow:0 8px 24px rgba(0,0,0,.4)"></div>
+    <div id="friend-search-results" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:500;max-height:220px;overflow-y:auto;background:var(--card);border:1px solid var(--border);border-radius:0 0 10px 10px;box-shadow:0 8px 24px rgba(0,0,0,.5)"></div>
     <div id="friend-add-msg" style="font-size:11px;color:var(--dim);margin-top:4px"></div>
   </div>`;
 
