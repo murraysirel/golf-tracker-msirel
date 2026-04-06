@@ -1032,12 +1032,11 @@ export function renderHomeStats() {
     }
 
     function avgPuttsPerHole(rounds) {
-      // Match stats page: total putts per round / 18 holes, then average across rounds
-      const vals = rounds.map(r => {
-        const putts = (r.putts || []).reduce((s, v) => s + (v || 0), 0);
-        return putts > 0 ? putts / 18 : null;
-      }).filter(v => v != null);
-      return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+      // Only include rounds with actual putt data (matches stats page filter)
+      const withPutts = rounds.filter(r => (r.putts || []).some(v => v != null && v > 0));
+      if (!withPutts.length) return null;
+      const vals = withPutts.map(r => (r.putts || []).reduce((s, v) => s + (v || 0), 0) / 18);
+      return vals.reduce((a, b) => a + b, 0) / vals.length;
     }
     function avgBirdiesPerRound(rounds) {
       if (!rounds.length) return null;
@@ -1065,7 +1064,7 @@ export function renderHomeStats() {
       putts:      { label: 'Putts/hole',    fn: avgPuttsPerHole,     fmt: v => v.toFixed(1),                       inverted: true,  accent: '#2ecc71' },
       birdies:    { label: 'Birdies/round', fn: avgBirdiesPerRound,  fmt: v => v.toFixed(1),                       inverted: false, accent: '#3498db' },
       doubles:    { label: 'Doubles/round', fn: avgDoublesPerRound,  fmt: v => v.toFixed(1),                       inverted: true,  accent: '#e74c3c' },
-      putts_round:{ label: 'Putts/round',  fn: (rounds) => { if (!rounds.length) return null; const t = rounds.reduce((a, r) => a + (r.putts || []).reduce((s, v) => s + (v || 0), 0), 0); return t / rounds.length; }, fmt: v => v.toFixed(0), inverted: true, accent: '#2ecc71' },
+      putts_round:{ label: 'Putts/round',  fn: (rounds) => { const withPutts = rounds.filter(r => (r.putts || []).some(v => v != null && v > 0)); if (!withPutts.length) return null; const t = withPutts.reduce((a, r) => a + (r.putts || []).reduce((s, v) => s + (v || 0), 0), 0); return t / withPutts.length; }, fmt: v => v.toFixed(0), inverted: true, accent: '#2ecc71' },
     };
 
     const HOME_KPI_LS = 'looper_home_kpis';
