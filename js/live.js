@@ -138,6 +138,9 @@ export function initLiveRound() {
     if (holeView) holeView.style.display = 'flex';
     liveRenderPips();
     liveGoto(state.liveState.hole);
+    // Restart GPS on resume — startGPSWatch guards against double-start
+    import('./gps.js').then(({ startGPSWatch }) => startGPSWatch());
+    if (window._startBackupInterval) window._startBackupInterval();
     return;
   }
 

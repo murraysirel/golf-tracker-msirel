@@ -567,6 +567,20 @@ function _sixesHolePts(h, groupScores, hcpOverrides, si) {
 }
 
 // Compute running standings across all 18 holes from current live state.
+// Standings up to (but not including) the current hole — for live display
+export function getSixesStandingsUpTo(upToHole) {
+  const ws = state.sixesState;
+  if (!ws) return [];
+  const si = state.scannedSI?.some(v => v != null) ? state.scannedSI : null;
+  const totals = Object.fromEntries(ws.players.map(p => [p, 0]));
+  for (let h = 0; h < upToHole; h++) {
+    const pts = _sixesHolePts(h, state.liveState.groupScores, state.liveState.hcpOverrides, si);
+    if (pts) { for (const [name, p] of Object.entries(pts)) totals[name] += p; }
+  }
+  return [...ws.players].map(name => ({ name, points: totals[name] })).sort((a, b) => b.points - a.points);
+}
+
+// Full standings across all 18 holes — for final save
 export function getSixesStandings() {
   const ws = state.sixesState;
   if (!ws) return [];
@@ -600,7 +614,8 @@ export function updateSixesBanner(h) {
 
   bar.style.display = 'block';
 
-  const standings = getSixesStandings();
+  // Only show points for COMPLETED holes (before current hole)
+  const standings = getSixesStandingsUpTo(h);
   const medals = ['🥇', '🥈', '🥉'];
   const standingsEl = document.getElementById('sixes-standings');
   if (standingsEl) {
@@ -609,16 +624,19 @@ export function updateSixesBanner(h) {
     ).join('');
   }
 
-  const holePts = getSixesHolePts(h);
   const holeEl = document.getElementById('sixes-hole-pts');
   if (holeEl) {
-    if (holePts) {
-      const parts = Object.entries(holePts)
-        .sort((a, b) => b[1] - a[1])
-        .map(([name, pts]) => `${name.split(' ')[0]}: ${pts}pts`);
-      holeEl.innerHTML = 'This hole: ' + parts.join(' · ');
+    if (h > 0) {
+      // Show last completed hole's result
+      const lastPts = getSixesHolePts(h - 1);
+      if (lastPts) {
+        const parts = Object.entries(lastPts).sort((a, b) => b[1] - a[1]).map(([name, pts]) => `${name.split(' ')[0]}: ${pts}pts`);
+        holeEl.innerHTML = 'Last hole: ' + parts.join(' · ');
+      } else {
+        holeEl.innerHTML = '';
+      }
     } else {
-      holeEl.innerHTML = 'Enter all scores to see result';
+      holeEl.innerHTML = '';
     }
   }
 

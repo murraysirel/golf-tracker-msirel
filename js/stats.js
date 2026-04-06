@@ -802,7 +802,7 @@ export async function renderFeedPage() {
           <div><div style="font-size:16px;font-weight:700;color:var(--birdie)">${ev.round.birdies || 0}</div><div style="font-size:8px;color:var(--dim);text-transform:uppercase;margin-top:1px">birdies</div></div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;padding:6px 0 0;border-top:1px solid var(--border);margin-top:6px">
-          <button class="feed-like-btn" data-round-id="${roundId}" data-player="${ev.name}" data-course="${ev.course || ''}" data-date="${ev.round?.date || ''}" style="background:none;border:none;cursor:pointer;font-size:12px;color:${likedByMe ? 'var(--double)' : 'var(--dim)'};font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px;padding:2px 0"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="${likedByMe ? 'var(--double)' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>${likeCount > 0 ? likeCount : ''}</button>
+          <button class="feed-like-btn" data-round-id="${roundId}" data-player="${ev.name}" data-course="${ev.course || ''}" data-date="${ev.round?.date || ''}" style="background:none;border:none;cursor:pointer;font-size:12px;color:${likedByMe ? 'var(--double)' : 'var(--dim)'};font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px;padding:2px 0"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="${likedByMe ? 'var(--double)' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span class="like-count">${likeCount > 0 ? likeCount : ''}</span></button>
           <button class="feed-comment-btn" data-round-id="${roundId}" data-player="${ev.name}" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--dim);font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px;padding:2px 0"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Comment</button>
         </div>
         <div class="feed-comments-area" data-round-id="${roundId}" style="display:none;padding-top:6px;border-top:1px solid var(--border);margin-top:4px"></div>
@@ -855,7 +855,8 @@ export async function renderFeedPage() {
       btn.style.color = liked ? 'var(--double)' : 'var(--dim)';
       btn.querySelector('svg').setAttribute('fill', liked ? 'var(--double)' : 'none');
       const countText = count > 0 ? count : '';
-      btn.childNodes[btn.childNodes.length - 1].textContent = countText;
+      const countEl = btn.querySelector('.like-count');
+      if (countEl) countEl.textContent = countText;
     });
   });
 
