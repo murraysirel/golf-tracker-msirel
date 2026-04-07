@@ -485,11 +485,11 @@ if (location.hostname === 'loopercaddie.com' && location.pathname === '/') {
       <!-- Start a round CTA -->
       <button id="home-caddie-cta" style="display:block;width:calc(100% - 32px);margin:14px 16px 0;padding:16px;border-radius:14px;background:var(--gold);color:var(--navy);font-size:15px;font-weight:700;letter-spacing:0.02em;border:none;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent;font-family:'DM Sans',sans-serif"><div style="display:flex;align-items:center;justify-content:space-between"><div><div>Start a round</div><div id="home-cta-sub" style="font-size:11px;font-weight:400;opacity:.7;margin-top:2px"></div></div><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="14" y2="9"/><polyline points="10 5 14 9 10 13"/></svg></div></button>
 
-      <!-- Last round card -->
-      <div id="home-last-round" style="padding:12px 16px 0"></div>
-
       <!-- Weather forecast -->
       <div id="weather-container"></div>
+
+      <!-- Last round card -->
+      <div id="home-last-round" style="padding:12px 16px 0"></div>
 
       <div style="height:calc(var(--safe-bot) + 12px)"></div>
 
@@ -686,6 +686,7 @@ if (location.hostname === 'loopercaddie.com' && location.pathname === '/') {
               Join
             </button>
           </div>
+          <div style="font-size:11px;color:var(--dim);line-height:1.6;padding:0 2px 12px">Create a weekend-long, season-long or 1v1 competition with your friends. Want to track a 1v1 match over several games, or run a Ryder Cup over a group trip away? This is the place.</div>
           <div id="my-competitions-list"></div>
         </div><!-- /round-comp-section -->
 
@@ -1169,9 +1170,9 @@ if (location.hostname === 'loopercaddie.com' && location.pathname === '/') {
         <div style="display:flex;align-items:center;gap:8px;cursor:pointer" id="practice-recs-toggle">
           <div style="width:28px;height:28px;border-radius:8px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg></div>
           <span style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase;flex:1">Your Latest AI Recommendations</span>
-          <span id="practice-recs-chevron" style="font-size:12px;color:var(--dimmer);transition:transform .2s">&#9662;</span>
+          <div style="display:flex;flex-direction:column;align-items:center"><span id="practice-recs-chevron" style="font-size:12px;color:var(--dimmer);transition:transform .2s;transform:rotate(-90deg)">&#9662;</span><span id="practice-recs-open-hint" style="font-size:9px;color:var(--gold);margin-top:1px">Open</span></div>
         </div>
-        <div id="practice-recs-body" style="margin-top:12px">
+        <div id="practice-recs-body" style="margin-top:12px;display:none">
           <div style="font-size:11px;color:var(--dim);margin-bottom:10px;line-height:1.5">From your most recent round review</div>
           <div id="practice-recs-content"></div>
         </div>

@@ -51,10 +51,18 @@ window._looperToast = showToast;
 
 // ── Global error boundary ────────────────────────────────────────
 // ── Live round backup: save on page close ────────────────────────
-window.addEventListener('beforeunload', () => {
+function _backupAllRounds() {
   if (state.roundActive) {
     import('./live.js').then(m => { if (m._saveLiveBackup) m._saveLiveBackup(); }).catch(() => {});
+    import('./comp-score.js').then(m => { if (m._saveCompBackup) m._saveCompBackup(); }).catch(() => {});
   }
+}
+window.addEventListener('beforeunload', _backupAllRounds);
+// pagehide is more reliable than beforeunload on mobile Safari
+window.addEventListener('pagehide', _backupAllRounds);
+// visibilitychange catches phone lock, app switch, tab switch
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') _backupAllRounds();
 });
 // Periodic backup — started/stopped by live.js round lifecycle
 let _backupInterval = null;
@@ -652,8 +660,10 @@ document.getElementById('practice-start-btn')?.addEventListener('click', startPr
 document.getElementById('practice-recs-toggle')?.addEventListener('click', () => {
   const body = document.getElementById('practice-recs-body');
   const chev = document.getElementById('practice-recs-chevron');
+  const hint = document.getElementById('practice-recs-open-hint');
   if (body) body.style.display = body.style.display === 'none' ? 'block' : 'none';
   if (chev) chev.style.transform = body?.style.display === 'none' ? 'rotate(-90deg)' : '';
+  if (hint) hint.style.display = body?.style.display === 'none' ? '' : 'none';
 });
 document.getElementById('practice-regen-btn')?.addEventListener('click', regeneratePlan);
 document.getElementById('practice-log-5')?.addEventListener('click', () => logPracticeShots(5));
@@ -1086,8 +1096,13 @@ function showRoundRecoveryPrompt(backup) {
     state.liveState.groupFir = backup.groupFir || {};
     state.liveState.groupGir = backup.groupGir || {};
     state.liveState.hcpOverrides = backup.hcpOverrides || {};
+    state.liveState.matchPlay = backup.matchPlay || false;
+    state.liveState.matchFormat = backup.matchFormat || 'singles';
+    state.liveState.matchTeams = backup.matchTeams || { a: [], b: [] };
+    state.liveState.matchResult = backup.matchResult || null;
     state.gameMode = backup.gameMode || 'stroke';
     state.wolfState = backup.wolfState || null;
+    state.sixesState = backup.sixesState || null;
     state.stee = backup.tee || '';
     state.roundActive = true;
     // Restore course selection (search + apply, falls back to stub)
@@ -1096,16 +1111,25 @@ function showRoundRecoveryPrompt(backup) {
         restoreCourseByName(backup.course, backup.tee).catch(() => {})
       );
     }
-    // Restore sixes state if needed
-    if (backup.gameMode === 'sixes' && backup.group?.length === 3) {
+    // Restore sixes state if backed up, otherwise init fresh
+    if (backup.gameMode === 'sixes' && !backup.sixesState && backup.group?.length === 3) {
       import('./gamemodes.js').then(({ initSixesState }) => initSixesState(backup.group));
     }
     // Keep backup alive until save succeeds — don't delete here
-    goTo('live');
+    if (backup.isComp) {
+      // For competition rounds, restore comp state and navigate to comp-score
+      import('./comp-score.js').then(({ prepareCompScore }) => {
+        // comp recovery navigates via competition page
+        goTo('round');
+      }).catch(() => goTo('live'));
+    } else {
+      goTo('live');
+    }
   };
 
   document.getElementById('rr-discard-btn').onclick = () => {
     localStorage.removeItem('rr_live_backup');
+    localStorage.removeItem('rr_comp_backup');
     modal.style.display = 'none';
   };
 }
@@ -1251,7 +1275,21 @@ initMatchOverlay();
       try {
         const b = JSON.parse(backup);
         const ageMinutes = (Date.now() - b.savedAt) / 60000;
-        if (ageMinutes < 1440 && b.hole > 0) showRoundRecoveryPrompt(b);
+        const hasData = b.hole > 0 || (b.scores && b.scores.some(s => s != null)) || Object.values(b.groupScores || {}).some(arr => arr.some(s => s != null));
+        if (ageMinutes < 1440 && hasData) showRoundRecoveryPrompt(b);
+      } catch (_) {}
+    }
+
+    // 6b. Competition round recovery
+    const compBackup = localStorage.getItem('rr_comp_backup');
+    if (compBackup) {
+      try {
+        const cb = JSON.parse(compBackup);
+        const ageMinutes = (Date.now() - cb.savedAt) / 60000;
+        const cbHasData = cb.hole > 0 || Object.values(cb.groupScores || {}).some(arr => arr.some(s => s != null));
+        if (ageMinutes < 1440 && cbHasData && cb.comp) {
+          showRoundRecoveryPrompt({ ...cb, course: cb.comp, isComp: true, compId: cb.comp, compRoundIdx: cb.roundIdx });
+        }
       } catch (_) {}
     }
   } catch (e) {

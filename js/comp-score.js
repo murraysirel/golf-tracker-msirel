@@ -73,7 +73,7 @@ function _adj(playerName, field, delta) {
   if (field === 'putts' && playerName === _statPlayer) _autoGirCheck();
   _updateRunning();
   _renderPips();
-  _saveBackup();
+  _saveCompBackup();
 }
 
 function _toggle(playerName, field, val) {
@@ -82,7 +82,7 @@ function _toggle(playerName, field, val) {
   if (!store[playerName]) store[playerName] = Array(18).fill('');
   store[playerName][h] = val;
   _renderStatPanel(h);
-  _saveBackup();
+  _saveCompBackup();
 }
 
 // ── Init comp scoring ────────────────────────────────────────────
@@ -372,7 +372,7 @@ function _updateRunning() {
 
 // ── Next / Finish ────────────────────────────────────────────────
 export function compScoreNext() {
-  if (cs.hole < 17) { _goto(cs.hole + 1); _saveBackup(); }
+  if (cs.hole < 17) { _goto(cs.hole + 1); _saveCompBackup(); }
   else { _finishAndSave(); }
 }
 
@@ -381,7 +381,7 @@ export function compScorePrev() {
 }
 
 // ── Save backup to localStorage ──────────────────────────────────
-function _saveBackup() {
+export function _saveCompBackup() {
   try {
     localStorage.setItem('rr_comp_backup', JSON.stringify({
       savedAt: Date.now(), comp: cs.comp?.id, roundIdx: cs.roundIdx,
@@ -396,7 +396,7 @@ function _saveBackup() {
 export function compScoreSaveNote() {
   const noteEl = document.getElementById('cs-note');
   if (noteEl) cs.notes[cs.hole] = noteEl.value;
-  _saveBackup();
+  _saveCompBackup();
 }
 
 // ── Finish round & save ──────────────────────────────────────────

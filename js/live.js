@@ -754,7 +754,12 @@ export function _saveLiveBackup() {
       tee: state.stee,
       gameMode: state.gameMode,
       wolfState: state.wolfState,
+      sixesState: state.sixesState,
       hcpOverrides: state.liveState.hcpOverrides,
+      matchPlay: state.liveState.matchPlay,
+      matchFormat: state.liveState.matchFormat,
+      matchTeams: state.liveState.matchTeams,
+      matchResult: state.liveState.matchResult,
     }));
   } catch (_) { /* localStorage full or unavailable */ }
 }

@@ -671,6 +671,10 @@ function renderMatesFeed() {
   });
 
   matesEl.appendChild(card);
+  card.style.cursor = 'pointer';
+  card.addEventListener('click', () => {
+    import('./nav.js').then(m => m.goTo('feed'));
+  });
 }
 
 // ── Activity feed page — full Strava-style feed ─────────────────
