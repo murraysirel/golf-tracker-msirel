@@ -473,9 +473,6 @@ if (location.hostname === 'loopercaddie.com' && location.pathname === '/') {
       <!-- Pulse stats row -->
       <div id="home-pulse" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:0 16px"></div>
 
-      <!-- Last round card -->
-      <div id="home-last-round" style="padding:12px 16px 0"></div>
-
       <!-- Group activity -->
       <div id="home-mates-section" style="padding:12px 16px 0">
         <div class="section-hdr" style="padding:0 0 6px">
@@ -485,11 +482,16 @@ if (location.hostname === 'loopercaddie.com' && location.pathname === '/') {
         <div id="home-mates-list"></div>
       </div>
 
+      <!-- Start a round CTA -->
+      <button id="home-caddie-cta" style="display:block;width:calc(100% - 32px);margin:14px 16px 0;padding:16px;border-radius:14px;background:var(--gold);color:var(--navy);font-size:15px;font-weight:700;letter-spacing:0.02em;border:none;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent;font-family:'DM Sans',sans-serif"><div style="display:flex;align-items:center;justify-content:space-between"><div><div>Start a round</div><div id="home-cta-sub" style="font-size:11px;font-weight:400;opacity:.7;margin-top:2px"></div></div><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="14" y2="9"/><polyline points="10 5 14 9 10 13"/></svg></div></button>
+
+      <!-- Last round card -->
+      <div id="home-last-round" style="padding:12px 16px 0"></div>
+
       <!-- Weather forecast -->
       <div id="weather-container"></div>
 
-      <!-- Start a round CTA -->
-      <button id="home-caddie-cta" style="display:block;width:calc(100% - 32px);margin:14px 16px calc(var(--safe-bot) + 12px);padding:16px;border-radius:14px;background:var(--gold);color:var(--navy);font-size:15px;font-weight:700;letter-spacing:0.02em;border:none;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent;font-family:'DM Sans',sans-serif"><div style="display:flex;align-items:center;justify-content:space-between"><div><div>Start a round</div><div id="home-cta-sub" style="font-size:11px;font-weight:400;opacity:.7;margin-top:2px"></div></div><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="14" y2="9"/><polyline points="10 5 14 9 10 13"/></svg></div></button>
+      <div style="height:calc(var(--safe-bot) + 12px)"></div>
 
       <!-- Tile picker bottom sheet (kept for KPI customisation) -->
       <div id="kpi-picker-sheet" style="display:none;position:fixed;inset:0;z-index:300;align-items:flex-end">
@@ -1132,7 +1134,7 @@ if (location.hostname === 'loopercaddie.com' && location.pathname === '/') {
       <div class="card" id="c-f9b9" style="display:none">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
           <div style="font-size:11px;font-weight:600;color:var(--cream)">Front 9 vs Back 9</div>
-          <label id="f9b9-toggle" style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:10px;color:var(--dim)">Gross
+          <label id="f9b9-toggle" style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:10px;color:var(--dim)"><span id="f9b9-toggle-label">Net</span>
             <span id="f9b9-toggle-pill" style="display:inline-block;width:22px;height:12px;border-radius:6px;background:var(--border);position:relative;transition:background .2s"><span style="position:absolute;top:1px;left:1px;width:10px;height:10px;border-radius:50%;background:var(--cream);transition:left .2s"></span></span>
           </label>
         </div>

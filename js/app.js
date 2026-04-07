@@ -626,6 +626,8 @@ document.getElementById('f9b9-toggle')?.addEventListener('click', () => {
   localStorage.setItem('looper_f9b9_gross', !cur);
   const pill = document.getElementById('f9b9-toggle-pill');
   if (pill) { pill.style.background = !cur ? 'var(--gold)' : 'var(--border)'; pill.querySelector('span').style.left = !cur ? '11px' : '1px'; }
+  const lbl = document.getElementById('f9b9-toggle-label');
+  if (lbl) lbl.textContent = !cur ? 'Gross' : 'Net';
   renderStats();
 });
 document.getElementById('ai-review-btn')?.addEventListener('click', generateAIReview);

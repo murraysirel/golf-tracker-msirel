@@ -1070,6 +1070,27 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true, comment: row }) };
     }
 
+    // ── getCommentCounts ─────────────────────────────────────────────
+    if (action === 'getCommentCounts') {
+      const { roundIds } = data;
+      if (!roundIds?.length) return { statusCode: 200, headers, body: JSON.stringify({ counts: {} }) };
+      const { data: rows } = await supabase.from('feed_comments').select('round_id, commenter, text, created_at').in('round_id', roundIds).order('created_at', { ascending: true });
+      const counts = {};
+      const previews = {};
+      for (const r of (rows || [])) {
+        if (!counts[r.round_id]) { counts[r.round_id] = 0; previews[r.round_id] = []; }
+        counts[r.round_id]++;
+        previews[r.round_id].push({ commenter: r.commenter, text: r.text });
+      }
+      // Keep only first and last comment per round for preview
+      const trimmed = {};
+      for (const [rid, arr] of Object.entries(previews)) {
+        if (arr.length <= 2) { trimmed[rid] = arr; }
+        else { trimmed[rid] = [arr[0], arr[arr.length - 1]]; }
+      }
+      return { statusCode: 200, headers, body: JSON.stringify({ counts, previews: trimmed }) };
+    }
+
     // ── getComments ──────────────────────────────────────────────────
     if (action === 'getComments') {
       const { roundId } = data;

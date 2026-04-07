@@ -560,15 +560,21 @@ function renderMatesFeed() {
       const realDate = dp?.length === 3 ? new Date(+dp[2], +dp[1] - 1, +dp[0]) : null;
       const ago = realDate ? Math.floor((today - realDate) / 86400000) : 0;
       const when = ago === 0 ? 'today' : ago === 1 ? 'yesterday' : ago + 'd ago';
-      const course = r.course?.split(' — ')?.[0] || r.course || '';
+      const course = (r.course || '').replace(/ Golf Club| Golf Course| Golf Links/g, '');
+
+      // Round played — always include
+      const diff = r.diff;
+      const dv = diff === 0 ? 'E' : (diff > 0 ? '+' + diff : '' + diff);
+      const stab = calcStableford(r.scores, r.pars, p.handicap || 0, r.slope, null);
+      events.push({ ts: rd, id: r.id || 0, icon: 'round', name, text: `${name} played ${course}`, when, color: 'var(--dim)', badge: 'Round', round: r, score: `${r.totalScore || '—'} (${dv})`, pts: stab });
 
       // Eagles
       if (r.eagles > 0) {
-        events.push({ ts: rd, icon: 'eagle', text: `${name} made ${r.eagles} eagle${r.eagles > 1 ? 's' : ''} at ${course}`, when, color: 'var(--eagle)', badge: 'Eagle' });
+        events.push({ ts: rd, id: r.id || 0, icon: 'eagle', name, text: `${name} made ${r.eagles} eagle${r.eagles > 1 ? 's' : ''} at ${course}`, when, color: 'var(--eagle)', badge: 'Eagle' });
       }
       // Birdies (2+)
       if (r.birdies >= 2) {
-        events.push({ ts: rd, icon: 'birdie', text: `${name} made ${r.birdies} birdies at ${course}`, when, color: 'var(--birdie)', badge: 'Birdie' });
+        events.push({ ts: rd, id: r.id || 0, icon: 'birdie', name, text: `${name} made ${r.birdies} birdies at ${course}`, when, color: 'var(--birdie)', badge: 'Birdie' });
       }
       // Net eagles — count holes where (score - par - hcpStrokes) <= -2
       if (r.scores && r.pars) {
@@ -582,7 +588,7 @@ function renderMatesFeed() {
           if (r.scores[h] - r.pars[h] - strokes <= -2) netEagles++;
         }
         if (netEagles > 0) {
-          events.push({ ts: rd, icon: 'star', text: `${name} made ${netEagles} net eagle${netEagles > 1 ? 's' : ''} at ${course}`, when, color: 'var(--gold)', badge: 'Net Eagle' });
+          events.push({ ts: rd, id: r.id || 0, icon: 'star', name, text: `${name} made ${netEagles} net eagle${netEagles > 1 ? 's' : ''} at ${course}`, when, color: 'var(--gold)', badge: 'Net Eagle' });
         }
       }
       // Season-best net round
@@ -593,13 +599,12 @@ function renderMatesFeed() {
         );
         if (otherNets.length > 0 && netDiff < Math.min(...otherNets)) {
           const fmtNet = netDiff === 0 ? 'level par net' : (netDiff > 0 ? '+' + netDiff : netDiff) + ' net';
-          events.push({ ts: rd, icon: 'trophy', text: `${name} shot their best net round of the season (${fmtNet}) at ${course}`, when, color: 'var(--gold2)', badge: 'PB' });
+          events.push({ ts: rd, id: r.id || 0, icon: 'trophy', name, text: `${name} shot their best net round of the season (${fmtNet}) at ${course}`, when, color: 'var(--gold2)', badge: 'PB' });
         }
       }
       // Stableford > 36
-      const stab = calcStableford(r.scores, r.pars, p.handicap || 0, r.slope, null);
       if (stab != null && stab > 36) {
-        events.push({ ts: rd, icon: 'alert', text: `${name} scored ${stab} stableford points! Check their handicap is cut!`, when, color: 'var(--bogey)', badge: 'Round' });
+        events.push({ ts: rd, id: r.id || 0, icon: 'alert', name, text: `${name} scored ${stab} stableford points! Check their handicap is cut!`, when, color: 'var(--bogey)', badge: 'Round' });
       }
       // Sixes result
       if (r.sixesResult?.winner && r.sixesResult.winner === name) {
@@ -608,13 +613,24 @@ function renderMatesFeed() {
         const winPts = standings.find(s => s.name === name)?.points || 0;
         const runnerPts = standings.filter(s => s.name !== name).map(s => s.points || 0);
         const margin = winPts - Math.max(...runnerPts, 0);
-        events.push({ ts: rd, icon: 'trophy', text: `${name} beat ${losers} by ${margin} points in a game of Sixes at ${course}`, when, color: 'var(--par)', badge: 'Sixes' });
+        events.push({ ts: rd, id: r.id || 0, icon: 'trophy', name, text: `${name} beat ${losers} by ${margin} points in a game of Sixes at ${course}`, when, color: 'var(--par)', badge: 'Sixes' });
       }
     }
   }
 
-  events.sort((a, b) => b.ts - a.ts);
-  const capped = events.slice(0, 3);
+  events.sort((a, b) => b.ts - a.ts || (b.id - a.id));
+
+  // Deduplicate: keep one per player+date+type, prioritise special events over round
+  const seen = new Set();
+  const deduped = [];
+  for (const ev of events) {
+    const key = `${ev.name}-${ev.ts}-${ev.icon}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(ev);
+  }
+
+  const capped = deduped.slice(0, 5);
   matesEl.innerHTML = '';
 
   if (!capped.length) {
@@ -636,15 +652,20 @@ function renderMatesFeed() {
     else if (ev.icon === 'alert') badgeColor = 'var(--bogey)';
 
     // Extract player name
-    const nameMatch = ev.text.match(/^(.+?) (?:made|scored|shot)/);
+    const nameMatch = ev.text.match(/^(.+?) (?:made|scored|shot|played|beat)/);
     const playerName = nameMatch ? nameMatch[1] : '';
     const restText = playerName ? ev.text.slice(playerName.length) : ev.text;
+
+    // Score detail line for round events
+    const scoreLine = ev.icon === 'round' && ev.score
+      ? `<div style="font-size:10px;color:var(--cream);margin-top:2px">${ev.score}${ev.pts != null ? ' · <span style="color:var(--gold)">' + ev.pts + ' pts</span>' : ''}</div>`
+      : '';
 
     const row = document.createElement('div');
     row.style.cssText = `display:flex;align-items:center;gap:8px;padding:7px 0${i < capped.length - 1 ? ';border-bottom:1px solid var(--border)' : ''}`;
     row.innerHTML = `
       ${avatarHtml(playerName, 28, playerName === state.me)}
-      <div style="flex:1;min-width:0;font-size:10px;color:var(--dim);line-height:1.4"><span style="color:var(--cream);font-weight:600">${playerName}</span>${restText}<div style="font-size:9px;color:var(--dimmer);margin-top:1px">${ev.when}</div></div>
+      <div style="flex:1;min-width:0;font-size:10px;color:var(--dim);line-height:1.4"><span style="color:var(--cream);font-weight:600">${playerName}</span>${restText}${scoreLine}<div style="font-size:9px;color:var(--dimmer);margin-top:1px">${ev.when}</div></div>
       <div style="font-size:9px;padding:2px 8px;border-radius:10px;border:1px solid ${badgeColor};color:${badgeColor};white-space:nowrap;flex-shrink:0">${ev.badge || 'Round'}</div>`;
     card.appendChild(row);
   });
@@ -757,18 +778,23 @@ export async function renderFeedPage() {
     return;
   }
 
-  // Load likes and photos for all round IDs
+  // Load likes, photos, and comment counts for all round IDs
   const roundIds = deduped.filter(e => e.round?.id).map(e => e.round.id);
   let _feedPhotos = {};
+  let _feedCommentCounts = {};
+  let _feedCommentPreviews = {};
   if (roundIds.length) {
     try {
-      const [likesRes, photosRes] = await Promise.all([
+      const [likesRes, photosRes, commentsRes] = await Promise.all([
         querySupabase('getLikes', { roundIds }),
         querySupabase('getRoundPhotos', { roundIds }),
+        querySupabase('getCommentCounts', { roundIds }),
       ]);
       _feedLikes = likesRes?.likes || {};
       _feedPhotos = photosRes?.photos || {};
-    } catch { _feedLikes = {}; _feedPhotos = {}; }
+      _feedCommentCounts = commentsRes?.counts || {};
+      _feedCommentPreviews = commentsRes?.previews || {};
+    } catch { _feedLikes = {}; _feedPhotos = {}; _feedCommentCounts = {}; _feedCommentPreviews = {}; }
   }
 
   // Group by date
@@ -809,9 +835,10 @@ export async function renderFeedPage() {
         ${_feedPhotos[roundId] ? `<div style="margin-top:6px"><img src="${_feedPhotos[roundId]}" style="width:100%;border-radius:8px;max-height:200px;object-fit:cover;cursor:pointer" onclick="var m=document.getElementById('avatar-zoom-modal'),i=document.getElementById('avatar-zoom-img');if(m&&i){i.src=this.src;m.style.display='flex'}"></div>` : ''}
         <div style="display:flex;align-items:center;gap:12px;padding:6px 0 0;border-top:1px solid var(--border);margin-top:6px">
           <button class="feed-like-btn" data-round-id="${roundId}" data-player="${ev.name}" data-course="${ev.course || ''}" data-date="${ev.round?.date || ''}" style="background:none;border:none;cursor:pointer;font-size:12px;color:${likedByMe ? 'var(--double)' : 'var(--dim)'};font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px;padding:2px 0"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="${likedByMe ? 'var(--double)' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span class="like-count">${likeCount > 0 ? likeCount : ''}</span></button>
-          <button class="feed-comment-btn" data-round-id="${roundId}" data-player="${ev.name}" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--dim);font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px;padding:2px 0"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Comment</button>
+          <button class="feed-comment-btn" data-round-id="${roundId}" data-player="${ev.name}" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--dim);font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px;padding:2px 0"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Comment${_feedCommentCounts[roundId] ? ' <span style="color:var(--cream);font-weight:600">(' + _feedCommentCounts[roundId] + ')</span>' : ''}</button>
           ${isMe && !_feedPhotos[roundId] ? `<label class="feed-photo-btn" data-round-id="${roundId}" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--dim);font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px;padding:2px 0"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>Photo<input type="file" accept="image/*" class="feed-photo-input" data-round-id="${roundId}" style="display:none"></label>` : ''}
         </div>
+        ${(_feedCommentPreviews[roundId]?.length) ? `<div style="padding-top:6px;border-top:1px solid var(--border);margin-top:4px">${_feedCommentPreviews[roundId].map(c => `<div style="display:flex;gap:6px;padding:3px 0"><div style="flex:1;min-width:0"><div style="font-size:10px"><span style="color:var(--cream);font-weight:600">${(c.commenter || '').split(' ')[0]}</span> <span style="color:var(--dim)">${c.text}</span></div></div></div>`).join('')}${_feedCommentCounts[roundId] > 2 ? `<div style="font-size:9px;color:var(--dimmer);padding:2px 0;cursor:pointer" class="feed-view-all-comments" data-round-id="${roundId}">View all ${_feedCommentCounts[roundId]} comments</div>` : ''}</div>` : ''}
         <div class="feed-comments-area" data-round-id="${roundId}" style="display:none;padding-top:6px;border-top:1px solid var(--border);margin-top:4px"></div>
       </div>`;
     } else {
@@ -920,6 +947,16 @@ export async function renderFeedPage() {
       } catch {
         area.innerHTML = '<div style="font-size:10px;color:var(--dimmer);padding:4px 0">Could not load comments</div>';
       }
+    });
+  });
+
+  // Wire "View all comments" links
+  feedEl.querySelectorAll('.feed-view-all-comments').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const roundId = parseInt(link.dataset.roundId);
+      const commentBtn = feedEl.querySelector(`.feed-comment-btn[data-round-id="${roundId}"]`);
+      if (commentBtn) commentBtn.click();
     });
   });
 
@@ -1865,6 +1902,10 @@ export function renderStats() {
     f9b9Card.style.display = fullR.length > 0 ? 'block' : 'none';
     if (fullR.length > 0) {
       const f9b9Gross = localStorage.getItem('looper_f9b9_gross') === 'true';
+      const f9b9Label = document.getElementById('f9b9-toggle-label');
+      if (f9b9Label) f9b9Label.textContent = f9b9Gross ? 'Gross' : 'Net';
+      const f9b9Pill = document.getElementById('f9b9-toggle-pill');
+      if (f9b9Pill) { f9b9Pill.style.background = f9b9Gross ? 'var(--gold)' : 'var(--border)'; const dot = f9b9Pill.querySelector('span'); if (dot) dot.style.left = f9b9Gross ? '11px' : '1px'; }
       const playerHcp = hcp || 0;
 
       let f9Sum = 0, b9Sum = 0, f9ParSum = 0, b9ParSum = 0;
@@ -1927,12 +1968,13 @@ export function renderStats() {
       if (insightEl && textEl) {
         insightEl.style.display = 'flex';
         const gap = f9Diff - b9Diff;
+        const modeLabel = f9b9Gross ? 'gross' : 'net';
         if (gap > 1.5) {
-          textEl.innerHTML = `You score <b>${gap.toFixed(1)} shots better</b> on the back 9 — try arriving earlier to warm up properly.`;
+          textEl.innerHTML = `Your ${modeLabel} scoring is <b>${gap.toFixed(1)} shots better</b> on the back 9 — try arriving earlier to warm up properly.`;
         } else if (gap < -1.5) {
-          textEl.innerHTML = `You tend to <b>fade on the back 9</b> by <b>${Math.abs(gap).toFixed(1)} shots</b> — focus on staying patient after the turn.`;
+          textEl.innerHTML = `Your ${modeLabel} scoring tends to <b>fade on the back 9</b> by <b>${Math.abs(gap).toFixed(1)} shots</b> — focus on staying patient after the turn.`;
         } else {
-          textEl.innerHTML = `Your scoring is <b>consistent across both halves</b> (${Math.abs(gap).toFixed(1)} shot difference) — a good sign of sustained focus.`;
+          textEl.innerHTML = `Your ${modeLabel} scoring is <b>consistent across both halves</b> (${Math.abs(gap).toFixed(1)} shot difference) — a good sign of sustained focus.`;
         }
       }
     }
