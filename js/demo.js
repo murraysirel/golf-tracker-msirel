@@ -49,7 +49,13 @@ export async function enterDemoMode() {
 
     // Import players
     players.forEach(p => {
-      state.gd.players[p.name] = { handicap: p.handicap, rounds: [] };
+      state.gd.players[p.name] = {
+        handicap: p.handicap,
+        rounds: [],
+        practiceSessions: p.practiceSessions || [],
+        statsAnalysis: p.statsAnalysis || null,
+        statsAnalysisDate: p.statsAnalysis ? '2026-03-20' : null,
+      };
     });
 
     // Import rounds (map Supabase columns → app shape)
@@ -67,6 +73,7 @@ export async function enterDemoMode() {
         penalties: r.penalties || 0, bunkers: r.bunkers || 0, chips: r.chips || 0,
         rating: r.rating, slope: r.slope,
         aiReview: r.ai_review, wolfResult: r.wolf_result, matchResult: r.match_result,
+        sixesResult: r.sixes_result, playedWith: r.played_with,
       });
     });
 

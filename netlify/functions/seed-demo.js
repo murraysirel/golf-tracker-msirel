@@ -260,8 +260,113 @@ function generateRound(player, course, dateStr, outingIdx, playerIdx) {
     slope: course.slope,
     stableford,
     playingHcp: phcp,
+    si: course.si,
   };
 }
+
+// ── Match play result from two rounds ─────────────────────────────────────────
+function generateMatchResult(roundA, roundB) {
+  let aUp = 0;
+  for (let h = 0; h < 18; h++) {
+    if (roundA.scores[h] < roundB.scores[h]) aUp++;
+    else if (roundB.scores[h] < roundA.scores[h]) aUp--;
+    const remaining = 17 - h;
+    if (Math.abs(aUp) > remaining) break; // match over
+  }
+  const winner = aUp > 0 ? roundA.player : aUp < 0 ? roundB.player : null;
+  const loser = winner === roundA.player ? roundB.player : roundA.player;
+  const holesUp = Math.abs(aUp);
+  // Find hole where match ended
+  let endHole = 18;
+  let running = 0;
+  for (let h = 0; h < 18; h++) {
+    if (roundA.scores[h] < roundB.scores[h]) running++;
+    else if (roundB.scores[h] < roundA.scores[h]) running--;
+    if (Math.abs(running) > (17 - h)) { endHole = h + 1; break; }
+  }
+  const holesRemaining = 18 - endHole;
+  if (!winner) {
+    return { result: 'Halved', opponent: null, holesUp: 0, holesRemaining: 0 };
+  }
+  const resultStr = holesRemaining > 0 ? `Won ${holesUp}&${holesRemaining}` : `Won ${holesUp} up`;
+  return { result: resultStr, opponent: loser, holesUp, holesRemaining };
+}
+
+// ── Sixes result from three rounds ───────────────────────────────────────────
+function generateSixesResult(rounds) {
+  const standings = rounds.map(r => ({ name: r.player, points: 0 }));
+  for (let h = 0; h < 18; h++) {
+    const nets = rounds.map(r => {
+      const phcp = r.playingHcp || 0;
+      const extra = extraStrokes(r.si[h], phcp);
+      return { name: r.player, net: r.scores[h] - extra };
+    });
+    nets.sort((a, b) => a.net - b.net);
+    if (nets[0].net < nets[1].net && nets[1].net < nets[2].net) {
+      // 4-2-0
+      standings.find(s => s.name === nets[0].name).points += 4;
+      standings.find(s => s.name === nets[1].name).points += 2;
+    } else if (nets[0].net === nets[1].net && nets[1].net < nets[2].net) {
+      // 3-3-0
+      standings.find(s => s.name === nets[0].name).points += 3;
+      standings.find(s => s.name === nets[1].name).points += 3;
+    } else if (nets[0].net < nets[1].net && nets[1].net === nets[2].net) {
+      // 4-1-1
+      standings.find(s => s.name === nets[0].name).points += 4;
+      standings.find(s => s.name === nets[1].name).points += 1;
+      standings.find(s => s.name === nets[2].name).points += 1;
+    } else {
+      // 2-2-2
+      standings.forEach(s => s.points += 2);
+    }
+  }
+  standings.sort((a, b) => b.points - a.points);
+  return { standings, winner: standings[0].name, holeBreakdown: null };
+}
+
+// ── Wolf result from four rounds ─────────────────────────────────────────────
+function generateWolfResult(rounds) {
+  const order = rounds.map(r => r.player);
+  let scores = {};
+  order.forEach(n => scores[n] = 0);
+  const holes = [];
+  for (let h = 0; h < 18; h++) {
+    const wolfIdx = h % 4;
+    const wolf = order[wolfIdx];
+    const others = order.filter(n => n !== wolf);
+    const wolfScore = rounds.find(r => r.player === wolf).scores[h];
+    const bestOther = Math.min(...others.map(n => rounds.find(r => r.player === n).scores[h]));
+    const loneWolf = wolfScore <= bestOther;
+    if (loneWolf) {
+      scores[wolf] += 4;
+      holes.push({ hole: h + 1, wolf, type: 'lone_wolf', points: 4 });
+    } else {
+      others.forEach(n => scores[n] += 1);
+      holes.push({ hole: h + 1, wolf, type: 'pack_wins', points: -3 });
+    }
+  }
+  const winner = Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0];
+  return { order, holes, winner, scores };
+}
+
+// ── Hardcoded AI reviews for Murray ──────────────────────────────────────────
+const AI_REVIEWS = [
+  {
+    positive: 'Strong iron play — you hit 11 greens in regulation, well above your average. Your approach shots from 120-150 yards were particularly accurate.',
+    negative: 'Putting let you down on the back 9. Three 3-putts in the final 6 holes cost you at least 3 shots. Distance control on lag putts needs work.',
+    drill: 'Lag putting drill: Place 3 balls at 30ft, 40ft and 50ft. Goal is to get all 3 within a 3-foot circle. Do 10 rounds — builds distance feel.'
+  },
+  {
+    positive: 'Excellent course management today. You avoided trouble off the tee and your penalty count was zero. Smart play on the par 5s led to two net birdies.',
+    negative: 'Short game around the greens was inconsistent. When you missed greens, up-and-down conversion was only 20%. Chip shots finishing 15-20ft past the hole.',
+    drill: 'Clock drill: Place balls at 5, 10 and 15 yards around the practice green. Hit 5 from each position. Track how many finish inside 6 feet — aim for 60%.'
+  },
+  {
+    positive: 'Your driving was the best it\'s been this season — 10 fairways hit and your misses were in playable positions. The new tempo is clearly working.',
+    negative: 'GIR dropped to 33% despite hitting fairways. Iron distances seem off — multiple shots finishing short of the green. Check your carry distances with a launch monitor.',
+    drill: 'Step-back iron drill: Hit 10 balls with your 7-iron at 80% power, noting where they land. Then hit 10 at full power. The gap tells you your true carry vs your ego carry.'
+  }
+];
 
 // ── Build the 40-outing schedule ──────────────────────────────────────────────
 function buildOutings() {
@@ -481,48 +586,102 @@ function generateDemoData() {
   const players = PLAYERS.map(p => ({ name: p.name, handicap: p.hcpIndex }));
 
   const outings = buildOutings();
-  const rounds  = [];
 
+  // Generate all rounds first so we can compute game mode results
+  const outingRounds = [];
   for (let oi = 0; oi < outings.length; oi++) {
     const { courseIdx, dateStr, players: playerNames } = outings[oi];
     const course = COURSES[courseIdx];
-
+    const oRounds = [];
     for (let pi = 0; pi < playerNames.length; pi++) {
       const playerName = playerNames[pi];
       const player = PLAYERS.find(p => p.name === playerName);
-      const round  = generateRound(player, course, dateStr, oi, pi);
+      oRounds.push(generateRound(player, course, dateStr, oi, pi));
+    }
+    outingRounds.push(oRounds);
+  }
+
+  // Tag game modes: 2-player → match (first 5), 3-player → sixes (all 3), 4-player → wolf (first 3)
+  let matchCount = 0, wolfCount = 0;
+  const rounds = [];
+
+  for (let oi = 0; oi < outings.length; oi++) {
+    const oRounds = outingRounds[oi];
+    const size = oRounds.length;
+    const playerNames = oRounds.map(r => r.player);
+
+    let matchResults = {};
+    let wolfResults = {};
+    let sixesResults = {};
+
+    if (size === 2 && matchCount < 5) {
+      matchCount++;
+      const mA = generateMatchResult(oRounds[0], oRounds[1]);
+      const mB = generateMatchResult(oRounds[1], oRounds[0]);
+      matchResults[oRounds[0].player] = mA;
+      matchResults[oRounds[1].player] = mB;
+    } else if (size === 3) {
+      const sr = generateSixesResult(oRounds);
+      oRounds.forEach(r => { sixesResults[r.player] = sr; });
+    } else if (size === 4 && wolfCount < 3) {
+      wolfCount++;
+      const wr = generateWolfResult(oRounds);
+      oRounds.forEach(r => { wolfResults[r.player] = wr; });
+    }
+
+    for (const round of oRounds) {
+      // AI reviews for Murray's last 3 rounds (outings 37, 38, 39)
+      const aiReview = (round.player === 'Murray' && oi >= 37) ? AI_REVIEWS[oi - 37] : null;
+
       rounds.push({
-        id:           round.id,
-        player_name:  round.player,
-        group_code:   GROUP_CODE,
-        course:       round.course,
-        loc:          round.loc,
-        tee:          round.tee,
-        date:         round.date,
-        scores:       round.scores,
-        putts:        round.putts,
-        fir:          round.fir,
-        gir:          round.gir,
-        pars:         round.pars,
-        notes:        round.notes,
-        total_score:  round.totalScore,
-        total_par:    round.totalPar,
-        diff:         round.diff,
-        birdies:      round.birdies,
-        pars_count:   round.parsCount,
-        bogeys:       round.bogeys,
-        doubles:      round.doubles,
-        eagles:       round.eagles,
-        penalties:    0,
-        bunkers:      0,
-        chips:        0,
-        rating:       round.rating,
-        slope:        round.slope,
-        ai_review:    null,
-        wolf_result:  null,
-        match_result: null,
+        id:            round.id,
+        player_name:   round.player,
+        group_code:    GROUP_CODE,
+        course:        round.course,
+        loc:           round.loc,
+        tee:           round.tee,
+        date:          round.date,
+        scores:        round.scores,
+        putts:         round.putts,
+        fir:           round.fir,
+        gir:           round.gir,
+        pars:          round.pars,
+        notes:         round.notes,
+        total_score:   round.totalScore,
+        total_par:     round.totalPar,
+        diff:          round.diff,
+        birdies:       round.birdies,
+        pars_count:    round.parsCount,
+        bogeys:        round.bogeys,
+        doubles:       round.doubles,
+        eagles:        round.eagles,
+        penalties:     0,
+        bunkers:       0,
+        chips:         0,
+        rating:        round.rating,
+        slope:         round.slope,
+        ai_review:     aiReview,
+        wolf_result:   wolfResults[round.player] || null,
+        match_result:  matchResults[round.player] || null,
+        sixes_result:  sixesResults[round.player] || null,
+        played_with:   playerNames.filter(n => n !== round.player),
       });
     }
+  }
+
+  // Murray's practice sessions and stats analysis
+  const murrayPlayer = players.find(p => p.name === 'Murray');
+  if (murrayPlayer) {
+    murrayPlayer.practiceSessions = [
+      { id: 'demo-ps-1', area: 'putting', date: '15/03/2026', shots: 50, drills: ['Lag putting — 30/40/50ft circles', 'Gate drill — 3ft putts through tees'] },
+      { id: 'demo-ps-2', area: 'short game', date: '08/03/2026', shots: 50, drills: ['Clock drill — 5/10/15 yard chips', 'Bunker splash — 10 balls to pin'] },
+    ];
+    murrayPlayer.statsAnalysis = {
+      positive: 'Your handicap has dropped 0.8 shots over the last 10 rounds. GIR is trending up — from 28% to 39%.',
+      negative: 'Scoring on par 5s is costing you. You average +1.4 vs par on par 5s, versus +0.6 on par 4s. Focus on positioning off the tee on long holes.',
+      drill: 'Layup strategy drill: On your next round, deliberately lay up to your favourite wedge distance on every par 5. Track whether your scoring improves.',
+      handicap: 8.0
+    };
   }
 
   return { players, rounds };

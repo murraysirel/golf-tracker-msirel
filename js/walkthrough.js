@@ -19,18 +19,18 @@ const STEPS = [
   },
   {
     target: '#home-mates-section', page: 'home',
-    title: 'Your group\'s live feed',
-    body: 'Follow what your friends and leagues are up to. Birdies, who beat who, match results — because the final score isn\'t always the only story.'
+    title: 'Your group\'s activity feed',
+    body: 'See what your group is up to — rounds played, scores, birdies, match results, and milestones. Tap anywhere to open the full feed where you can like, comment, and share photos.'
+  },
+  {
+    target: '#home-caddie-cta', page: 'home',
+    title: 'Ready to play?',
+    body: 'Start a round with your mates in 5 game modes — Stroke, Stableford, Match Play, Wolf, or Sixes. GPS distances on every hole, live scoring with your group, and access to 42,000+ courses worldwide.'
   },
   {
     target: '#weather-container', page: 'home',
     title: 'Course conditions',
     body: 'See how tough the golf will be before you play. Set to your current location, or search any course worldwide.'
-  },
-  {
-    target: '#home-caddie-cta', page: 'home',
-    title: 'Ready to play?',
-    body: 'Play with your mates in 5 different game modes — Stroke, Stableford, Match Play, Wolf, or Sixes. Or run a full weekend competition with live leaderboards. Access to 42,000+ courses worldwide.'
   },
   {
     target: '#round-play-section', page: 'round',
@@ -39,8 +39,8 @@ const STEPS = [
   },
   {
     target: '#format-slider', page: 'round',
-    title: 'Know your distances',
-    body: 'Front, middle, and back of green on every hole with GPS. Tap to switch between targets. The green illustration shows exactly where each distance is.'
+    title: 'Pick your format',
+    body: 'Choose from Stroke, Stableford, Match Play, Wolf, or Sixes. Each format has its own scoring and standings. Tap "Teach me" on any format to learn the rules.'
   },
   {
     target: '#pg-stats', page: 'stats',
@@ -64,8 +64,8 @@ const STEPS = [
   },
   {
     target: null, page: 'home',
-    title: 'Play more golf',
-    body: 'Track who\'s really winning. Score points with many ways to beat your mates, not just breaking par. Because not every bad round is a bad round.',
+    title: 'You\'re all set',
+    body: 'Track who\'s really winning. Create competitions, build your stats, and find out who really is the best golfer in your group.',
     btnText: 'Get started'
   }
 ];
