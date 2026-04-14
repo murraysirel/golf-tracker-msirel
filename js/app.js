@@ -1105,23 +1105,27 @@ function showRoundRecoveryPrompt(backup) {
     state.sixesState = backup.sixesState || null;
     state.stee = backup.tee || '';
     state.roundActive = true;
-    // Restore course selection (search + apply, falls back to stub)
+    // Restore cpars from backup so we don't depend on async course fetch
+    if (backup.cpars?.length === 18) {
+      state.cpars = backup.cpars;
+    }
+    // Restore course selection (search + apply, falls back to stub) — AWAIT before navigating
     if (backup.course) {
-      import('./courses.js').then(({ restoreCourseByName }) =>
-        restoreCourseByName(backup.course, backup.tee).catch(() => {})
-      );
+      try {
+        const { restoreCourseByName } = await import('./courses.js');
+        await restoreCourseByName(backup.course, backup.tee);
+      } catch (_) {
+        // Course restore failed — cpars from backup still valid
+      }
     }
     // Restore sixes state if backed up, otherwise init fresh
     if (backup.gameMode === 'sixes' && !backup.sixesState && backup.group?.length === 3) {
-      import('./gamemodes.js').then(({ initSixesState }) => initSixesState(backup.group));
+      const { initSixesState } = await import('./gamemodes.js');
+      initSixesState(backup.group);
     }
     // Keep backup alive until save succeeds — don't delete here
     if (backup.isComp) {
-      // For competition rounds, restore comp state and navigate to comp-score
-      import('./comp-score.js').then(({ prepareCompScore }) => {
-        // comp recovery navigates via competition page
-        goTo('round');
-      }).catch(() => goTo('live'));
+      goTo('round');
     } else {
       goTo('live');
     }

@@ -476,9 +476,10 @@ export function liveGoto(h) {
   try {
     state.liveState.hole = h;
     // Pre-fill null scores to par on first visit to a hole
+    const par = state.cpars?.[h] ?? 4;
     state.liveState.group.forEach(name => {
       if (state.liveState.groupScores[name] && state.liveState.groupScores[name][h] === null) {
-        state.liveState.groupScores[name][h] = state.cpars[h];
+        state.liveState.groupScores[name][h] = par;
       }
       // Pre-fill putts to 2 on first visit (matches display default)
       if (state.liveState.groupPutts[name] && state.liveState.groupPutts[name][h] === null) {
@@ -487,7 +488,6 @@ export function liveGoto(h) {
     });
     liveRenderPips();
     _statPlayer = state.me; // Reset selected player on each hole advance
-    const par    = state.cpars[h];
     const hYards = state.activeHoleYards?.length === 18 ? state.activeHoleYards : null;
     const si     = state.scannedSI?.some(v => v != null) ? state.scannedSI : null;
     const courseName = state.activeCourse?.name?.replace(/ Golf Club| Golf Course| Golf Links/g, '') || '';
@@ -751,6 +751,7 @@ export function _saveLiveBackup() {
       groupFir: state.liveState.groupFir,
       groupGir: state.liveState.groupGir,
       course: getCourseByRef()?.name || '',
+      cpars: state.cpars,
       tee: state.stee,
       gameMode: state.gameMode,
       wolfState: state.wolfState,
