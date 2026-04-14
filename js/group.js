@@ -490,7 +490,7 @@ export async function showBoardPage(group) {
     const res = await fetch('/.netlify/functions/supabase', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'read', groupCode: g.code || state.gd?.activeGroupCode || '' })
+      body: JSON.stringify({ action: 'read', groupCode: g.code || state.gd?.activeGroupCode || '', requestingPlayer: state.me })
     });
     const json = await res.json();
     _renderBoardRows(json.players || [], json.rounds || []);

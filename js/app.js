@@ -1232,6 +1232,15 @@ initMatchOverlay();
       showSignupStep(1);
       return;
     }
+    if (magicResult?.ok && magicResult.playerName) {
+      // Magic link sign-in succeeded — skip straight to loading data
+      const groupCode = magicResult.groupCodes?.[0] || localStorage.getItem('gt_activegroup') || '';
+      await loadAppData(magicResult.playerName, groupCode);
+      await enterAs(magicResult.playerName);
+      if (window.Sentry) Sentry.setUser({ username: state.me, group: state.gd?.activeGroupCode });
+      ss('ok', '');
+      return;
+    }
 
     // 2. Check stored session
     let session = getStoredSession();

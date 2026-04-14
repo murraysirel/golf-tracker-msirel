@@ -543,9 +543,9 @@ function renderMatesFeed() {
   const currentYear = String(today.getFullYear());
   const events = [];
 
-  // parseDateGB returns YYYYMMDD as integer — build a comparable cutoff
+  // parseDateGB returns YYYYMMDD as integer — build a comparable cutoff (14 days)
   const cutoffDate = new Date(today);
-  cutoffDate.setDate(cutoffDate.getDate() - 7);
+  cutoffDate.setDate(cutoffDate.getDate() - 14);
   const cutoffInt = cutoffDate.getFullYear() * 10000 + (cutoffDate.getMonth() + 1) * 100 + cutoffDate.getDate();
 
   for (const [name, p] of allPlayers) {
