@@ -1,5 +1,12 @@
 {
+  "scripts": {
+    "cap:copy": "rm -rf www && mkdir www && cp -r index.html waitlist.html sw.js manifest.json styles js assets www/",
+    "cap:sync": "npm run cap:copy && npx cap sync ios"
+  },
   "dependencies": {
+    "@capacitor/cli": "^8.3.0",
+    "@capacitor/core": "^8.3.0",
+    "@capacitor/ios": "^8.3.0",
     "@supabase/supabase-js": "^2.0.0"
   }
 }

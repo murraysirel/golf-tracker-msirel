@@ -5,12 +5,14 @@
 
 const https = require('https');
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Content-Type': 'application/json',
-};
+function makeCorsHeaders(event) {
+  return {
+    'Access-Control-Allow-Origin': event?.headers?.origin || '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Content-Type': 'application/json',
+  };
+}
 
 // Promisified https POST
 function httpsPost(hostname, path, headers, body) {
@@ -39,6 +41,7 @@ function httpsPost(hostname, path, headers, body) {
 }
 
 exports.handler = async (event) => {
+  const CORS_HEADERS = makeCorsHeaders(event);
   // CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers: CORS_HEADERS, body: '' };

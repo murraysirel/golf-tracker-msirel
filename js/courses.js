@@ -8,7 +8,9 @@ import { state } from './state.js';
 import { buildSC } from './scorecard.js';
 import { COURSES as BUILTIN_COURSES } from './constants.js';
  
-const COURSES_API = '/.netlify/functions/courses';
+import { API_BASE } from './config.js';
+
+const COURSES_API = API_BASE + '/.netlify/functions/courses';
  
 // Country filter options — extend as needed
 const COUNTRIES = [
@@ -537,11 +539,11 @@ export function getCourseByRef() {
 export async function restoreCourseByName(courseName, teeColour) {
   if (!courseName) return false;
   try {
-    const res = await fetch('/.netlify/functions/courses?action=search&name=' + encodeURIComponent(courseName) + '&country=all');
+    const res = await fetch(COURSES_API + '?action=search&name=' + encodeURIComponent(courseName) + '&country=all');
     const data = await res.json();
     const match = (data.courses || []).find(c => c.name === courseName);
     if (match?.external_course_id) {
-      const detail = await fetch('/.netlify/functions/courses?action=fetch&courseId=' + encodeURIComponent(match.external_course_id));
+      const detail = await fetch(COURSES_API + '?action=fetch&courseId=' + encodeURIComponent(match.external_course_id));
       const dData = await detail.json();
       if (dData.course) { _applyCourse(dData.course); if (teeColour) { const tee = (dData.course.tees || []).find(t => t.colour === teeColour); if (tee) _applyTee(tee); } return true; }
     }
@@ -665,7 +667,7 @@ export async function scanCourseCard() {
 }
 Only include teeRatings entries that are visible on the card. Use null for any value you cannot read clearly.`;
 
-    const resp = await fetch('/.netlify/functions/ai', {
+    const resp = await fetch(API_BASE + '/.netlify/functions/ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -881,7 +883,7 @@ export async function searchCourseAPI() {
   results.innerHTML = '';
 
   try {
-    const resp = await fetch(`/.netlify/functions/courses?search=${encodeURIComponent(q)}`);
+    const resp = await fetch(`${COURSES_API}?search=${encodeURIComponent(q)}`);
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error || 'Search failed');
 
@@ -913,7 +915,7 @@ export async function importCourseFromAPI(courseId) {
   results.innerHTML = '';
 
   try {
-    const resp = await fetch(`/.netlify/functions/courses?id=${encodeURIComponent(courseId)}`);
+    const resp = await fetch(`${COURSES_API}?id=${encodeURIComponent(courseId)}`);
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error || 'Import failed');
 

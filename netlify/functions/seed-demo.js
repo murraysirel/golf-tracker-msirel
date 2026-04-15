@@ -12,12 +12,14 @@ const supabase = process.env.SUPABASE_URL
 
 const GROUP_CODE = 'DEMO01';
 
-const CORS = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type, x-admin-key',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS'
-};
+function makeCors(event) {
+  return {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': event?.headers?.origin || '*',
+    'Access-Control-Allow-Headers': 'Content-Type, x-admin-key',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS'
+  };
+}
 
 // ── Seeded RNG (mulberry32) ────────────────────────────────────────────────────
 function mkRng(seed) {
@@ -441,6 +443,7 @@ function buildOutings() {
 
 // ── Main handler ──────────────────────────────────────────────────────────────
 exports.handler = async (event) => {
+  const CORS = makeCors(event);
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS };
 
   // Auth check

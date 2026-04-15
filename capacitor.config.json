@@ -1,0 +1,19 @@
+{
+  "appId": "com.loopercaddie.app",
+  "appName": "Looper",
+  "webDir": "www",
+  "server": {
+    "allowNavigation": [
+      "loopercaddie.com",
+      "*.supabase.co",
+      "api.open-meteo.com",
+      "fonts.googleapis.com",
+      "fonts.gstatic.com",
+      "cdnjs.cloudflare.com",
+      "browser.sentry-cdn.com"
+    ]
+  },
+  "ios": {
+    "contentInset": "automatic"
+  }
+}

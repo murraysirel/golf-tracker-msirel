@@ -14,3 +14,9 @@ deno.lock
 # Marketing skills (local only)
 .agents/
 marketingskills/
+
+# Node
+node_modules/
+
+# Capacitor
+www/

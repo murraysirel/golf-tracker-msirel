@@ -5,7 +5,9 @@
 // through the Netlify function so service keys stay server-side.
 // ─────────────────────────────────────────────────────────────────
 
-const AUTH_ENDPOINT = '/.netlify/functions/auth';
+import { API_BASE } from './config.js';
+
+const AUTH_ENDPOINT = API_BASE + '/.netlify/functions/auth';
 const SESSION_KEY   = 'looper_session';
 // Access token refresh threshold — refresh if less than 5 minutes remain
 const REFRESH_THRESHOLD_MS = 5 * 60 * 1000;

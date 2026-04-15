@@ -4,6 +4,7 @@
 import { state } from './state.js';
 import { pushData } from './api.js';
 import { renderHomeStats } from './stats.js';
+import { API_BASE } from './config.js';
 
 const ADMIN_PW = 'YorBorTrial!';
 
@@ -209,7 +210,7 @@ export async function adminSeedDemo(reset = false) {
   msg.style.color = 'var(--dim)';
   msg.textContent = reset ? 'Re-seeding demo data\u2026' : 'Seeding demo data\u2026';
   try {
-    const url = '/.netlify/functions/run-seed-demo' + (reset ? '?reset=true' : '');
+    const url = API_BASE + '/.netlify/functions/run-seed-demo' + (reset ? '?reset=true' : '');
     const res = await fetch(url, { method: 'POST' });
     const json = await res.json();
     if (res.ok) {
@@ -237,7 +238,7 @@ export async function adminFixCourseData() {
   try {
     const secret = prompt('Enter admin secret:');
     if (!secret) { msg.textContent = 'Cancelled.'; return; }
-    const res  = await fetch(`/.netlify/functions/courses?action=fix-bad-data&secret=${encodeURIComponent(secret)}`);
+    const res  = await fetch(`${API_BASE}/.netlify/functions/courses?action=fix-bad-data&secret=${encodeURIComponent(secret)}`);
     const data = await res.json();
     if (!res.ok) {
       msg.style.color = 'var(--double)';
@@ -332,7 +333,7 @@ export async function adminShowApiUsage() {
   if (btn) btn.disabled = true;
   container.innerHTML = '<span style="color:var(--dim)">Checking…</span>';
   try {
-    const res  = await fetch('/.netlify/functions/courses?action=usage');
+    const res  = await fetch(API_BASE + '/.netlify/functions/courses?action=usage');
     const data = await res.json();
     if (!res.ok) {
       container.innerHTML = `<span style="color:var(--double)">Error: ${data.error || res.status}</span>`;

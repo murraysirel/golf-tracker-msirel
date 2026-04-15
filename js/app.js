@@ -7,11 +7,11 @@
 if (window.Sentry) {
   Sentry.init({
     dsn: 'https://7913ecc7f07f87c6a6738bca55c07308@o4511135944212480.ingest.de.sentry.io/4511135950307408',
-    environment: window.location.hostname.includes('netlify') ? 'production' : 'development',
+    environment: (window.Capacitor?.isNativePlatform?.() || window.location.hostname.includes('netlify') || window.location.hostname === 'loopercaddie.com') ? 'production' : 'development',
     release: 'looper@2.0.0',
     tracesSampleRate: 0.1,
     beforeSend(event) {
-      if (window.location.hostname === 'localhost') return null;
+      if (!window.Capacitor?.isNativePlatform?.() && window.location.hostname === 'localhost') return null;
       return event;
     }
   });
@@ -80,7 +80,7 @@ window.onerror = function(message, source, line, col, error) {
   console.error('[Looper] Uncaught error:', message, source, line);
   if (window.Sentry && error) Sentry.captureException(error);
   // Log to dashboard error table (fire-and-forget, never blocks)
-  fetch('/.netlify/functions/supabase', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+  fetch(API_BASE + '/.netlify/functions/supabase', { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'logAppError', data: { player: window._looperState?.me, type: 'uncaught', message: String(message).substring(0, 500), context: (source || '') + ':' + (line || ''), url: location.href } })
   }).catch(() => {});
   showToast('Something went wrong — your data is safe. Tap to reload.', 'error', 8000);
@@ -94,7 +94,7 @@ window.onunhandledrejection = function(event) {
   if (window.Sentry && !isNetworkNoise) Sentry.captureException(err);
   if (!isNetworkNoise) {
     // Log to dashboard error table (fire-and-forget)
-    fetch('/.netlify/functions/supabase', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    fetch(API_BASE + '/.netlify/functions/supabase', { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'logAppError', data: { player: window._looperState?.me, type: 'promise', message: msg.substring(0, 500), context: 'unhandledrejection', url: location.href } })
     }).catch(() => {});
     showToast('Something went wrong — your data is safe.', 'error', 5000);
@@ -118,6 +118,14 @@ import { initCompetition, stopCompetitionPolling } from './competition.js';
 import { renderCompetitionSetupModal, renderJoinCompetitionModal, renderMyCompetitions } from './competition-setup.js';
 import { initCompScore, compScoreNext, compScorePrev, compScoreSaveNote, compScoreCancel } from './comp-score.js';
 import { state } from './state.js';
+import { API_BASE, IS_NATIVE } from './config.js';
+
+// Capacitor handles its own asset caching — unregister the SW to avoid stale-cache bugs
+if (IS_NATIVE && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(reg => reg.unregister());
+  });
+}
 window._looperState = state; // expose for error handlers that run before module init
 import { initCaddieButton } from './caddie.js';
 import { initProfileTabs, startNotificationPolling, loadFriends } from './friends.js';

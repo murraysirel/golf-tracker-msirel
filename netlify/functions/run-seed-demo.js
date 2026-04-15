@@ -4,12 +4,14 @@
 
 const https = require('https');
 
-const CORS_HEADERS = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+function makeCorsHeaders(event) {
+  return {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': event?.headers?.origin || '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  };
+}
 
 function httpsRequest(method, hostname, path, headers) {
   return new Promise((resolve, reject) => {
@@ -24,6 +26,7 @@ function httpsRequest(method, hostname, path, headers) {
 }
 
 exports.handler = async (event) => {
+  const CORS_HEADERS = makeCorsHeaders(event);
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers: CORS_HEADERS, body: '' };
   }

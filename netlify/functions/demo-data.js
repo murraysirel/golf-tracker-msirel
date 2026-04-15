@@ -4,13 +4,17 @@
 
 const { generateDemoData } = require('./seed-demo');
 
-const CORS = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-};
+function makeCors(event) {
+  return {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': event?.headers?.origin || '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  };
+}
 
 exports.handler = async (event) => {
+  const CORS = makeCors(event);
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS };
 
   try {

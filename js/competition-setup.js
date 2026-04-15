@@ -5,6 +5,7 @@
 import { state } from './state.js';
 import { querySupabase } from './api.js';
 import { checkAccess, showUpgradePrompt } from './subscription.js';
+import { API_BASE } from './config.js';
 
 // ── Code generator ───────────────────────────────────────────────
 // Format: COMP + 2 uppercase letters + 4 digits  (e.g. COMPAB1234)
@@ -48,7 +49,7 @@ let _searchTimer = null;
 async function searchCourses(query) {
   if (!query || query.length < 2) return [];
   try {
-    const res = await fetch(`/.netlify/functions/courses?action=search&name=${encodeURIComponent(query)}`);
+    const res = await fetch(`${API_BASE}/.netlify/functions/courses?action=search&name=${encodeURIComponent(query)}`);
     const data = await res.json();
     return data?.courses || [];
   } catch { return []; }
@@ -183,7 +184,7 @@ export function renderCompetitionSetupModal() {
               rounds[idx].courseId = selected.external_course_id;
               // Fetch full course detail for tees
               try {
-                const fetchRes = await fetch(`/.netlify/functions/courses?action=fetch&courseId=${encodeURIComponent(selected.external_course_id)}&clubId=${encodeURIComponent(selected.external_club_id || '')}`);
+                const fetchRes = await fetch(`${API_BASE}/.netlify/functions/courses?action=fetch&courseId=${encodeURIComponent(selected.external_course_id)}&clubId=${encodeURIComponent(selected.external_club_id || '')}`);
                 const fetchData = await fetchRes.json();
                 if (fetchData?.course?.tees) {
                   rounds[idx].tees = fetchData.course.tees;
@@ -327,7 +328,7 @@ export async function renderMyCompetitions() {
 // ── AI Commentary ────────────────────────────────────────────────
 
 async function callAI(prompt) {
-  const res = await fetch('/.netlify/functions/ai', {
+  const res = await fetch(API_BASE + '/.netlify/functions/ai', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

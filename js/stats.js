@@ -543,17 +543,11 @@ function renderMatesFeed() {
   const currentYear = String(today.getFullYear());
   const events = [];
 
-  // parseDateGB returns YYYYMMDD as integer — build a comparable cutoff (14 days)
-  const cutoffDate = new Date(today);
-  cutoffDate.setDate(cutoffDate.getDate() - 14);
-  const cutoffInt = cutoffDate.getFullYear() * 10000 + (cutoffDate.getMonth() + 1) * 100 + cutoffDate.getDate();
-
   for (const [name, p] of allPlayers) {
     const seasonRounds = (p.rounds || []).filter(r => r.date?.split('/')?.[2] === currentYear);
     for (const r of seasonRounds) {
       const rd = parseDateGB(r.date);
       if (!rd) continue;
-      if (rd < cutoffInt) continue;
 
       // Parse to real Date for day diff
       const dp = r.date?.split('/');

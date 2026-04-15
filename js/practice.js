@@ -5,6 +5,7 @@ import { state } from './state.js';
 import { pushData, querySupabase } from './api.js';
 import { parseDateGB } from './stats.js';
 import { checkAccess, incrementUsage, showUpgradePrompt } from './subscription.js';
+import { API_BASE } from './config.js';
 
 let _emptyState = null;
 function _es(icon, headline, sub, ctaText, ctaAction) {
@@ -156,7 +157,7 @@ Respond ONLY with valid JSON:
 }`;
 
   try {
-    const resp = await fetch('/.netlify/functions/ai', {
+    const resp = await fetch(API_BASE + '/.netlify/functions/ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1800, messages: [{ role: 'user', content: prompt }] })

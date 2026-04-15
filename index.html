@@ -3,7 +3,7 @@
 <head>
 <script>
 // Domain-aware routing: loopercaddie.com root → waitlist, .netlify.app → app
-if (location.hostname === 'loopercaddie.com' && location.pathname === '/') {
+if (!window.Capacitor?.isNativePlatform?.() && location.hostname === 'loopercaddie.com' && location.pathname === '/') {
   location.replace('/waitlist.html');
 }
 </script>

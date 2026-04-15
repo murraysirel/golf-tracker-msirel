@@ -17,11 +17,13 @@ const GOLFAPI_KEY   = process.env.GOLFAPI_KEY;
 const SYNC_SECRET   = process.env.SYNC_SECRET;   // Used to protect admin actions
 const GOLFAPI_BASE  = 'www.golfapi.io';
 
-const CORS = {
-  'Access-Control-Allow-Origin':  '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
+function makeCors(event) {
+  return {
+    'Access-Control-Allow-Origin':  event?.headers?.origin || '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+}
 
 // ── Generic HTTPS helpers ──────────────────────────────────────────────────────
 function httpsGet(hostname, path, headers = {}) {
@@ -336,6 +338,7 @@ function cacheHasGoodHoleData(row) {
 
 // ── Main handler ───────────────────────────────────────────────────────────────
 exports.handler = async (event) => {
+  const CORS = makeCors(event);
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers: CORS };
   }

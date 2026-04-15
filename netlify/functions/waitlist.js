@@ -8,11 +8,13 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const FOUNDER_LIMIT = 100;
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
+function makeCors(event) {
+  return {
+    'Access-Control-Allow-Origin': event?.headers?.origin || '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+}
 
 function sbPost(path, body) {
   return new Promise((resolve, reject) => {
@@ -125,6 +127,7 @@ async function sendConfirmationEmail(email, name, isFounder, signupNumber) {
 }
 
 exports.handler = async (event) => {
+  const CORS = makeCors(event);
   if (event.httpMethod === 'OPTIONS')
     return { statusCode: 204, headers: CORS };
 

@@ -37,6 +37,8 @@ self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
   // API calls: network-first, fall back to cache, then graceful offline JSON
+  // Note: In Capacitor native builds, API calls go to https://loopercaddie.com
+  // (cross-origin) and won't be intercepted by the SW. This is expected.
   if (url.pathname.startsWith('/.netlify/functions/')) {
     event.respondWith(
       fetch(event.request)

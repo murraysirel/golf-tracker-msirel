@@ -18,15 +18,19 @@ const supabaseAdmin = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-};
+function corsHeaders(event) {
+  return {
+    'Access-Control-Allow-Origin': event?.headers?.origin || '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  };
+}
 
+// _event is set at the top of the handler so respond() can access CORS origin
+let _event = null;
 const respond = (status, body) => ({
   statusCode: status,
-  headers: { ...CORS, 'Content-Type': 'application/json' },
+  headers: { ...corsHeaders(_event), 'Content-Type': 'application/json' },
   body: JSON.stringify(body),
 });
 
@@ -207,8 +211,9 @@ function buildSession(supabaseSession) {
 }
 
 exports.handler = async (event) => {
+  _event = event;
   if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers: CORS };
+    return { statusCode: 204, headers: corsHeaders(event) };
   }
 
   let body;

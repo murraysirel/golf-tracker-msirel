@@ -7,6 +7,7 @@ import { loadAppData, querySupabase } from './api.js';
 import { calcStableford, parseDateGB } from './stats.js';
 import { initials, avatarHtml } from './players.js';
 import { getCourseByRef } from './courses.js';
+import { API_BASE } from './config.js';
 
 let _compCommentaryGenerators = null;
 import('./competition-setup.js').then(m => {
@@ -643,7 +644,7 @@ async function startCompetitionRound(comp) {
   // Pre-load the course
   if (nextRound?.courseId) {
     try {
-      const res = await fetch(`/.netlify/functions/courses?action=fetch&courseId=${encodeURIComponent(nextRound.courseId)}`);
+      const res = await fetch(`${API_BASE}/.netlify/functions/courses?action=fetch&courseId=${encodeURIComponent(nextRound.courseId)}`);
       const data = await res.json();
       if (data?.course) {
         const { _applyCourse } = await import('./courses.js');

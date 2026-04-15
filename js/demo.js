@@ -6,6 +6,7 @@
 import { state } from './state.js';
 import { goTo } from './nav.js';
 import { renderHomeStats } from './stats.js';
+import { API_BASE } from './config.js';
 
 const DEMO_GROUP = 'DEMO01';
 const DEMO_PLAYER = 'Murray'; // whose stats view to show by default
@@ -29,7 +30,7 @@ export async function enterDemoMode() {
   if (btn) { btn.textContent = 'Loading…'; btn.disabled = true; }
 
   try {
-    const res = await fetch('/.netlify/functions/demo-data');
+    const res = await fetch(API_BASE + '/.netlify/functions/demo-data');
     if (!res.ok) throw new Error('Could not load demo data');
     const { players, rounds } = await res.json();
 

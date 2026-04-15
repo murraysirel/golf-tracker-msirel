@@ -2,7 +2,9 @@
 // API — Supabase backend (Gist retired)
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
+import { API_BASE } from './config.js';
 
+const SUPABASE_API = API_BASE + '/.netlify/functions/supabase';
 const GROUP_SETTINGS_KEYS = ['customCourses','teeCoords','greenCoords','seasons',
                               'deletionLog','courseCorrections','requireGroupCode'];
 
@@ -53,7 +55,7 @@ if (typeof window !== 'undefined') {
 // ── querySupabase — POST and return parsed response body ──────────
 export async function querySupabase(action, data) {
   try {
-    const res = await fetch('/.netlify/functions/supabase', {
+    const res = await fetch(SUPABASE_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, groupCode: state.gd?.activeGroupCode || '', data })
@@ -68,7 +70,7 @@ export async function querySupabase(action, data) {
 // ── pushSupabase — fire-and-forget Supabase write ─────────────────
 export async function pushSupabase(action, data) {
   try {
-    const res = await fetch('/.netlify/functions/supabase', {
+    const res = await fetch(SUPABASE_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, groupCode: state.gd?.activeGroupCode || '', data })
@@ -180,7 +182,7 @@ export async function loadGroupData(groupCode) {
   if (!groupCode) return;
   ss('syncing', 'Loading...');
   try {
-    const res = await fetch('/.netlify/functions/supabase', {
+    const res = await fetch(SUPABASE_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'read', groupCode, requestingPlayer: state.me || '' })
@@ -262,7 +264,7 @@ export async function loadAllRounds() {
   const groupCode = state.gd?.activeGroupCode;
   if (!groupCode) return;
   try {
-    const res = await fetch('/.netlify/functions/supabase', {
+    const res = await fetch(SUPABASE_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'read', groupCode, requestingPlayer: state.me || '', data: { roundLimit: 0 } })

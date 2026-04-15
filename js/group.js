@@ -6,6 +6,9 @@ import { pushData, querySupabase, loadGroupData } from './api.js';
 import { parseDateGB } from './stats.js';
 import { signOut } from './players.js';
 import { goTo } from './nav.js';
+import { API_BASE, APP_ORIGIN } from './config.js';
+
+const SUPABASE_API = API_BASE + '/.netlify/functions/supabase';
 
 export function copyGroupCode() {
   const code = state.gd.activeGroupCode || '';
@@ -269,7 +272,7 @@ export async function confirmBoardSetup() {
   document.getElementById('board-setup-err').style.display = 'none';
   const code = generateGroupCode();
   try {
-    const res = await fetch('/.netlify/functions/supabase', {
+    const res = await fetch(SUPABASE_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -322,7 +325,7 @@ function _showGroupReady(group) {
   document.getElementById('pg-group-ready').style.display = 'block';
   document.getElementById('ready-group-name-sub').textContent = group.name + ' is ready to play.';
   document.getElementById('ready-group-code').textContent = group.code;
-  const appUrl = window.location.origin + window.location.pathname;
+  const appUrl = APP_ORIGIN + window.location.pathname;
   const shareUrl = appUrl + '?group=' + group.code;
   document.getElementById('ready-share-url').textContent = shareUrl;
   const waBtn = document.getElementById('ready-whatsapp-btn');
@@ -376,7 +379,7 @@ export async function lookupGroupByCode() {
   }
   _showJoinSection('loading');
   try {
-    const res = await fetch('/.netlify/functions/supabase', {
+    const res = await fetch(SUPABASE_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'lookupGroup', data: { code, playerName: state.me || '' } })
@@ -421,7 +424,7 @@ export async function confirmJoinGroup() {
   const btn = document.getElementById('join-group-confirm-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Joining…'; }
   try {
-    const res = await fetch('/.netlify/functions/supabase', {
+    const res = await fetch(SUPABASE_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'joinGroup', data: { groupId: _pendingGroupJoin.id, playerName: state.me } })
@@ -487,7 +490,7 @@ export async function showBoardPage(group) {
   document.getElementById('board-enter-btn').style.display = 'none';
 
   try {
-    const res = await fetch('/.netlify/functions/supabase', {
+    const res = await fetch(SUPABASE_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'read', groupCode: g.code || state.gd?.activeGroupCode || '', requestingPlayer: state.me })
@@ -559,7 +562,7 @@ function _esc(s) {
 }
 
 export function copyAppUrl() {
-  const url = window.location.origin + window.location.pathname;
+  const url = APP_ORIGIN + window.location.pathname;
   navigator.clipboard?.writeText(url)
     .then(() => alert('App URL copied!\n\nSend this to friends:\n' + url))
     .catch(() => alert('App URL:\n' + url));
@@ -841,7 +844,7 @@ function _handleRemoveMember(playerId) {
 // ── Section 4: Invite Link ────────────────────────────────────────
 
 function _renderGSInviteSection() {
-  const appUrl = window.location.origin + window.location.pathname;
+  const appUrl = APP_ORIGIN + window.location.pathname;
   const inviteUrl = appUrl + '?group=' + _settingsGroup.code;
   const urlEl = document.getElementById('gs-invite-url');
   if (urlEl) urlEl.textContent = inviteUrl;

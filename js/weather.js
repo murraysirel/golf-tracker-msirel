@@ -2,6 +2,7 @@
 // WEATHER — 3-day forecast from Open-Meteo (free, no key)
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
+import { API_BASE } from './config.js';
 
 const CACHE_KEY = 'looper_weather_cache';
 const CACHE_TTL = 10800000; // 3 hours
@@ -267,7 +268,7 @@ export async function renderWeatherCard(containerId) {
       if (q.length < 3) { document.getElementById('wx-search-results').innerHTML = ''; return; }
       _wxTimer = setTimeout(async () => {
         try {
-          const res = await fetch('/.netlify/functions/courses?action=search&name=' + encodeURIComponent(q) + '&country=all');
+          const res = await fetch(API_BASE + '/.netlify/functions/courses?action=search&name=' + encodeURIComponent(q) + '&country=all');
           const data = await res.json();
           const results = document.getElementById('wx-search-results');
           if (!results) return;
@@ -288,7 +289,7 @@ export async function renderWeatherCard(containerId) {
               }
               if (!lat && c.external_course_id) {
                 try {
-                  const fr = await fetch('/.netlify/functions/courses?action=fetch&courseId=' + encodeURIComponent(c.external_course_id));
+                  const fr = await fetch(API_BASE + '/.netlify/functions/courses?action=fetch&courseId=' + encodeURIComponent(c.external_course_id));
                   const fd = await fr.json();
                   const fgc = fd.course?.green_coords;
                   if (fgc) { const fh = fgc['1'] || fgc[Object.keys(fgc)[0]]; lat = fh?.green?.front?.lat || fh?.green?.middle?.lat; lng = fh?.green?.front?.lng || fh?.green?.middle?.lng; }

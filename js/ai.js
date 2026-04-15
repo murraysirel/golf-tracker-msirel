@@ -6,6 +6,9 @@ import { pushData, querySupabase } from './api.js';
 import { parseDateGB } from './stats.js';
 import { checkAccess, incrementUsage, showUpgradePrompt } from './subscription.js';
 import { getCourseByRef } from './courses.js';
+import { API_BASE } from './config.js';
+
+const AI_API = API_BASE + '/.netlify/functions/ai';
 
 export function handlePhoto(input) {
   const f = input.files[0]; if (!f) return;
@@ -49,7 +52,7 @@ IMPORTANT RULES:
 
 Use null for any value you cannot read with confidence. Putts and SI arrays should have null values if those rows are not visible. Tees array should be [] if no tee rating information is shown.`;
 
-    const resp = await fetch('/.netlify/functions/ai', {
+    const resp = await fetch(AI_API, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001', max_tokens: 900,
@@ -160,7 +163,7 @@ Respond ONLY with valid JSON:
 }`;
 
   try {
-    const resp = await fetch('/.netlify/functions/ai', {
+    const resp = await fetch(AI_API, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 700, messages: [{ role: 'user', content: prompt }] })
     });
@@ -227,7 +230,7 @@ Find genuine multi-round patterns, not single-round noise. Respond ONLY with val
 
   const sparkSVG = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3z"/></svg>';
   try {
-    const resp = await fetch('/.netlify/functions/ai', {
+    const resp = await fetch(AI_API, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 800, messages: [{ role: 'user', content: prompt }] })
     });
