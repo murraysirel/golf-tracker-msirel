@@ -2,6 +2,8 @@
 // LIVE ROUND
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
+import { IS_NATIVE } from './config.js';
+import { tapLight, tapMedium, notifySuccess } from './haptics.js';
 
 let _statPlayer = null; // Selected player for stat panel; defaults to state.me on each hole advance
 import { getCourseByRef } from './courses.js';
@@ -72,6 +74,13 @@ export function endLivePublish() {
 
 // ── Wake Lock ─────────────────────────────────────────────────────
 async function requestWakeLock() {
+  if (IS_NATIVE) {
+    try {
+      const { KeepAwake } = await import('@capacitor-community/keep-awake');
+      await KeepAwake.keepAwake();
+    } catch (e) { /* plugin not available */ }
+    return;
+  }
   if (!('wakeLock' in navigator)) return;
   try {
     state.wakeLock = await navigator.wakeLock.request('screen');
@@ -80,6 +89,12 @@ async function requestWakeLock() {
 }
 
 function releaseWakeLock() {
+  if (IS_NATIVE) {
+    import('@capacitor-community/keep-awake').then(({ KeepAwake }) => {
+      KeepAwake.allowSleep();
+    }).catch(() => {});
+    return;
+  }
   if (state.wakeLock) { state.wakeLock.release(); state.wakeLock = null; }
 }
 
@@ -473,6 +488,7 @@ export function liveRenderPips() {
 
 export function liveGoto(h) {
   if (h < 0 || h > 17) return;
+  tapMedium();
   try {
     state.liveState.hole = h;
     // Pre-fill null scores to par on first visit to a hole
@@ -766,6 +782,7 @@ export function _saveLiveBackup() {
 }
 
 function liveGroupAdj(playerName, field, delta) {
+  tapLight();
   const h = state.liveState.hole;
   const par = state.cpars[h];
   if (field === 'score') {
@@ -822,6 +839,7 @@ function liveGroupAdj(playerName, field, delta) {
 }
 
 function liveGroupToggle(playerName, field, val) {
+  tapLight();
   const h = state.liveState.hole;
   const store = field === 'fir' ? state.liveState.groupFir : state.liveState.groupGir;
   if (!store[playerName]) store[playerName] = Array(18).fill('');
@@ -1090,6 +1108,7 @@ function liveSyncToManual(h) {
 // ── Next / Finish ─────────────────────────────────────────────────
 
 export function liveNextOrFinish() {
+  tapMedium();
   const h = state.liveState.hole;
   const advance = () => {
     if (h < 17) {
@@ -1149,6 +1168,7 @@ export function cancelRound(skipConfirm = false) {
 }
 
 async function liveFinishAndSave() {
+  notifySuccess();
   state.roundActive = false;
   if (window._stopBackupInterval) window._stopBackupInterval();
   const _cBtn2 = document.getElementById('caddie-btn');

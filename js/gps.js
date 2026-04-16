@@ -4,6 +4,18 @@
 import { state } from './state.js';
 import { pushData, pushSupabase } from './api.js';
 import { getCourseByRef } from './courses.js';
+import { tapLight } from './haptics.js';
+import { IS_NATIVE } from './config.js';
+
+// Native geolocation helpers — lazy-loaded on first use
+let _NativeGeo = null;
+async function _getNativeGeo() {
+  if (!_NativeGeo) {
+    const mod = await import('@capacitor/geolocation');
+    _NativeGeo = mod.Geolocation;
+  }
+  return _NativeGeo;
+}
 
 export function haversineYards(lat1, lng1, lat2, lng2) {
   const R = 6371000;
@@ -32,12 +44,27 @@ function getTeeCoords(hole0) {
 
 // startGPSWatch: always starts position watching for the unified live screen.
 // Distances show once green coords exist; shows — if missing.
-export function startGPSWatch() {
-  if (!navigator.geolocation || state.gpsState.watching) return;
+export async function startGPSWatch() {
+  if (state.gpsState.watching) return;
   state.gpsState.watching = true;
-  // Show "Locating..." while waiting for first GPS fix
   const midEl = document.getElementById('live-dist-mid');
   if (midEl && midEl.textContent === '—') midEl.textContent = '...';
+
+  if (IS_NATIVE) {
+    const Geo = await _getNativeGeo();
+    state.gpsState.watchId = await Geo.watchPosition(
+      { enableHighAccuracy: true },
+      (pos) => {
+        if (pos) {
+          state.gpsState.coords = pos.coords;
+          updateGPSDisplay(state.liveState?.hole || 0);
+        }
+      }
+    );
+    return;
+  }
+
+  if (!navigator.geolocation) return;
   state.gpsState.watchId = navigator.geolocation.watchPosition(
     pos => {
       state.gpsState.coords = pos.coords;
@@ -51,28 +78,42 @@ export function startGPSWatch() {
   );
 }
 
-export function startGPS() {
-  if (!navigator.geolocation) { alert('GPS not available on this device or browser.'); return; }
+export async function startGPS() {
   const h = state.liveState?.hole || 0;
   const bar = document.getElementById('gps-bar');
   bar.style.display = 'flex';
   document.getElementById('gps-hole-name').textContent = `Hole ${h+1}`;
   document.getElementById('gps-course-name').textContent = getCourseByRef()?.name || '';
 
-  // Show "Pin tee" button if no tee coords yet
   const teePinBtn = document.getElementById('gps-btn-pin-tee');
   if (teePinBtn) teePinBtn.style.display = getTeeCoords(h) ? 'none' : '';
-
-  // Show tee distance section if tee is already pinned
   const teeWrap = document.getElementById('gps-tee-wrap');
   if (teeWrap) teeWrap.style.display = getTeeCoords(h) ? '' : 'none';
 
   // Clear any existing watch before starting a new one
   if (state.gpsState.watchId != null) {
-    navigator.geolocation.clearWatch(state.gpsState.watchId);
+    if (IS_NATIVE) {
+      const Geo = await _getNativeGeo();
+      await Geo.clearWatch({ id: state.gpsState.watchId });
+    } else {
+      navigator.geolocation.clearWatch(state.gpsState.watchId);
+    }
     state.gpsState.watchId = null;
   }
   state.gpsState.watching = true;
+
+  if (IS_NATIVE) {
+    const Geo = await _getNativeGeo();
+    state.gpsState.watchId = await Geo.watchPosition(
+      { enableHighAccuracy: true },
+      (pos) => {
+        if (pos) { state.gpsState.coords = pos.coords; updateGPSDisplay(state.liveState?.hole || 0); }
+      }
+    );
+    return;
+  }
+
+  if (!navigator.geolocation) { alert('GPS not available on this device or browser.'); return; }
   state.gpsState.watchId = navigator.geolocation.watchPosition(
     pos => { state.gpsState.coords = pos.coords; updateGPSDisplay(state.liveState?.hole || 0); },
     err => { document.getElementById('gps-dist').textContent = '—'; console.warn('GPS error:', err.message); },
@@ -80,8 +121,15 @@ export function startGPS() {
   );
 }
 
-export function stopGPS() {
-  if (state.gpsState.watchId != null) navigator.geolocation.clearWatch(state.gpsState.watchId);
+export async function stopGPS() {
+  if (state.gpsState.watchId != null) {
+    if (IS_NATIVE) {
+      const Geo = await _getNativeGeo();
+      await Geo.clearWatch({ id: state.gpsState.watchId });
+    } else {
+      navigator.geolocation.clearWatch(state.gpsState.watchId);
+    }
+  }
   state.gpsState.watching = false;
   state.gpsState.watchId = null;
   const bar = document.getElementById('gps-bar');
@@ -96,6 +144,7 @@ export function stopGPS() {
 }
 
 export function gpsSetTarget(t) {
+  tapLight();
   state.gpsState.target = t;
   ['mid','front','back'].forEach(x => {
     const btn = document.getElementById('gps-btn-' + x);
@@ -152,12 +201,23 @@ export function updateGPSDisplay(hole0) {
   updateDriveBtn(hole0);
 }
 
-export function pinTeePosition(hole0) {
-  if (!navigator.geolocation) { alert('GPS not available.'); return; }
+export async function pinTeePosition(hole0) {
   const btn = document.getElementById('gps-btn-pin-tee');
   if (btn) { btn.textContent = 'Getting GPS...'; btn.disabled = true; }
-  navigator.geolocation.getCurrentPosition(pos => {
-    const lat = pos.coords.latitude, lng = pos.coords.longitude;
+
+  try {
+    let lat, lng;
+    if (IS_NATIVE) {
+      const Geo = await _getNativeGeo();
+      const pos = await Geo.getCurrentPosition({ enableHighAccuracy: true, timeout: 15000 });
+      lat = pos.coords.latitude; lng = pos.coords.longitude;
+    } else {
+      if (!navigator.geolocation) { alert('GPS not available.'); return; }
+      const pos = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 15000 });
+      });
+      lat = pos.coords.latitude; lng = pos.coords.longitude;
+    }
     const courseName = getCourseName();
     if (!state.gd.teeCoords) state.gd.teeCoords = {};
     if (!state.gd.teeCoords[courseName]) state.gd.teeCoords[courseName] = {};
@@ -167,10 +227,10 @@ export function pinTeePosition(hole0) {
     const teeWrap = document.getElementById('gps-tee-wrap');
     if (teeWrap) teeWrap.style.display = '';
     if (state.gpsState.coords) updateGPSDisplay(hole0);
-  }, err => {
+  } catch (err) {
     if (btn) { btn.textContent = 'Pin tee'; btn.disabled = false; }
     alert('Could not get GPS position — make sure location permission is enabled.');
-  }, { enableHighAccuracy: true, timeout: 15000 });
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────

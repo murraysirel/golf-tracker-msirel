@@ -3,6 +3,7 @@
 // ─────────────────────────────────────────────────────────────────
 import { state } from './state.js';
 import { getCourseByRef, clearCourseSelection } from './courses.js';
+import { notifySuccess } from './haptics.js';
 import { pushData, pushSupabase, updateUnsyncedBadge, ss } from './api.js';
 
 function _handleSaveError(context, error, roundData) {
@@ -252,6 +253,7 @@ export function saveRound() {
 
     // ── Success toast immediately ────────────────────────────────
     const toast = window._looperToast;
+    notifySuccess();
     if (toast) toast('Round saved! Syncing to cloud\u2026', 'success', 3000);
 
     // ── Network sync — fire-and-forget ───────────────────────────

@@ -5,6 +5,7 @@
 import { state } from './state.js';
 import { querySupabase, pushSupabase } from './api.js';
 import { haversineYards } from './gps.js';
+import { IS_NATIVE } from './config.js';
 
 let _invitePollTimer = null;
 let _livePollTimer   = null;
@@ -105,37 +106,53 @@ function _openOverlay(round) {
   _startViewerGps(round);
 }
 
-function _startViewerGps(round) {
-  if (_viewerGpsWatchId != null || !navigator.geolocation) return;
+async function _startViewerGps(round) {
+  if (_viewerGpsWatchId != null) return;
   const courseName = round?.course || '';
   const gpsCard = document.getElementById('lv-gps-card');
-  // Check if we have green coords for this course
   const greens = state.gd?.greenCoords?.[courseName];
   if (!greens) return;
   if (gpsCard) gpsCard.style.display = 'block';
-  _viewerGpsWatchId = navigator.geolocation.watchPosition(
-    pos => {
-      const lat = pos.coords.latitude, lng = pos.coords.longitude;
-      const hole0 = state.liveInvite.data?.hole ?? 0;
-      const green = greens[hole0];
-      if (!green) return;
-      const unit = localStorage.getItem('looper_dist_unit') || 'yards';
-      const fmt = (y) => unit === 'metres' ? Math.round(y / 1.09361) : y;
-      ['front','mid','back'].forEach(t => {
-        const tgt = green[t];
-        const el = document.getElementById('lv-dist-' + t);
-        if (el && tgt) el.textContent = fmt(haversineYards(lat, lng, tgt.lat, tgt.lng));
-        else if (el) el.textContent = '—';
-      });
-    },
-    () => {},
-    { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
-  );
+
+  const onPos = (pos) => {
+    if (!pos) return;
+    const lat = pos.coords.latitude, lng = pos.coords.longitude;
+    const hole0 = state.liveInvite.data?.hole ?? 0;
+    const green = greens[hole0];
+    if (!green) return;
+    const unit = localStorage.getItem('looper_dist_unit') || 'yards';
+    const fmt = (y) => unit === 'metres' ? Math.round(y / 1.09361) : y;
+    ['front','mid','back'].forEach(t => {
+      const tgt = green[t];
+      const el = document.getElementById('lv-dist-' + t);
+      if (el && tgt) el.textContent = fmt(haversineYards(lat, lng, tgt.lat, tgt.lng));
+      else if (el) el.textContent = '—';
+    });
+  };
+
+  if (IS_NATIVE) {
+    const { Geolocation } = await import('@capacitor/geolocation');
+    _viewerGpsWatchId = await Geolocation.watchPosition(
+      { enableHighAccuracy: true },
+      onPos
+    );
+  } else {
+    if (!navigator.geolocation) return;
+    _viewerGpsWatchId = navigator.geolocation.watchPosition(
+      onPos, () => {},
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+    );
+  }
 }
 
-function _stopViewerGps() {
+async function _stopViewerGps() {
   if (_viewerGpsWatchId != null) {
-    navigator.geolocation.clearWatch(_viewerGpsWatchId);
+    if (IS_NATIVE) {
+      const { Geolocation } = await import('@capacitor/geolocation');
+      await Geolocation.clearWatch({ id: _viewerGpsWatchId });
+    } else {
+      navigator.geolocation.clearWatch(_viewerGpsWatchId);
+    }
     _viewerGpsWatchId = null;
   }
   const gpsCard = document.getElementById('lv-gps-card');

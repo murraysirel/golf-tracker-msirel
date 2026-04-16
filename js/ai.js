@@ -6,11 +6,40 @@ import { pushData, querySupabase } from './api.js';
 import { parseDateGB } from './stats.js';
 import { checkAccess, incrementUsage, showUpgradePrompt } from './subscription.js';
 import { getCourseByRef } from './courses.js';
-import { API_BASE } from './config.js';
+import { API_BASE, IS_NATIVE } from './config.js';
+import { notifySuccess } from './haptics.js';
 
 const AI_API = API_BASE + '/.netlify/functions/ai';
 
-export function handlePhoto(input) {
+export async function handlePhoto(input) {
+  // Native camera path
+  if (IS_NATIVE && !input?.files) {
+    try {
+      const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
+      const photo = await Camera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        resultType: CameraResultType.Base64,
+        source: CameraSource.Prompt
+      });
+      // Convert base64 to File for existing parsePhoto flow
+      const byteStr = atob(photo.base64String);
+      const ab = new ArrayBuffer(byteStr.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteStr.length; i++) ia[i] = byteStr.charCodeAt(i);
+      state.photoFile = new File([ab], 'scorecard.jpg', { type: 'image/' + (photo.format || 'jpeg') });
+      const pv = document.getElementById('photo-prev');
+      pv.src = 'data:image/' + (photo.format || 'jpeg') + ';base64,' + photo.base64String;
+      pv.style.display = 'block';
+      document.getElementById('parse-btn').style.display = 'block';
+      document.getElementById('photo-msg').innerHTML = '';
+    } catch (e) {
+      if (e.message?.includes('cancelled')) return; // user cancelled camera
+      console.error('Camera error:', e);
+    }
+    return;
+  }
+  // Web file input path
   const f = input.files[0]; if (!f) return;
   state.photoFile = f;
   const pv = document.getElementById('photo-prev');
@@ -98,6 +127,7 @@ Use null for any value you cannot read with confidence. Putts and SI arrays shou
     import('./scorecard.js').then(({ buildSC }) => buildSC(parsed.scores, parsed.putts));
     import('./nav.js').then(({ switchEntry }) => switchEntry('manual'));
 
+    notifySuccess();
     const conf = parsed.confidence || 'medium';
     const warn = (!outOk || !inOk) ? ' Some totals didn\'t match — please check carefully.' : '';
     const confColour = conf === 'high' ? 'alert-ok' : 'alert';

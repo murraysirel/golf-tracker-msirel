@@ -2,7 +2,7 @@
 
 ## Product Summary
 
-Looper is a mobile-first progressive web app — your AI caddie — for a small group of golfers to record, compare, and analyse their rounds together. Players enter scores manually or via AI-parsed scorecard photos, track live hole-by-hole scoring (including multi-player groups and match play), and view personal stats (handicap trend, Stableford points, FIR/GIR charts) alongside a shared group leaderboard with eight ranking views. AI features — powered by Anthropic Claude via a Netlify proxy — cover scorecard OCR, post-round coaching reviews, multi-round stats analysis, and personalised practice-session planning. A pre-launch waitlist page (`waitlist.html`) captures signups via Tally webhooks with Resend confirmation emails.
+Looper is a mobile-first progressive web app (also wrapped as a native iOS app via Capacitor) — your AI caddie — for a small group of golfers to record, compare, and analyse their rounds together. Players enter scores manually or via AI-parsed scorecard photos, track live hole-by-hole scoring (including multi-player groups and match play), and view personal stats (handicap trend, Stableford points, FIR/GIR charts) alongside a shared group leaderboard with eight ranking views. AI features — powered by Anthropic Claude via a Netlify proxy — cover scorecard OCR, post-round coaching reviews, multi-round stats analysis, and personalised practice-session planning. A pre-launch waitlist page (`waitlist.html`) captures signups via Tally webhooks with Resend confirmation emails.
 
 ---
 
@@ -30,6 +30,8 @@ Browser (PWA, vanilla JS ES modules, no build step)
 ```
 
 Netlify hosts both the static frontend and all serverless functions. No build step; the repo ships as-is. Auto-deploys from `main`.
+
+**Capacitor iOS wrapper:** The same codebase runs inside a WKWebView via Capacitor 8. `js/config.js` detects native vs web via `window.Capacitor?.isNativePlatform?.()` and sets `API_BASE` to `'https://loopercaddie.com'` (native) or `''` (web). The iOS Xcode project lives in `ios/App/`. Workflow: edit JS/CSS → `npm run cap:sync` → Cmd+R in Xcode. See `CAPACITOR.md` for the full migration checklist.
 
 **GitHub Gist is fully retired.** Supabase is the sole backend. There is no sync.js function.
 
@@ -72,6 +74,9 @@ Netlify hosts both the static frontend and all serverless functions. No build st
 | `demo.js` | `enterDemoMode()`, `exitDemoMode()`, `isDemoMode()` — demo group loaded from `/.netlify/functions/demo-data` with no auth |
 | `weather.js` | 3-day weather forecast from Open-Meteo free API. No key required. Resolves location from: user-selected course (localStorage `looper_weather_location`) → GPS → last played course green coords → London fallback. Tappable location header with course search to change forecast location. 3-hour localStorage cache. Golf suitability score (score ≥90 = "Millionaire's golf"). Suncream reminder flag when sunny + >18°C. |
 | `gps.js` | `watchPosition` GPS, `haversineYards()` (exported for shared use), distance-to-green with front/mid/back targets, tee/green coord pinning, drive logging stored in `state.gd`. Green coords mapping: GolfAPI location=1→front, location=3→back (corrected from docs). |
+| `config.js` | Runtime configuration for web vs native (Capacitor). Exports `API_BASE` (prepended to all Netlify function URLs — `''` on web, `'https://loopercaddie.com'` on native), `APP_ORIGIN` (public-facing origin for share URLs), `IS_NATIVE` (boolean). Leaf module with no app imports. |
+| `haptics.js` | Native tactile feedback via `@capacitor/haptics` — no-op on web. Exports `tapLight()`, `tapMedium()`, `tapHeavy()`, `notifySuccess()`, `notifyWarning()`. Used in live scoring, scorecard save, GPS target, tee pills, AI parse, clipboard copy. |
+| `push.js` | Native push notifications via `@capacitor/push-notifications` — no-op on web. `initPush()` registers device token with APNs and saves to Supabase `device_tokens` table; handles foreground (in-app toast) and background (navigate on tap) push events; badge cleared on foreground. `removePushToken()` cleans up on sign-out. |
 
 ---
 
@@ -166,6 +171,7 @@ friendships   — id (text PK), requester, addressee, status ('pending'|'accepte
 notifications — id (text PK), to_player, from_player, type ('friend_request'|'friend_accepted'|'join_request'|'join_approved'), payload (JSONB), read (bool), created_at
 api_call_log  — id (serial), timestamp, endpoint, course_name, was_cache_hit (bool), details (JSONB)
 course_reports — id (bigint auto), course_id, player_name, group_code, issue (text NOT NULL), created_at
+device_tokens — id (uuid PK), player_name (text NOT NULL), token (text NOT NULL), platform (text NOT NULL DEFAULT 'ios'), created_at; UNIQUE(player_name, token)
 ```
 
 `gt_localdata` localStorage key caches the full `state.gd` snapshot for offline fallback.
@@ -363,6 +369,7 @@ The browser never talks to Supabase directly. All auth (sign-in, sign-up, token 
 | `courses.js` | `/.netlify/functions/courses` | `GOLFAPI_KEY` (server) | GolfAPI.io search + detail fetch; results cached in Supabase (fields `overall_par`, `tee_types` are stripped from upsert — not in DB schema); actions: search, fetch, usage, diagnose, fix-bad-data, report, inspect |
 | `demo-data.js` | `/.netlify/functions/demo-data` | None | Returns in-memory DEMO01 demo data (no DB, no auth) |
 | `waitlist.js` | `/.netlify/functions/waitlist` | `SUPABASE_SERVICE_KEY`, `RESEND_API_KEY` | Receives Tally webhook → writes to Supabase `waitlist` table (auto-assigns signup number via trigger) → sends branded confirmation email via Resend. First 100 signups get `is_founder: true`. |
+| `push.js` | `/.netlify/functions/push` | `SUPABASE_SERVICE_KEY` (server) | Device token registration/removal for APNs push notifications |
 | `seed-demo.js` | `/.netlify/functions/seed-demo` | `x-admin-key` header | Seeds DEMO01 group (8 players, 40 outings) into Supabase |
 | `run-seed-demo.js` | `/.netlify/functions/run-seed-demo` | Injected server-side | Admin trigger — proxies seed-demo with `SYNC_SECRET` |
 
@@ -382,6 +389,9 @@ All variables are set in the Netlify dashboard. None are ever sent to the browse
 | `SYNC_SECRET` | `netlify/functions/courses.js` (diagnose/fix-bad-data actions), `netlify/functions/run-seed-demo.js` | Server-side only — protects admin-only endpoints |
 | `RESEND_API_KEY` | `netlify/functions/waitlist.js`, `netlify/functions/auth.js` | Resend email API key — sends waitlist confirmation + welcome emails. Server-side only, never in browser JS. Domain: `loopercaddie.co.uk` (temporary while `.com` is ICANN-locked; switch to `.com` after transfer) |
 | `SENTRY_DSN` | `index.html` (browser SDK) | Sentry error tracking DSN — loaded via CDN `<script>` tag, configured with `Sentry.init()` before app.js. **Security note:** the DSN is a public identifier, not a secret — it's safe in client-side code. It only allows sending events to Sentry, not reading them. Rate limiting and abuse prevention are handled by Sentry's server-side controls. |
+| `APNS_KEY_P8` | `netlify/lib/push.js` | APNs authentication key contents (`.p8` file, ES256). Server-side only. |
+| `APNS_KEY_ID` | `netlify/lib/push.js` | 10-character APNs key ID from Apple Developer. Server-side only. |
+| `APNS_TEAM_ID` | `netlify/lib/push.js` | 10-character Apple Developer Team ID. Server-side only. |
 
 ---
 
@@ -389,6 +399,9 @@ All variables are set in the Netlify dashboard. None are ever sent to the browse
 
 | Date | Change |
 |---|---|
+| 2026-04-16 | **Push notifications — Chunk 6** — APNs push via zero-dependency Node `http2`+`crypto` JWT signing (`netlify/lib/push.js` shared helper); `netlify/functions/push.js` for device token registration/removal; `js/push.js` client module (haptics.js pattern — no-op on web); 7 notification types wired: friend_request, friend_accepted, round_liked, round_comment, live_invite (first publish only — deduped via created_at/updated_at comparison), join_request, join_approved; foreground push shows in-app toast + refreshes notification UI; background tap navigates to relevant screen; badge cleared on foreground via `@capacitor/app` appStateChange listener; token stored in localStorage for sign-out cleanup; `AppDelegate.swift` forwards push registration to Capacitor; bug fix: `startNotificationPolling()` was missing from login handler path |
+| 2026-04-16 | **Capacitor iOS wrapping — Chunk 4** — 8 native plugins installed (`status-bar`, `splash-screen`, `keyboard`, `haptics`, `browser`, `share`, `app`, `keep-awake`); status bar dark style + navy background + overlay mode; keyboard native resize for score inputs; haptics wired to 14 interaction points (score/putts adjusters, hole nav, FIR/GIR, tee pills, GPS targets, round save/finish, AI parse, clipboard copy); native share sheet replaces WhatsApp links on iOS; `KeepAwake` replaces Wake Lock on native; `backgroundColor: #0b1520` in Capacitor config + `html{background:var(--navy)}` fixes white safe area bars |
+| 2026-04-15 | **Capacitor iOS wrapping — Chunks 1-3** — `js/config.js` created with `API_BASE`/`APP_ORIGIN`/`IS_NATIVE` for web/native detection; all ~30 Netlify function fetch calls prefixed with `API_BASE`; `window.location.origin` replaced with `APP_ORIGIN` in share URLs; all 8 Netlify functions updated to echo requesting origin instead of wildcard CORS; service worker auto-unregisters on native; `overscroll-behavior:none` added to body; Capacitor 8.3.0 initialised with iOS platform; `capacitor.config.json` with `allowNavigation` for all external domains; `npm run cap:sync` workflow (`www/` copy dir); `CAPACITOR.md` migration checklist added |
 | 2026-04-10 | **Demo data enrichment** — demo mode now generates match play results (5 head-to-head matches), Sixes results (3 three-ball games with standings), Wolf results (3 four-ball games with lone wolf scoring), AI coaching reviews on Murray's last 3 rounds, practice sessions and stats analysis for Murray, `played_with` field on all rounds; `js/demo.js` maps `sixesResult` and `playedWith` |
 | 2026-04-10 | **Walkthrough tour synced** — step order matches new home layout (activity → CTA → weather); step 7 fixed (was GPS on format slider, now correctly describes game formats); copy updated throughout for feed interactions and competitions |
 | 2026-04-07 | **Round persistence hardening** — `pagehide` + `visibilitychange` listeners added (mobile Safari backup); match play state (`matchPlay`/`matchTeams`/`matchFormat`/`matchResult`) and `sixesState` now backed up and restored; recovery triggers on hole 1 if any scores entered; competition scoring gets boot recovery via `rr_comp_backup`; `_saveCompBackup` exported from `comp-score.js` |

@@ -277,7 +277,7 @@ npx capacitor-assets generate --ios
 
 ---
 
-## CHUNK 5: Camera + GPS (native upgrades)
+## CHUNK 5: Camera + GPS (native upgrades) [DONE]
 
 ### 5A: Camera for scorecard OCR (`js/ai.js`)
 ```bash
@@ -328,7 +328,7 @@ iOS requires `NSLocationWhenInUseUsageDescription` in `Info.plist`.
 
 ---
 
-## CHUNK 6: Push Notifications (biggest work item, critical for 4.2)
+## CHUNK 6: Push Notifications (biggest work item, critical for 4.2) [DONE]
 
 ### 6A: Supabase table
 ```sql
@@ -419,8 +419,8 @@ While `PREMIUM_ENABLED` is `false`, no IAP needed. When you flip it on, use Reve
 | 2 | Chunk 2 | None | 1 day | SW disable, CORS, CSS, external URL audit |
 | 3 | Chunk 3 | None | 0.5 day | Capacitor init, first simulator build |
 | 4 | Chunk 4 | None | 2 days | Plugins: status bar, keyboard, haptics, keep awake, splash |
-| 5 | Chunk 5 | None | 1 day | Camera + GPS native upgrades |
-| 6 | Chunk 6 | None | 3-5 days | Push notifications (biggest item) |
+| 5 | ~~Chunk 5~~ | None | Done | Camera + GPS native upgrades |
+| 6 | ~~Chunk 6~~ | None | Done | Push notifications |
 | 7 | Chunk 7 | None | Ongoing | App Store assets + submission |
 
 All chunks use `IS_NATIVE` branching so web codepaths are never touched. The PWA continues to work identically throughout.

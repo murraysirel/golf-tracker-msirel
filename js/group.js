@@ -6,7 +6,8 @@ import { pushData, querySupabase, loadGroupData } from './api.js';
 import { parseDateGB } from './stats.js';
 import { signOut } from './players.js';
 import { goTo } from './nav.js';
-import { API_BASE, APP_ORIGIN } from './config.js';
+import { API_BASE, APP_ORIGIN, IS_NATIVE } from './config.js';
+import { tapLight } from './haptics.js';
 
 const SUPABASE_API = API_BASE + '/.netlify/functions/supabase';
 
@@ -330,12 +331,22 @@ function _showGroupReady(group) {
   document.getElementById('ready-share-url').textContent = shareUrl;
   const waBtn = document.getElementById('ready-whatsapp-btn');
   if (waBtn) {
-    const msg = encodeURIComponent('Join my Looper group ' + group.name + '! Tap to join: ' + shareUrl);
-    waBtn.href = 'https://wa.me/?text=' + msg;
+    if (IS_NATIVE) {
+      waBtn.href = '#';
+      waBtn.onclick = async (e) => {
+        e.preventDefault();
+        const { Share } = await import('@capacitor/share');
+        await Share.share({ title: 'Join my Looper group', text: 'Join ' + group.name + ' on Looper!', url: shareUrl });
+      };
+    } else {
+      const msg = encodeURIComponent('Join my Looper group ' + group.name + '! Tap to join: ' + shareUrl);
+      waBtn.href = 'https://wa.me/?text=' + msg;
+    }
   }
   const copyBtn = document.getElementById('ready-copy-btn');
   if (copyBtn) {
     copyBtn.onclick = () => {
+      tapLight();
       navigator.clipboard?.writeText(shareUrl).then(() => {
         const orig = copyBtn.textContent;
         copyBtn.textContent = 'Copied!';
@@ -849,7 +860,18 @@ function _renderGSInviteSection() {
   const urlEl = document.getElementById('gs-invite-url');
   if (urlEl) urlEl.textContent = inviteUrl;
   const waBtn = document.getElementById('gs-invite-wa-btn');
-  if (waBtn) waBtn.href = 'https://wa.me/?text=' + encodeURIComponent('Join my Looper group ' + _settingsGroup.name + '! Tap to join: ' + inviteUrl);
+  if (waBtn) {
+    if (IS_NATIVE) {
+      waBtn.href = '#';
+      waBtn.onclick = async (e) => {
+        e.preventDefault();
+        const { Share } = await import('@capacitor/share');
+        await Share.share({ title: 'Join my Looper group', text: 'Join ' + _settingsGroup.name + ' on Looper!', url: inviteUrl });
+      };
+    } else {
+      waBtn.href = 'https://wa.me/?text=' + encodeURIComponent('Join my Looper group ' + _settingsGroup.name + '! Tap to join: ' + inviteUrl);
+    }
+  }
   const regenBtn = document.getElementById('gs-regen-btn');
   if (regenBtn) regenBtn.onclick = () => {
     _showGSModal({

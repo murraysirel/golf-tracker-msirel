@@ -9,6 +9,7 @@ import { buildSC } from './scorecard.js';
 import { COURSES as BUILTIN_COURSES } from './constants.js';
  
 import { API_BASE } from './config.js';
+import { tapLight } from './haptics.js';
 
 const COURSES_API = API_BASE + '/.netlify/functions/courses';
  
@@ -164,6 +165,7 @@ export function renderTeePills(course) {
 
   pillsRow.querySelectorAll('.tee-pill').forEach(pill => {
     pill.addEventListener('click', () => {
+      tapLight();
       const tee = tees.find(t => (t.colour || '').toLowerCase() === pill.dataset.tee);
       if (tee) {
         _applyTee(tee);

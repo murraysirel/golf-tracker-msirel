@@ -3,6 +3,7 @@
 // SUPABASE_SERVICE_KEY lives in Netlify env vars only — never in browser JS.
 
 const { createClient } = require('@supabase/supabase-js');
+const { sendPushToPlayer } = require('../lib/push');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -272,6 +273,18 @@ exports.handler = async (event) => {
           pars: round.pars || [],
           updated_at: new Date().toISOString()
         }, { onConflict: 'id' });
+        // Push to invited players on first publish only (insert, not hole update)
+        if (Array.isArray(round.players)) {
+          const { data: row } = await supabase.from('active_rounds').select('created_at, updated_at').eq('id', round.id).maybeSingle();
+          const isNew = row && (new Date(row.updated_at) - new Date(row.created_at)) < 2000;
+          if (isNew) {
+            for (const p of round.players) {
+              if (p !== round.host) {
+                sendPushToPlayer(supabase, p, { type: 'live_invite', fromPlayer: round.host, payload: { course: round.course || '' } });
+              }
+            }
+          }
+        }
       } catch (e) {
         console.warn('[publishLiveRound]', e.message);
       }
@@ -529,6 +542,7 @@ exports.handler = async (event) => {
           type: 'join_request',
           payload: { groupId, groupName: grp.name || '' }
         }).catch(() => {});
+        sendPushToPlayer(supabase, grp.admin_id, { type: 'join_request', fromPlayer: playerName, payload: {} });
       }
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true, alreadyMember: false, status: 'pending' }) };
     }
@@ -555,6 +569,7 @@ exports.handler = async (event) => {
           type: 'join_approved',
           payload: { groupId, groupName: '' }
         }).catch(() => {});
+        sendPushToPlayer(supabase, playerName, { type: 'join_approved', fromPlayer: adminId, payload: {} });
       } else {
         // Decline — remove the pending member
         await supabase.from('group_members')
@@ -870,13 +885,14 @@ exports.handler = async (event) => {
         .select('*')
         .single();
       if (fErr) throw fErr;
-      // Create notification
+      // Create notification + push
       await supabase.from('notifications').insert({
         to_player: to,
         from_player: from,
         type: 'friend_request',
         payload: { friendshipId: row.id }
       });
+      sendPushToPlayer(supabase, to, { type: 'friend_request', fromPlayer: from, payload: {} });
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true, friendship: row }) };
     }
 
@@ -901,6 +917,7 @@ exports.handler = async (event) => {
             type: 'friend_accepted',
             payload: { friendshipId }
           });
+          sendPushToPlayer(supabase, fr.requester, { type: 'friend_accepted', fromPlayer: playerName, payload: {} });
         }
       }
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
@@ -1038,6 +1055,7 @@ exports.handler = async (event) => {
       // Notify round owner (don't notify yourself)
       if (roundPlayer && roundPlayer !== playerName) {
         await supabase.from('notifications').insert({ to_player: roundPlayer, from_player: playerName, type: 'round_liked', payload: { roundId, roundCourse: roundCourse || '', roundDate: roundDate || '' } });
+        sendPushToPlayer(supabase, roundPlayer, { type: 'round_liked', fromPlayer: playerName, payload: { course: roundCourse || '' } });
       }
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     }
@@ -1069,6 +1087,7 @@ exports.handler = async (event) => {
       // Notify round owner
       if (roundPlayer && roundPlayer !== playerName) {
         await supabase.from('notifications').insert({ to_player: roundPlayer, from_player: playerName, type: 'round_comment', payload: { roundId, text: text.substring(0, 100) } });
+        sendPushToPlayer(supabase, roundPlayer, { type: 'round_comment', fromPlayer: playerName, payload: { text: text.substring(0, 100) } });
       }
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true, comment: row }) };
     }

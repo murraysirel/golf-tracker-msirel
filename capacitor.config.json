@@ -2,6 +2,7 @@
   "appId": "com.loopercaddie.app",
   "appName": "Looper",
   "webDir": "www",
+  "backgroundColor": "#0b1520",
   "server": {
     "allowNavigation": [
       "loopercaddie.com",
@@ -14,6 +15,16 @@
     ]
   },
   "ios": {
-    "contentInset": "automatic"
+    "contentInset": "automatic",
+    "backgroundColor": "#0b1520"
+  },
+  "plugins": {
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#0b1520"
+    },
+    "SplashScreen": {
+      "backgroundColor": "#0b1520"
+    }
   }
 }

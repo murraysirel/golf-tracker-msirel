@@ -126,6 +126,18 @@ if (IS_NATIVE && 'serviceWorker' in navigator) {
     regs.forEach(reg => reg.unregister());
   });
 }
+
+// Native plugins — status bar + keyboard
+if (IS_NATIVE) {
+  import('@capacitor/status-bar').then(({ StatusBar, Style }) => {
+    StatusBar.setStyle({ style: Style.Dark });
+    StatusBar.setBackgroundColor({ color: '#0b1520' });
+    StatusBar.setOverlaysWebView({ overlay: true });
+  });
+  import('@capacitor/keyboard').then(({ Keyboard, KeyboardResize }) => {
+    Keyboard.setResizeMode({ mode: KeyboardResize.Native });
+  });
+}
 window._looperState = state; // expose for error handlers that run before module init
 import { initCaddieButton } from './caddie.js';
 import { initProfileTabs, startNotificationPolling, loadFriends } from './friends.js';
@@ -141,6 +153,14 @@ function applyTheme(theme) {
   document.documentElement.dataset.theme = theme;
   document.getElementById('theme-dark-btn')?.classList.toggle('active', theme === 'dark');
   document.getElementById('theme-light-btn')?.classList.toggle('active', theme === 'light');
+  // Update native status bar colour to match theme
+  if (IS_NATIVE) {
+    const bg = theme === 'light' ? '#F4F0E8' : '#0b1520';
+    import('@capacitor/status-bar').then(({ StatusBar, Style }) => {
+      StatusBar.setStyle({ style: theme === 'light' ? Style.Light : Style.Dark });
+      StatusBar.setBackgroundColor({ color: bg });
+    });
+  }
 }
 applyTheme(localStorage.getItem('rr_theme') || 'dark');
 
@@ -547,7 +567,10 @@ document.getElementById('save-round-btn')?.addEventListener('click', saveRound);
 document.getElementById('sc-extras-toggle')?.addEventListener('click', toggleSCExtras);
 
 // Photo entry
-document.getElementById('photo-drop')?.addEventListener('click', () => document.getElementById('photo-inp').click());
+document.getElementById('photo-drop')?.addEventListener('click', () => {
+  if (IS_NATIVE) { handlePhoto(); return; } // native camera via Capacitor
+  document.getElementById('photo-inp').click();
+});
 document.getElementById('photo-inp')?.addEventListener('change', function () { handlePhoto(this); });
 document.getElementById('parse-btn')?.addEventListener('click', parsePhoto);
 
@@ -1174,6 +1197,8 @@ document.getElementById('login-submit-btn')?.addEventListener('click', async () 
   updateActiveMatchBadge();
   updateUnsyncedBadge();
   startInvitePolling();
+  startNotificationPolling();
+  import('./push.js').then(m => m.initPush()).catch(() => {});
   await retryUnsyncedRounds();
 });
 
@@ -1277,6 +1302,7 @@ initMatchOverlay();
     updateUnsyncedBadge();
     startInvitePolling();
     startNotificationPolling();
+    import('./push.js').then(m => m.initPush()).catch(() => {});
 
     // 5. Retry unsynced rounds silently; show prompt if still failing
     const syncedOk = await retryUnsyncedRounds();

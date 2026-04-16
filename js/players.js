@@ -251,6 +251,7 @@ export function addAndEnter() {
 }
 
 export function signOut() {
+  import('./push.js').then(m => m.removePushToken?.()).catch(() => {});
   import('./auth.js').then(({ serverSignOut }) => serverSignOut()).catch(() => {});
   // Stop all polling timers on logout
   import('./friends.js').then(m => { if (m.stopNotificationPolling) m.stopNotificationPolling(); }).catch(() => {});
