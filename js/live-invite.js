@@ -90,9 +90,9 @@ async function _refreshLiveView() {
   if (!state.liveInvite.currentRoundId) { _stopLivePoll(); return; }
   const res = await querySupabase('fetchLiveRound', { roundId: Number(state.liveInvite.currentRoundId) });
   if (!res) return;
-  if (!res.round) { _handleRoundEnded(); return; }
+  if (!res.round || !res.round.players) { _handleRoundEnded(); return; }
   state.liveInvite.data = res.round;
-  _renderScores(res.round);
+  try { _renderScores(res.round); } catch (_) { /* malformed round data — skip render */ }
   const upd = document.getElementById('lv-updated');
   if (upd) upd.textContent = 'Updated ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 }
@@ -129,6 +129,9 @@ async function _startViewerGps(round) {
       else if (el) el.textContent = '—';
     });
   };
+
+  // Clear any existing watch before starting a new one
+  await _stopViewerGps();
 
   if (IS_NATIVE) {
     const { Geolocation } = await import('@capacitor/geolocation');

@@ -35,7 +35,8 @@ export function goTo(p) {
   if (nb) nb.classList.add('active');
 
   function showPage() {
-    document.getElementById('app-scroll').scrollTop = 0;
+    const scroll = document.getElementById('app-scroll');
+    if (scroll) scroll.scrollTop = 0;
     PAGES.forEach(pg => {
       const el = document.getElementById('pg-' + pg);
       if (el) {

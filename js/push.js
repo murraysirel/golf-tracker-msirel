@@ -19,12 +19,13 @@ const PUSH_API = API_BASE + '/.netlify/functions/push';
 /** Call once after auth completes and state.me is set. */
 export async function initPush() {
   if (!IS_NATIVE || !state.me || _registered) return;
+  _registered = true; // Set immediately to prevent duplicate listener registration
 
   if (!PushNotifications) {
     try {
       const mod = await import('@capacitor/push-notifications');
       PushNotifications = mod.PushNotifications;
-    } catch { return; }
+    } catch { _registered = false; return; }
   }
 
   let perm = await PushNotifications.checkPermissions();
@@ -67,19 +68,19 @@ export async function initPush() {
   } catch (_) {}
 
   await PushNotifications.register();
-  _registered = true;
 }
 
 /** Remove device token on sign-out. Call BEFORE clearing state.me. */
 export async function removePushToken() {
   if (!IS_NATIVE) return;
   const token = localStorage.getItem('looper_push_token');
-  if (!token || !state.me) return;
+  const player = state.me; // Capture before any async work
+  if (!token || !player) return;
   try {
     await fetch(PUSH_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'removeToken', data: { playerName: state.me, token } })
+      body: JSON.stringify({ action: 'removeToken', data: { playerName: player, token } })
     });
   } catch (_) {}
   localStorage.removeItem('looper_push_token');

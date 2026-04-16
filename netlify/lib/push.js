@@ -13,21 +13,28 @@ function _getJwt() {
   const now = Math.floor(Date.now() / 1000);
   if (_jwt && _jwtExp > now) return _jwt;
 
-  const header = Buffer.from(JSON.stringify({
-    alg: 'ES256', kid: process.env.APNS_KEY_ID
-  })).toString('base64url');
+  const keyPem = process.env.APNS_KEY_P8;
+  if (!keyPem || !process.env.APNS_KEY_ID || !process.env.APNS_TEAM_ID) return null;
 
-  const claims = Buffer.from(JSON.stringify({
-    iss: process.env.APNS_TEAM_ID, iat: now
-  })).toString('base64url');
+  try {
+    const header = Buffer.from(JSON.stringify({
+      alg: 'ES256', kid: process.env.APNS_KEY_ID
+    })).toString('base64url');
 
-  const input = `${header}.${claims}`;
-  const key = crypto.createPrivateKey(process.env.APNS_KEY_P8.replace(/\\n/g, '\n'));
-  const sig = crypto.sign('sha256', Buffer.from(input), { key, dsaEncoding: 'ieee-p1363' });
+    const claims = Buffer.from(JSON.stringify({
+      iss: process.env.APNS_TEAM_ID, iat: now
+    })).toString('base64url');
 
-  _jwt = `${input}.${sig.toString('base64url')}`;
-  _jwtExp = now + 3300; // 55 min (APNs tokens valid 60 min)
-  return _jwt;
+    const input = `${header}.${claims}`;
+    const key = crypto.createPrivateKey(keyPem.replace(/\\n/g, '\n'));
+    const sig = crypto.sign('sha256', Buffer.from(input), { key, dsaEncoding: 'ieee-p1363' });
+
+    _jwt = `${input}.${sig.toString('base64url')}`;
+    _jwtExp = now + 3300; // 55 min (APNs tokens valid 60 min)
+    return _jwt;
+  } catch (_) {
+    return null; // Malformed key — fail silently
+  }
 }
 
 // ── Notification copy ───────────────────────────────────────────────
@@ -65,6 +72,9 @@ const APNS_HOST = 'api.push.apple.com';
 const APNS_TOPIC = 'com.loopercaddie.app';
 
 function _send(token, payload) {
+  const jwt = _getJwt();
+  if (!jwt) return Promise.resolve({ gone: false });
+
   return new Promise(resolve => {
     let session;
     const timeout = setTimeout(() => {
@@ -89,7 +99,7 @@ function _send(token, payload) {
     const req = session.request({
       ':method': 'POST',
       ':path': `/3/device/${token}`,
-      'authorization': `bearer ${_getJwt()}`,
+      'authorization': `bearer ${jwt}`,
       'apns-topic': APNS_TOPIC,
       'apns-push-type': 'alert',
       'apns-expiration': '0',

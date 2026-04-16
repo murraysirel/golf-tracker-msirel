@@ -881,10 +881,10 @@ function _renderGSInviteSection() {
       onConfirm: async () => {
         const res = await querySupabase('regenerateGroupCode', { groupId: _settingsGroup.id, adminId: state.me });
         if (res?.ok && res.code) {
+          const oldCode = _settingsGroup.code; // Capture BEFORE overwriting
           _settingsGroup.code = res.code;
           if (state.gd.group) state.gd.group.code = res.code;
           // Update in groupCodes[] and activeGroupCode
-          const oldCode = _settingsGroup.code;
           const idx = state.gd.groupCodes?.indexOf(oldCode);
           if (idx != null && idx >= 0) state.gd.groupCodes[idx] = res.code;
           if (state.gd.activeGroupCode === oldCode) state.gd.activeGroupCode = res.code;

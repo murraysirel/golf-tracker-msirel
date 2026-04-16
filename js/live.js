@@ -786,8 +786,8 @@ function liveGroupAdj(playerName, field, delta) {
   const h = state.liveState.hole;
   const par = state.cpars[h];
   if (field === 'score') {
-    const cur = state.liveState.groupScores[playerName]?.[h] ?? par;
     if (!state.liveState.groupScores[playerName]) state.liveState.groupScores[playerName] = Array(18).fill(null);
+    const cur = state.liveState.groupScores[playerName][h] ?? par;
     state.liveState.groupScores[playerName][h] = Math.max(1, Math.min(15, cur + delta));
 
     // Fix 3: track when wolf first adjusts their score — hides the 6-pointer button
@@ -801,8 +801,8 @@ function liveGroupAdj(playerName, field, delta) {
       });
     }
   } else {
-    const cur = state.liveState.groupPutts[playerName]?.[h] ?? 2;
     if (!state.liveState.groupPutts[playerName]) state.liveState.groupPutts[playerName] = Array(18).fill(null);
+    const cur = state.liveState.groupPutts[playerName][h] ?? 2;
     const maxPutts = state.liveState.groupScores[playerName]?.[h] ?? par;
     const newVal = Math.max(0, Math.min(maxPutts, cur + delta));
     if (delta > 0 && newVal === cur) _showLiveNudge("Putts can't exceed your score");
@@ -1186,7 +1186,7 @@ async function liveFinishAndSave() {
         state.liveState.group.forEach(name => {
           if (name === state.me) return; // don't overwrite host's own scores
           const remote = res.round.scores[name];
-          if (remote?.some(s => s != null)) state.liveState.groupScores[name] = remote;
+          if (Array.isArray(remote) && remote.some(s => s != null)) state.liveState.groupScores[name] = remote;
         });
       }
     } catch (e) { /* non-critical — save local data */ }

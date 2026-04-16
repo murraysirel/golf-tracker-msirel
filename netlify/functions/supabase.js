@@ -273,15 +273,11 @@ exports.handler = async (event) => {
           pars: round.pars || [],
           updated_at: new Date().toISOString()
         }, { onConflict: 'id' });
-        // Push to invited players on first publish only (insert, not hole update)
-        if (Array.isArray(round.players)) {
-          const { data: row } = await supabase.from('active_rounds').select('created_at, updated_at').eq('id', round.id).maybeSingle();
-          const isNew = row && (new Date(row.updated_at) - new Date(row.created_at)) < 2000;
-          if (isNew) {
-            for (const p of round.players) {
-              if (p !== round.host) {
-                sendPushToPlayer(supabase, p, { type: 'live_invite', fromPlayer: round.host, payload: { course: round.course || '' } });
-              }
+        // Push to invited players on first publish only (hole 0 = round just started)
+        if ((round.hole || 0) === 0 && Array.isArray(round.players)) {
+          for (const p of round.players) {
+            if (p !== round.host) {
+              sendPushToPlayer(supabase, p, { type: 'live_invite', fromPlayer: round.host, payload: { course: round.course || '' } });
             }
           }
         }
