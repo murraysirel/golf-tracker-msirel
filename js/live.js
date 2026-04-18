@@ -178,9 +178,13 @@ export function initLiveRound() {
     if (gv !== undefined) state.liveState.gir[h] = gv || '';
   }
 
-  // Players already selected via the player selection screen — skip old group setup
-  // and go straight to startGroupRound()
+  // Players already selected via the player selection screen
   if (state.liveState.group.length > 0) {
+    // Match play needs team assignment — show group setup so user can adjust teams
+    if (state.gameMode === 'match' && state.liveState.group.length >= 2) {
+      showGroupSetup();
+      return;
+    }
     startGroupRound();
     return;
   }
@@ -945,7 +949,7 @@ function updateMatchBanner(h) {
 
   // Running match status
   if (mr.result === 'won') {
-    const holesLeft = 17 - mr.holesPlayed;
+    const holesLeft = 18 - mr.holesPlayed;
     if (statusEl) statusEl.textContent = `${mr.leader} wins ${mr.holesUp}&${holesLeft}`;
     banner.style.background = 'rgba(201,168,76,.18)';
   } else if (mr.result === 'halved') {
@@ -954,7 +958,7 @@ function updateMatchBanner(h) {
     if (statusEl) statusEl.textContent = `${mr.labelA} vs ${mr.labelB} — all square`;
   } else {
     const upStr = mr.holesUp > 0 ? `${mr.leader} ${mr.holesUp}UP` : 'All square';
-    const remaining = 17 - mr.holesPlayed;
+    const remaining = 18 - mr.holesPlayed;
     if (mr.holesUp > 0 && mr.holesUp >= remaining) {
       if (statusEl) statusEl.textContent = `${mr.leader} DORMIE — ${upStr} with ${remaining} to play`;
     } else {
@@ -1116,6 +1120,8 @@ export function liveNextOrFinish() {
       liveGoto(h + 1);
       _saveLiveBackup();
     } else {
+      // Confirm before finishing — prevents accidental save with missing stats
+      if (!confirm('Save round? Make sure all scores are entered for hole 18.')) return;
       liveFinishAndSave();
     }
   };

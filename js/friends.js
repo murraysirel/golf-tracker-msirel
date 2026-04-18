@@ -32,8 +32,12 @@ export async function loadFriends() {
 export async function pollNotifications() {
   try {
     const res = await querySupabase('getNotifications', { playerName: state.me });
+    if (!res) console.warn('[notifications] poll returned null — API may be failing');
     _notifications = res?.notifications || [];
-  } catch { _notifications = []; }
+  } catch (e) {
+    console.warn('[notifications] poll error:', e);
+    _notifications = [];
+  }
   updateNotificationDot();
   return _notifications;
 }
