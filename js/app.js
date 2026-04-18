@@ -133,10 +133,10 @@ if (IS_NATIVE) {
     StatusBar.setStyle({ style: Style.Dark });
     StatusBar.setBackgroundColor({ color: '#0b1520' });
     StatusBar.setOverlaysWebView({ overlay: true });
-  });
+  }).catch(() => {});
   import('@capacitor/keyboard').then(({ Keyboard, KeyboardResize }) => {
     Keyboard.setResizeMode({ mode: KeyboardResize.Native });
-  });
+  }).catch(() => {});
 }
 window._looperState = state; // expose for error handlers that run before module init
 import { initCaddieButton } from './caddie.js';
@@ -159,7 +159,7 @@ function applyTheme(theme) {
     import('@capacitor/status-bar').then(({ StatusBar, Style }) => {
       StatusBar.setStyle({ style: theme === 'light' ? Style.Light : Style.Dark });
       StatusBar.setBackgroundColor({ color: bg });
-    });
+    }).catch(() => {});
   }
 }
 applyTheme(localStorage.getItem('rr_theme') || 'dark');

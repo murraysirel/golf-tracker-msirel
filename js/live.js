@@ -146,7 +146,8 @@ function syncPlayerMatchScore(playerName) {
 
 export function initLiveRound() {
   // If a round is already in progress, restore the current hole — don't reinitialise
-  if (state.roundActive && state.liveState.group.length > 0) {
+  // Check roundActive alone (not group.length) so solo rounds also resume correctly
+  if (state.roundActive) {
     const setup = document.getElementById('live-group-setup');
     const holeView = document.getElementById('live-hole-view');
     if (setup) setup.style.display = 'none';

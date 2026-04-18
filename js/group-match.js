@@ -204,9 +204,9 @@ function _renderScreen1(modal, matchType) {
     <div style="margin-bottom:18px">
       <label style="font-size:10px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase">
         Players &amp; Playing Handicaps
-        ${matchType === '4ball' ? '<span style="font-size:10px;color:var(--dimmer);font-weight:400;text-transform:none;letter-spacing:0;margin-left:6px">max 4</span>' : ''}
+        <span style="font-size:10px;color:var(--dimmer);font-weight:400;text-transform:none;letter-spacing:0;margin-left:6px">${allPlayers.length} in group${matchType === '4ball' ? ' · max 4' : ''}</span>
       </label>
-      <div style="margin-top:8px" id="mcr-chips">${chipsHtml}</div>
+      <div style="margin-top:8px;max-height:40vh;overflow-y:auto;-webkit-overflow-scrolling:touch" id="mcr-chips">${chipsHtml}</div>
     </div>
 
     <div id="mcr-err" style="display:none;font-size:12px;color:var(--double);margin-bottom:8px"></div>

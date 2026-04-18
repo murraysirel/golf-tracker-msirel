@@ -12,7 +12,7 @@ if (IS_NATIVE) {
     Haptics = mod.Haptics;
     ImpactStyle = mod.ImpactStyle;
     NotificationType = mod.NotificationType;
-  });
+  }).catch(() => {});
 }
 
 // Light tap — score adjusters, toggles, pill selections
