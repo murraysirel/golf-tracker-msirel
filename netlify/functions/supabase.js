@@ -86,6 +86,7 @@ exports.handler = async (event) => {
       const memberNames = approvedRows.map(m => m.player_id);
       const memberJoinDates = {};
       approvedRows.forEach(m => { if (m.joined_at) memberJoinDates[m.player_id] = m.joined_at; });
+      const pendingCount = (memberRows || []).filter(m => m.status === 'pending').length;
 
       if (memberNames.length === 0) {
         const { data: matches } = await supabase
@@ -125,7 +126,9 @@ exports.handler = async (event) => {
           matches: matchesRes.data || [],
           settings,
           memberJoinDates,
-          hasMoreRounds: roundLimit > 0 && fetchedRounds.length >= maxExpected
+          hasMoreRounds: roundLimit > 0 && fetchedRounds.length >= maxExpected,
+          pendingCount,
+          adminId: groupRow.admin_id || null
         })
       };
     }

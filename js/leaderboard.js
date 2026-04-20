@@ -175,6 +175,38 @@ export function renderLeaderboard() {
   if (gearBtn) {
     gearBtn.style.display = isAdmin ? 'inline-flex' : 'none';
     gearBtn.onclick = () => { import('./group.js').then(m => m.initGroupSettings()); };
+    // Pending member badge on gear icon
+    let dot = gearBtn.querySelector('.pending-dot');
+    if (isAdmin && state._pendingMemberCount > 0) {
+      if (!dot) {
+        dot = document.createElement('span');
+        dot.className = 'pending-dot';
+        dot.style.cssText = 'position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;border-radius:8px;background:#e74c3c;color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;font-family:"DM Sans",sans-serif';
+        gearBtn.style.position = 'relative';
+        gearBtn.appendChild(dot);
+      }
+      dot.textContent = state._pendingMemberCount;
+      dot.style.display = 'flex';
+    } else if (dot) {
+      dot.style.display = 'none';
+    }
+  }
+  // Pending member banner below title
+  let pendingBanner = document.getElementById('lb-pending-banner');
+  if (isAdmin && state._pendingMemberCount > 0) {
+    if (!pendingBanner) {
+      pendingBanner = document.createElement('div');
+      pendingBanner.id = 'lb-pending-banner';
+      pendingBanner.style.cssText = 'padding:10px 14px;margin:0 0 12px;border-radius:10px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);cursor:pointer;display:flex;align-items:center;gap:8px;-webkit-tap-highlight-color:transparent';
+      const titleParent = document.getElementById('lb-tab-title')?.parentElement?.parentElement;
+      if (titleParent) titleParent.insertAdjacentElement('afterend', pendingBanner);
+    }
+    const n = state._pendingMemberCount;
+    pendingBanner.innerHTML = `<span style="font-size:12px;font-weight:600;color:var(--gold)">${n} player${n > 1 ? 's' : ''} waiting for approval</span><span style="font-size:11px;color:var(--dim);margin-left:auto">Review →</span>`;
+    pendingBanner.onclick = () => { import('./group.js').then(m => m.initGroupSettings()); };
+    pendingBanner.style.display = 'flex';
+  } else if (pendingBanner) {
+    pendingBanner.style.display = 'none';
   }
   const membersBtn = document.getElementById('lb-members-btn');
   if (membersBtn) {

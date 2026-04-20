@@ -188,8 +188,10 @@ export async function loadGroupData(groupCode) {
       body: JSON.stringify({ action: 'read', groupCode, requestingPlayer: state.me || '' })
     });
     if (!res.ok) throw new Error('Supabase read ' + res.status);
-    const { players, rounds, settings, memberJoinDates, hasMoreRounds } = await res.json();
+    const { players, rounds, settings, memberJoinDates, hasMoreRounds, pendingCount, adminId } = await res.json();
     state._hasMoreRounds = !!hasMoreRounds;
+    state._pendingMemberCount = pendingCount || 0;
+    state._groupAdminId = adminId || null;
 
     const unsynced = localStorage.getItem('rr_unsynced_rounds');
     const s0 = settings || {};
