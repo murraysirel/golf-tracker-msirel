@@ -10,6 +10,12 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
+// ── Notification insert helper — logs errors instead of swallowing them ──
+async function insertNotification(payload) {
+  const { error } = await supabase.from('notifications').insert(payload);
+  if (error) console.error('[notifications] insert failed:', error.message, JSON.stringify(payload));
+}
+
 function makeHeaders(event) {
   return {
     'Content-Type': 'application/json',
@@ -532,12 +538,12 @@ exports.handler = async (event) => {
       // Notify the group admin
       const { data: grp } = await supabase.from('groups').select('admin_id, name').eq('id', groupId).maybeSingle();
       if (grp?.admin_id) {
-        await supabase.from('notifications').insert({
+        await insertNotification({
           to_player: grp.admin_id,
           from_player: playerName,
           type: 'join_request',
           payload: { groupId, groupName: grp.name || '' }
-        }).catch(() => {});
+        });
         sendPushToPlayer(supabase, grp.admin_id, { type: 'join_request', fromPlayer: playerName, payload: {} });
       }
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true, alreadyMember: false, status: 'pending' }) };
@@ -559,12 +565,12 @@ exports.handler = async (event) => {
           .eq('group_id', groupId).eq('player_id', playerName);
         if (error) throw error;
         // Notify the player they were approved
-        await supabase.from('notifications').insert({
+        await insertNotification({
           to_player: playerName,
           from_player: adminId,
           type: 'join_approved',
           payload: { groupId, groupName: '' }
-        }).catch(() => {});
+        });
         sendPushToPlayer(supabase, playerName, { type: 'join_approved', fromPlayer: adminId, payload: {} });
       } else {
         // Decline — remove the pending member
@@ -882,7 +888,7 @@ exports.handler = async (event) => {
         .single();
       if (fErr) throw fErr;
       // Create notification + push
-      await supabase.from('notifications').insert({
+      await insertNotification({
         to_player: to,
         from_player: from,
         type: 'friend_request',
@@ -907,7 +913,7 @@ exports.handler = async (event) => {
       if (accept) {
         const { data: fr } = await supabase.from('friendships').select('requester').eq('id', friendshipId).maybeSingle();
         if (fr?.requester) {
-          await supabase.from('notifications').insert({
+          await insertNotification({
             to_player: fr.requester,
             from_player: playerName,
             type: 'friend_accepted',
@@ -1050,7 +1056,7 @@ exports.handler = async (event) => {
       await supabase.from('feed_likes').insert({ liker: playerName, round_id: roundId });
       // Notify round owner (don't notify yourself)
       if (roundPlayer && roundPlayer !== playerName) {
-        await supabase.from('notifications').insert({ to_player: roundPlayer, from_player: playerName, type: 'round_liked', payload: { roundId, roundCourse: roundCourse || '', roundDate: roundDate || '' } });
+        await insertNotification({ to_player: roundPlayer, from_player: playerName, type: 'round_liked', payload: { roundId, roundCourse: roundCourse || '', roundDate: roundDate || '' } });
         sendPushToPlayer(supabase, roundPlayer, { type: 'round_liked', fromPlayer: playerName, payload: { course: roundCourse || '' } });
       }
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
@@ -1082,7 +1088,7 @@ exports.handler = async (event) => {
       if (cErr) return { statusCode: 500, headers, body: JSON.stringify({ error: cErr.message }) };
       // Notify round owner
       if (roundPlayer && roundPlayer !== playerName) {
-        await supabase.from('notifications').insert({ to_player: roundPlayer, from_player: playerName, type: 'round_comment', payload: { roundId, text: text.substring(0, 100) } });
+        await insertNotification({ to_player: roundPlayer, from_player: playerName, type: 'round_comment', payload: { roundId, text: text.substring(0, 100) } });
         sendPushToPlayer(supabase, roundPlayer, { type: 'round_comment', fromPlayer: playerName, payload: { text: text.substring(0, 100) } });
       }
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true, comment: row }) };

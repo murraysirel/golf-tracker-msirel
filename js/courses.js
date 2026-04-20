@@ -40,18 +40,64 @@ const COUNTRY_PILL_SVG = {
 };
 
 let _activeCountry = 'UK';
- 
+
 let _searchTimer    = null;
 let _lastResults    = [];
 let _selectedCourse = null;
+
+// ── Recent courses (localStorage, last 3 unique) ────────────────────────────
+const RECENT_KEY = 'looper_recent_courses';
+
+function _getRecentCourses() {
+  try { return JSON.parse(localStorage.getItem(RECENT_KEY)) || []; }
+  catch { return []; }
+}
+
+function _saveRecentCourse(course) {
+  if (!course?.name) return;
+  const entry = {
+    name: course.name,
+    externalId: course.external_course_id || '',
+    location: course.location || '',
+    hasGps: !!course.has_gps
+  };
+  const recent = _getRecentCourses().filter(c => c.name !== entry.name);
+  recent.unshift(entry);
+  try { localStorage.setItem(RECENT_KEY, JSON.stringify(recent.slice(0, 3))); } catch {}
+}
+
+async function _selectRecentCourse(entry) {
+  if (!entry?.name) return;
+  _hideResults();
+  // If we have an external ID, fetch full course data from Supabase cache
+  if (entry.externalId) {
+    _showLoadingState('Loading course…');
+    try {
+      const res = await fetch(`${COURSES_API}?action=fetch&courseId=${encodeURIComponent(entry.externalId)}`);
+      const data = await res.json();
+      if (data.course) { _applyCourse(data.course); return; }
+    } catch { /* fall through to name search */ }
+    finally { _hideLoadingState(); }
+  }
+  // Fallback: search by name
+  const { restoreCourseByName } = await import('./courses.js');
+  await restoreCourseByName(entry.name);
+}
  
 // ── Called from app.js on Round page load ─────────────────────────────────────
 export function initCourseSearch() {
   const wrap = document.getElementById('course-search-container');
   if (!wrap) return;
 
+  const recent = _getRecentCourses();
+  const recentHtml = recent.length ? `
+    <div id="cs-recent" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+      ${recent.map((c, i) => `<button class="cs-recent-pill" data-idx="${i}" style="padding:6px 12px;border-radius:20px;font-size:11px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;border:1px solid var(--border);background:var(--navy);color:var(--dim);white-space:nowrap;-webkit-tap-highlight-color:transparent">${c.name.replace(/ Golf Club$| Golf Course$| Golf Links$/, '')}</button>`).join('')}
+    </div>` : '';
+
   wrap.innerHTML = `
     <div class="cs-wrap">
+      ${recentHtml}
       <div class="cs-input-row">
         <input
           id="cs-input"
@@ -67,6 +113,14 @@ export function initCourseSearch() {
       <div id="cs-selected" class="cs-selected" style="display:none"></div>
     </div>
   `;
+
+  // Bind recent course pills
+  wrap.querySelectorAll('.cs-recent-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      tapLight();
+      _selectRecentCourse(recent[parseInt(pill.dataset.idx)]);
+    });
+  });
   // Hidden select for backward compat with _runSearch reading country
   const hiddenSel = document.createElement('select');
   hiddenSel.id = 'cs-country';
@@ -312,6 +366,7 @@ function _applyCourse(course) {
   }
 
   _selectedCourse = course;
+  _saveRecentCourse(course);
 
   const tees = course.tees || [];
   const pars = course.pars || [];
