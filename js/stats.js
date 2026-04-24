@@ -528,10 +528,20 @@ export function closeKpiPicker(save) {
 }
 
 // ── Mates activity feed — recent highlights ─────────────────────
+let _matesFeedCache = { html: '', ts: 0, playerCount: 0 };
+
 function renderMatesFeed() {
   const section = document.getElementById('home-mates-section');
   const matesEl = document.getElementById('home-mates-list');
   if (!section || !matesEl) return;
+  // Serve cached HTML if fresh (60s) and player count unchanged
+  const pc = Object.keys(state.gd.players || {}).length;
+  if (_matesFeedCache.html && Date.now() - _matesFeedCache.ts < 60000 && _matesFeedCache.playerCount === pc) {
+    section.style.display = '';
+    matesEl.innerHTML = _matesFeedCache.html;
+    matesEl.querySelector('.card')?.addEventListener('click', () => { import('./nav.js').then(m => m.goTo('feed')); });
+    return;
+  }
   const allPlayers = Object.entries(state.gd.players || {});
   section.style.display = '';
   if (allPlayers.length <= 1) {
@@ -669,6 +679,7 @@ function renderMatesFeed() {
   card.addEventListener('click', () => {
     import('./nav.js').then(m => m.goTo('feed'));
   });
+  _matesFeedCache = { html: matesEl.innerHTML, ts: Date.now(), playerCount: Object.keys(state.gd.players || {}).length };
 }
 
 // ── Activity feed page — full Strava-style feed ─────────────────
@@ -1001,6 +1012,8 @@ export async function renderFeedPage() {
   });
 }
 
+let _homeStatsCache = { ts: 0, roundCount: 0 };
+
 export function renderHomeStats() {
   const p = state.gd.players[state.me];
   if (!p) {
@@ -1008,6 +1021,10 @@ export function renderHomeStats() {
     return;
   }
   const rs = p.rounds || [];
+  // Skip full recompute if data hasn't changed (same round count, within 60s)
+  const rc = rs.length;
+  if (_homeStatsCache.roundCount === rc && Date.now() - _homeStatsCache.ts < 60000 && rc > 0) return;
+  _homeStatsCache = { ts: Date.now(), roundCount: rc };
 
   // ── 3a. Hero header ──────────────────────────────────────────
   const hr = new Date().getHours();
@@ -1617,6 +1634,10 @@ export function renderStats() {
     }
   }
 
+  // Defer below-fold charts so the page is interactive immediately
+  setTimeout(() => { _renderDeferredCharts(fullR, rs, allSorted, hcp, MONTHS_SHORT); }, 50);
+
+function _renderDeferredCharts(fullR, rs, allSorted, hcp, MONTHS_SHORT) {
   if (fullR.length) {
     const hA = Array.from({ length: 18 }, (_, h) => { const vs = fullR.map(r => r.scores[h] - r.pars[h]); return +(vs.reduce((a, b) => a + b, 0) / vs.length).toFixed(2); });
     dc('holes');
@@ -1893,6 +1914,7 @@ export function renderStats() {
       }
     }
   }
+} // end _renderDeferredCharts
 
   // 4f. Front 9 vs Back 9 card (default: net, toggle for gross)
   const f9b9Card = document.getElementById('c-f9b9');

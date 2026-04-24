@@ -54,15 +54,16 @@ export function goTo(p) {
         });
       });
     }
-    if (p === 'stats' && _renderStats) _renderStats();
-    if (p === 'leaderboard' && _renderLeaderboard) _renderLeaderboard();
-    if (p === 'players' && _renderAllPlayers) _renderAllPlayers();
-    if (p === 'home' && _renderHomeStats) _renderHomeStats();
-    if (p === 'practice' && _renderPracticePage) _renderPracticePage();
+    // Defer heavy renders so the fade-in animation starts before computation blocks the thread
+    if (p === 'stats' && _renderStats) requestAnimationFrame(_renderStats);
+    if (p === 'leaderboard' && _renderLeaderboard) requestAnimationFrame(_renderLeaderboard);
+    if (p === 'players' && _renderAllPlayers) requestAnimationFrame(_renderAllPlayers);
+    if (p === 'home' && _renderHomeStats) requestAnimationFrame(_renderHomeStats);
+    if (p === 'practice' && _renderPracticePage) requestAnimationFrame(_renderPracticePage);
     if (p === 'live' && _initLiveRound) _initLiveRound();
     if (p === 'competition' && _initCompetition) _initCompetition();
     if (p === 'comp-score' && _initCompScore) _initCompScore();
-    if (p === 'feed' && _renderFeedPage) _renderFeedPage();
+    if (p === 'feed' && _renderFeedPage) requestAnimationFrame(_renderFeedPage);
     if (_onPageChange) _onPageChange(p);
   }
 
