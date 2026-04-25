@@ -49,6 +49,9 @@ body{
   touch-action:manipulation;
 }
 
+/* Prevent iOS auto-zoom on input focus (requires font-size ≥ 16px) */
+input,select,textarea{font-size:16px}
+
 /* ── Scrollable pages ─────────────────────────────────────────── */
 .app{
   flex:1;overflow-y:scroll;overflow-x:hidden;

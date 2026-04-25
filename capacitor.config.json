@@ -24,7 +24,10 @@
       "backgroundColor": "#0b1520"
     },
     "SplashScreen": {
-      "backgroundColor": "#0b1520"
+      "backgroundColor": "#0b1520",
+      "launchAutoHide": true,
+      "launchShowDuration": 0,
+      "showSpinner": false
     }
   }
 }

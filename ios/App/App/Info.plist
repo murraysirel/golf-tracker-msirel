@@ -55,5 +55,7 @@
 	<string>Looper uses your location for GPS distances to the green</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Looper uses your location for GPS distances to the green</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>

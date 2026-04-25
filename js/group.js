@@ -788,7 +788,7 @@ function _renderGSMembersSection() {
     pendingHtml += pendingMembers.map(m =>
       `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border)">
         <div style="flex:1;font-size:13px;color:var(--cream)">${_esc(m.playerId)}</div>
-        <button class="gs-approve" data-player="${_esc(m.playerId)}" class="btn" style="padding:4px 12px;border-radius:16px;font-size:10px;background:var(--gold);color:var(--navy);border:none;cursor:pointer;font-family:'DM Sans',sans-serif">Approve</button>
+        <button class="gs-approve btn" data-player="${_esc(m.playerId)}" style="padding:4px 12px;border-radius:16px;font-size:10px;background:var(--gold);color:var(--navy);border:none;cursor:pointer;font-family:'DM Sans',sans-serif">Approve</button>
         <button class="gs-decline" data-player="${_esc(m.playerId)}" style="padding:4px 12px;border-radius:16px;font-size:10px;background:transparent;border:1px solid rgba(231,76,60,.4);color:#e74c3c;cursor:pointer;font-family:'DM Sans',sans-serif">Decline</button>
       </div>`
     ).join('');
@@ -823,6 +823,7 @@ function _renderGSMembersSection() {
       await querySupabase('approveGroupMember', { groupId: _settingsGroup.id, adminId: state.me, playerName: btn.dataset.player, approve: true });
       _settingsPendingMembers = _settingsPendingMembers.filter(m => m.playerId !== btn.dataset.player);
       _settingsMembers.push({ playerId: btn.dataset.player, status: 'approved' });
+      state._pendingMemberCount = Math.max(0, (state._pendingMemberCount || 0) - 1);
       _renderGSMembersSection();
     });
   });
@@ -831,6 +832,7 @@ function _renderGSMembersSection() {
       btn.disabled = true; btn.textContent = '...';
       await querySupabase('approveGroupMember', { groupId: _settingsGroup.id, adminId: state.me, playerName: btn.dataset.player, approve: false });
       _settingsPendingMembers = _settingsPendingMembers.filter(m => m.playerId !== btn.dataset.player);
+      state._pendingMemberCount = Math.max(0, (state._pendingMemberCount || 0) - 1);
       _renderGSMembersSection();
     });
   });
