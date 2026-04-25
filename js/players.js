@@ -5,7 +5,7 @@ import { state } from './state.js';
 import { pushData, querySupabase, loadGroupData, loadAppData } from './api.js';
 import { goTo } from './nav.js';
 import { initCourseSearch, renderScannedCourses } from './courses.js';
-import { renderHomeStats } from './stats.js';
+import { renderHomeStats, parseDateGB } from './stats.js';
 
 export function initials(n) {
   return n.split(' ').map(p => p[0] || '').join('').toUpperCase().slice(0, 2);
@@ -823,4 +823,156 @@ function renderSeasonList() {
     });
     el.appendChild(d);
   });
+}
+
+// ── Player profile sheet ─────────────────────────────────────────
+
+export async function showPlayerProfile(name) {
+  const sheet = document.getElementById('player-profile-sheet');
+  const content = document.getElementById('pp-content');
+  if (!sheet || !content) return;
+
+  const p = state.gd.players?.[name];
+  const isMe = name === state.me;
+  const img = p?.avatarImg;
+  const hcp = p?.handicap;
+  const homeCourse = p?.homeCourse || '';
+
+  // Determine friend status
+  let friendStatus = 'none'; // 'none' | 'friends' | 'pending'
+  try {
+    const { loadFriends } = await import('./friends.js');
+    const friendships = await loadFriends();
+    const rel = friendships.find(f => f.requester === name || f.addressee === name);
+    if (rel?.status === 'accepted') friendStatus = 'friends';
+    else if (rel?.status === 'pending') friendStatus = 'pending';
+  } catch {}
+
+  // Compute stats from rounds
+  const rs = p?.rounds || [];
+  const currentYear = String(new Date().getFullYear());
+  const seasonRounds = rs.filter(r => r.date?.split('/')?.[2] === currentYear);
+  const sorted = [...rs].sort((a, b) => parseDateGB(b.date) - parseDateGB(a.date));
+  const last5 = sorted.slice(0, 5);
+  const lastRound = sorted[0] || null;
+
+  const avgScore = seasonRounds.length
+    ? Math.round(seasonRounds.reduce((s, r) => s + (r.totalScore || 0), 0) / seasonRounds.length)
+    : null;
+  const bestRound = seasonRounds.length
+    ? Math.min(...seasonRounds.map(r => r.diff).filter(d => d != null))
+    : null;
+
+  // Avatar
+  const avatarSize = 80;
+  const avatarEl = img
+    ? `<img src="${img}" style="width:${avatarSize}px;height:${avatarSize}px;border-radius:50%;object-fit:cover;border:2px solid ${isMe ? 'var(--gold)' : 'rgba(255,255,255,.15)'}">`
+    : `<div class="avatar" style="width:${avatarSize}px;height:${avatarSize}px;font-size:24px;border:2px solid rgba(255,255,255,.15)">${initials(name)}</div>`;
+
+  // Friend action button
+  let friendBtn = '';
+  if (!isMe) {
+    if (friendStatus === 'friends') {
+      friendBtn = `<div style="display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:20px;background:rgba(46,204,113,.1);border:1px solid rgba(46,204,113,.3);font-size:11px;font-weight:600;color:var(--par)">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Friends</div>`;
+    } else if (friendStatus === 'pending') {
+      friendBtn = `<div style="padding:6px 14px;border-radius:20px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);font-size:11px;font-weight:600;color:var(--gold)">Request pending</div>`;
+    } else {
+      friendBtn = `<button id="pp-add-friend" class="btn" style="padding:8px 20px;border-radius:20px;font-size:12px">Add friend</button>`;
+    }
+  }
+
+  // Score pill colour
+  const pillCol = d => d <= -2 ? 'var(--eagle)' : d < 0 ? 'var(--birdie)' : d === 0 ? 'var(--par)' : d <= 2 ? 'var(--bogey)' : 'var(--double)';
+
+  // Last round card
+  let lastRoundHtml = '';
+  if (lastRound) {
+    const dv = lastRound.diff >= 0 ? '+' + lastRound.diff : '' + lastRound.diff;
+    lastRoundHtml = `
+      <div style="margin-top:20px">
+        <div style="font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:8px">Last round</div>
+        <div class="card" style="padding:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-size:14px;font-weight:600;color:var(--cream)">${lastRound.course || 'Unknown'}</div>
+              <div style="font-size:11px;color:var(--dim);margin-top:2px">${lastRound.date}${lastRound.tee ? ' · ' + lastRound.tee + ' tees' : ''}</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:22px;font-weight:700;color:var(--cream)">${lastRound.totalScore || '—'}</div>
+              <div style="font-size:11px;font-weight:600;color:${pillCol(lastRound.diff)}">${dv}</div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // Recent form pills
+  let formHtml = '';
+  if (last5.length > 1) {
+    const pills = last5.map(r => {
+      const d = r.diff;
+      const label = d >= 0 ? '+' + d : '' + d;
+      return `<div style="padding:4px 10px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid ${pillCol(d)};font-size:12px;font-weight:700;color:${pillCol(d)}">${label}</div>`;
+    }).join('');
+    formHtml = `
+      <div style="margin-top:20px">
+        <div style="font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:8px">Recent form</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">${pills}</div>
+      </div>`;
+  }
+
+  content.innerHTML = `
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="display:flex;justify-content:center;margin-bottom:12px">${avatarEl}</div>
+      <div style="font-size:20px;font-weight:700;color:var(--cream)">${name}</div>
+      ${hcp != null ? `<div style="font-size:13px;color:var(--dim);margin-top:4px">Handicap ${hcp}</div>` : ''}
+      ${homeCourse ? `<div style="font-size:11px;color:var(--dimmer);margin-top:2px">${homeCourse}</div>` : ''}
+      <div style="margin-top:12px">${friendBtn}</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center">
+      <div class="card" style="padding:12px 8px">
+        <div style="font-size:20px;font-weight:700;color:var(--cream)">${seasonRounds.length}</div>
+        <div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-top:2px">Rounds</div>
+      </div>
+      <div class="card" style="padding:12px 8px">
+        <div style="font-size:20px;font-weight:700;color:var(--cream)">${avgScore ?? '—'}</div>
+        <div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-top:2px">Avg score</div>
+      </div>
+      <div class="card" style="padding:12px 8px">
+        <div style="font-size:20px;font-weight:700;color:${bestRound != null ? pillCol(bestRound) : 'var(--cream)'}">${bestRound != null ? (bestRound >= 0 ? '+' + bestRound : bestRound) : '—'}</div>
+        <div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-top:2px">Best vs par</div>
+      </div>
+    </div>
+
+    ${lastRoundHtml}
+    ${formHtml}
+  `;
+
+  // Wire add friend button
+  const addBtn = document.getElementById('pp-add-friend');
+  if (addBtn) {
+    addBtn.addEventListener('click', async () => {
+      addBtn.disabled = true;
+      addBtn.textContent = 'Sending…';
+      try {
+        const { sendFriendRequest } = await import('./friends.js');
+        await sendFriendRequest(name);
+        addBtn.outerHTML = `<div style="padding:6px 14px;border-radius:20px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);font-size:11px;font-weight:600;color:var(--gold)">Request sent</div>`;
+      } catch {
+        addBtn.disabled = false;
+        addBtn.textContent = 'Add friend';
+      }
+    });
+  }
+
+  // Show sheet
+  sheet.style.display = 'block';
+  sheet.style.animation = 'slideInRight .25s ease-out';
+
+  // Back button
+  document.getElementById('pp-back-btn').onclick = () => {
+    sheet.style.display = 'none';
+  };
 }

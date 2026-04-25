@@ -489,6 +489,15 @@ function renderViewContent() {
           <div style="width:100%;height:${ht}px;border-radius:6px 6px 0 0;${blockBg};display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700">${pos + 1}</div>
         </div>`;
       }).join('') + '</div>';
+    // Make podium entries tappable
+    podiumEl.querySelectorAll('[style*="flex-direction:column"]').forEach((el, i) => {
+      if (top3[i]) {
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', () => {
+          import('./players.js').then(m => m.showPlayerProfile(top3[i].name));
+        });
+      }
+    });
   }
 
   // ── View explainer (between podium and list) ───────────────────
@@ -519,6 +528,10 @@ function renderViewContent() {
           <div style="font-size:16px;font-weight:700;color:var(--cream)">${fmtVal(p)}</div>
           <div style="font-size:10px;color:var(--dim)">${view.unit}</div>
         </div>`;
+      row.style.cursor = 'pointer';
+      row.addEventListener('click', () => {
+        import('./players.js').then(m => m.showPlayerProfile(p.name));
+      });
       listEl.appendChild(row);
     });
   }

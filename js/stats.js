@@ -831,7 +831,7 @@ export async function renderFeedPage() {
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
           ${avatarHtml(ev.name, 30, isMe)}
           <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:600;color:${isMe ? 'var(--gold)' : 'var(--cream)'}">${ev.name}</div>
+            <div class="feed-player-name" data-player="${ev.name}" style="font-size:13px;font-weight:600;color:${isMe ? 'var(--gold)' : 'var(--cream)'}">${ev.name}</div>
             <div style="font-size:10px;color:var(--dim)">${ev.text}</div>
           </div>
         </div>
@@ -864,11 +864,20 @@ export async function renderFeedPage() {
 
   feedEl.innerHTML = html;
 
+  // Wire player name taps → open profile
+  feedEl.querySelectorAll('.feed-player-name').forEach(el => {
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      import('./players.js').then(m => m.showPlayerProfile(el.dataset.player));
+    });
+  });
+
   // Wire round card taps to open scorecard modal
   feedEl.querySelectorAll('.feed-card').forEach(card => {
     card.addEventListener('click', (e) => {
-      // Don't open scorecard if clicking like/comment buttons
-      if (e.target.closest('.feed-like-btn') || e.target.closest('.feed-comment-btn') || e.target.closest('.feed-comments-area') || e.target.closest('input') || e.target.closest('button')) return;
+      // Don't open scorecard if clicking like/comment buttons or player name
+      if (e.target.closest('.feed-like-btn') || e.target.closest('.feed-comment-btn') || e.target.closest('.feed-comments-area') || e.target.closest('.feed-player-name') || e.target.closest('input') || e.target.closest('button')) return;
       const idx = parseInt(card.dataset.roundIdx);
       const ev = deduped[idx];
       if (ev?.round) openScorecardModal(ev.round);

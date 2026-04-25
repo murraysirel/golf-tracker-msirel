@@ -46,6 +46,7 @@ body{
   color:var(--cream);
   display:flex;flex-direction:column;
   overscroll-behavior:none;
+  touch-action:manipulation;
 }
 
 /* ── Scrollable pages ─────────────────────────────────────────── */
@@ -360,7 +361,7 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
   font-size:26px;font-weight:700;color:var(--gold);
   display:block;line-height:1;
 }
-.kl{font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px;margin-top:4px;display:block}
+.kl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px;margin-top:4px;display:block}
 .ks{font-size:10px;color:var(--dimmer);margin-top:2px}
 
 /* ── Home KPI 2×2 grid ────────────────────────────────────────── */
@@ -502,7 +503,7 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
 .sg{width:100%;border-collapse:collapse;font-size:12px}
 .sg th{
   background:rgba(30,51,88,.8);color:var(--gold);
-  font-size:8px;letter-spacing:1.5px;text-transform:uppercase;
+  font-size:9px;letter-spacing:1.5px;text-transform:uppercase;
   padding:7px 4px;text-align:center;
   font-family:'DM Sans',sans-serif;font-weight:500;
 }
@@ -554,7 +555,7 @@ input[type=checkbox]{width:auto;accent-color:var(--gold)}
   border-radius:10px;padding:10px 5px;
 }
 .bv{font-family:'DM Sans',sans-serif;font-size:28px;font-weight:700;display:block;line-height:1}
-.bl{font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+.bl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
 .ec{color:var(--eagle)}.bc{color:var(--birdie)}.prc{color:var(--par)}.bgc{color:var(--bogey)}.dc{color:var(--double)}
 
 /* ── History items ────────────────────────────────────────────── */

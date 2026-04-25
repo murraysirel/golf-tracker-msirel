@@ -228,7 +228,7 @@ export async function renderFriendsTab() {
       const lastInfo = lastRound
         ? `Last: ${lastRound.course?.replace(/ Golf Club| Golf Course| Golf Links/g, '')} · ${lastRound.date}`
         : 'No rounds yet';
-      html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--wa-06)">
+      html += `<div class="friend-row" data-friend="${name}" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--wa-06);cursor:pointer;-webkit-tap-highlight-color:transparent">
         ${avatarHtml(name, 36, false)}
         <div style="flex:1;min-width:0">
           <div style="font-size:13px;font-weight:600;color:var(--cream)">${name}</div>
@@ -240,6 +240,14 @@ export async function renderFriendsTab() {
   }
 
   el.innerHTML = html;
+
+  // Wire friend row taps → open profile
+  el.querySelectorAll('.friend-row').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('img[onclick]')) return; // don't intercept avatar zoom
+      import('./players.js').then(m => m.showPlayerProfile(row.dataset.friend));
+    });
+  });
 
   // Wire live search
   let _searchTimer = null;
