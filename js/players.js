@@ -276,6 +276,11 @@ export function showSignupStep(n) {
     if (lf) lf.style.display = 'block';
     if (mf) mf.style.display = 'none';
   }
+  // Clear stale error messages when navigating between steps
+  const privacyErr = document.getElementById('onb-privacy-err');
+  if (privacyErr) privacyErr.style.display = 'none';
+  const profileErr = document.getElementById('onb-profile-err');
+  if (profileErr) profileErr.style.display = 'none';
   document.getElementById('onb-step-profile').style.display = n === 1 ? 'block' : 'none';
   document.getElementById('onb-step-privacy').style.display = n === 2 ? 'block' : 'none';
   const cps = document.getElementById('onb-step-complete-profile');
