@@ -298,6 +298,7 @@ export function supabaseRoundToApp(r) {
     bogeys: r.bogeys, doubles: r.doubles, eagles: r.eagles,
     penalties: r.penalties, bunkers: r.bunkers, chips: r.chips,
     rating: r.rating, slope: r.slope,
+    handicap: r.handicap ?? null,
     aiReview: r.ai_review, wolfResult: r.wolf_result,
     matchResult: r.match_result
   };

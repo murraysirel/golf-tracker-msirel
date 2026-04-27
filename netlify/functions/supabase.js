@@ -208,6 +208,7 @@ exports.handler = async (event) => {
         chips: round.chips || 0,
         rating: round.rating,
         slope: round.slope,
+        handicap: round.handicap ?? null,
         ai_review: round.aiReview || null,
         wolf_result: round.wolfResult || null,
         match_result: round.matchResult || null,

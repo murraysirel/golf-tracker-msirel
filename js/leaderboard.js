@@ -349,7 +349,9 @@ export function renderLeaderboard() {
     const allRs = p.rounds || [];
     const rs = filterRounds(allRs, name);
     if (!rs.length) return null;
-    const handicap = p.handicap || 0;
+    // Use per-round handicap snapshot (frozen at time of play), fall back to current for legacy rounds
+    const currentHcp = p.handicap || 0;
+    const hcpFor = r => r.handicap ?? currentHcp;
     const sc = rs.map(r => r.totalScore).filter(Boolean);
     const diffs = rs.map(r => r.diff).filter(v => v != null);
     const eagles = rs.reduce((a, r) => a + (r.eagles || 0), 0);
@@ -362,7 +364,7 @@ export function renderLeaderboard() {
     const stabTotals = stabRounds.map(r => {
       const course = getCourseByRef(r.course) || Object.values(COURSES || []).find(c => c.name === r.course);
       const si = course?.tees?.[r.tee]?.si || null;
-      return calcStableford(r.scores, r.pars, handicap, r.slope, si);
+      return calcStableford(r.scores, r.pars, hcpFor(r), r.slope, si);
     }).filter(v => v != null);
     const avgStab = stabTotals.length ? +(stabTotals.reduce((a, b) => a + b, 0) / stabTotals.length).toFixed(1) : null;
 
@@ -371,7 +373,7 @@ export function renderLeaderboard() {
     netPtsRounds.forEach(r => {
       const course = getCourseByRef(r.course) || Object.values(COURSES || []).find(c => c.name === r.course);
       const si = course?.tees?.[r.tee]?.si || null;
-      const res = calcScoringPointsNet(r.scores, r.pars, handicap, r.slope, si);
+      const res = calcScoringPointsNet(r.scores, r.pars, hcpFor(r), r.slope, si);
       if (res) { netPtsTotal += res.total; netPtsEagles += res.netEagles; netPtsBirdies += res.netBirdies; if (res.netBirdies > bestNetBirdies) bestNetBirdies = res.netBirdies; }
     });
     const netPts = netPtsRounds.length ? netPtsTotal : null;
@@ -379,12 +381,12 @@ export function renderLeaderboard() {
     const netRounds = rs.filter(r => r.totalScore && r.totalPar);
     const netScores = netRounds.map(r => {
       const slope = r.slope || 113;
-      const playingHcp = Math.round(handicap * (slope / 113));
+      const playingHcp = Math.round(hcpFor(r) * (slope / 113));
       return r.totalScore - playingHcp;
     });
     const avgNet = netScores.length ? +(netScores.reduce((a, b) => a + b, 0) / netScores.length).toFixed(1) : null;
 
-    const bufferCount = handicap > 0 ? rs.filter(r => isBufferOrBetter(r, handicap)).length : null;
+    const bufferCount = currentHcp > 0 ? rs.filter(r => isBufferOrBetter(r, hcpFor(r))).length : null;
 
     // Best birdies in a single round
     let bestBirdies = 0;

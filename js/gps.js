@@ -51,16 +51,28 @@ export async function startGPSWatch() {
   if (midEl && midEl.textContent === '—') midEl.textContent = '...';
 
   if (IS_NATIVE) {
-    const Geo = await _getNativeGeo();
-    state.gpsState.watchId = await Geo.watchPosition(
-      { enableHighAccuracy: true },
-      (pos) => {
-        if (pos) {
-          state.gpsState.coords = pos.coords;
-          updateGPSDisplay(state.liveState?.hole || 0);
-        }
+    try {
+      const Geo = await _getNativeGeo();
+      const perms = await Geo.requestPermissions();
+      if (perms.location === 'denied') {
+        if (midEl) midEl.textContent = 'No GPS';
+        state.gpsState.watching = false;
+        return;
       }
-    );
+      state.gpsState.watchId = await Geo.watchPosition(
+        { enableHighAccuracy: true },
+        (pos) => {
+          if (pos) {
+            state.gpsState.coords = pos.coords;
+            updateGPSDisplay(state.liveState?.hole || 0);
+          }
+        }
+      );
+    } catch (e) {
+      console.warn('[GPS] native start failed:', e);
+      if (midEl) midEl.textContent = 'No GPS';
+      state.gpsState.watching = false;
+    }
     return;
   }
 

@@ -236,7 +236,8 @@ export function saveRound() {
       penalties: parseInt(document.getElementById('r-pen')?.value) || 0,
       bunkers: parseInt(document.getElementById('r-bun')?.value) || 0,
       chips: parseInt(document.getElementById('r-chip')?.value) || 0,
-      rating: t.rating, slope: t.slope
+      rating: t.rating, slope: t.slope,
+      handicap: state.gd.players[target]?.handicap || 0
     };
 
     // ── Append to state ──────────────────────────────────────────

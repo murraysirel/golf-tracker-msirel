@@ -1264,6 +1264,7 @@ async function liveGroupSave() {
       doubles: sc.filter((s, i) => s && s >= state.cpars[i] + 2).length,
       eagles: sc.filter((s, i) => s && s <= state.cpars[i] - 2).length,
       rating: teeData.rating, slope: teeData.slope,
+      handicap: state.gd.players[name]?.handicap || 0,
       // Include match outcome if match play was used
       ...(state.liveState.matchPlay && state.liveState.matchResult
         ? { matchOutcome: { ...state.liveState.matchResult } }
@@ -1315,6 +1316,7 @@ async function liveGroupSave() {
         doubles: sc.filter((s, i) => s && s >= state.cpars[i] + 2).length,
         eagles: sc.filter((s, i) => s && s <= state.cpars[i] - 2).length,
         rating: teeData.rating, slope: teeData.slope,
+        handicap: state.gd.players[playerName]?.handicap || 0,
         wolfResult
       };
       if (!state.gd.players[playerName]) state.gd.players[playerName] = { handicap: 0, rounds: [] };
