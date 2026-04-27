@@ -1087,9 +1087,11 @@ export function renderHomeStats() {
       if (cur === null || prev === null) return '';
       const d = cur - prev;
       if (Math.abs(d) < 0.1) return '<span style="color:var(--dim)">—</span>';
-      const good = inverted ? d < 0 : d > 0;
+      // inverted=true → lower is better (avg score, putts, doubles)
+      // inverted=false → higher is better (FIR%, GIR%, birdies, stableford)
+      const improved = inverted ? d < 0 : d > 0;
       const arrow = d > 0 ? _upArrow : _dnArrow;
-      return `<span class="${good ? 'delta-up' : 'delta-dn'}">${arrow} ${Math.abs(d).toFixed(1)}</span>`;
+      return `<span class="${improved ? 'delta-up' : 'delta-dn'}">${arrow} ${Math.abs(d).toFixed(1)}</span>`;
     }
 
     function avgPuttsPerHole(rounds) {

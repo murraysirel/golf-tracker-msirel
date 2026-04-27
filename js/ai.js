@@ -181,9 +181,12 @@ export async function generateAIReview() {
 
 ${r.course} (${r.tee}, par ${r.totalPar}) ${r.date} — Score: ${r.totalScore} (${r.diff >= 0 ? '+' : ''}${r.diff})
 ${holeSummary}
-Eagles:${r.eagles||0} Birdies:${r.birdies||0} Pars:${r.parsCount||0} Bogeys:${r.bogeys||0} Doubles+:${r.doubles||0}${totalPutts ? ` Putts:${totalPutts}(${(totalPutts/18).toFixed(1)}/hole)` : ''}${girPct != null ? ` GIR:${girPct}%` : ''}${firCount != null ? ` FIR:${firCount}/${firHoles}` : ''}${r.notes ? ` Notes:"${r.notes}"` : ''}
+Eagles:${r.eagles||0} Birdies:${r.birdies||0} Pars:${r.parsCount||0} Bogeys:${r.bogeys||0} Doubles+:${r.doubles||0}${totalPutts ? ` Putts:${totalPutts}(${(totalPutts/18).toFixed(1)}/hole)` : ''}${girPct != null ? ` GIR(greens hit in regulation):${girPct}%` : ''}${firCount != null ? ` FIR(fairways hit off the tee, excl par 3s):${firCount}/${firHoles}` : ''}${r.notes ? ` Notes:"${r.notes}"` : ''}
 
-IMPORTANT: Only mention eagles if eagles > 0. Only mention birdies if birdies > 0. Do not assume scoring opportunities that aren't in the data. Base the review strictly on what the numbers show.
+IMPORTANT:
+- Only mention eagles if eagles > 0. Only mention birdies if birdies > 0.
+- FIR = fairways hit off the tee (driving accuracy). GIR = greens reached in regulation (approach accuracy). These are DIFFERENT stats — do not conflate them.
+- Base the review strictly on what the numbers show. Do not assume data not provided.
 
 Respond ONLY with valid JSON:
 {
@@ -246,7 +249,22 @@ export async function generateStatsAnalysis() {
   const avgDiff = +(last5.reduce((a, r) => a + (r.diff || 0), 0) / 5).toFixed(1);
   const handicap = state.gd.players[state.me]?.handicap || 'unknown';
 
-  const prompt = `Golf coach analysing patterns across ${state.me}'s last 5 rounds. Handicap: ${handicap}. Avg: ${avgScore} (${avgDiff >= 0 ? '+' : ''}${avgDiff}).
+  // Compute score trend: compare first half vs second half of the 5 rounds
+  const firstHalf = last5.slice(0, Math.floor(last5.length / 2));
+  const secondHalf = last5.slice(Math.floor(last5.length / 2));
+  const firstAvg = firstHalf.length ? +(firstHalf.reduce((a, r) => a + (r.diff || 0), 0) / firstHalf.length).toFixed(1) : null;
+  const secondAvg = secondHalf.length ? +(secondHalf.reduce((a, r) => a + (r.diff || 0), 0) / secondHalf.length).toFixed(1) : null;
+  const trendNote = firstAvg != null && secondAvg != null
+    ? `Score trend: earlier rounds avg ${firstAvg >= 0 ? '+' : ''}${firstAvg}, recent rounds avg ${secondAvg >= 0 ? '+' : ''}${secondAvg} (${secondAvg > firstAvg ? 'scores getting WORSE' : secondAvg < firstAvg ? 'scores IMPROVING' : 'stable'}).`
+    : '';
+
+  const prompt = `Golf coach analysing patterns across ${state.me}'s last 5 rounds. Current handicap: ${handicap}. Avg score vs par: ${avgDiff >= 0 ? '+' : ''}${avgDiff}.
+${trendNote}
+
+IMPORTANT:
+- FIR = fairways hit off the tee (driving accuracy). GIR = greens reached in regulation (approach accuracy). These are DIFFERENT stats — do not conflate them.
+- Higher scores = worse performance. A handicap trending UP means the player is getting WORSE, not better.
+- Base analysis strictly on the data provided. Do not invent trends not shown in the numbers.
 
 ${roundsSummary}
 
@@ -255,7 +273,7 @@ Find genuine multi-round patterns, not single-round noise. Respond ONLY with val
   "positive": "Strongest consistent pattern (2 sentences, cite numbers)",
   "negative": "Most persistent weakness across rounds (2 sentences, cite stats)",
   "drill": "One high-priority drill with exact reps and measurable target (2 sentences)",
-  "handicap": "Handicap trajectory — up, down or stable? Why? (1 sentence)"
+  "handicap": "Score trajectory based on the 5 rounds above — improving, worsening, or stable? Why? (1 sentence)"
 }`;
 
   const sparkSVG = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3z"/></svg>';
