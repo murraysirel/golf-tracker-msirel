@@ -1030,10 +1030,11 @@ export function renderHomeStats() {
     return;
   }
   const rs = p.rounds || [];
-  // Skip full recompute if data hasn't changed (same round count, within 60s)
+  // Skip full recompute if data hasn't changed (same round count + same KPI selection, within 60s)
   const rc = rs.length;
-  if (_homeStatsCache.roundCount === rc && Date.now() - _homeStatsCache.ts < 60000 && rc > 0) return;
-  _homeStatsCache = { ts: Date.now(), roundCount: rc };
+  const kpiKey = (localStorage.getItem('looper_home_kpis') || '');
+  if (_homeStatsCache.roundCount === rc && _homeStatsCache.kpiKey === kpiKey && Date.now() - _homeStatsCache.ts < 60000 && rc > 0) return;
+  _homeStatsCache = { ts: Date.now(), roundCount: rc, kpiKey };
 
   // ── 3a. Hero header ──────────────────────────────────────────
   const hr = new Date().getHours();
