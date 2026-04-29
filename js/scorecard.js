@@ -257,6 +257,21 @@ export function saveRound() {
     notifySuccess();
     if (toast) toast('Round saved! Syncing to cloud\u2026', 'success', 3000);
 
+    // ── Streak check (non-blocking) ─────────────────────────────
+    import('./streaks.js').then(({ computeStreaks, formatStreak }) => {
+      const playerRounds = state.gd.players[target]?.rounds || [];
+      const hcp = state.gd.players[target]?.handicap || 0;
+      const streaks = computeStreaks(playerRounds, hcp);
+      ['bufferOrBetter', 'sub36Putts', 'roundsIn30Days'].forEach(key => {
+        const s = streaks[key];
+        if (s.current > 1) {
+          const f = formatStreak(key, s);
+          const pbText = s.current >= s.pb ? ' — new PB!' : '';
+          setTimeout(() => { if (toast) toast(`${f.icon} ${s.current} ${f.label.toLowerCase()} in a row${pbText}`, 'info', 4000); }, 3500);
+        }
+      });
+    }).catch(() => {});
+
     // ── Network sync — fire-and-forget ───────────────────────────
     pushData().catch(err => _handleSaveError('pushData', err, rnd));
 

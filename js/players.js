@@ -6,6 +6,7 @@ import { pushData, querySupabase, loadGroupData, loadAppData } from './api.js';
 import { goTo } from './nav.js';
 import { initCourseSearch, renderScannedCourses } from './courses.js';
 import { renderHomeStats, parseDateGB } from './stats.js';
+import { computeStreaks, formatStreak } from './streaks.js';
 
 export function initials(n) {
   return n.split(' ').map(p => p[0] || '').join('').toUpperCase().slice(0, 2);
@@ -790,6 +791,31 @@ function renderSeasonList() {
   });
 }
 
+// ── Streaks card for profile ──────────────────────────────────────
+function _renderStreaksCard(rounds, handicap) {
+  if (!rounds?.length) return '';
+  const streaks = computeStreaks(rounds, handicap);
+  const items = ['bufferOrBetter', 'sub36Putts', 'roundsIn30Days'].map(key => {
+    const s = formatStreak(key, streaks[key]);
+    if (s.current === 0 && s.pb === 0) return '';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:16px">${s.icon || '—'}</span>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--cream)">${s.label}</div>
+          <div style="font-size:10px;color:var(--dim)">Best: ${s.pb}</div>
+        </div>
+      </div>
+      <div style="font-size:18px;font-weight:700;color:${s.isPB ? 'var(--gold)' : 'var(--cream)'}">${s.current}</div>
+    </div>`;
+  }).filter(Boolean).join('');
+  if (!items) return '';
+  return `<div style="margin-top:20px">
+    <div style="font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:8px">Streaks</div>
+    <div class="card" style="padding:12px 14px">${items}</div>
+  </div>`;
+}
+
 // ── Player profile sheet ─────────────────────────────────────────
 
 export async function showPlayerProfile(name) {
@@ -913,6 +939,7 @@ export async function showPlayerProfile(name) {
 
     ${lastRoundHtml}
     ${formHtml}
+    ${_renderStreaksCard(rs, hcp || 0)}
   `;
 
   // Wire add friend button
