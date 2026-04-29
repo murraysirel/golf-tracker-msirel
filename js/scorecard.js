@@ -292,6 +292,12 @@ export function saveRound() {
       });
     }).catch(() => {});
 
+    // ── 24-hour review reminder (local notification) ──────────────
+    _scheduleReviewReminder(rnd);
+
+    // ── Course leaderboard rank (non-blocking) ──────────────────
+    _showCourseRank(rnd);
+
     // ── Network sync — fire-and-forget ───────────────────────────
     pushData().catch(err => _handleSaveError('pushData', err, rnd));
 
@@ -476,4 +482,106 @@ export function toggleSCExtras() {
   if (!table) return;
   const visible = table.classList.toggle('sc-extras-visible');
   if (toggle) toggle.textContent = visible ? 'Less −' : 'More +';
+}
+
+// ── 24-hour review reminder ─────────────────────────────────────
+const REVIEW_REMINDER_KEY = 'looper_review_reminder';
+
+async function _scheduleReviewReminder(round) {
+  const courseName = (round.course || '').replace(/ Golf Club$| Golf Course$| Golf Links$/, '') || 'your round';
+  // Store pending reminder so we can cancel if user views review early
+  localStorage.setItem(REVIEW_REMINDER_KEY, JSON.stringify({ roundId: round.id, course: courseName, scheduledAt: Date.now() }));
+
+  try {
+    const { IS_NATIVE } = await import('./config.js');
+    if (IS_NATIVE) {
+      const { LocalNotifications } = await import('@capacitor/local-notifications');
+      const perms = await LocalNotifications.requestPermissions();
+      if (perms.display === 'denied') return;
+      await LocalNotifications.schedule({
+        notifications: [{
+          id: round.id % 2147483647, // int32 max
+          title: 'Your Looper review is ready',
+          body: `Your full coaching review of ${courseName} is waiting in the app`,
+          schedule: { at: new Date(Date.now() + 24 * 60 * 60 * 1000) },
+          extra: { type: 'review_reminder', roundId: round.id }
+        }]
+      });
+    } else if ('Notification' in window && Notification.permission !== 'denied') {
+      // PWA: request permission on first round save
+      if (Notification.permission === 'default') await Notification.requestPermission();
+      if (Notification.permission === 'granted') {
+        // Use setTimeout as fallback (cleared if user views review)
+        window._reviewReminderTimer = setTimeout(() => {
+          new Notification('Your Looper review is ready', {
+            body: `Your full coaching review of ${courseName} is waiting in the app`,
+            icon: '/assets/icon-192.png'
+          });
+        }, 24 * 60 * 60 * 1000);
+      }
+    }
+  } catch (e) {
+    console.warn('[review-reminder] schedule failed:', e);
+  }
+}
+
+/** Cancel the pending review reminder (call when user views the full AI review) */
+export function cancelReviewReminder() {
+  localStorage.removeItem(REVIEW_REMINDER_KEY);
+  if (window._reviewReminderTimer) { clearTimeout(window._reviewReminderTimer); window._reviewReminderTimer = null; }
+  import('./config.js').then(({ IS_NATIVE }) => {
+    if (!IS_NATIVE) return;
+    import('@capacitor/local-notifications').then(({ LocalNotifications }) => {
+      const raw = localStorage.getItem(REVIEW_REMINDER_KEY);
+      if (raw) {
+        try {
+          const { roundId } = JSON.parse(raw);
+          LocalNotifications.cancel({ notifications: [{ id: roundId % 2147483647 }] });
+        } catch {}
+      }
+    }).catch(() => {});
+  }).catch(() => {});
+}
+
+// ── Course leaderboard rank ─────────────────────────────────────
+async function _showCourseRank(round) {
+  if (!round.course || !round.totalScore) return;
+  try {
+    const { querySupabase } = await import('./api.js');
+    const res = await querySupabase('getCourseLeaderboard', { course: round.course });
+    if (!res?.leaderboard?.length) {
+      const toast = window._looperToast;
+      if (toast) setTimeout(() => toast(`First Looper round at ${round.course.replace(/ Golf Club$| Golf Course$| Golf Links$/, '')} — you've set the bar!`, 'info', 4000), 8000);
+      return;
+    }
+    // Find this round's rank by stableford points
+    const myPts = _quickStab(round);
+    if (myPts == null) return;
+    const rank = res.leaderboard.filter(r => r.pts > myPts).length + 1;
+    const total = res.leaderboard.length;
+    const courseName = round.course.replace(/ Golf Club$| Golf Course$| Golf Links$/, '');
+    const toast = window._looperToast;
+    if (rank <= 3 && toast) {
+      const suffix = rank === 1 ? 'st' : rank === 2 ? 'nd' : 'rd';
+      setTimeout(() => toast(`You're ${rank}${suffix} at ${courseName} this month!`, 'info', 5000), 8500);
+    } else if (rank <= 10 && toast) {
+      setTimeout(() => toast(`Top ${rank} of ${total} at ${courseName} this month`, 'info', 4000), 8500);
+    }
+  } catch {}
+}
+
+function _quickStab(r) {
+  if (!r.scores || !r.pars) return null;
+  let pts = 0;
+  for (let i = 0; i < 18; i++) {
+    const s = r.scores[i], p = r.pars?.[i] || 4;
+    if (!s) continue;
+    const d = s - p;
+    if (d <= -3) pts += 5;
+    else if (d === -2) pts += 4;
+    else if (d === -1) pts += 3;
+    else if (d === 0) pts += 2;
+    else if (d === 1) pts += 1;
+  }
+  return pts;
 }

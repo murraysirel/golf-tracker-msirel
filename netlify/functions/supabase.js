@@ -242,6 +242,40 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     }
 
+    // ── getCourseLeaderboard — top rounds at a course this month ───
+    if (action === 'getCourseLeaderboard') {
+      const { course, monthsBack } = data;
+      if (!course) return { statusCode: 400, headers, body: JSON.stringify({ error: 'course required' }) };
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - (monthsBack || 1) * 30);
+      const cutoffStr = cutoff.toISOString().split('T')[0];
+      const { data: rows } = await supabase
+        .from('rounds')
+        .select('player_name, total_score, total_par, diff, scores, pars, date')
+        .eq('course', course)
+        .gte('created_at', cutoffStr)
+        .order('diff', { ascending: true })
+        .limit(20);
+      // Calculate stableford for each round
+      const leaderboard = (rows || []).map(r => {
+        let pts = 0;
+        if (r.scores && r.pars) {
+          for (let i = 0; i < 18; i++) {
+            const s = r.scores[i], p = (r.pars || [])[i] || 4;
+            if (!s) continue;
+            const d = s - p;
+            if (d <= -3) pts += 5;
+            else if (d === -2) pts += 4;
+            else if (d === -1) pts += 3;
+            else if (d === 0) pts += 2;
+            else if (d === 1) pts += 1;
+          }
+        }
+        return { player: r.player_name, score: r.total_score, diff: r.diff, pts, date: r.date };
+      }).sort((a, b) => b.pts - a.pts).slice(0, 10);
+      return { statusCode: 200, headers, body: JSON.stringify({ leaderboard }) };
+    }
+
     // ── getPlayerBadges — fetch badges for a player ────────────────
     if (action === 'getPlayerBadges') {
       const { playerName } = data;

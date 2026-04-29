@@ -146,6 +146,8 @@ Use null for any value you cannot read with confidence. Putts and SI arrays shou
 
 export async function generateAIReview() {
   if (!checkAccess('ai_reviews')) { showUpgradePrompt('ai_reviews'); return; }
+  // Cancel the 24-hour review reminder since user is viewing now
+  import('./scorecard.js').then(m => m.cancelReviewReminder?.()).catch(() => {});
   const sel = document.getElementById('ai-round-sel');
   const rs = state.gd.players[state.me]?.rounds || [];
   if (!rs.length) return;
