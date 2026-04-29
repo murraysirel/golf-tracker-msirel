@@ -768,7 +768,7 @@ exports.handler = async (event) => {
           format:        competition.format || 'stableford',
           team_format:   competition.team_format || false,
           rounds_config: competition.rounds_config || [],
-          players:       [competition.created_by],
+          players:       competition.players?.length ? competition.players : [competition.created_by],
           status:        'setup',
         })
         .select('*')

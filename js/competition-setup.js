@@ -19,8 +19,9 @@ export function generateCompCode() {
 }
 
 // ── Create competition ───────────────────────────────────────────
-export async function createCompetition(name, format, roundsConfig) {
+export async function createCompetition(name, format, roundsConfig, players) {
   const code = generateCompCode();
+  const playerList = players?.length ? players : [state.me];
   const res = await querySupabase('createCompetition', {
     competition: {
       code,
@@ -29,6 +30,7 @@ export async function createCompetition(name, format, roundsConfig) {
       admin_players: [state.me],
       format,
       rounds_config: roundsConfig || [],
+      players: playerList,
     }
   });
   return res;
@@ -76,7 +78,7 @@ export function renderCompetitionSetupModal() {
     </div>
 
     <label style="font-size:12px;color:var(--dim);margin-bottom:6px;display:block">Competition Name</label>
-    <input type="text" id="comp-setup-name" placeholder="e.g. Spring Invitational 2026" style="margin-bottom:16px">
+    <input type="text" id="comp-setup-name" placeholder="e.g. Spring Invitational 2026" style="width:100%;box-sizing:border-box;margin-bottom:16px;padding:12px;background:var(--mid);border:1px solid var(--border);border-radius:10px;color:var(--cream);font-size:14px;font-family:'DM Sans',sans-serif">
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
       <label style="font-size:12px;color:var(--dim);margin:0">Rounds</label>
@@ -96,6 +98,10 @@ export function renderCompetitionSetupModal() {
       <button class="theme-tab active" data-hcp="net">Net</button>
       <button class="theme-tab" data-hcp="gross">Gross</button>
     </div>
+
+    <label style="font-size:12px;color:var(--dim);margin-bottom:6px;display:block">Players</label>
+    <div style="font-size:11px;color:var(--dimmer);margin-bottom:8px">Tap to invite league members. Players can also join with the competition code.</div>
+    <div id="comp-player-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px"></div>
 
     <button id="comp-create-btn" class="btn" style="width:100%;border-radius:40px;padding:16px;font-size:15px">Create Competition →</button>
     <div id="comp-setup-msg" style="margin-top:8px;font-size:11px;color:var(--dim);text-align:center"></div>
@@ -119,6 +125,28 @@ export function renderCompetitionSetupModal() {
   }
   wireToggle('comp-scoring-wrap', 'scoring', v => { selectedScoring = v; });
   wireToggle('comp-hcp-wrap', 'hcp', v => { selectedHcp = v; });
+
+  // Player chips — league members as tappable invite pills
+  const invitedPlayers = new Set([state.me]);
+  function renderPlayerChips() {
+    const chipsEl = document.getElementById('comp-player-chips');
+    if (!chipsEl) return;
+    const allPlayers = Object.keys(state.gd.players || {});
+    chipsEl.innerHTML = allPlayers.map(name => {
+      const on = invitedPlayers.has(name);
+      const isMe = name === state.me;
+      return `<button class="comp-invite-chip" data-player="${name}" style="padding:6px 12px;border-radius:20px;font-size:11px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:${isMe ? 'default' : 'pointer'};border:1.5px solid ${on ? 'var(--gold)' : 'var(--border)'};background:${on ? 'rgba(201,168,76,.12)' : 'transparent'};color:${on ? 'var(--gold)' : 'var(--dim)'};opacity:${isMe ? '.6' : '1'}">${name}${isMe ? ' (you)' : ''}</button>`;
+    }).join('');
+    chipsEl.querySelectorAll('.comp-invite-chip').forEach(chip => {
+      const name = chip.dataset.player;
+      if (name === state.me) return; // can't remove yourself
+      chip.addEventListener('click', () => {
+        invitedPlayers.has(name) ? invitedPlayers.delete(name) : invitedPlayers.add(name);
+        renderPlayerChips();
+      });
+    });
+  }
+  renderPlayerChips();
 
   // Rounds list
   const roundsList = document.getElementById('comp-rounds-list');
@@ -144,10 +172,10 @@ export function renderCompetitionSetupModal() {
           <button data-idx="${i}" class="comp-round-del" style="background:none;border:none;color:var(--dimmer);font-size:16px;cursor:pointer;padding:0 4px">&times;</button>
         </div>
         <label style="font-size:10px;color:var(--dimmer);margin-bottom:4px;display:block">Date</label>
-        <input type="date" value="${r.date || ''}" style="width:100%;margin-bottom:10px;font-size:14px;padding:10px 12px" data-idx="${i}" class="comp-round-date">
+        <input type="date" value="${r.date || ''}" style="width:100%;box-sizing:border-box;margin-bottom:10px;font-size:14px;padding:10px 12px;background:var(--navy);border:1px solid var(--border);border-radius:8px;color:var(--cream)" data-idx="${i}" class="comp-round-date">
         <label style="font-size:10px;color:var(--dimmer);margin-bottom:4px;display:block">Course</label>
         <div style="position:relative">
-          <input type="text" placeholder="Search courses..." value="${r.course || ''}" style="width:100%;font-size:13px;padding:10px 12px" data-idx="${i}" class="comp-round-course">
+          <input type="text" placeholder="Search courses..." value="${r.course || ''}" style="width:100%;box-sizing:border-box;font-size:13px;padding:10px 12px;background:var(--navy);border:1px solid var(--border);border-radius:8px;color:var(--cream)" data-idx="${i}" class="comp-round-course">
           <div class="comp-course-results" data-idx="${i}" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:10;background:var(--card);border:1px solid var(--wa-12);border-radius:0 0 9px 9px;max-height:150px;overflow-y:auto"></div>
         </div>
         ${teeHtml ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${teeHtml}</div>` : ''}
@@ -258,19 +286,27 @@ export function renderCompetitionSetupModal() {
     }));
 
     try {
-      const res = await createCompetition(name, format, roundsConfig);
+      const res = await createCompetition(name, format, roundsConfig, [...invitedPlayers]);
       if (res?.ok && res.competition) {
         const code = res.competition.code;
-        if (msg) msg.innerHTML = `<span style="color:var(--par)">Created!</span> Share code: <strong style="color:var(--gold);letter-spacing:2px">${code}</strong>`;
-        if (btn) { btn.textContent = 'Done'; btn.disabled = true; }
         navigator.clipboard?.writeText(code).catch(() => {});
+        // Show success with code, then auto-close after brief display
+        if (msg) msg.innerHTML = `<span style="color:var(--par)">Created!</span> Code copied: <strong style="color:var(--gold);letter-spacing:2px;font-size:16px">${code}</strong>`;
+        if (btn) {
+          btn.textContent = 'Go to competition →';
+          btn.disabled = false;
+          btn.onclick = () => {
+            modal.style.display = 'none';
+            import('./nav.js').then(m => m.goTo('competition'));
+          };
+        }
       } else {
         if (msg) msg.textContent = 'Error creating competition. Try again.';
-        if (btn) { btn.disabled = false; btn.textContent = 'Create Competition'; }
+        if (btn) { btn.disabled = false; btn.textContent = 'Create Competition →'; }
       }
     } catch (e) {
       if (msg) msg.textContent = 'Network error. Try again.';
-      if (btn) { btn.disabled = false; btn.textContent = 'Create Competition'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Create Competition →'; }
     }
   });
 }
