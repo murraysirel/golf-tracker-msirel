@@ -1339,6 +1339,32 @@ initMatchOverlay();
         }
       } catch (_) {}
     }
+
+    // 7. Monthly handicap reminder (1st–3rd of each month)
+    const now = new Date();
+    if (now.getDate() <= 3) {
+      const dismissKey = 'looper_hcp_remind_' + now.getFullYear() + '-' + (now.getMonth() + 1);
+      if (!localStorage.getItem(dismissKey)) {
+        setTimeout(() => {
+          const banner = document.createElement('div');
+          banner.style.cssText = 'position:fixed;top:calc(var(--safe-top,0px) + 60px);left:16px;right:16px;background:var(--card);border:1px solid rgba(201,168,76,.3);border-radius:12px;padding:14px 16px;z-index:999;display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.4);animation:slideInRight .3s ease-out';
+          banner.innerHTML = `
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:600;color:var(--cream)">Update your handicap</div>
+              <div style="font-size:11px;color:var(--dim);margin-top:2px">New month — check England Golf for your latest index</div>
+            </div>
+            <button id="hcp-remind-dismiss" style="background:none;border:none;color:var(--dim);font-size:18px;cursor:pointer;padding:4px">×</button>`;
+          document.body.appendChild(banner);
+          document.getElementById('hcp-remind-dismiss')?.addEventListener('click', () => {
+            localStorage.setItem(dismissKey, '1');
+            banner.style.opacity = '0';
+            setTimeout(() => banner.remove(), 300);
+          });
+          // Auto-dismiss after 10 seconds
+          setTimeout(() => { if (banner.parentNode) { banner.style.opacity = '0'; setTimeout(() => banner.remove(), 300); } }, 10000);
+        }, 2000);
+      }
+    }
   } catch (e) {
     console.warn('[boot] unhandled error:', e);
     ss('ok', '');

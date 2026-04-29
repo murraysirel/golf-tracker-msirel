@@ -11,8 +11,13 @@ import { IS_NATIVE } from './config.js';
 let _NativeGeo = null;
 async function _getNativeGeo() {
   if (!_NativeGeo) {
-    const mod = await import('@capacitor/geolocation');
-    _NativeGeo = mod.Geolocation;
+    try {
+      const mod = await import('@capacitor/geolocation');
+      _NativeGeo = mod.Geolocation;
+    } catch {
+      console.warn('[GPS] @capacitor/geolocation not available');
+      return null;
+    }
   }
   return _NativeGeo;
 }
@@ -53,6 +58,7 @@ export async function startGPSWatch() {
   if (IS_NATIVE) {
     try {
       const Geo = await _getNativeGeo();
+      if (!Geo) { state.gpsState.watching = false; return; }
       const perms = await Geo.requestPermissions();
       if (perms.location === 'denied') {
         if (midEl) midEl.textContent = 'No GPS';

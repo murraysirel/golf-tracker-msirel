@@ -32,6 +32,7 @@ const VIEWS = [
   { id: 'fewest_doubles',    label: 'Fewest doubles',     field: 'avgDoubles',      unit: 'per round',  sort: (a,b) => (a.avgDoubles ?? 99) - (b.avgDoubles ?? 99),           barCol: 'rgba(231,76,60,0.5)',   higherBetter: false, invertBar: true },
   { id: 'most_birdies',      label: 'Most birdies',       field: 'bestBirdies',     unit: 'in a round', sort: (a,b) => (b.bestBirdies ?? -1) - (a.bestBirdies ?? -1),         barCol: 'rgba(52,152,219,0.7)',  higherBetter: true },
   { id: 'most_net_birdies',  label: 'Most net birdies',   field: 'bestNetBirdies',  unit: 'in a round', sort: (a,b) => (b.bestNetBirdies ?? -1) - (a.bestNetBirdies ?? -1),   barCol: 'rgba(52,152,219,0.7)',  higherBetter: true },
+  { id: 'avg_putts',         label: 'Avg putts/hole',     field: 'avgPutts',        unit: 'per hole',   sort: (a,b) => (a.avgPutts ?? 99) - (b.avgPutts ?? 99),               barCol: 'rgba(46,204,113,0.7)',  higherBetter: false, invertBar: true },
 ];
 // Hidden views (code kept for backward compat / future re-enable)
 // { id: 'birdies',     label: 'Birdies',     field: 'birdies',  unit: 'total',    sort: (a,b) => b.birdies - a.birdies,             barCol: 'rgba(52,152,219,0.7)',  higherBetter: true },
@@ -40,10 +41,17 @@ const VIEWS = [
 const VIEW_EXPLAINERS = {
   pts_scoring: '3 points for a net eagle · 1 point for a net birdie',
   net_score: 'Your best net score of the season counts',
+  avg_putts: 'Putts only count when taken on the green — chips and pitches from off the green are not putts',
 };
 
 // ── Fetch group membership + config, then render ─────────────────
 export async function initLeaderboard() {
+  // Render immediately with cached data — don't wait for API
+  if (state.gd.group) {
+    renderGroupSwitcher();
+    renderLeaderboard();
+  }
+  // Refresh group data in background
   if (state.me && state.gd.activeGroupCode) {
     const res = await querySupabase('getGroupByCode', {
       code: state.gd.activeGroupCode,
@@ -59,8 +67,9 @@ export async function initLeaderboard() {
   } else {
     state.gd.group = null;
   }
+  // Fetch other group names in background (non-blocking)
   const allCodes = state.gd.groupCodes || [];
-  await Promise.all(allCodes.map(async code => {
+  Promise.all(allCodes.map(async code => {
     if (code === state.gd.activeGroupCode) return;
     if (state.gd.groupMeta?.[code]?.name) return;
     try {
@@ -70,7 +79,8 @@ export async function initLeaderboard() {
         state.gd.groupMeta[code] = { name: r.group.name };
       }
     } catch (_) {}
-  }));
+  })).then(() => renderGroupSwitcher());
+  // Re-render with fresh data
   renderGroupSwitcher();
   renderLeaderboard();
 }
@@ -392,8 +402,14 @@ export function renderLeaderboard() {
     let bestBirdies = 0;
     rs.forEach(r => { if ((r.birdies || 0) > bestBirdies) bestBirdies = r.birdies; });
 
+    // Average putts per hole (only rounds with putt data)
+    const puttsRounds = rs.filter(r => (r.putts || []).some(v => v != null && v > 0));
+    const avgPutts = puttsRounds.length
+      ? +(puttsRounds.reduce((a, r) => a + (r.putts || []).reduce((s, v) => s + (v || 0), 0) / 18, 0) / puttsRounds.length).toFixed(2)
+      : null;
+
     return {
-      name, rounds: rs.length, handicap,
+      name, rounds: rs.length, handicap: currentHcp,
       best: sc.length ? Math.min(...sc) : null,
       avg: sc.length ? Math.round(sc.reduce((a, b) => a + b, 0) / sc.length) : null,
       avgDiff: diffs.length ? +(diffs.reduce((a, b) => a + b, 0) / diffs.length).toFixed(1) : null,
@@ -401,7 +417,7 @@ export function renderLeaderboard() {
       avgStab, stabCount: stabTotals.length,
       netPts, netPtsEagles, netPtsBirdies, bestNetBirdies,
       avgNet, netCount: netScores.length,
-      bufferCount, bestBirdies
+      bufferCount, bestBirdies, avgPutts
     };
   }).filter(Boolean);
 
@@ -484,8 +500,12 @@ function renderViewContent() {
         const borderStyle = isFirst ? 'border:2px solid var(--gold)' : 'border:1px solid var(--border)';
         const avatarColor = isFirst ? 'color:var(--gold);background:rgba(201,168,76,0.1)' : 'color:var(--dim);background:var(--mid)';
         const blockBg = isFirst ? 'background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.3);color:var(--gold)' : 'background:var(--mid);border:1px solid var(--border);color:var(--dimmer)';
+        const avatarImg = state.gd.players?.[p.name]?.avatarImg;
+        const avatarEl = avatarImg
+          ? `<img src="${avatarImg}" style="width:${sz}px;height:${sz}px;border-radius:50%;object-fit:cover;${borderStyle}">`
+          : `<div style="width:${sz}px;height:${sz}px;border-radius:50%;${borderStyle};${avatarColor};display:flex;align-items:center;justify-content:center;font-size:${isFirst ? 15 : 12}px;font-weight:700;font-family:'DM Sans',sans-serif">${initials(p.name)}</div>`;
         return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
-          <div style="width:${sz}px;height:${sz}px;border-radius:50%;${borderStyle};${avatarColor};display:flex;align-items:center;justify-content:center;font-size:${isFirst ? 15 : 12}px;font-weight:700;font-family:'DM Sans',sans-serif">${initials(p.name)}</div>
+          ${avatarEl}
           <div style="font-size:11px;color:var(--dim);text-align:center;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}${isMe ? ' <span style="color:var(--gold);font-size:10px">you</span>' : ''}</div>
           <div style="font-size:12px;font-weight:700;color:var(--gold)">${fmtVal(p)}</div>
           <div style="width:100%;height:${ht}px;border-radius:6px 6px 0 0;${blockBg};display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700">${pos + 1}</div>

@@ -46,6 +46,7 @@ const TEMPLATES = {
   live_invite:     { title: 'Live Round',        body: '{from} is playing at {course} — join in!' },
   join_request:    { title: 'Join Request',      body: '{from} wants to join your group' },
   join_approved:   { title: 'Group Joined',      body: "You've been approved to join the group" },
+  round_posted:    { title: 'New Round',          body: '{from} just posted {score} ({diff}) at {course} — see where this puts them!' },
 };
 
 function _buildPayload(type, fromPlayer, extra) {
@@ -54,7 +55,9 @@ function _buildPayload(type, fromPlayer, extra) {
   const body = tpl.body
     .replace('{from}', fromPlayer || 'Someone')
     .replace('{course}', extra?.course || 'a course')
-    .replace('{text}', extra?.text || '');
+    .replace('{text}', extra?.text || '')
+    .replace('{score}', extra?.score || '')
+    .replace('{diff}', extra?.diff || '');
   return {
     aps: {
       alert: { title: tpl.title, body },

@@ -691,16 +691,18 @@ function _renderGSBoardsSection() {
 }
 
 function _initBoardDragReorder(list) {
-  let dragEl = null, startY = 0, startIdx = -1;
+  let dragEl = null, startY = 0, startIdx = -1, lastSwapY = 0;
   list.querySelectorAll('.gs-grip').forEach(grip => {
     grip.addEventListener('touchstart', (e) => {
       dragEl = grip.closest('.gs-board-row');
       if (!dragEl) return;
       startIdx = parseInt(dragEl.dataset.idx);
       startY = e.touches[0].clientY;
+      lastSwapY = startY;
       dragEl.style.opacity = '0.7';
       dragEl.style.transition = 'none';
       dragEl.style.zIndex = '10';
+      dragEl.style.background = 'var(--card)';
     }, { passive: true });
   });
   list.addEventListener('touchmove', (e) => {
@@ -708,7 +710,7 @@ function _initBoardDragReorder(list) {
     e.preventDefault();
     const dy = e.touches[0].clientY - startY;
     dragEl.style.transform = `translateY(${dy}px)`;
-    // Find swap target
+    // Swap DOM nodes directly (no re-render) when dragged past a neighbour
     const rows = [...list.querySelectorAll('.gs-board-row')];
     const dragRect = dragEl.getBoundingClientRect();
     const dragMid = dragRect.top + dragRect.height / 2;
@@ -718,20 +720,27 @@ function _initBoardDragReorder(list) {
       const mid = rect.top + rect.height / 2;
       const idx = parseInt(row.dataset.idx);
       if (dragMid < mid && idx < startIdx) {
-        // Swap up
+        list.insertBefore(dragEl, row);
         const tmp = _boardOrder[startIdx];
         _boardOrder.splice(startIdx, 1);
         _boardOrder.splice(idx, 0, tmp);
-        _renderGSBoardsSection();
-        return;
+        // Update data-idx on all rows
+        list.querySelectorAll('.gs-board-row').forEach((r, i) => { r.dataset.idx = i; });
+        startIdx = idx;
+        startY = e.touches[0].clientY;
+        dragEl.style.transform = '';
+        break;
       }
       if (dragMid > mid && idx > startIdx) {
-        // Swap down
+        list.insertBefore(dragEl, row.nextSibling);
         const tmp = _boardOrder[startIdx];
         _boardOrder.splice(startIdx, 1);
         _boardOrder.splice(idx, 0, tmp);
-        _renderGSBoardsSection();
-        return;
+        list.querySelectorAll('.gs-board-row').forEach((r, i) => { r.dataset.idx = i; });
+        startIdx = idx;
+        startY = e.touches[0].clientY;
+        dragEl.style.transform = '';
+        break;
       }
     }
   }, { passive: false });
@@ -741,6 +750,7 @@ function _initBoardDragReorder(list) {
       dragEl.style.transition = '';
       dragEl.style.transform = '';
       dragEl.style.zIndex = '';
+      dragEl.style.background = '';
       dragEl = null;
       // Persist the new order (only active boards)
       const activeOrdered = _boardOrder.filter(id => _settingsActiveBoards.has(id));

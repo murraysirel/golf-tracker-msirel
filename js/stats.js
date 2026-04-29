@@ -841,7 +841,7 @@ export async function renderFeedPage() {
           <div><div style="font-size:16px;font-weight:700;color:var(--gold)">${ev.detail?.split('·')[1]?.trim() || '—'}</div><div style="font-size:8px;color:var(--dim);text-transform:uppercase;margin-top:1px">pts</div></div>
           <div><div style="font-size:16px;font-weight:700;color:var(--birdie)">${ev.round.birdies || 0}</div><div style="font-size:8px;color:var(--dim);text-transform:uppercase;margin-top:1px">birdies</div></div>
         </div>
-        ${_feedPhotos[roundId] ? `<div style="margin-top:6px"><img src="${_feedPhotos[roundId]}" style="width:100%;border-radius:8px;max-height:200px;object-fit:cover;cursor:pointer" onclick="var m=document.getElementById('avatar-zoom-modal'),i=document.getElementById('avatar-zoom-img');if(m&&i){i.src=this.src;m.style.display='flex'}"></div>` : ''}
+        ${_feedPhotos[roundId] ? `<div style="margin:8px -14px 0;overflow:hidden"><img src="${_feedPhotos[roundId]}" style="width:100%;max-height:320px;object-fit:cover;cursor:pointer" onclick="var m=document.getElementById('avatar-zoom-modal'),i=document.getElementById('avatar-zoom-img');if(m&&i){i.src=this.src;m.style.display='flex'}"></div>` : ''}
         <div style="display:flex;align-items:center;gap:12px;padding:6px 0 0;border-top:1px solid var(--border);margin-top:6px">
           <button class="feed-like-btn" data-round-id="${roundId}" data-player="${ev.name}" data-course="${ev.course || ''}" data-date="${ev.round?.date || ''}" style="background:none;border:none;cursor:pointer;font-size:12px;color:${likedByMe ? 'var(--double)' : 'var(--dim)'};font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px;padding:2px 0"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="${likedByMe ? 'var(--double)' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span class="like-count">${likeCount > 0 ? likeCount : ''}</span></button>
           <button class="feed-comment-btn" data-round-id="${roundId}" data-player="${ev.name}" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--dim);font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px;padding:2px 0"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Comment${_feedCommentCounts[roundId] ? ' <span style="color:var(--cream);font-weight:600">(' + _feedCommentCounts[roundId] + ')</span>' : ''}</button>
@@ -987,19 +987,19 @@ export async function renderFeedPage() {
       const label = input.closest('.feed-photo-btn');
       if (label) label.innerHTML = '<span style="font-size:10px;color:var(--dim)">Uploading...</span>';
       try {
-        // Resize to max 800px wide
+        // Resize to max 1600px wide for good quality on retina displays
         const img = new Image();
         const url = URL.createObjectURL(file);
         img.src = url;
         await new Promise(r => { img.onload = r; });
         const canvas = document.createElement('canvas');
-        const maxW = 800;
+        const maxW = 1600;
         const scale = Math.min(1, maxW / img.width);
         canvas.width = img.width * scale;
         canvas.height = img.height * scale;
         canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
         URL.revokeObjectURL(url);
-        const base64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+        const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
         const res = await querySupabase('uploadRoundPhoto', { playerName: state.me, roundId, photoBase64: base64, mimeType: 'image/jpeg' });
         if (res?.photoUrl) {
           // Insert photo above the action bar

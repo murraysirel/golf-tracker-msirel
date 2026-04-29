@@ -38,7 +38,7 @@
   --text-2xl: 28px;
   --text-3xl: 36px;
 }
-html{background:var(--navy)}
+html{background:var(--navy);min-height:100vh;min-height:-webkit-fill-available}
 html,body{height:100%;overflow:hidden}
 body{
   font-family:'DM Sans',sans-serif;
@@ -1367,7 +1367,7 @@ details[open] summary::after{content:' ▾'}
 
 /* ── Round tab: format slider ───────────────────────────────── */
 .format-slider{position:relative;background:var(--navy);border-radius:24px;border:1px solid var(--border);display:flex;padding:3px;overflow:hidden}
-.format-glider{position:absolute;top:3px;bottom:3px;border-radius:20px;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.4);transition:transform .35s cubic-bezier(.37,1.55,.66,.56);z-index:1;pointer-events:none}
+.format-glider{position:absolute;top:3px;bottom:3px;border-radius:20px;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.4);transition:transform .3s ease-out;z-index:1;pointer-events:none}
 .format-option{flex:1;text-align:center;padding:6px 2px;font-size:10px;font-weight:600;color:var(--dim);cursor:pointer;z-index:2;position:relative;transition:color .2s;white-space:nowrap}
 .format-option.active{color:var(--gold)}
 

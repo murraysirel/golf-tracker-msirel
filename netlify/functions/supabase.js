@@ -220,6 +220,25 @@ exports.handler = async (event) => {
         return { statusCode: 500, headers, body: JSON.stringify({ error: 'Round save failed: ' + roundErr.message }) };
       }
 
+      // Push notification to group members: "X just posted a round of Y"
+      if (groupCode && round.player && round.totalScore) {
+        try {
+          const { data: groupRow } = await supabase.from('groups').select('id').eq('code', groupCode).maybeSingle();
+          if (groupRow) {
+            const { data: members } = await supabase.from('group_members').select('player_id').eq('group_id', groupRow.id);
+            const others = (members || []).map(m => m.player_id).filter(n => n !== round.player);
+            const diff = round.diff >= 0 ? '+' + round.diff : '' + round.diff;
+            others.forEach(name => {
+              sendPushToPlayer(supabase, name, {
+                type: 'round_posted',
+                fromPlayer: round.player,
+                payload: { score: round.totalScore, diff, course: round.course || '' }
+              });
+            });
+          }
+        } catch (e) { console.warn('[saveRound] push notify failed:', e.message); }
+      }
+
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     }
 
