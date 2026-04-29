@@ -40,10 +40,19 @@ export function updateFormatUI() {
   else if (isSixes) idx = 4;
   else idx = (typeof window._formatSliderIdx === 'function') ? window._formatSliderIdx() : 1;
   const glider = document.getElementById('format-glider');
-  if (glider) glider.style.transform = `translateX(${idx * 100}%)`;
+  const slider = document.getElementById('format-slider');
   document.querySelectorAll('#format-slider .format-option').forEach(o => {
     o.classList.toggle('active', parseInt(o.dataset.idx) === idx);
   });
+  if (glider && slider) {
+    const activeOpt = slider.querySelector(`.format-option[data-idx="${idx}"]`);
+    if (activeOpt) {
+      const sliderRect = slider.getBoundingClientRect();
+      const optRect = activeOpt.getBoundingClientRect();
+      glider.style.width = optRect.width + 'px';
+      glider.style.transform = `translateX(${optRect.left - sliderRect.left - 3}px)`;
+    }
+  }
   // Game info button visibility (wolf, sixes, match)
   const infoWrap = document.getElementById('game-info-btns');
   if (infoWrap) infoWrap.style.display = (isWolf || isSixes || isMatch) ? 'block' : 'none';

@@ -53,7 +53,7 @@ export async function initPush() {
   await PushNotifications.addListener('pushNotificationActionPerformed', ({ notification }) => {
     import('./friends.js').then(m => m.pollNotifications?.()).catch(() => {});
     const type = notification.data?.type;
-    if (type === 'live_invite' || type === 'round_liked' || type === 'round_comment') {
+    if (type === 'live_invite' || type === 'round_liked' || type === 'round_comment' || type === 'round_posted') {
       import('./nav.js').then(m => m.goTo?.('home')).catch(() => {});
     }
   });

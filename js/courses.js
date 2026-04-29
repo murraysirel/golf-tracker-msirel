@@ -91,7 +91,8 @@ export function initCourseSearch() {
 
   const recent = _getRecentCourses();
   const recentHtml = recent.length ? `
-    <div id="cs-recent" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+    <div style="font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--dimmer);margin-bottom:6px">Last played</div>
+    <div id="cs-recent" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
       ${recent.map((c, i) => `<button class="cs-recent-pill" data-idx="${i}" style="padding:6px 12px;border-radius:20px;font-size:11px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;border:1px solid var(--border);background:var(--navy);color:var(--dim);white-space:nowrap;-webkit-tap-highlight-color:transparent">${c.name.replace(/ Golf Club$| Golf Course$| Golf Links$/, '')}</button>`).join('')}
     </div>` : '';
 

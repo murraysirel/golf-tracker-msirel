@@ -752,9 +752,17 @@ document.querySelectorAll('#format-slider .format-option').forEach(opt => {
     _formatSliderIdx = idx;
     const modeMap = { stroke:'stroke', stableford:'stroke', match:'match', wolf:'wolf', sixes:'sixes' };
     const mode = modeMap[opt.dataset.mode] || 'stroke';
-    // Move glider
+    // Move glider to match the selected option's position
     const glider = document.getElementById('format-glider');
-    if (glider) glider.style.transform = `translateX(${idx * 100}%)`;
+    if (glider) {
+      const slider = document.getElementById('format-slider');
+      if (slider) {
+        const sliderRect = slider.getBoundingClientRect();
+        const optRect = opt.getBoundingClientRect();
+        glider.style.width = optRect.width + 'px';
+        glider.style.transform = `translateX(${optRect.left - sliderRect.left - 3}px)`;
+      }
+    }
     // Update active class
     document.querySelectorAll('#format-slider .format-option').forEach(o => o.classList.toggle('active', o === opt));
     // Show/hide game info button for wolf, sixes, match
@@ -793,11 +801,22 @@ function switchRoundTab(tab) {
   }
 }
 
-// Set default format to Stableford (glider at index 1)
-(function() {
+// Set default format to Stableford (glider at index 1) — deferred so layout is available
+requestAnimationFrame(() => {
+  const slider = document.getElementById('format-slider');
   const glider = document.getElementById('format-glider');
-  if (glider) glider.style.transform = 'translateX(100%)';
-})();
+  const activeOpt = slider?.querySelector('.format-option[data-idx="1"]');
+  if (glider && slider && activeOpt) {
+    const sliderRect = slider.getBoundingClientRect();
+    const optRect = activeOpt.getBoundingClientRect();
+    if (optRect.width > 0) {
+      glider.style.width = optRect.width + 'px';
+      glider.style.transform = `translateX(${optRect.left - sliderRect.left - 3}px)`;
+    } else {
+      glider.style.transform = 'translateX(100%)'; // fallback
+    }
+  }
+});
 
 // ── Player selection screen ──────────────────────────────────────
 let _psSelectedPlayers = [];

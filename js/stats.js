@@ -1002,12 +1002,14 @@ export async function renderFeedPage() {
         const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
         const res = await querySupabase('uploadRoundPhoto', { playerName: state.me, roundId, photoBase64: base64, mimeType: 'image/jpeg' });
         if (res?.photoUrl) {
+          // Update local cache so photo persists on re-render
+          _feedPhotos[roundId] = res.photoUrl;
           // Insert photo above the action bar
           const card = input.closest('.feed-card');
           if (card) {
             const photoDiv = document.createElement('div');
-            photoDiv.style.cssText = 'margin-top:6px';
-            photoDiv.innerHTML = `<img src="${res.photoUrl}" style="width:100%;border-radius:8px;max-height:200px;object-fit:cover">`;
+            photoDiv.style.cssText = 'margin:8px -14px 0;overflow:hidden';
+            photoDiv.innerHTML = `<img src="${res.photoUrl}" style="width:100%;max-height:320px;object-fit:cover;cursor:pointer" onclick="var m=document.getElementById('avatar-zoom-modal'),i=document.getElementById('avatar-zoom-img');if(m&&i){i.src=this.src;m.style.display='flex'}">`;
             const actionBar = card.querySelector('[style*="display:flex;align-items:center;gap:12px"]');
             if (actionBar) actionBar.parentElement.insertBefore(photoDiv, actionBar);
           }
