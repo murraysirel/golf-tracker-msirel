@@ -63,15 +63,16 @@ export function renderCompetitionSetupModal() {
   if (!checkAccess('competitions')) { showUpgradePrompt('competitions'); return; }
   const modal = document.getElementById('comp-setup-modal');
   if (!modal) return;
-  modal.style.display = 'flex';
+  modal.style.display = 'block';
+  modal.scrollTop = 0;
 
   const content = document.getElementById('comp-setup-content');
   if (!content) return;
 
   content.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <div style="font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase">Create Competition</div>
-      <button id="comp-setup-close" style="background:none;border:none;color:var(--dim);font-size:18px;cursor:pointer">&times;</button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+      <button id="comp-setup-close" style="background:none;border:none;color:var(--cream);font-size:20px;cursor:pointer;padding:4px">←</button>
+      <div style="font-size:17px;font-weight:700;color:var(--cream)">Create Competition</div>
     </div>
 
     <label style="font-size:12px;color:var(--dim);margin-bottom:6px;display:block">Competition Name</label>
@@ -96,8 +97,9 @@ export function renderCompetitionSetupModal() {
       <button class="theme-tab" data-hcp="gross">Gross</button>
     </div>
 
-    <button id="comp-create-btn" class="btn" style="width:100%;border-radius:40px">Create Competition</button>
+    <button id="comp-create-btn" class="btn" style="width:100%;border-radius:40px;padding:16px;font-size:15px">Create Competition →</button>
     <div id="comp-setup-msg" style="margin-top:8px;font-size:11px;color:var(--dim);text-align:center"></div>
+    <button id="comp-setup-cancel" style="width:100%;padding:12px;margin-top:8px;border-radius:40px;background:transparent;border:1px solid var(--border);color:var(--dim);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer">Cancel</button>
   `;
 
   // State
@@ -227,10 +229,10 @@ export function renderCompetitionSetupModal() {
     renderRounds();
   });
 
-  // Close
-  document.getElementById('comp-setup-close')?.addEventListener('click', () => {
-    modal.style.display = 'none';
-  });
+  // Close / Cancel
+  const closeSetup = () => { modal.style.display = 'none'; };
+  document.getElementById('comp-setup-close')?.addEventListener('click', closeSetup);
+  document.getElementById('comp-setup-cancel')?.addEventListener('click', closeSetup);
 
   // Create
   document.getElementById('comp-create-btn')?.addEventListener('click', async () => {
@@ -394,7 +396,8 @@ const COMP_CODE_RE = /^COMP[A-Z]{2}\d{4}$/;
 export function renderJoinCompetitionModal() {
   const modal = document.getElementById('comp-setup-modal');
   if (!modal) return;
-  modal.style.display = 'flex';
+  modal.style.display = 'block';
+  modal.scrollTop = 0;
 
   const content = document.getElementById('comp-setup-content');
   if (!content) return;
