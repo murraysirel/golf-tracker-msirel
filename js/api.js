@@ -299,8 +299,8 @@ export function supabaseRoundToApp(r) {
     penalties: r.penalties, bunkers: r.bunkers, chips: r.chips,
     rating: r.rating, slope: r.slope,
     handicap: r.handicap ?? null,
-    aiReview: r.ai_review, wolfResult: r.wolf_result,
-    matchResult: r.match_result
+    aiReview: r.ai_review, shorthandReview: r.shorthand_review || null,
+    wolfResult: r.wolf_result, matchResult: r.match_result
   };
 }
 

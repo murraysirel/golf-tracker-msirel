@@ -309,6 +309,44 @@ Find genuine multi-round patterns, not single-round noise. Respond ONLY with val
   btn.innerHTML = sparkSVG + ' Analyse My Last 5 Rounds';
 }
 
+// ── Shorthand review — punchy 2-3 sentence summary ───────────────
+export async function generateShorthandReview(round) {
+  if (!round?.scores || !round?.pars) return null;
+  // Return cached if already generated
+  if (round.shorthandReview) return round.shorthandReview;
+
+  const totalPutts = (round.putts || []).filter(Boolean).reduce((a, b) => a + b, 0);
+  const girPct = round.gir ? Math.round(round.gir.filter(v => v === 'Yes').length / 18 * 100) : null;
+  const firCount = round.fir ? round.fir.filter((v, i) => v === 'Yes' && round.pars[i] !== 3).length : null;
+  const firHoles = round.pars ? round.pars.filter(p => p !== 3).length : 14;
+  const diff = round.diff >= 0 ? '+' + round.diff : '' + round.diff;
+
+  const prompt = `You are a witty golf caddie writing a quick post-round summary. UK English. Tone: warm and knowing, like a caddie who knows the player well — not a coach. Be punchy, not preachy.
+
+Round: ${round.course || 'Unknown'}, ${round.date}. Score: ${round.totalScore} (${diff}).
+Birdies: ${round.birdies || 0}. Bogeys: ${round.bogeys || 0}. Doubles+: ${round.doubles || 0}.${totalPutts ? ` Putts: ${totalPutts}.` : ''}${girPct != null ? ` GIR: ${girPct}%.` : ''}${firCount != null ? ` FIR: ${firCount}/${firHoles}.` : ''}
+
+In 2-3 sentences, give a punchy summary. Highlight one positive and one thing to work on. Respond with plain text only, no JSON, no quotes.`;
+
+  try {
+    const resp = await fetch(AI_API, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 200, messages: [{ role: 'user', content: prompt }] })
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    const text = data.content?.find(b => b.type === 'text')?.text?.trim() || null;
+    if (text) {
+      round.shorthandReview = text;
+      // Persist to Supabase (fire-and-forget)
+      querySupabase('updateRoundField', { roundId: round.id, field: 'shorthand_review', value: text }).catch(() => {});
+    }
+    return text;
+  } catch {
+    return null;
+  }
+}
+
 export function clearStatsAnalysis() {
   if (!state.gd.players[state.me]) return;
   delete state.gd.players[state.me].statsAnalysis;

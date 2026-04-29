@@ -9,6 +9,9 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
 
+[functions."monthly-badges"]
+  schedule = "0 8 1 * *"  # 1st of each month at 08:00 UTC
+
 # No server-side redirect — domain-aware routing handled in index.html
 # loopercaddie.com → waitlist (client-side redirect)
 # loopercaddie.netlify.app → app (no redirect)

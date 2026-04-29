@@ -242,6 +242,30 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     }
 
+    // ── getPlayerBadges — fetch badges for a player ────────────────
+    if (action === 'getPlayerBadges') {
+      const { playerName } = data;
+      if (!playerName) return { statusCode: 400, headers, body: JSON.stringify({ error: 'playerName required' }) };
+      const { data: rows } = await supabase
+        .from('user_badges')
+        .select('*')
+        .eq('player_name', playerName)
+        .order('month', { ascending: false })
+        .limit(12);
+      return { statusCode: 200, headers, body: JSON.stringify({ badges: rows || [] }) };
+    }
+
+    // ── updateRoundField — set a single field on a round ───────────
+    if (action === 'updateRoundField') {
+      const { roundId, field, value } = data;
+      const allowed = ['shorthand_review', 'photo_url'];
+      if (!roundId || !field || !allowed.includes(field)) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid field or roundId' }) };
+      }
+      await supabase.from('rounds').update({ [field]: value }).eq('id', roundId);
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+    }
+
     // ── updateHandicap ───────────────────────────────────────────────
     if (action === 'updateHandicap') {
       const { playerName, handicap } = data;

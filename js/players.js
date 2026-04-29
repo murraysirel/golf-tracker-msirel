@@ -940,6 +940,7 @@ export async function showPlayerProfile(name) {
     ${lastRoundHtml}
     ${formHtml}
     ${_renderStreaksCard(rs, hcp || 0)}
+    <div id="pp-badges-area"></div>
   `;
 
   // Wire add friend button
@@ -967,4 +968,21 @@ export async function showPlayerProfile(name) {
   document.getElementById('pp-back-btn').onclick = () => {
     sheet.style.display = 'none';
   };
+
+  // Load badges async (non-blocking)
+  querySupabase('getPlayerBadges', { playerName: name }).then(res => {
+    const badges = res?.badges || [];
+    const area = document.getElementById('pp-badges-area');
+    if (!area || !badges.length) return;
+    area.innerHTML = `<div style="margin-top:20px">
+      <div style="font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:8px">Awards</div>
+      ${badges.map(b => `<div class="card" style="padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:20px">🏅</span>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--gold)">${b.label}</div>
+          <div style="font-size:10px;color:var(--dim)">${b.group_code || ''}</div>
+        </div>
+      </div>`).join('')}
+    </div>`;
+  }).catch(() => {});
 }
