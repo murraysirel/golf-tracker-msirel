@@ -287,7 +287,7 @@ export function saveRound() {
         if (s.current > 1) {
           const f = formatStreak(key, s);
           const pbText = s.current >= s.pb ? ' — new PB!' : '';
-          setTimeout(() => { if (toast) toast(`${f.icon} ${s.current} ${f.label.toLowerCase()} in a row${pbText}`, 'info', 4000); }, 3500);
+          setTimeout(() => { if (toast) toast(`${s.current} ${f.label.toLowerCase()} in a row${pbText}`, 'info', 4000); }, 3500);
         }
       });
     }).catch(() => {});

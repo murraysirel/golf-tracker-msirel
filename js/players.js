@@ -977,7 +977,7 @@ export async function showPlayerProfile(name) {
     area.innerHTML = `<div style="margin-top:20px">
       <div style="font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:8px">Awards</div>
       ${badges.map(b => `<div class="card" style="padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;gap:10px">
-        <span style="font-size:20px">🏅</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
         <div>
           <div style="font-size:12px;font-weight:600;color:var(--gold)">${b.label}</div>
           <div style="font-size:10px;color:var(--dim)">${b.group_code || ''}</div>
