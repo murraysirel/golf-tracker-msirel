@@ -258,22 +258,22 @@ export function saveRound() {
     if (toast) toast('Round saved! Syncing to cloud\u2026', 'success', 3000);
 
     // ── AI shorthand review + share card (non-blocking) ───────────
-    import('./ai.js').then(({ generateShorthandReview }) => {
-      generateShorthandReview(rnd).then(text => {
-        if (text && toast) setTimeout(() => toast(text, 'info', 6000), 5000);
-        // Show share card after a moment
-        setTimeout(() => {
-          import('./share-card.js').then(({ showShareCardModal }) => {
-            showShareCardModal(rnd, { shorthandReview: text });
-          });
-        }, 7000);
-      });
+    import('./ai.js').then(async ({ generateShorthandReview }) => {
+      let text = null;
+      try { text = await generateShorthandReview(rnd); } catch {}
+      if (text && toast) setTimeout(() => toast(text, 'info', 6000), 5000);
+      // Show share card regardless of AI result
+      setTimeout(() => {
+        import('./share-card.js').then(({ showShareCardModal }) => {
+          showShareCardModal(rnd, { shorthandReview: text });
+        }).catch(() => {});
+      }, text ? 7000 : 5000);
     }).catch(() => {
-      // AI failed — show share card without review
+      // Module import failed — show share card without review
       setTimeout(() => {
         import('./share-card.js').then(({ showShareCardModal }) => {
           showShareCardModal(rnd);
-        });
+        }).catch(() => {});
       }, 5000);
     });
 

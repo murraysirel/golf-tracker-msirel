@@ -335,16 +335,16 @@ In 2-3 sentences, give a punchy summary. Highlight one positive and one thing to
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 200, messages: [{ role: 'user', content: prompt }] })
     });
-    if (!resp.ok) return null;
+    if (!resp.ok) { console.warn('[shorthand] API error:', resp.status); return null; }
     const data = await resp.json();
     const text = data.content?.find(b => b.type === 'text')?.text?.trim() || null;
-    if (text) {
-      round.shorthandReview = text;
-      // Persist to Supabase (fire-and-forget)
-      querySupabase('updateRoundField', { roundId: round.id, field: 'shorthand_review', value: text }).catch(() => {});
-    }
+    if (!text) { console.warn('[shorthand] No text in response:', JSON.stringify(data).slice(0, 200)); return null; }
+    round.shorthandReview = text;
+    // Persist to Supabase (fire-and-forget)
+    querySupabase('updateRoundField', { roundId: round.id, field: 'shorthand_review', value: text }).catch(() => {});
     return text;
-  } catch {
+  } catch (e) {
+    console.warn('[shorthand] failed:', e.message);
     return null;
   }
 }
