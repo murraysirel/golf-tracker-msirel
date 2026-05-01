@@ -258,6 +258,7 @@ export function saveRound() {
     if (toast) toast('Round saved! Syncing to cloud\u2026', 'success', 3000);
 
     // ── AI shorthand review + share card (non-blocking) ───────────
+    if (toast) setTimeout(() => toast('Generating AI review...', 'info', 2000), 3000);
     import('./ai.js').then(async ({ generateShorthandReview }) => {
       console.log('[post-save] AI module loaded, calling generateShorthandReview...');
       let text = null;
