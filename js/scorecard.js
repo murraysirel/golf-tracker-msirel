@@ -258,27 +258,20 @@ export function saveRound() {
     if (toast) toast('Round saved! Syncing to cloud\u2026', 'success', 3000);
 
     // ── AI shorthand review + share card (non-blocking) ───────────
-    if (toast) setTimeout(() => toast('Generating AI review...', 'info', 2000), 3000);
     import('./ai.js').then(async ({ generateShorthandReview }) => {
-      console.log('[post-save] AI module loaded, calling generateShorthandReview...');
       let text = null;
-      try { text = await generateShorthandReview(rnd); } catch (e) { console.warn('[post-save] shorthand error:', e); }
-      console.log('[post-save] shorthand result:', text ? text.slice(0, 50) + '...' : 'null');
+      try { text = await generateShorthandReview(rnd); } catch {}
       if (text && toast) setTimeout(() => toast(text, 'info', 6000), 5000);
-      // Show share card regardless of AI result
       setTimeout(() => {
-        console.log('[post-save] showing share card...');
         import('./share-card.js').then(({ showShareCardModal }) => {
           showShareCardModal(rnd, { shorthandReview: text });
-        }).catch(e => console.warn('[post-save] share-card import failed:', e));
+        }).catch(() => {});
       }, text ? 7000 : 5000);
-    }).catch(e => {
-      console.warn('[post-save] ai.js import failed:', e);
-      // Module import failed — show share card without review
+    }).catch(() => {
       setTimeout(() => {
         import('./share-card.js').then(({ showShareCardModal }) => {
           showShareCardModal(rnd);
-        }).catch(e2 => console.warn('[post-save] share-card fallback failed:', e2));
+        }).catch(() => {});
       }, 5000);
     });
 
@@ -549,7 +542,7 @@ export function cancelReviewReminder() {
 }
 
 // ── Course leaderboard rank ─────────────────────────────────────
-async function _showCourseRank(round) {
+export async function _showCourseRank(round) {
   if (!round.course || !round.totalScore) return;
   try {
     const { querySupabase } = await import('./api.js');

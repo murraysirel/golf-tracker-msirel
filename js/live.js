@@ -1339,6 +1339,40 @@ async function liveGroupSave() {
   const toast = window._looperToast;
   if (toast) toast(`Round saved for ${names}!`, 'success', 3000);
 
+  // ── Retention loop (for the current user's round) ─────────────
+  const myRound = savedRounds.find(r => r.player === state.me)?.round;
+  if (myRound) {
+    // AI shorthand review + share card
+    import('./ai.js').then(async ({ generateShorthandReview }) => {
+      let text = null;
+      try { text = await generateShorthandReview(myRound); } catch {}
+      if (text && toast) setTimeout(() => toast(text, 'info', 6000), 5000);
+      setTimeout(() => {
+        import('./share-card.js').then(({ showShareCardModal }) => {
+          showShareCardModal(myRound, { shorthandReview: text });
+        }).catch(() => {});
+      }, text ? 7000 : 5000);
+    }).catch(() => {});
+
+    // Streak check
+    import('./streaks.js').then(({ computeStreaks, formatStreak }) => {
+      const playerRounds = state.gd.players[state.me]?.rounds || [];
+      const hcp = state.gd.players[state.me]?.handicap || 0;
+      const streaks = computeStreaks(playerRounds, hcp);
+      ['bufferOrBetter', 'sub36Putts', 'roundsIn30Days'].forEach(key => {
+        const s = streaks[key];
+        if (s.current > 1) {
+          const f = formatStreak(key, s);
+          const pbText = s.current >= s.pb ? ' — new PB!' : '';
+          setTimeout(() => { if (toast) toast(`${s.current} ${f.label.toLowerCase()} in a row${pbText}`, 'info', 4000); }, 3500);
+        }
+      });
+    }).catch(() => {});
+
+    // Course leaderboard rank
+    import('./scorecard.js').then(m => m._showCourseRank?.(myRound)).catch(() => {});
+  }
+
   // Network sync — fire-and-forget, never blocks UI
   _syncInBackground('pushData', pushData());
 
