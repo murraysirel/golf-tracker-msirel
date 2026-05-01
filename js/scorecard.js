@@ -259,21 +259,25 @@ export function saveRound() {
 
     // ── AI shorthand review + share card (non-blocking) ───────────
     import('./ai.js').then(async ({ generateShorthandReview }) => {
+      console.log('[post-save] AI module loaded, calling generateShorthandReview...');
       let text = null;
-      try { text = await generateShorthandReview(rnd); } catch {}
+      try { text = await generateShorthandReview(rnd); } catch (e) { console.warn('[post-save] shorthand error:', e); }
+      console.log('[post-save] shorthand result:', text ? text.slice(0, 50) + '...' : 'null');
       if (text && toast) setTimeout(() => toast(text, 'info', 6000), 5000);
       // Show share card regardless of AI result
       setTimeout(() => {
+        console.log('[post-save] showing share card...');
         import('./share-card.js').then(({ showShareCardModal }) => {
           showShareCardModal(rnd, { shorthandReview: text });
-        }).catch(() => {});
+        }).catch(e => console.warn('[post-save] share-card import failed:', e));
       }, text ? 7000 : 5000);
-    }).catch(() => {
+    }).catch(e => {
+      console.warn('[post-save] ai.js import failed:', e);
       // Module import failed — show share card without review
       setTimeout(() => {
         import('./share-card.js').then(({ showShareCardModal }) => {
           showShareCardModal(rnd);
-        }).catch(() => {});
+        }).catch(e2 => console.warn('[post-save] share-card fallback failed:', e2));
       }, 5000);
     });
 
