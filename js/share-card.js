@@ -676,18 +676,31 @@ export function showShareCardModal(round, opts = {}) {
     // Share
     document.getElementById('sc-share-btn')?.addEventListener('click', async () => {
       try {
-        const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
-        const file = new File([blob], `looper-${round.course || 'round'}-${round.date?.replace(/\//g, '-')}.png`, { type: 'image/png' });
+        const fileName = `looper-${(round.course || 'round').replace(/[^a-zA-Z0-9]/g, '-')}-${(round.date || '').replace(/\//g, '-')}.png`;
         if (IS_NATIVE) {
+          // Write to temp file so iOS share sheet offers Instagram, WhatsApp, etc.
+          const { Filesystem, Directory } = await import('@capacitor/filesystem');
+          const base64 = dataUrl.split(',')[1];
+          const saved = await Filesystem.writeFile({
+            path: fileName,
+            data: base64,
+            directory: Directory.Cache
+          });
           const { Share } = await import('@capacitor/share');
-          await Share.share({ title: 'My Looper round', url: dataUrl });
-        } else if (navigator.share && navigator.canShare?.({ files: [file] })) {
-          await navigator.share({ files: [file], title: 'My Looper round' });
+          await Share.share({ title: 'My Looper round', files: [saved.uri] });
+          // Clean up temp file (fire-and-forget)
+          Filesystem.deleteFile({ path: fileName, directory: Directory.Cache }).catch(() => {});
         } else {
-          const a = document.createElement('a');
-          a.href = dataUrl;
-          a.download = file.name;
-          a.click();
+          const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+          const file = new File([blob], fileName, { type: 'image/png' });
+          if (navigator.share && navigator.canShare?.({ files: [file] })) {
+            await navigator.share({ files: [file], title: 'My Looper round' });
+          } else {
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = fileName;
+            a.click();
+          }
         }
       } catch (e) {
         if (e.name !== 'AbortError') console.warn('[share]', e);
