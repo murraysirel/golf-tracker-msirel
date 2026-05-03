@@ -536,6 +536,25 @@ if (!window.Capacitor?.isNativePlatform?.() && location.hostname === 'loopercadd
         <!-- ═══════ PLAY A ROUND SECTION ═══════ -->
         <div id="round-play-section">
 
+          <!-- Game Format — sliding pill (first pick) -->
+          <div style="background:var(--mid);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">
+            <div style="font-size:10px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--dim);margin-bottom:10px">Format</div>
+            <div class="format-slider" id="format-slider">
+              <div class="format-glider" id="format-glider" style="width:20%"></div>
+              <div class="format-option" data-mode="stroke" data-idx="0">Stroke</div>
+              <div class="format-option active" data-mode="stableford" data-idx="1">Stableford</div>
+              <div class="format-option" data-mode="match" data-idx="2">Match</div>
+              <div class="format-option" data-mode="wolf" data-idx="3">Wolf</div>
+              <div class="format-option" data-mode="sixes" data-idx="4">Sixes</div>
+            </div>
+            <div id="wolf-need-4" style="display:none;font-size:11px;color:var(--gold);margin-top:6px">Wolf requires exactly 4 players — select on the next screen</div>
+            <div id="match-need-2" style="display:none;font-size:11px;color:var(--gold);margin-top:6px">Match play: 2–4 players in any team split — assign teams on the next screen</div>
+            <div id="sixes-need-3" style="display:none;font-size:11px;color:var(--gold);margin-top:6px">Sixes requires exactly 3 players — select on the next screen</div>
+            <div id="game-info-btns" style="display:none;margin-top:8px">
+              <button id="wolf-info-btn" style="background:none;border:1px solid var(--wa-12);border-radius:16px;padding:4px 12px;color:var(--dim);font-size:10px;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap">Teach me the game</button>
+            </div>
+          </div>
+
           <!-- Course search card -->
           <div id="course-card-wrap" style="background:var(--mid);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">
             <div style="font-size:10px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--dim);margin-bottom:10px">Course</div>
@@ -558,25 +577,6 @@ if (!window.Capacitor?.isNativePlatform?.() && location.hostname === 'loopercadd
           <div id="tee-wrap" style="display:none">
             <div class="tee-row" id="tee-btns"></div>
             <div class="tee-info" id="tee-info"></div>
-          </div>
-
-          <!-- Game Format — sliding pill -->
-          <div style="background:var(--mid);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">
-            <div style="font-size:10px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--dim);margin-bottom:10px">Format</div>
-            <div class="format-slider" id="format-slider">
-              <div class="format-glider" id="format-glider" style="width:20%"></div>
-              <div class="format-option" data-mode="stroke" data-idx="0">Stroke</div>
-              <div class="format-option active" data-mode="stableford" data-idx="1">Stableford</div>
-              <div class="format-option" data-mode="match" data-idx="2">Match</div>
-              <div class="format-option" data-mode="wolf" data-idx="3">Wolf</div>
-              <div class="format-option" data-mode="sixes" data-idx="4">Sixes</div>
-            </div>
-            <div id="wolf-need-4" style="display:none;font-size:11px;color:var(--gold);margin-top:6px">Wolf requires exactly 4 players — select on the next screen</div>
-            <div id="match-need-2" style="display:none;font-size:11px;color:var(--gold);margin-top:6px">Match play: 2–4 players in any team split — assign teams on the next screen</div>
-            <div id="sixes-need-3" style="display:none;font-size:11px;color:var(--gold);margin-top:6px">Sixes requires exactly 3 players — select on the next screen</div>
-            <div id="game-info-btns" style="display:none;margin-top:8px">
-              <button id="wolf-info-btn" style="background:none;border:1px solid var(--wa-12);border-radius:16px;padding:4px 12px;color:var(--dim);font-size:10px;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap">Teach me the game</button>
-            </div>
           </div>
 
           <!-- Hidden old format buttons for backward compat -->

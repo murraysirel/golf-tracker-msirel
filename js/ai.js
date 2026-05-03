@@ -323,17 +323,17 @@ export async function generateShorthandReview(round) {
   const firHoles = round.pars ? round.pars.filter(p => p !== 3).length : 14;
   const diff = round.diff >= 0 ? '+' + round.diff : '' + round.diff;
 
-  const prompt = `You are a witty golf caddie writing a quick post-round summary. UK English. Tone: warm and knowing, like a caddie who knows the player well — not a coach. Be punchy, not preachy.
+  const prompt = `You are a golf caddie writing a brief post-round note. UK English. Tone: friendly and direct — not overly casual, not coaching. One line on what went well, one on what to sharpen.
 
 Round: ${round.course || 'Unknown'}, ${round.date}. Score: ${round.totalScore} (${diff}).
 Birdies: ${round.birdies || 0}. Bogeys: ${round.bogeys || 0}. Doubles+: ${round.doubles || 0}.${totalPutts ? ` Putts: ${totalPutts}.` : ''}${girPct != null ? ` GIR: ${girPct}%.` : ''}${firCount != null ? ` FIR: ${firCount}/${firHoles}.` : ''}
 
-In 2-3 sentences, give a punchy summary. Highlight one positive and one thing to work on. Respond with plain text only, no JSON, no quotes.`;
+Write exactly 2 short sentences. Respond with plain text only, no JSON, no quotes.`;
 
   try {
     const resp = await fetch(AI_API, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 200, messages: [{ role: 'user', content: prompt }] })
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 120, messages: [{ role: 'user', content: prompt }] })
     });
     if (!resp.ok) { console.warn('[shorthand] API error:', resp.status); return null; }
     const data = await resp.json();

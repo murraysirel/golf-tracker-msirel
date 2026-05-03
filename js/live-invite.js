@@ -134,11 +134,21 @@ async function _startViewerGps(round) {
   await _stopViewerGps();
 
   if (IS_NATIVE) {
-    const { Geolocation } = await import('@capacitor/geolocation');
-    _viewerGpsWatchId = await Geolocation.watchPosition(
-      { enableHighAccuracy: true },
-      onPos
-    );
+    try {
+      const { Geolocation } = await import('@capacitor/geolocation');
+      let perm = await Geolocation.checkPermissions();
+      if (perm.location === 'prompt' || perm.location === 'prompt-with-rationale') {
+        perm = await Geolocation.requestPermissions({ permissions: ['location'] });
+      }
+      if (perm.location !== 'granted') return;
+      _viewerGpsWatchId = await Geolocation.watchPosition(
+        { enableHighAccuracy: true },
+        onPos
+      );
+    } catch (e) {
+      console.warn('[live-invite] GPS failed:', e.message);
+      return;
+    }
   } else {
     if (!navigator.geolocation) return;
     _viewerGpsWatchId = navigator.geolocation.watchPosition(

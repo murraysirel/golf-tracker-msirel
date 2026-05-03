@@ -261,18 +261,18 @@ export function saveRound() {
     import('./ai.js').then(async ({ generateShorthandReview }) => {
       let text = null;
       try { text = await generateShorthandReview(rnd); } catch {}
-      if (text && toast) setTimeout(() => toast(text, 'info', 6000), 5000);
+      if (text && toast) setTimeout(() => toast(text, 'info', 5000), 2000);
       setTimeout(() => {
         import('./share-card.js').then(({ showShareCardModal }) => {
           showShareCardModal(rnd, { shorthandReview: text });
         }).catch(() => {});
-      }, text ? 7000 : 5000);
+      }, text ? 3500 : 2500);
     }).catch(() => {
       setTimeout(() => {
         import('./share-card.js').then(({ showShareCardModal }) => {
           showShareCardModal(rnd);
         }).catch(() => {});
-      }, 5000);
+      }, 2500);
     });
 
     // ── Streak check (non-blocking) ─────────────────────────────
@@ -285,7 +285,7 @@ export function saveRound() {
         if (s.current > 1) {
           const f = formatStreak(key, s);
           const pbText = s.current >= s.pb ? ' — new PB!' : '';
-          setTimeout(() => { if (toast) toast(`${s.current} ${f.label.toLowerCase()} in a row${pbText}`, 'info', 4000); }, 3500);
+          setTimeout(() => { if (toast) toast(`${s.current} ${f.label.toLowerCase()} in a row${pbText}`, 'info', 4000); }, 1500);
         }
       });
     }).catch(() => {});
@@ -549,7 +549,7 @@ export async function _showCourseRank(round) {
     const res = await querySupabase('getCourseLeaderboard', { course: round.course });
     if (!res?.leaderboard?.length) {
       const toast = window._looperToast;
-      if (toast) setTimeout(() => toast(`First Looper round at ${round.course.replace(/ Golf Club$| Golf Course$| Golf Links$/, '')} — you've set the bar!`, 'info', 4000), 8000);
+      if (toast) setTimeout(() => toast(`First Looper round at ${round.course.replace(/ Golf Club$| Golf Course$| Golf Links$/, '')} — you've set the bar!`, 'info', 4000), 5000);
       return;
     }
     // Find this round's rank by stableford points
@@ -561,9 +561,9 @@ export async function _showCourseRank(round) {
     const toast = window._looperToast;
     if (rank <= 3 && toast) {
       const suffix = rank === 1 ? 'st' : rank === 2 ? 'nd' : 'rd';
-      setTimeout(() => toast(`You're ${rank}${suffix} at ${courseName} this month!`, 'info', 5000), 8500);
+      setTimeout(() => toast(`You're ${rank}${suffix} at ${courseName} this month!`, 'info', 5000), 5000);
     } else if (rank <= 10 && toast) {
-      setTimeout(() => toast(`Top ${rank} of ${total} at ${courseName} this month`, 'info', 4000), 8500);
+      setTimeout(() => toast(`Top ${rank} of ${total} at ${courseName} this month`, 'info', 4000), 5000);
     }
   } catch {}
 }

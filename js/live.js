@@ -588,14 +588,24 @@ function liveRenderGroupHole(h) {
     const sel = name === _statPlayer;
 
     // Running score across all played holes
-    let runTot = 0, runPar = 0, thruCount = 0;
+    let runTot = 0, runPar = 0, thruCount = 0, stabPts = 0;
     for (let i = 0; i < 18; i++) {
       const s = state.liveState.groupScores[name]?.[i];
-      if (s != null && i !== h) { runTot += s; runPar += state.cpars[i]; thruCount++; }
+      if (s != null && i !== h) {
+        runTot += s; runPar += state.cpars[i]; thruCount++;
+        // Stableford points for completed holes
+        const d = s - state.cpars[i];
+        if (d <= -3) stabPts += 5;
+        else if (d === -2) stabPts += 4;
+        else if (d === -1) stabPts += 3;
+        else if (d === 0) stabPts += 2;
+        else if (d === 1) stabPts += 1;
+      }
     }
     const runDelta = runTot - runPar;
+    const isStableford = state.gameMode === 'stableford';
     const fmtRun = thruCount > 0
-      ? `<span style="color:${runDelta < 0 ? 'var(--birdie)' : runDelta === 0 ? 'var(--par)' : 'var(--bogey)'}">${runDelta === 0 ? 'E' : (runDelta > 0 ? '+' : '') + runDelta}</span> thru ${thruCount}`
+      ? `<span style="color:${runDelta < 0 ? 'var(--birdie)' : runDelta === 0 ? 'var(--par)' : 'var(--bogey)'}">${runDelta === 0 ? 'E' : (runDelta > 0 ? '+' : '') + runDelta}</span> thru ${thruCount}${isStableford ? ` · <span style="color:var(--gold)">${stabPts} pts</span>` : ''}`
       : 'No scores yet';
 
     // Hole score colour
@@ -1020,12 +1030,16 @@ export function liveUpdateRunning() {
   }
 
   if (isGroup) {
-    // Show scoring-for player's gross vs par, with net below
+    // Show scoring-for player's gross vs par, with net or stableford below
     const primary = state.scoringFor || state.liveState.group[0];
-    let tot = 0, par = 0, strokes = 0, n = 0;
+    let tot = 0, par = 0, strokes = 0, n = 0, stabPts = 0;
     for (let h = 0; h < 18; h++) {
       const sc = state.liveState.groupScores[primary]?.[h];
-      if (sc != null) { tot += sc; par += state.cpars[h]; strokes += getHcpStrokesOnHole(primary, h); n++; }
+      if (sc != null) {
+        tot += sc; par += state.cpars[h]; strokes += getHcpStrokesOnHole(primary, h); n++;
+        const sd = sc - state.cpars[h];
+        if (sd <= -3) stabPts += 5; else if (sd === -2) stabPts += 4; else if (sd === -1) stabPts += 3; else if (sd === 0) stabPts += 2; else if (sd === 1) stabPts += 1;
+      }
     }
     if (!n) {
       if (el) { el.textContent = '—'; el.style.color = 'var(--gold)'; }
@@ -1037,15 +1051,17 @@ export function liveUpdateRunning() {
     const fmtD = d === 0 ? 'E' : (d > 0 ? '+' + d : '' + d);
     const fmtN = nd === 0 ? 'E' : (nd > 0 ? '+' + nd : '' + nd);
     if (el) { el.textContent = fmtD; el.style.color = d < 0 ? 'var(--birdie)' : d > 0 ? 'var(--bogey)' : 'var(--gold)'; }
-    if (vp) vp.textContent = fmtN + ' net';
+    if (vp) vp.textContent = state.gameMode === 'stableford' ? stabPts + ' pts' : fmtN + ' net';
   } else {
-    let tot = 0, par = 0, strokes = 0, n = 0;
+    let tot = 0, par = 0, strokes = 0, n = 0, stabPts = 0;
     for (let h = 0; h < 18; h++) {
       if (state.liveState.scores[h] != null) {
         tot += state.liveState.scores[h];
         par += state.cpars[h];
         strokes += getHcpStrokesOnHole(state.me, h);
         n++;
+        const sd = state.liveState.scores[h] - state.cpars[h];
+        if (sd <= -3) stabPts += 5; else if (sd === -2) stabPts += 4; else if (sd === -1) stabPts += 3; else if (sd === 0) stabPts += 2; else if (sd === 1) stabPts += 1;
       }
     }
     if (!n) { if (el) { el.textContent = '—'; el.style.color = 'var(--gold)'; } if (vp) vp.textContent = ''; return; }
@@ -1054,7 +1070,7 @@ export function liveUpdateRunning() {
     const fmtD = d === 0 ? 'E' : (d > 0 ? '+' + d : '' + d);
     const fmtN = nd === 0 ? 'E' : (nd > 0 ? '+' + nd : '' + nd);
     if (el) { el.textContent = fmtD; el.style.color = d < 0 ? 'var(--birdie)' : d > 0 ? 'var(--bogey)' : 'var(--gold)'; }
-    if (vp) vp.textContent = fmtN + ' net';
+    if (vp) vp.textContent = state.gameMode === 'stableford' ? stabPts + ' pts' : fmtN + ' net';
   }
 }
 

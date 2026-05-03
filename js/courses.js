@@ -93,7 +93,7 @@ export function initCourseSearch() {
   const recentHtml = recent.length ? `
     <div style="font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--dimmer);margin-bottom:6px">Last played</div>
     <div id="cs-recent" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
-      ${recent.map((c, i) => `<button class="cs-recent-pill" data-idx="${i}" style="padding:6px 12px;border-radius:20px;font-size:11px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;border:1px solid var(--border);background:var(--navy);color:var(--dim);white-space:nowrap;-webkit-tap-highlight-color:transparent">${c.name.replace(/ Golf Club$| Golf Course$| Golf Links$/, '')}</button>`).join('')}
+      ${recent.map((c, i) => `<button class="cs-recent-pill" data-idx="${i}" style="padding:8px 14px;border-radius:20px;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;border:1px solid var(--border);background:var(--navy);color:var(--dim);white-space:nowrap;-webkit-tap-highlight-color:transparent">${c.name.replace(/ Golf Club$| Golf Course$| Golf Links$/, '')}</button>`).join('')}
     </div>` : '';
 
   wrap.innerHTML = `
@@ -287,12 +287,8 @@ function _renderResults(courses) {
 
     return `
     <div class="cs-result" data-idx="${i}">
-      <div class="cs-result-name">${c.name}${c.name !== c.club_name && c.club_name ? ` <span class="cs-result-club">· ${c.club_name}</span>` : ''}${holeDataBadge}</div>
-      <div class="cs-result-meta">
-        ${c.location || ''}${parBadge}
-        ${c.holes && c.holes !== 18 ? ` · ${c.holes} holes` : ''}
-        ${c.has_gps ? ' · <span class="cs-gps-badge"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M9 16s-5-4.3-5-8.5a5 5 0 0 1 10 0C14 11.7 9 16 9 16z"/><circle cx="9" cy="7.5" r="1.5"/></svg> GPS</span>' : ''}
-      </div>
+      <div class="cs-result-name">${c.name}${holeDataBadge}${c.has_gps ? ' <span class="cs-gps-badge" style="font-size:10px">GPS</span>' : ''}</div>
+      <div class="cs-result-meta">${c.location || ''}${parBadge}${c.holes && c.holes !== 18 ? ` · ${c.holes} holes` : ''}</div>
     </div>`;
   }).join('');
  

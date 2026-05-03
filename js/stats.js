@@ -101,6 +101,22 @@ function buildScorecardTable(primaryRound, group) {
   for (let i = 9; i < 18; i++) html += buildRow(i);
   html += buildSubRow('IN', 9, 18);
   html += `<tr class="sc-tot">${totCells}</tr>`;
+
+  // Stableford row
+  let stabCells = `<td style="color:var(--dim)">Stab</td><td></td>`;
+  for (const { round: r } of group) {
+    let pts = 0;
+    for (let i = 0; i < 18; i++) {
+      const sc = r.scores?.[i], p = pars[i] || 4;
+      if (!sc) continue;
+      const d = sc - p;
+      if (d <= -3) pts += 5; else if (d === -2) pts += 4; else if (d === -1) pts += 3; else if (d === 0) pts += 2; else if (d === 1) pts += 1;
+    }
+    stabCells += `<td style="color:var(--gold);font-weight:600">${pts} pts</td>`;
+  }
+  if (hasWolf) stabCells += '<td></td>';
+  html += `<tr class="sc-sub">${stabCells}</tr>`;
+
   html += '</tbody></table>';
 
   if (primaryRound.matchResult?.result) {
